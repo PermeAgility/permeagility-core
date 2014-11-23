@@ -36,6 +36,7 @@ import permeagility.util.BrowserControl;
 import permeagility.util.ConstantOverride;
 import permeagility.util.Database;
 import permeagility.util.DatabaseConnection;
+import permeagility.util.DatabaseSetup;
 import permeagility.util.Dumper;
 import permeagility.util.PlusClassLoader;
 import permeagility.util.QueryResult;
@@ -90,10 +91,10 @@ public class Server extends Thread {
 	
 	private static Date securityRefreshTime = new Date();
 	private static ConcurrentHashMap<String,Object[]> userRoles = new ConcurrentHashMap<String,Object[]>();
-	private static ConcurrentHashMap<String,HashMap<String,Byte>> userRules = new ConcurrentHashMap<String,HashMap<String,Byte>>();
+	private static ConcurrentHashMap<String,HashMap<String,Number>> userRules = new ConcurrentHashMap<String,HashMap<String,Number>>();
 	private static ConcurrentHashMap<String,Object[]> keyRoles = new ConcurrentHashMap<String,Object[]>();
 	private static ConcurrentHashMap<String,QueryResult> columnsCache = new ConcurrentHashMap<String,QueryResult>();
-	private static ConcurrentHashMap<String,HashMap<String,Byte>> tablePrivsCache = new ConcurrentHashMap<String,HashMap<String,Byte>>();
+	private static ConcurrentHashMap<String,HashMap<String,Number>> tablePrivsCache = new ConcurrentHashMap<String,HashMap<String,Number>>();
 
 	private static SimpleDateFormat gmt_date_format = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz");
 
@@ -193,7 +194,7 @@ public class Server extends Thread {
 					s.start();
 				}
 			} catch (Exception e) {
-				System.err.println("Server aborted prematurely: "+e.getMessage());
+				System.err.println("***\n*** Exit condition: \n***"+e.getMessage());
 				System.exit(1);
 			} finally {
 				if (database != null) {
@@ -912,16 +913,11 @@ public class Server extends Thread {
 				}
 				if (DEBUG) System.out.println(user+" rules="+rules);
 				// Collapse the rules into a single HashMap 
-				HashMap<String,Byte> newRules = new HashMap<String,Byte>();
+				HashMap<String,Number> newRules = new HashMap<String,Number>();
 				for (OTrackedMap<Object> m : rules) {
 					for (Object res : m.keySet()) {
 						String resource = (String)res;
-						Byte newPriv = (Byte)m.get(res);
-//						Byte oldPriv = (Byte)newRules.get(res);  // This merges the bits but OrientDB doesn't do that with inherited roles - saving this just in case it changes
-//						if (oldPriv != null) {
-//							int np = oldPriv.byteValue() | newPriv.byteValue();
-//							newPriv = new Byte((byte)np);
-//						}
+						Number newPriv = (Number)m.get(res);
 						newRules.put(resource, newPriv);
 					}
 				}
@@ -929,6 +925,7 @@ public class Server extends Thread {
 				userRules.put(user, newRules);
 			}
 		} catch (Exception e) {
+			System.out.println("Error retrieving security model into cache - "+e.getMessage());
 			e.printStackTrace();
 		}
 		database.freeConnection(con);
@@ -982,17 +979,17 @@ public class Server extends Thread {
 	public static int getTablePriv(DatabaseConnection con, String table) {
 		int priv = 0;
 		String user = con.getUser();
-		HashMap<String,Byte> newRules = userRules.get(user);
+		HashMap<String,Number> newRules = userRules.get(user);
 		
 		// if starts with database, it is a specific privilege
 		if (table.startsWith("database.")) {
-			Byte r = newRules.get(table);
+			Number r = newRules.get(table);
 			if (r != null) {
 				return r.intValue();
 			}
 		}
 		// Find the most specific privilege for the table from the user's rules
-		Byte o;
+		Number o;
 		o = newRules.get("database.bypassrestricted");  // Not sure this is exactly right
 		if (o != null) {
 			//System.out.println("Found database.bypassrestricted="+o);
@@ -1011,14 +1008,14 @@ public class Server extends Thread {
 		return priv;
 	}
 
-	protected static HashMap<String,Byte> getTablePrivs(String table) {
-		HashMap<String,Byte> cmap = tablePrivsCache.get(table);
+	protected static HashMap<String,Number> getTablePrivs(String table) {
+		HashMap<String,Number> cmap = tablePrivsCache.get(table);
 		if (cmap != null) {
 			return cmap;
 		}
 		
 		if (DEBUG) System.out.println("Retrieving privs for table "+table);
-		HashMap<String,Byte> map = new HashMap<String,Byte>();
+		HashMap<String,Number> map = new HashMap<String,Number>();
 		DatabaseConnection con = database.getConnection();		
 		QueryResult roles = Weblet.getCache().getResult(con, "select from ORole");
 		database.freeConnection(con);		
@@ -1029,12 +1026,12 @@ public class Server extends Thread {
 			for (OTrackedMap<Object> rs : rules) {
 				Object o = rs.get("database.class."+table.toLowerCase());
 				if (o != null) {
-					map.put(roleName, (Byte)o);
+					map.put(roleName, (Number)o);
 					//if (DEBUG) System.out.println("getTablePrivs:"+roleName+"="+o);
 				} else {
 					o = rs.get("database.class.*");
 					if (o != null) {
-						map.put(roleName, (Byte)o);
+						map.put(roleName, (Number)o);
 						//if (DEBUG) System.out.println("getTablePrivs*:"+roleName+"="+o);						
 					}
 				}
@@ -1241,7 +1238,7 @@ public class Server extends Thread {
 //		if (USE_SERVER) startServer();
 		
 		System.out.println("Initializing server using OrientDB Version "+OConstants.getVersion()+" Build number "+OConstants.getBuildNumber());
-		OGlobalConfiguration.CACHE_LOCAL_ENABLED.setValue(false);  // To ensure concurrency
+//		OGlobalConfiguration.CACHE_LOCAL_ENABLED.setValue(false);  // To ensure concurrency
 		try {
 			String p = getLocalSetting(DB_NAME+HTTP_PORT, "");
 			//System.out.println("Localsetting for password is "+p);
@@ -1256,26 +1253,35 @@ public class Server extends Thread {
 					database.createLocal();  // New database will default to password given in local setting
 					database.fillPool();
 				} else {
-					System.out.println("Exiting.");
-					System.exit(1);;					
+					System.out.println("***\n*** Exit condition: can only create a plocal and couldn't connect to remote - Exiting.\n***");
+					System.exit(-1);					
 				}
 			}
 			if (database.isConnected()) {
 				DatabaseConnection con = database.getConnection();
-				System.out.println("Connected to database version "+database.getVersion(con));
+				if (!DatabaseSetup.checkInstallation(con)) {
+					System.out.println("***\n*** Exit condition: checkInstallation failed - Exiting.\n***");
+					System.exit(-1);					
+				}
+				System.out.println("Connected to database name="+database.getName(con)+" clientversion="+database.getClientVersion()+" serverversion="+database.getDatabaseVersion(con));
 				if (!ConstantOverride.apply(con)) {
-					System.out.println("Database has not been configured for PermeAgility. Exiting...");
+					System.out.println("***\n*** Exit condition: Could not apply constant overrides\n***");
 					System.exit(-1);
 				}
 				plusClassLoader = PlusClassLoader.get();
 				if (plusClassLoader == null) {
-					System.out.println("Could not initialize the PlusClassLoader. Exiting...");
+					System.out.println("***\n*** Exit condition: Could not initialize the PlusClassLoader\n***");
 					System.exit(-1);
 				}
 				// Set the class loader for the currentThread (and all the Children so that plus's will work)
 				currentThread().setContextClassLoader(plusClassLoader);
 				
 				refreshSecurity();
+				if (keyRoles.size() < 1) {
+					System.out.println("***\n*** Exit condition: No key roles found for security - no functions to enable\n***");
+					System.exit(-1);
+				}
+				
 				messages = new Message(con);
 				Thumbnail.setDatabase(database);
 				database.freeConnection(con);

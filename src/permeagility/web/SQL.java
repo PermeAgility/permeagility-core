@@ -72,7 +72,7 @@ public class SQL extends Weblet {
 
 	public String getResult(DatabaseConnection con, String query) {
 		if (query == null || query.equals("")) {
-			return "No SQL Specified";
+			return paragraph("No SQL Specified");
 		}
 		try {
 			StringBuffer sb = new StringBuffer();
@@ -87,9 +87,10 @@ public class SQL extends Weblet {
 			sb.append(paragraph("RowCount="+rowCount));
 			return sb.toString();
 		} catch (Exception e) {
+			Throwable cause = e.getCause();
 			System.out.println("Error in SQL Weblet select: "+e.getMessage());
 			e.printStackTrace();
-			return paragraph("error","Error: "+e.getMessage());
+			return paragraph("Error: "+e.getMessage()+(cause == null ? "" : "<BR>"+cause.getMessage()));
 		}
 	}
 

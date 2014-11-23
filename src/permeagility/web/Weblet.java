@@ -26,13 +26,10 @@ import java.util.Stack;
 import java.util.Vector;
 
 import permeagility.util.DatabaseConnection;
+import permeagility.util.DatabaseSetup;
 import permeagility.util.QueryCache;
 import permeagility.util.QueryResult;
 
-import com.orientechnologies.orient.core.metadata.schema.OClass;
-import com.orientechnologies.orient.core.metadata.schema.OProperty;
-import com.orientechnologies.orient.core.metadata.schema.OSchema;
-import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 
 public abstract class Weblet {
@@ -1111,29 +1108,7 @@ public abstract class Weblet {
 			}
 			System.out.println("Unable to load style sheet called: "+DEFAULT_STYLE);
 		}
-		return "<!--\n"
-				+ "/* Default minimum style to support login */\n"
-				+ "BODY { font-family: verdana,sans-serif; font-size: small; margin: 0em; padding: 0em; }\n"
-				+ "TABLE.layout { background-color: transparent;  width: 100%; }\n"
-				+ "TABLE.header { background-color: transparent; border: none;  }\n"
-				+ "TR.data, TD.data { background-color: #DCDCDC; }\n"
-				+ "TR.header { background-color: rgb(117,202,169); font-weight: bold; }\n"
-				+ "TR.footer { font-weight: bold; }\n"
-				+ "TABLE { width:100%; }\n"
-				+ "P.banner { background-color: rgb(0,0,169); font-size: medium; font-weight: bold; text-align:center; color: white; margin: 0.2em 0em 0em 0em; padding 0em; page-break-after: avoid; }\n"
-				+ "P.error { background-color: rgb(117,0,0); font-size: medium; font-weight: bold; text-align:center; color: white; margin: 0.2em 0em 0em 0em; padding 0em; page-break-after: avoid; }\n"
-				+ "P.warning { background-color: #FFCC00; font-size: medium; font-weight: bold; text-align:center; color: white; margin: 0.2em 0em 0em 0em; padding 0em; page-break-after: avoid; }\n"
-				+ "P.success { background-color: rgb(0,200,0); font-size: medium; font-weight: bold; text-align:center; color: white; margin: 0.2em 0em 0em 0em; padding 0em; page-break-after: avoid; }\n"
-				+ "P.delete { text-align:right; }\n"
-				+ "IMG { padding: 0em; margin: 0em; border: 0em; }\n"
-				+ "*.alert { background-color: #FF6666; }\n"
-				+ "INPUT {  font-size: x-small; margin: 0em; padding 0em; }\n"
-				+ "*.new { background-color: #FFFF9C }\n"
-				+ "*.changed { background-color: #DEBDDE }\n"
-				+ "TD { font-size: x-small; }\n"
-				+ "P.bannerleft { background-color: rgb(8,161,107); font-size: medium; font-weight: bold; text-align:left; color: white; margin: 0.2em 0em 0em 0em; padding 0em; page-break-after: avoid; }\n"
-				+ "FORM { background-color: rgb(230,230,230); margin: 4pt; white-space: nowrap; padding: 4pt; border: 0em; display: inline; }\n"
-				+ "A.headerlogo:hover { text-decoration: none; border: outset; background-color: transparent; }\n" + "-->\n";
+		return DatabaseSetup.DEFAULT_STYLESHEET;
 	}
 
 	public static boolean isNullOrBlank(String string) {
@@ -1526,38 +1501,6 @@ public abstract class Weblet {
 			}
 		}
 		return cn.toString();
-	}
-
-	// The following methods are meant to only be invoked by admin/dba during a module installation :-)  they will likely fail for everyone else
-	public static OClass checkCreateClass(OSchema oschema, String className, StringBuffer errors) {
-		OClass c = oschema.getClass(className);
-		if (c == null) {
-			c = oschema.createClass(className);
-			errors.append(paragraph("success","CheckInstallation: Created "+className+" class/table"));
-		}
-		if (c == null) {
-			errors.append(paragraph("error","CheckInstallation: Error creating "+className+" class/table"));
-		}
-		return c;
-	}
-	
-	public static OProperty checkCreateProperty(OClass theClass, String propertyName, OType propertyType, StringBuffer errors) {
-		OProperty p = theClass.getProperty(propertyName);
-		if (p == null) {
-			p = theClass.createProperty(propertyName, propertyType);
-			errors.append(paragraph("success","CheckInstallation: Created property "+theClass.getName()+"."+propertyName+" of type "+propertyType.name()));
-		}
-		return p;
-	}
-
-	// This assumes you want a link type, otherwise the linkClass may have adverse effects
-	public static OProperty checkCreateProperty(OClass theClass, String propertyName, OType propertyType, OClass linkClass, StringBuffer errors) {
-		OProperty p = theClass.getProperty(propertyName);
-		if (p == null) {
-			p = theClass.createProperty(propertyName, propertyType, linkClass);
-			errors.append(paragraph("success","CheckInstallation: Created property "+theClass.getName()+"."+propertyName+" of type "+propertyType.name()+" linked to "+linkClass.getName()));
-		}
-		return p;
 	}
 
 }

@@ -205,8 +205,6 @@ public class Table extends Weblet {
 			} else if (submit.equals(Message.get(con.getLocale(), "CREATE_ROW"))) {
 				if (DEBUG) System.out.println("************ Inserting row");
 				insertRow(con,table,parms,errors);
-			} else {
-				System.out.println("Did not understand submit="+submit);
 			}
 		}
 
@@ -458,8 +456,8 @@ public class Table extends Weblet {
 							setString.append(columnName + "=" + newbool);
 						}
 					} else if (type == 1 || type == 2 || type == 3) { // Whole number
-						Long originalValue = updateRow.field(columnName);
-						Long newVal = null;
+						Number originalValue = updateRow.field(columnName);
+						Number newVal = null;
 						try {
 							newVal = Long.parseLong(newValue);
 						} catch (Exception e) {
@@ -1211,8 +1209,10 @@ public class Table extends Weblet {
 			}
 			return table("sortable", sb.toString());
 		} catch (Exception e) {
-			e.printStackTrace();
-			return "Error: " + e.getMessage() + "\n" + e.toString();
+			Throwable cause = e.getCause();
+			System.out.println("permeagility.web.Table: Error: <BR>" + e.getMessage() + (cause == null ? "" : "<BR>" + cause.getMessage()));
+			//e.printStackTrace();
+			return "Error: " + e.getMessage() + (cause == null ? "" : "<BR>" + cause.getMessage());
 		}
 	}
 
@@ -1512,10 +1512,10 @@ public class Table extends Weblet {
 	public String rightsOptionsForm(DatabaseConnection con, String table, HashMap<String, String> parms,String errors) {
 		StringBuffer currentRights = new StringBuffer();
 		List<String> rightsNames = new ArrayList<String>();
-		HashMap<String,Byte> privs = Server.getTablePrivs(table);
+		HashMap<String,Number> privs = Server.getTablePrivs(table);
 
 		for (String role : privs.keySet()) {
-			Byte b = privs.get(role);
+			Number b = privs.get(role);
 			StringBuffer sb = new StringBuffer();
 			if (b.intValue() == 0) {
 				sb.append(Message.get(con.getLocale(), "PRIV_NONE"));

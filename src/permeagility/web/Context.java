@@ -6,14 +6,11 @@ at the URL "http://www.eclipse.org/legal/epl-v10.html".
 package permeagility.web;
 
 import java.util.Locale;
-import java.util.Map;
 
 import permeagility.util.Database;
 import permeagility.util.DatabaseConnection;
+import permeagility.util.DatabaseSetup;
 import permeagility.util.QueryResult;
-
-import com.orientechnologies.orient.core.record.impl.ODocument;
-import com.orientechnologies.orient.core.type.tree.OMVRBTreeRIDSet;
 
 
 public class Context extends Weblet {
@@ -115,9 +112,12 @@ public class Context extends Weblet {
 			}
 		}
 		sessionReport.append("</p>");
+
+		String installMessages = DatabaseSetup.getMessages();
 		
 		return
 		    paragraph("Server has been running since "+Server.getServerInitTime())
+		    +(installMessages != null && !installMessages.equals("") ? paragraph("banner","Installation messages")+paragraph(installMessages) : "")
 		    +paragraph("banner","Sessions")
 			+sessionReport.toString()
 		    +paragraph("banner","Cached Lists")

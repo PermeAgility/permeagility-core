@@ -27,7 +27,7 @@ public class Home extends Weblet {
     	StringBuffer sb = new StringBuffer();
     	try {
 	    	QueryResult qr = con.query("SELECT dateline, name, description FROM article "
-	    							+"where archive=false and (locale is null or locale.name='"+con.getLocale().getLanguage()+"') "
+	    							+"where (archive is null or archive=false) and (locale is null or locale.name='"+con.getLocale().getLanguage()+"') "
 	    							+"and _allowRead in ["+Server.getUserRolesList(con)+"] order by dateline desc "
 	    							);
 	    	for (int i=0; i<qr.size(); i++) {

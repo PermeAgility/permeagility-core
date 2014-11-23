@@ -11,6 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
 import com.orientechnologies.orient.core.id.ORecordId;
+import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OSchema;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 import com.orientechnologies.orient.core.sql.OCommandSQL;
@@ -85,7 +86,6 @@ public class DatabaseConnection {
 	
 	public ODocument create(String className) {
 		return c.newInstance(className);
-//		return new ODocument(className);
 	}
 
 	public void begin() {
@@ -120,13 +120,6 @@ public class DatabaseConnection {
 			System.out.println("Error counting class "+table);
 			return -1;
 		}
-		// SQL Version - binary seems faster but have to prove it
-//		QueryResult result =  query("select count(*) from " + table);
-//		if (result != null && result.size()>0) {
-//			return result.get(0).field("count");
-//		} else {
-//			return 0;
-//		}
 	}
 	
 	public static void rowCountChanged(String table) {
@@ -152,12 +145,22 @@ public class DatabaseConnection {
 	
     public synchronized QueryResult query(String expression) {
     	if (DEBUG) System.out.println("DatabaseConnection.DEBUG(query)="+expression+";");
-    	if (expression == null) { 
-    		return null;
-    	}
+    	if (expression == null) { return null; }
        	lastAccess = System.currentTimeMillis();
     	List<ODocument> result = c.query(new OSQLSynchQuery<ODocument>(expression));
     	return new QueryResult(result);
+    }
+
+    public synchronized ODocument queryDocument(String expression) {
+    	if (DEBUG) System.out.println("DatabaseConnection.DEBUG(queryDocument)="+expression+";");
+    	if (expression == null) { return null; }
+       	lastAccess = System.currentTimeMillis();
+    	List<ODocument> result = c.query(new OSQLSynchQuery<ODocument>(expression));
+    	if (result != null && result.size() > 0) {
+    		return result.get(0);
+    	} else {
+    		return null;
+    	}
     }
 
     public synchronized Object update(String expression) {

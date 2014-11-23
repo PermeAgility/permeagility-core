@@ -12,11 +12,18 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
+import permeagility.web.Weblet;
+
+import com.orientechnologies.orient.core.OConstants;
 import com.orientechnologies.orient.core.command.OCommandOutputListener;
 import com.orientechnologies.orient.core.db.ODatabase.STATUS;
 import com.orientechnologies.orient.core.db.ODatabaseRecordThreadLocal;
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
 import com.orientechnologies.orient.core.db.tool.ODatabaseImport;
+import com.orientechnologies.orient.core.metadata.schema.OClass;
+import com.orientechnologies.orient.core.metadata.schema.OProperty;
+import com.orientechnologies.orient.core.metadata.schema.OSchema;
+import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.orientechnologies.orient.core.metadata.security.OUser;
 
 public class Database implements Serializable {
@@ -47,6 +54,10 @@ public class Database implements Serializable {
 		fillPool();		
 	}
 
+	public String getClientVersion() {
+		return OConstants.getVersion();
+	}
+	
 	public void setPassword(String pass) {
 		password = pass;
 	}
@@ -69,10 +80,10 @@ public class Database implements Serializable {
 		return user;
 	}
 	
-	public String getVersion(DatabaseConnection con) {
+	public String getName(DatabaseConnection con) {
 		if (con != null) {
 			try {
-				return con.c.getUnderlying().getName();
+				return con.c.toString();
 			} catch (Exception e) {
 				e.printStackTrace();
 				return "Exception "+e.getLocalizedMessage();
@@ -82,6 +93,20 @@ public class Database implements Serializable {
 		}
 	}
 
+	public String getDatabaseVersion(DatabaseConnection con) {
+		if (con != null) {
+			try {
+				return con.c.getUnderlying().toString();
+			} catch (Exception e) {
+				e.printStackTrace();
+				return "Exception "+e.getLocalizedMessage();
+			}
+		} else {
+			return "Unknown";
+		}
+	}
+
+	
 	public Date getLastAccessed() {
 		return lastAccessed;
 	}
@@ -209,12 +234,11 @@ public class Database implements Serializable {
 		dbc.close();
 	}
 
+	/**
+	 * Create a plocal database and load starterdb.json if it exists - if no starter DatabaseSetup.checkInstallation will install what is needed
+	 */
 	public void createLocal() {
 		if (url.startsWith("plocal") || url.startsWith("local")) {
-			if (!(new File("starterdb.json").isFile())) {
-				System.out.println("***\n*** Exit condition: Cannot create database because there is no starterdb.json file\n***");
-				System.exit(-1);
-			}
 			System.out.println("* Creating new database "+url+" in "+System.getProperty("user.dir")+" *");
 			ODatabaseDocumentTx	d = new ODatabaseDocumentTx(url);
 			if (!d.exists()) {
@@ -224,22 +248,29 @@ public class Database implements Serializable {
 				System.exit(-1);
 			}
 			if (d.exists()) {
-				ODatabaseImport importdb;
-				try {
-					importdb = new ODatabaseImport(d,"starterdb.json", new OCommandOutputListener() {
-						public void onMessage(String arg0) {
-							System.out.println("Import Message: "+arg0);
-						}
-					});
-					importdb.importDatabase();
-					importdb.close();
-					System.out.println("setting "+user+" password to "+password+" you should probably change this now");
-					OUser u = d.getMetadata().getSecurity().getUser("server");
+				if (new File("starterdb.json").isFile()) {
+					System.out.println("Loading starterdb.json....");
+					try {
+						ODatabaseImport importdb;
+						importdb = new ODatabaseImport(d,"starterdb.json", new OCommandOutputListener() {
+							public void onMessage(String arg0) {
+								System.out.println("Import Message: "+arg0);
+							}
+						});
+						importdb.importDatabase();
+						importdb.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+				System.out.println("setting "+user+" password to "+password+" you should probably change this now");
+				OUser u = d.getMetadata().getSecurity().getUser("server");
+				if (u == null) {
+					u = d.getMetadata().getSecurity().createUser(user, password, "admin");
+					u.save();
+				} else {
 					u.setPassword(password);
 					u.save();
-
-				} catch (IOException e) {
-					e.printStackTrace();
 				}
 			} else {
 				System.out.println("Error creating database - does not exist (create must have failed)");
@@ -248,5 +279,58 @@ public class Database implements Serializable {
 			System.out.println("Error creating database - can only create plocal databases");			
 		}
 	}
-		
+
+	// This assumes you want a link type, otherwise the linkClass may have adverse effects
+	public static OProperty checkCreateProperty(OClass theClass, String propertyName, OType propertyType, OClass linkClass, StringBuffer errors) {
+		OProperty p = theClass.getProperty(propertyName);
+		if (p == null) {
+			p = theClass.createProperty(propertyName, propertyType, linkClass);
+			errors.append(Weblet.paragraph("success","CheckInstallation: Created property "+theClass.getName()+"."+propertyName+" of type "+propertyType.name()+" linked to "+linkClass.getName()));
+		}
+		return p;
+	}
+
+	public static OProperty checkCreateProperty(OClass theClass, String propertyName, OType propertyType, StringBuffer errors) {
+		OProperty p = theClass.getProperty(propertyName);
+		if (p == null) {
+			p = theClass.createProperty(propertyName, propertyType);
+			errors.append(Weblet.paragraph("success","CheckInstallation: Created property "+theClass.getName()+"."+propertyName+" of type "+propertyType.name()));
+		}
+		return p;
+	}
+
+	// The following methods are meant to only be invoked by admin/dba during a module installation :-)  they will likely fail for everyone else
+	public static OClass checkCreateClass(OSchema oschema, String className, StringBuffer errors) {
+		OClass c = oschema.getClass(className);
+		if (c == null) {
+			c = oschema.createClass(className);
+			errors.append(Weblet.paragraph("success","CheckInstallation: Created "+className+" class/table"));
+		}
+		if (c == null) {
+			errors.append(Weblet.paragraph("error","CheckInstallation: Error creating "+className+" class/table"));
+		}
+		return c;
+	}
+
+	// The following methods are meant to only be invoked by admin/dba during a module installation :-)  they will likely fail for everyone else
+	public static void checkClassSuperclass(OSchema oschema, OClass oclass, String superClassName, StringBuffer errors) {
+		OClass s = oschema.getClass(superClassName);
+		if (s == null) {
+			errors.append(Weblet.paragraph("error","CheckInstallation: Cannot find superclass "+superClassName+" to assign to class "+oclass.getName()));
+			return;
+		}
+		OClass sc = oclass.getSuperClass();
+		if (sc == null) {
+			oclass.setSuperClass(s);
+			errors.append(Weblet.paragraph("success","CheckInstallation: Assigned superclass "+superClassName+" to class "+oclass.getName()));
+			return;
+		} else {
+			if (!sc.getName().equals(superClassName)) {
+				errors.append(Weblet.paragraph("error","CheckInstallation: Trying to assign superclass "+superClassName+" to class "+oclass.getName()+" but it already has "+sc.getName()+" as a superclass"));	
+				return;
+			}
+		}
+		return;
+	}
+
 }
