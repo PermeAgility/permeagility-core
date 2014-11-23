@@ -1260,8 +1260,7 @@ public class Server extends Thread {
 			if (database.isConnected()) {
 				DatabaseConnection con = database.getConnection();
 				if (!DatabaseSetup.checkInstallation(con)) {
-					System.out.println("***\n*** Exit condition: checkInstallation failed - Exiting.\n***");
-					System.exit(-1);					
+					System.out.println("---\n--- Warning condition: checkInstallation failed - Exiting.\n---");
 				}
 				System.out.println("Connected to database name="+database.getName(con)+" clientversion="+database.getClientVersion()+" serverversion="+database.getDatabaseVersion(con));
 				if (!ConstantOverride.apply(con)) {

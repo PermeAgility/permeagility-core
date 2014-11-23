@@ -52,7 +52,6 @@ public class DatabaseSetup {
 			ODocument guestUser = con.queryDocument("SELECT FROM OUser WHERE name='guest'");
 
 			if (guestRoles.size() == 0) {
-//				ODocument guestRole = (ODocument)con.update("insert into ORole set name = 'guest', mode = 0, rules = {\"database.schema\":2, \"database.cluster.menu\":2, \"database.class.userrequest\":3,\"database.class.article\":2, \"database\":2, \"database.cluster.*\":2, \"database.cluster.locale\":2, \"database.command\":3, \"database.cluster.key\":2, \"database.class.*\":2, \"database.cluster.columns\":2, \"database.cluster.style\":2}");
 				ODocument guestRole = (ODocument)con.update("insert into ORole set name = 'guest', mode = 0"
 						+", rules = {\"database.schema\":2, \"database\":2, \"database.command\":3"
 						+", \"database.class.userrequest\":1, \"database.cluster.userrequest\":1"
@@ -161,6 +160,9 @@ public class DatabaseSetup {
 			mCount += checkCreateMessage(con, loc, "PRIV_READ", "Read");
 			mCount += checkCreateMessage(con, loc, "PRIV_UPDATE", "Update");
 			mCount += checkCreateMessage(con, loc, "PRIV_DELETE", "Delete");
+			mCount += checkCreateMessage(con, loc, "PRIV_ALL", "do anything");
+			mCount += checkCreateMessage(con, loc, "SHUTDOWN_CONFIRM_MESSAGE", "This will shutdown the server, the server will need to be restarted at the host to continue");
+			mCount += checkCreateMessage(con, loc, "CONFIRM_SHUTDOWN", "Shut down");
 			
 			if (mCount > 0) {
 				installMessages.append(Weblet.paragraph("success","CheckInstallation: Created "+mCount+" messages"));
@@ -380,7 +382,8 @@ public class DatabaseSetup {
 			System.out.println("- verified.");
 			
 		} catch (Exception e) {
-			e.printStackTrace();
+			//e.printStackTrace();
+			System.out.println("- failed: "+e.getMessage());
 			return false;
 		}
 		return true;

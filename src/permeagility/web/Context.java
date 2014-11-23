@@ -49,6 +49,12 @@ public class Context extends Weblet {
 			Server.refreshSecurity();
 		}
 
+		String checkInst = parms.get("CHECK_INSTALLATION");
+		if (checkInst != null && Server.isDBA(con)) {
+		    if (DEBUG) System.out.println("Context: Check Installation");
+			DatabaseSetup.checkInstallation(con);
+		}
+
 		return 	head("Context")+
 		    body(standardLayout(con, parms,getHTML(con, parms)));
     }
@@ -117,6 +123,7 @@ public class Context extends Weblet {
 		
 		return
 		    paragraph("Server has been running since "+Server.getServerInitTime())
+			+(con.getUser().equals("admin") ? form(button("CHECK_INSTALLATION","CHECKINSTALLATION","Check Installation")) : "")
 		    +(installMessages != null && !installMessages.equals("") ? paragraph("banner","Installation messages")+paragraph(installMessages) : "")
 		    +paragraph("banner","Sessions")
 			+sessionReport.toString()
