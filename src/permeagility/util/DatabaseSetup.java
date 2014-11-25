@@ -134,6 +134,7 @@ public class DatabaseSetup {
 			mCount += checkCreateMessage(con, loc, "USER_LABEL", "User");
 			mCount += checkCreateMessage(con, loc, "PASSWORD_LABEL", "Password");
 			mCount += checkCreateMessage(con, loc, "REQUEST_LOGIN", "Request login");
+			mCount += checkCreateMessage(con, loc, "INVALID_USER_OR_PASSWORD", "Invalid user/password");
 			mCount += checkCreateMessage(con, loc, "LOGOUT", "Logout");
 			mCount += checkCreateMessage(con, loc, "TABLE_NONGROUPED", "Ungrouped");
 			mCount += checkCreateMessage(con, loc, "ALL_ROWS_IN_TABLE", "All rows");

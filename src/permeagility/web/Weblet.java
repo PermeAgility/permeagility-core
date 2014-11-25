@@ -997,7 +997,7 @@ public abstract class Weblet {
 					itemname = item.field("Name");					
 				}
 				if (itemname == null && item.fields()>0) {
-					itemname = item.field(item.fieldNames()[1]);
+					itemname = item.field(item.fieldNames()[1]).toString();
 				}
 				sb.append("<OPTION ");
 				if (initial != null && initial.equals(id)) {
