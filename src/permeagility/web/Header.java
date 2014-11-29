@@ -12,7 +12,7 @@ import permeagility.util.DatabaseConnection;
 
 public class Header extends Weblet {
 	
-	public static String LOGO_FILE = "Logo.svg";
+	public static String LOGO_FILE = "Logo-blk.svg";
 	
 	public String getPage(DatabaseConnection con, HashMap<String,String> parms) {
 		return 

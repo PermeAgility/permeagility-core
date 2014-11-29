@@ -796,7 +796,7 @@ public abstract class Weblet {
 
 	public String linkListControl(DatabaseConnection con, String name, String table, QueryResult qr, Locale l, List<ODocument> picked) {
 		HashMap<String,Integer> listMap = new HashMap<String,Integer>();  // for keeping counts of objects LinkList can have duplicates
-	    Vector<String> names = new Vector<String>(qr.size());
+		Vector<String> names = new Vector<String>(qr.size());
 	    Vector<String> values = new Vector<String>(qr.size());
 	    Vector<String> tooltips = new Vector<String>(qr.size());
 	    Vector<String> checks = new Vector<String>(qr.size());

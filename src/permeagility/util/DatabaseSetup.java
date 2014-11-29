@@ -380,6 +380,8 @@ public class DatabaseSetup {
 			Database.checkCreateProperty(urTable, "name", OType.STRING, installMessages);
 			Database.checkCreateProperty(urTable, "email", OType.STRING, installMessages);
 
+			con.flush();
+			
 			System.out.println("- verified.");
 			
 		} catch (Exception e) {

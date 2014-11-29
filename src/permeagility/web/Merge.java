@@ -37,11 +37,8 @@ public class Merge extends Table {
 		String editId = parms.get("EDIT_ID");
 		String updateId = parms.get("UPDATE_ID");
 		String run = parms.get("RUN");
-		String runSQL = parms.get("RUNSQL");
 		String tableName = parms.get("TABLENAME");
-		String newTableName = parms.get("NEWTABLENAME");
 		String go = parms.get("GO");
-		String sqlOverride = null;
 
 		// Process update of work tables
 		if (updateId != null && submit != null) {

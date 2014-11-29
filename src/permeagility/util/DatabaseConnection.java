@@ -193,5 +193,9 @@ public class DatabaseConnection {
     		System.out.println("No rows");
     	}
     }
+
+	public void flush() {
+		c.getLocalCache().invalidate();		
+	}
  
 }
