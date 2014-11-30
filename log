@@ -1,0 +1,3 @@
+This file is present to force log messages to console during development. 
+
+If you remove this file, the system will automatically create a log directory and store log files in there.
