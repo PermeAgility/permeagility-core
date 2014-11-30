@@ -164,6 +164,7 @@ public class DatabaseSetup {
 			mCount += checkCreateMessage(con, loc, "PRIV_ALL", "do anything");
 			mCount += checkCreateMessage(con, loc, "SHUTDOWN_CONFIRM_MESSAGE", "This will shutdown the server, the server will need to be restarted at the host to continue");
 			mCount += checkCreateMessage(con, loc, "CONFIRM_SHUTDOWN", "Shut down");
+			mCount += checkCreateMessage(con, loc, "SQL_WEBLET", "Query");
 			
 			if (mCount > 0) {
 				installMessages.append(Weblet.paragraph("success","CheckInstallation: Created "+mCount+" messages"));

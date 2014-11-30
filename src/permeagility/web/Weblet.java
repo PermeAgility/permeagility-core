@@ -324,46 +324,46 @@ public abstract class Weblet {
 	}
 
 	public static String hidden(String n, Object value) {
-		return "<INPUT TYPE=\"HIDDEN\" NAME=\"" + n + "\" VALUE=\"" + (value == null ? "" : value) + "\">";
+		return "<INPUT spellcheck=\"false\" TYPE=\"HIDDEN\" NAME=\"" + n + "\" VALUE=\"" + (value == null ? "" : value) + "\">";
 	}
 
 	public String input(int tabIndex, String n, Object value) {
-		return "<INPUT NAME=\"" + n + "\" " + (isReadOnly() ? "DISABLED" : "") + "  VALUE=\"" + (value == null ? "" : value)
+		return "<INPUT spellcheck=\"false\"  NAME=\"" + n + "\" " + (isReadOnly() ? "DISABLED" : "") + "  VALUE=\"" + (value == null ? "" : value)
 				+ "\" TABINDEX=" + tabIndex + ">";
 	}
 
 	public String input(int tabIndex, String c, String n, Object value) {
-		return "<INPUT CLASS=\"" + c + "\" NAME=\"" + n + "\" TYPE=\"TEXT\" " + (isReadOnly() ? "DISABLED" : "") + "  VALUE=\""
+		return "<INPUT  spellcheck=\"false\" CLASS=\"" + c + "\" NAME=\"" + n + "\" TYPE=\"TEXT\" " + (isReadOnly() ? "DISABLED" : "") + "  VALUE=\""
 				+ (value == null ? "" : value) + "\" TABINDEX=" + tabIndex + ">";
 	}
 
 	public String input(String n, Object value) {
-		return "<INPUT NAME=\"" + n + "\" " + (isReadOnly() ? "DISABLED" : "") + "  VALUE=\"" + (value == null ? "" : value)
+		return "<INPUT  spellcheck=\"false\" NAME=\"" + n + "\" " + (isReadOnly() ? "DISABLED" : "") + "  VALUE=\"" + (value == null ? "" : value)
 				+ "\">";
 	}
 
 	public String input(String c, String n, Object value) {
-		return "<INPUT CLASS=\"" + c + "\" NAME=\"" + n + "\" TYPE=\"TEXT\" " + (isReadOnly() ? "DISABLED" : "") + "  VALUE=\""
+		return "<INPUT  spellcheck=\"false\" CLASS=\"" + c + "\" NAME=\"" + n + "\" TYPE=\"TEXT\" " + (isReadOnly() ? "DISABLED" : "") + "  VALUE=\""
 				+ (value == null ? "" : value) + "\">";
 	}
 
 	public String input(String c, String n, Object value, int size) {
-		return "<INPUT CLASS=\"" + c + "\" NAME=\"" + n + "\" TYPE=\"TEXT\" SIZE=" + size + (isReadOnly() ? "DISABLED" : "") + "  VALUE=\""
+		return "<INPUT  spellcheck=\"false\" CLASS=\"" + c + "\" NAME=\"" + n + "\" TYPE=\"TEXT\" SIZE=" + size + (isReadOnly() ? "DISABLED" : "") + "  VALUE=\""
 				+ (value == null ? "" : value) + "\">";
 	}
 
 	public String input(String n, Object value, int size) {
-		return "<INPUT NAME=\"" + n + "\" SIZE=" + size + " " + (isReadOnly() ? "DISABLED" : "") + "  VALUE=\""
+		return "<INPUT  spellcheck=\"false\" NAME=\"" + n + "\" SIZE=" + size + " " + (isReadOnly() ? "DISABLED" : "") + "  VALUE=\""
 				+ (value == null ? "" : value) + "\">";
 	}
 
 	public String inputChanged(String n, Object value, String onChange, int size) {
-		return "<INPUT " + (isReadOnly() ? "DISABLED" : "") + " NAME=\"" + n + "\" SIZE=" + size + " onChange=\"" + onChange
+		return "<INPUT  spellcheck=\"false\" " + (isReadOnly() ? "DISABLED" : "") + " NAME=\"" + n + "\" SIZE=" + size + " onChange=\"" + onChange
 				+ "\" VALUE=\"" + (value == null ? "" : value) + "\">";
 	}
 
 	public String inputChanged(String n, Object value, String onChange) {
-		return "<INPUT " + (isReadOnly() ? "DISABLED" : "") + " NAME=\"" + n + "\" onChange=\"" + onChange + "\" VALUE=\""
+		return "<INPUT  spellcheck=\"false\" " + (isReadOnly() ? "DISABLED" : "") + " NAME=\"" + n + "\" onChange=\"" + onChange + "\" VALUE=\""
 				+ (value == null ? "" : value) + "\">";
 	}
 
@@ -410,17 +410,17 @@ public abstract class Weblet {
 	}
 
 	public String textArea(String n, Object s, int rows, int cols) {
-		return "<TEXTAREA NAME=\"" + n + "\" ROWS=\"" + rows + "\" COLS=\"" + cols + "\" " + (isReadOnly() ? "READONLY" : "")
+		return "<TEXTAREA  spellcheck=\"false\" NAME=\"" + n + "\" ROWS=\"" + rows + "\" COLS=\"" + cols + "\" " + (isReadOnly() ? "READONLY" : "")
 				+ " >" + (s == null ? "" : s) + "</TEXTAREA>";
 	}
 
 	public String textArea(String n, Object s, int rows, int cols, String option) {
-		return "<TEXTAREA NAME=\"" + n + "\" ROWS=\"" + rows + "\" COLS=\"" + cols + "\" " + (isReadOnly() ? "READONLY " : " ")
+		return "<TEXTAREA  spellcheck=\"false\" NAME=\"" + n + "\" ROWS=\"" + rows + "\" COLS=\"" + cols + "\" " + (isReadOnly() ? "READONLY " : " ")
 				+ option + ">" + (s == null ? "" : s) + "</TEXTAREA>";
 	}
 
 	public static String textAreaDisabled(String n, Object s, int rows, int cols) {
-		return "<TEXTAREA NAME=\"" + n + "\" ROWS=\"" + rows + "\" COLS=\"" + cols + "\" DISABLED >" + (s == null ? "" : s)
+		return "<TEXTAREA  spellcheck=\"false\" NAME=\"" + n + "\" ROWS=\"" + rows + "\" COLS=\"" + cols + "\" DISABLED >" + (s == null ? "" : s)
 				+ "</TEXTAREA>";
 	}
 

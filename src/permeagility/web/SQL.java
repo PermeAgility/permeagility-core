@@ -31,7 +31,7 @@ public class SQL extends Weblet {
 			body( standardLayout(con, parms,  
 				getSQLBuilder(con)
 				+form("QUERY","#",
-					"<textarea name=\"SQL\" rows=6 cols=80 text-build>"+(query==null ? "" : query)+"</textarea>"
+					"<textarea spellcheck=\"false\" name=\"SQL\" rows=6 cols=80 text-build>"+(query==null ? "" : query)+"</textarea>"
 					+br()
 					+submitButton("ExecuteQuery")+"&nbsp;&nbsp;"
 					+submitButton("ExecuteUpdate")
