@@ -46,7 +46,7 @@ public class Thumbnail {
 	public static String getThumbnailLink(String tid, String description) {
 		if (description.startsWith("image")) {
 			return "<A CLASS=\"thumbnail\" href=\"#thumb\">\n"
-				+"<IMG SRC=\"../thumbnail?ID=" + tid + "\" >\n"
+				+"<IMG WIDTH=\""+THUMBNAIL_SMALL_WIDTH+"\" HEIGHT=\""+THUMBNAIL_SMALL_HEIGHT+"\" SRC=\"../thumbnail?ID=" + tid + "\" >\n"
 				+"<SPAN>"
 				+description
 				+"<button onClick=\"window.open('/thumbnail?SIZE=FULL&ID="+tid+"')\">Download full size</button><br>"
@@ -242,7 +242,7 @@ public class Thumbnail {
 
 			if (content != null) {
 				if (content_type.toString().equals("image/svg+xml")) {  // SVG scales to any size and doesn't take up much space
-					System.out.println("encoding svg straight into thumbnails");
+					if (DEBUG) System.out.println("encoding same svg straight into thumbnails");
 					thumbnail.field("small",new ORecordBytes(content.toByteArray()));
 					thumbnail.field("medium",new ORecordBytes(content.toByteArray()));					
 				} else if (content_type.toString().startsWith("image")) {

@@ -371,7 +371,7 @@ public class Table extends Weblet {
 			return false;
 		} else {
 			try {
-				System.out.println("insert sql = "+ins.toString());
+				if (DEBUG) System.out.println("insert sql = "+ins.toString());
 				Object rc = con.update(ins.toString());  // Do the update
 				if (rc != null && rc instanceof ODocument && blobList.size() > 0) {
 					updateBlobs((ODocument)rc, table, blobList, parms, errors);

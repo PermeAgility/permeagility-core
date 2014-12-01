@@ -335,7 +335,7 @@ public class Server extends Thread {
 					if (DEBUG) System.out.println("Reading multipart stuff");
 					@SuppressWarnings("unused")
 					int firstchar = is.read();
-					byte[] cbuf = new byte[boundaryValue.length()+1];
+					byte[] cbuf = new byte[boundaryValue.length()];
 					is.read(cbuf);
 					while (is.available() > 0) {
 						readMultipartData(is, boundaryValue, parms);
@@ -704,7 +704,7 @@ public class Server extends Thread {
 			String content_disposition = readLine(is);
 			String content_type = null;
 			String file_name = null;
-			if (DEBUG) System.out.println("CD:"+content_disposition);
+			if (DEBUG) System.out.println("Server.ReadMultipartData: disp="+content_disposition);
 			int fni = content_disposition.indexOf("filename=");
 			if (fni > 0) {
 				if (is.available() == 0) { 
@@ -721,7 +721,7 @@ public class Server extends Thread {
 						} else {
 							content_type = "Unknown";
 						}
-						if (DEBUG) System.out.println("CT:"+content_type);
+						if (DEBUG) System.out.println("Server.ReadMultipartData: type="+content_type);
 					}
 				}
 			}
@@ -734,27 +734,37 @@ public class Server extends Thread {
 			int boundaryLength = boundaryValue.length();
 			
 			ByteArrayOutputStream content = new ByteArrayOutputStream();
-			if (is.available() == 0) { return; }
-			readLine(is);
+			if (is.available() == 0) {
+				System.out.println("---- Nothing available ----");
+				return; 
+			}
+			readLine(is); // Get to the content (past the /r/l)
+
+			if (DEBUG) System.out.println("Server.ReadMultipartData: content: available="+is.available()+" boundary="+boundaryValue);
 			int cc = 0;
-			if (DEBUG) System.out.println("Received content: available="+is.available());
 			int c;
+			char last = ' ', nlast;  // Next last needed to avoid grabbing some of the boundary
 			do {
+				nlast = last;
+				last = bcompare[0];
 				c = is.read();
-				if (cc > boundaryLength-1) {
-					content.write(bcompare[0]);
-				}
 				System.arraycopy(bcompare, 1, bcompare, 0, boundaryLength-1);
 				bcompare[boundaryLength-1] = (char)c;
 				if (Arrays.equals(boundary,bcompare)) {
 					break;
 				}
+				if (cc > boundaryLength) {
+					content.write(nlast);
+				}
 				cc++;
 			} while (c != -1);
+
+			if (DEBUG) System.out.println("Server.ReadMultipartData: content head="+Dumper.hexDump(content.toByteArray(),0,Math.min(content.size(), 64)));
+			if (DEBUG && content.size()>65) System.out.println("Server.ReadMultipartData: content tail="+Dumper.hexDump(content.toByteArray(),content.size()-64,64));
 			if (file_name != null && !file_name.equals("")) {
 				//System.out.println("FileContent="+content.toString().substring(0,content.size()-boundaryLength-3));
 				File temp = File.createTempFile("pa_upload_", ".tmp");
-				if (DEBUG) System.out.println("writing to "+temp.getCanonicalPath());
+				if (DEBUG) System.out.println("Server.ReadMultipartData: writing binary to "+temp.getCanonicalPath());
 				FileOutputStream fo = new FileOutputStream(temp);
 				fo.write(content_type.getBytes());
 				fo.write(0x00);
@@ -767,7 +777,7 @@ public class Server extends Thread {
 				parms.put(content_name+"_FILENAME", file_name);				
 				parms.put(content_name+"_TYPE", content_type);				
 			} else if (content_name != null) {
-				String scontent = content.toString().substring(0,content.size()-4);
+				String scontent = content.toString().trim();  // Remove trailing /r/l
 				String newValue = parms.get(content_name);
 				if (newValue == null || newValue.equals("")) {
 					newValue = scontent;
@@ -775,7 +785,7 @@ public class Server extends Thread {
 					newValue = newValue + "," + scontent;
 				}
 				parms.put(content_name, newValue);
-				if (DEBUG) System.out.println("Content:"+content_name+"="+newValue);
+				if (DEBUG) System.out.println("Server.ReadMultipartData: String Content:"+content_name+"="+newValue);
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
