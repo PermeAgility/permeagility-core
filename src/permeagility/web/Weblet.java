@@ -604,7 +604,9 @@ public abstract class Weblet {
 		+"			slideshow: false, /* false OR interval time in ms */\n"
 		+"			autoplay_slideshow: false, /* true/false */\n"
 		+"			opacity: 0.50, /* Value between 0 and 1 */\n"
-		+"			allow_resize: false, /* Resize the photos bigger than viewport. true/false */\n"
+		+"			allow_resize: true, /* Resize the photos bigger than viewport. true/false */\n"
+		+"			default_width: 600, \n"
+		+"			default_height: 400 \n"
 		+"			});\n"
 		+"		});\n"
 		+"	</script>\n";
@@ -1460,6 +1462,7 @@ public abstract class Weblet {
 	 * "543-device-reading" becomes "n543DeviceReading" ??? */
 	public static String makePrettyCamelCase(String input) {
 		StringBuffer cn = new StringBuffer();
+		input = input.trim();
 		if (input.startsWith("_")) input = input.substring(1);  // Remove possible leading underscore (_allowREAD)
 		char[] chars = input.toCharArray();
 		

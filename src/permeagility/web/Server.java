@@ -524,10 +524,12 @@ public class Server extends Thread {
 						String tid = parms.get("ID");
 						if (DEBUG) System.out.println("Retrieving thumbnail "+tid);
 						StringBuffer ttypeb = new StringBuffer();
-						theData = Thumbnail.getThumbnail(tid, tsize, ttypeb);
+						StringBuffer tfileb = new StringBuffer();
+						theData = Thumbnail.getThumbnail(tid, tsize, ttypeb, tfileb);
 						String ttype = ttypeb.toString();
+						String tfile = tfileb.toString();
 						if (theData != null) {
-							os.write(getThumbnailImageHeader(ttype, theData.length, keep_alive).getBytes());
+							os.write(getThumbnailImageHeader(ttype, tfile, theData.length, keep_alive).getBytes());
 							os.write(theData);
 							os.flush();
 							if (DEBUG) System.out.println("Thumbnail(Server) - sent "+ttype+" size="+theData.length);
@@ -813,7 +815,7 @@ public class Server extends Thread {
 	}
 
 	public static int DB_IMAGE_EXPIRE_TIME = 10000;
-	public String getThumbnailImageHeader(String ct, int size, boolean keep_alive) {
+	public String getThumbnailImageHeader(String ct, String fn, int size, boolean keep_alive) {
 		String responseHeader = "HTTP/1.1 200 OK\r\n"+
 			"Date: " + new java.util.Date() + "\r\n"+
 			"Server: PermeAgility 1.0\r\n"+
@@ -823,6 +825,7 @@ public class Server extends Thread {
 			//"Cache-Control: no-cache\r\n"+
 			"Content-length: " + size + "\r\n"+
 			"Content-type: " + ct + "\r\n"+
+			(ct.startsWith("image") ? "Content-disposition: inline; filename=" : "Content-disposition: attachment; filename=" ) + fn + "\r\n"+
 			"\r\n";
 		if (DEBUG) System.out.println("RESPONSEHEADER="+responseHeader);
 		return responseHeader;

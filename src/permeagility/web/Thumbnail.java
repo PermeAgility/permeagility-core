@@ -44,12 +44,17 @@ public class Thumbnail {
 	}
 
 	public static String getThumbnailLink(String tid, String description) {
-		return "<A CLASS=\"thumbnail\" href=\"#thumb\">\n"
-		+"<IMG SRC=\"../thumbnail?ID=" + tid + "\" >\n"
-		+"<SPAN><IMG SRC=\"../thumbnail?ID="+tid+"&SIZE=MEDIUM\"/>\n"
-		+"<br>"+description
-		+"<button onClick=\"window.open('/thumbnail?SIZE=FULL&ID="+tid+"')\">View full size</button>"
-		+"</SPAN></A>\n";
+		if (description.startsWith("image")) {
+			return "<A CLASS=\"thumbnail\" href=\"#thumb\">\n"
+				+"<IMG SRC=\"../thumbnail?ID=" + tid + "\" >\n"
+				+"<SPAN>"
+				+description
+				+"<button onClick=\"window.open('/thumbnail?SIZE=FULL&ID="+tid+"')\">Download full size</button><br>"
+				+ "<IMG SRC=\"../thumbnail?ID="+tid+"&SIZE=MEDIUM\"/>\n"
+				+"</SPAN></A>\n";
+		} else {
+			return "<A href=\"/thumbnail?SIZE=FULL&ID="+tid+"\" title=\""+description+"\">Download</A>";			
+		}
 	}
 
 	public static String getThumbnailId(String table, String rid, String column, StringBuffer desc) {
@@ -69,7 +74,12 @@ public class Thumbnail {
 				QueryResult qr = con.query(query);
 				if (qr.size()>0) {
 					ODocument doc = qr.get(0);
-					desc.append(doc.field("name")+" "+doc.field("type")+" "+doc.field("size")+" bytes "+doc.field("width")+"x"+doc.field("height"));
+					String type = doc.field("type");
+					if (type.startsWith("image")) {
+						desc.append(type +" "+ doc.field("name")+" "+doc.field("size")+" bytes "+doc.field("width")+"x"+doc.field("height"));
+					} else {
+						desc.append(type +" "+ doc.field("name")+" "+doc.field("size")+" bytes");
+					}
 					return doc.getIdentity().toString().substring(1);
 				} else {
 					if (DEBUG) System.out.println("No thumbnail found for table="+table+" rid="+rid+" column="+column+" query="+query);
@@ -84,7 +94,7 @@ public class Thumbnail {
 		return null;
 	}
 
-	public static byte[] getThumbnail(String rid, String size, StringBuffer type) {
+	public static byte[] getThumbnail(String rid, String size, StringBuffer type, StringBuffer file) {
 		
 		DatabaseConnection con = database.getConnection();
 		if (con != null) {
@@ -113,7 +123,7 @@ public class Thumbnail {
 						column = "small";
 					}
 				}
-				if (DEBUG) System.out.println("reading from column "+column);
+				if (DEBUG) System.out.println("Thumbnail: reading from column "+column);
 				ORecordBytes bytes = thumbnail.field(column);
 				if (bytes != null) {
 					ByteArrayInputStream bis = new ByteArrayInputStream(bytes.toStream());
@@ -135,12 +145,14 @@ public class Thumbnail {
 							} while (binc != 0x00 && bis.available() > 0);
 						}
 						type.append(content_type);
+						file.append(content_filename);
 					} else {
 						String t = thumbnail.field("type");
 						if (!t.contains("svg")) {
 							t = "image/jpeg";
 						}
 						type.append(t);
+						file.append(thumbnail.field("name"));
 					}
 					ByteArrayOutputStream content = new ByteArrayOutputStream();
 					if (DEBUG) System.out.print("Reading blob content: available="+bis.available());
@@ -213,51 +225,28 @@ public class Thumbnail {
 			}
 			
 			ByteArrayOutputStream content = null;
-			if (content_type.toString().startsWith("image")) {
-				content = new ByteArrayOutputStream();
-				if (DEBUG) System.out.println("Reading blob content: available="+bis.available()+" type="+content_type);
-				int avail;
-				int binc;
-				while ((binc = bis.read()) != -1 && (avail = bis.available()) > 0) {
-					content.write(binc);
-					byte[] buf = new byte[avail];
-					int br = bis.read(buf);
-					if (br > 0) {
-						content.write(buf,0,br);
-					}
-				} 
-			} else {
-				System.out.println("Thumbnail:createThumbnail - not an image: type="+content_type+" filename="+content_filename);
-				InputStream iis = null;
-				URL imageurl = Thread.currentThread().getContextClassLoader().getResource("images/document.png");
-				if (imageurl != null) {
-					URLConnection urlcon = imageurl.openConnection();
-					urlcon.setConnectTimeout(100);
-					urlcon.setReadTimeout(100);
-					iis = imageurl.openStream();
-				} else {
-					System.out.println("Cannot find standard document icon");
+			content = new ByteArrayOutputStream();
+			if (DEBUG) System.out.println("Reading blob content: available="+bis.available()+" type="+content_type);
+			int avail;
+			int binc;
+			while ((binc = bis.read()) != -1 && (avail = bis.available()) > 0) {
+				content.write(binc);
+				byte[] buf = new byte[avail];
+				int br = bis.read(buf);
+				if (br > 0) {
+					content.write(buf,0,br);
 				}
-				if (iis != null) {
-					content = new ByteArrayOutputStream(); 
-					int b = iis.read();
-					while (b != -1) {
-						content.write(b);
-						b = iis.read();
-					}
-					iis.close();
-				}
-				
-			}
+			} 
 
-			ODocument thumbnail = con.getDb().newInstance("thumbnail");
+			ODocument thumbnail = con.create("thumbnail");
 
 			if (content != null) {
 				if (content_type.toString().equals("image/svg+xml")) {  // SVG scales to any size and doesn't take up much space
 					System.out.println("encoding svg straight into thumbnails");
 					thumbnail.field("small",new ORecordBytes(content.toByteArray()));
 					thumbnail.field("medium",new ORecordBytes(content.toByteArray()));					
-				} else {
+				} else if (content_type.toString().startsWith("image")) {
+					if (DEBUG) System.out.println(" -> Encoding "+content.size()+" bytes of image");
 					// Now scale it down into two sizes
 					ImageIcon imagefull = new ImageIcon(content.toByteArray());
 					int width = imagefull.getIconWidth();
@@ -282,7 +271,9 @@ public class Thumbnail {
 					thumbnail.field("height",height);
 					thumbnail.field("small",new ORecordBytes(tos.toByteArray()));
 					thumbnail.field("medium",new ORecordBytes(tos2.toByteArray()));
-					if (DEBUG) System.out.println(" -> Encoded "+content.size()+" bytes into "+tos.size());
+					if (DEBUG) System.out.println(" -> Encoded "+content.size()+" bytes into "+tos.size()+" and "+tos2.size());
+				} else {
+					if (DEBUG) System.out.println("Thumbnail: not an image - no encoding");
 				}
 				thumbnail.field("size",content.size());
 			}			
