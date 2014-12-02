@@ -302,7 +302,7 @@ public class Thumbnail {
 			return null;
 		}
 		try {
-			// Delete any and all that may already exist
+			// Delete any and all that may already exist for this row
 			String query = "SELECT FROM thumbnail\n"
 					+"WHERE table = '"+table+"'\n"
 					+"AND id = '"+id+"'";
