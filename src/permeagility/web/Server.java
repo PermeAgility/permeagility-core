@@ -895,18 +895,18 @@ public class Server extends Thread {
 				System.out.println("Server.refreshSecurity() - loaded "+entryCount+" users");
 			}
 			entryCount = 0;
-			qr = con.query("SELECT classname, roles from key");
+			qr = con.query("SELECT classname, _allowRead from menuItem");
 			if (qr != null) {
 				for (int i=0;i<qr.size();i++) {
 					String n = qr.getStringValue(i, "classname");
-					Object[] roles = qr.getLinkSetValue(i,"roles");
-					if (roles != null) {
+					Object[] roles = qr.getLinkSetValue(i,"_allowRead");
+					if (n != null && roles != null) {
 						if (DEBUG) System.out.println("Adding security key "+n);
 						entryCount++;
 						keyRoles.put(n, roles);
 					}
 				}
-				System.out.println("Server.refreshSecurity() - loaded "+entryCount+" keys");
+				System.out.println("Server.refreshSecurity() - loaded "+entryCount+" menuItems");
 			}
 			
 			for (String user : userRoles.keySet()) {
