@@ -245,9 +245,9 @@ public class DatabaseSetup {
 			if (columnsTable.count() == 0) {
 				con.create(TABLE_COLUMNS).field("name",TABLE_NEWS).field("columnList","name, dateline, locale, description, archive").save();				
 				con.create(TABLE_COLUMNS).field("name",TABLE_COLUMNS).field("columnList","name, columnList").save();	
-				con.create(TABLE_COLUMNS).field("name",TABLE_KEY).field("columnList","name, classname, active, description, roles").save();				
 				con.create(TABLE_COLUMNS).field("name",TABLE_LOCALE).field("columnList","name, description, active").save();				
 				con.create(TABLE_COLUMNS).field("name",TABLE_MENU).field("columnList","name, active, description").save();				
+				con.create(TABLE_COLUMNS).field("name",TABLE_MENUITEM).field("columnList","name, classname, active, description, _allowRead").save();				
 				con.create(TABLE_COLUMNS).field("name",TABLE_MESSAGE).field("columnList","name, description, locale").save();				
 				con.create(TABLE_COLUMNS).field("name",TABLE_STYLE).field("columnList","name, description").save();
 				con.create(TABLE_COLUMNS).field("name",TABLE_THUMBNAIL).field("columnList","name, table, id, column, size, small, medium, width, height").save();
@@ -275,7 +275,8 @@ public class DatabaseSetup {
 			}
 			
 			System.out.print(TABLE_KEY+" ");
-			OClass keyTable = Database.checkCreateClass(oschema, TABLE_KEY, installMessages);
+			OClass keyTable = con.getSchema().getClass(TABLE_KEY);
+/*			OClass keyTable = Database.checkCreateClass(oschema, TABLE_KEY, installMessages);
 			Database.checkCreateProperty(keyTable, "name", OType.STRING, installMessages);
 			Database.checkCreateProperty(keyTable, "classname", OType.STRING, installMessages);
 			Database.checkCreateProperty(keyTable, "active", OType.BOOLEAN, installMessages);
@@ -376,7 +377,7 @@ public class DatabaseSetup {
 				k3.field("roles", allRoles.toArray());
 				k3.save();				
 			}			
-
+*/
 			System.out.print(TABLE_MENUITEM+" ");
 			OClass menuItemTable = Database.checkCreateClass(oschema, TABLE_MENUITEM, installMessages);
 			Database.checkCreateProperty(menuItemTable, "name", OType.STRING, installMessages);
@@ -385,7 +386,7 @@ public class DatabaseSetup {
 			Database.checkCreateProperty(menuItemTable, "description", OType.STRING, installMessages);
 			Database.checkClassSuperclass(oschema, menuItemTable, "ORestricted", installMessages);
 			
-			if (menuItemTable.count() == 0 && keyTable.count() > 0) {
+			if (menuItemTable.count() == 0 && keyTable != null && keyTable.count() > 0) {
 				ArrayList<ODocument> items = new ArrayList<ODocument>();
 				QueryResult keys = con.query("SELECT FROM key");
 				if (keys != null) {
