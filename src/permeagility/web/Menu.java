@@ -60,45 +60,49 @@ public class Menu extends Weblet {
 			// Only the server and admin need to connect to the user table
 			dbcon = Server.getDatabase().getConnection();
 			if (DEBUG) System.out.println("Menu: Connected as (server) "+dbcon.getUser());
-			rs = dbcon.query(query);
-			for (ODocument row : rs.get()) {
-				serviceGroup = row.field("menuname");
-				serviceName = row.field("name");
-				serviceDesc = row.field("description");
-				serviceClass = row.field("classname");
-
-                if (previousGroup == null || !serviceGroup.equals(previousGroup)) {
-                    if (previousGroup != null) {
-                        menu.append("<BR>");
-                    }
-                    menu.append(paragraph("menuheader",Message.get(con.getLocale(), serviceGroup)));
-                }
-                previousGroup = serviceGroup;
-                
-                if (serviceClass.toLowerCase().startsWith("http")) {
-                    menu.append(linkNewWindow(serviceClass,Message.get(con.getLocale(), serviceName),Message.get(con.getLocale(), serviceDesc)));
-                    menu.append("<BR>");
-                } else {
-                    try {
-						if (serviceName.equals("*")) { // If name=* getMenu() will be called
-						    Class<?> xclass = Class.forName( serviceClass );
-							Object serviceObject = xclass.newInstance();	
-							try {
-								Method method = xclass.getMethod("getMenu",new Class[] {DatabaseConnection.class, java.util.HashMap.class});
-								String menuHTML = (String)method.invoke(serviceObject,new Object[] { con, parms });
-								menu.append(menuHTML);
-							} catch (Exception e) {
-								System.out.println("Menu: Unable to get menu items from "+serviceClass+": "+e.getLocalizedMessage());
-							}
-						} else {
-							menu.append(link(serviceClass,Message.get(con.getLocale(), serviceName),Message.get(con.getLocale(), serviceDesc)));	
+			try {
+				rs = dbcon.query(query);
+				for (ODocument row : rs.get()) {
+					serviceGroup = row.field("menuname");
+					serviceName = row.field("name");
+					serviceDesc = row.field("description");
+					serviceClass = row.field("classname");
+	
+	                if (previousGroup == null || !serviceGroup.equals(previousGroup)) {
+	                    if (previousGroup != null) {
 	                        menu.append("<BR>");
-						}
-					} catch( Throwable t ) {
-		                System.out.println("Menu: "+ serviceClass + " " + t.toString() );
-		                t.printStackTrace();
-					}		
-                }
+	                    }
+	                    menu.append(paragraph("menuheader",Message.get(con.getLocale(), serviceGroup)));
+	                }
+	                previousGroup = serviceGroup;
+	                
+	                if (serviceClass.toLowerCase().startsWith("http")) {
+	                    menu.append(linkNewWindow(serviceClass,Message.get(con.getLocale(), serviceName),Message.get(con.getLocale(), serviceDesc)));
+	                    menu.append("<BR>");
+	                } else {
+	                    try {
+							if (serviceName.equals("*")) { // If name=* getMenu() will be called
+							    Class<?> xclass = Class.forName( serviceClass );
+								Object serviceObject = xclass.newInstance();	
+								try {
+									Method method = xclass.getMethod("getMenu",new Class[] {DatabaseConnection.class, java.util.HashMap.class});
+									String menuHTML = (String)method.invoke(serviceObject,new Object[] { con, parms });
+									menu.append(menuHTML);
+								} catch (Exception e) {
+									System.out.println("Menu: Unable to get menu items from "+serviceClass+": "+e.getLocalizedMessage());
+								}
+							} else {
+								menu.append(link(serviceClass,Message.get(con.getLocale(), serviceName),Message.get(con.getLocale(), serviceDesc)));	
+		                        menu.append("<BR>");
+							}
+						} catch( Throwable t ) {
+			                System.out.println("Menu: "+ serviceClass + " " + t.toString() );
+			                t.printStackTrace();
+						}		
+	                }
+				}
+			} catch (Exception e) {
+				System.out.println(e.getMessage());
 			}
 			QueryResult qr = dbcon.query("SELECT FROM menu WHERE active=TRUE ORDER BY sortOrder");
 			for (ODocument m : qr.get()) {
