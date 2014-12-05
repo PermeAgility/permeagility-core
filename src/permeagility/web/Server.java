@@ -1078,12 +1078,11 @@ public class Server extends Thread {
 			Message.initialize(con);
 			database.freeConnection(con);
 		}
-		if ((table.equals("user")
+		if (table.equals("user")
 		  || table.equals("menu")
 		  || table.equals("menuItem")
 		  || table.equals("ORole")
-		  || table.equals("OUser")
-		  || table.equals("key"))) {
+		  || table.equals("OUser")) {
 			refreshSecurity();
 			Menu.clearCache();
 		}

@@ -231,7 +231,7 @@ public class DatabaseSetup {
 			Database.checkCreateProperty(tableGroupTable, "tables", OType.STRING, installMessages);
 
 			if (tableGroupTable.count() == 0) {
-				con.create(TABLE_TABLEGROUP).field("name","Security and Users").field("tables","OUser, user, ORole, key, menu, userRequest").field("_allowRead", adminRoles.toArray()).save();
+				con.create(TABLE_TABLEGROUP).field("name","Security and Users").field("tables","OUser, user, ORole, menu, menuItem, userRequest").field("_allowRead", adminRoles.toArray()).save();
 				con.create(TABLE_TABLEGROUP).field("name","Application").field("tables","article, columns, constant, tableGroup, pickList, style, locale, message, -thumbnail").field("_allowRead", adminRoles.toArray()).save();
 				con.create(TABLE_TABLEGROUP).field("name","OrientDB System").field("tables","ORole, OUser, OFunction, OSchedule, -ORIDs, -E, -V").field("_allowRead", adminRoles.toArray()).save();
 				con.create(TABLE_TABLEGROUP).field("name","News").field("tables","article").field("_allowRead", allRoles.toArray()).save();
@@ -424,6 +424,111 @@ public class DatabaseSetup {
 				}
 			}
 
+			if (menuItemTable.count() == 0) {
+				ArrayList<ODocument> items = new ArrayList<ODocument>();
+
+				ODocument k0 = con.create(TABLE_MENUITEM);
+				k0.field("name","Login");
+				k0.field("description","Login page");
+				k0.field("classname","permeagility.web.Login");
+				k0.field("active",true);
+				k0.field("_allowRead", allRoles.toArray());
+				k0.save();
+
+				ODocument k1 = con.create(TABLE_MENUITEM);
+				k1.field("name","Home");
+				k1.field("description","Home page including news");
+				k1.field("classname","permeagility.web.Home");
+				k1.field("active",true);
+				k1.field("_allowRead", allRoles.toArray());
+				k1.save();
+
+				ODocument k4 = con.create(TABLE_MENUITEM);
+				k4.field("name","Change password");
+				k4.field("description","Change password");
+				k4.field("classname","permeagility.web.ChangePassword");
+				k4.field("active",true);
+				k4.field("_allowRead", adminRoles.toArray());
+				k4.save();
+				items.add(k4);
+
+				ODocument k5 = con.create(TABLE_MENUITEM);
+				k5.field("name","UserRequest");
+				k5.field("description","User Request");
+				k5.field("classname","permeagility.web.UserRequest");
+				k5.field("active",true);
+				k5.field("_allowRead", guestRoles.toArray());
+				k5.save();
+				items.add(k5);
+
+				ODocument k6 = con.create(TABLE_MENUITEM);
+				k6.field("name","Context");
+				k6.field("description","Context");
+				k6.field("classname","permeagility.web.Context");
+				k6.field("active",true);
+				k6.field("_allowRead", adminRoles.toArray());
+				k6.save();
+				items.add(k6);
+
+				ODocument k6a = con.create(TABLE_MENUITEM);
+				k6a.field("name","Settings");
+				k6a.field("description","Basic settings");
+				k6a.field("classname","permeagility.web.Settings");
+				k6a.field("active",true);
+				k6a.field("_allowRead", adminRoles.toArray());
+				k6a.save();
+				items.add(k6a);
+
+				ODocument k7 = con.create(TABLE_MENUITEM);
+				k7.field("name","Shutdown");
+				k7.field("description","Shutdown the server");
+				k7.field("classname","permeagility.web.Shutdown");
+				k7.field("active",true);
+				k7.field("_allowRead", adminRoles.toArray());
+				k7.save();
+				items.add(k7);
+
+				ODocument k8 = con.create(TABLE_MENUITEM);
+				k8.field("name","Query");
+				k8.field("description","Query the database");
+				k8.field("classname","permeagility.web.SQL");
+				k8.field("active",true);
+				k8.field("_allowRead", adminRoles.toArray());
+				k8.save();
+				items.add(k8);
+
+				// Following are for allRoles but not guest
+				if (guestRoles.size() >0) {
+					allRoles.remove(guestRoles.get(0));
+				}
+				ODocument k2 = con.create(TABLE_MENUITEM);
+				k2.field("name","Tables");
+				k2.field("description","Table Catalog");
+				k2.field("classname","permeagility.web.Schema");
+				k2.field("active",true);
+				k2.field("_allowRead", allRoles.toArray());
+				k2.save();
+				items.add(k2);
+
+				ODocument k3 = con.create(TABLE_MENUITEM);
+				k3.field("name","Table Editor");
+				k3.field("description","Table editor");
+				k3.field("classname","permeagility.web.Table");
+				k3.field("active",true);
+				k3.field("_allowRead", allRoles.toArray());
+				k3.save();				
+
+				// Add the items property to the menu
+				Database.checkCreateProperty(menuTable, "items", OType.LINKLIST, menuItemTable, installMessages);
+				ODocument menuDoc = con.queryDocument("SELECT FROM menu");
+				if (menuDoc != null && items.size() > 0) {
+					menuDoc.field("items",items.toArray());
+					menuDoc.save();
+				} else {
+					installMessages.append(Weblet.paragraph("error","menu is null or no items to add"));
+				}
+			}			
+			
 			System.out.print(TABLE_USERREQUEST+" ");
 			OClass urTable = Database.checkCreateClass(oschema, TABLE_USERREQUEST, installMessages);
 			Database.checkCreateProperty(urTable, "name", OType.STRING, installMessages);
