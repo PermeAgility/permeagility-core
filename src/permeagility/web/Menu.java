@@ -7,6 +7,8 @@ package permeagility.web;
 
 import java.lang.reflect.Method;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import permeagility.util.DatabaseConnection;
@@ -35,7 +37,7 @@ public class Menu extends Weblet {
 		
 		StringBuffer menu = new StringBuffer(512);
 		if (DEBUG) System.out.println("Menu: Getting menu for "+con.getUser());
-		
+
 		String query = // Sort order is just not working here - aaargh!
 				"select menu.name as menuname, name, description, classname, menu.description as menudesc, menu.sortOrder * 10000 + sortOrder as sortOrder "
 				+ "from key where active=true and menu is not null "
@@ -98,9 +100,42 @@ public class Menu extends Weblet {
 					}		
                 }
 			}
+			QueryResult qr = dbcon.query("SELECT FROM menu WHERE active=TRUE ORDER BY sortOrder");
+			for (ODocument m : qr.get()) {
+				StringBuffer itemMenu = new StringBuffer();
+                List<ODocument> items = m.field("items");
+                if (items != null) {
+	                for (ODocument i : items) {
+	                	Set<ODocument> readRoles = i.field("_allowRead");
+	                	Object userRoles[] = Server.getUserRoles(con);
+	                	if (readRoles != null && userRoles != null) {
+	                		for (ODocument r : readRoles) {
+	                			for (Object u : userRoles) {
+	                				if (r != null && u != null) {
+	                					if (r.equals(u)) {
+	                                    	if (i.field("classname") == null || ((String)i.field("classname")).equals("")) {
+	                                            itemMenu.append("<BR>");                	                	
+	                                    	} else {
+	                                    		itemMenu.append(link((String)i.field("classname"),Message.get(con.getLocale(), (String)i.field("name")),Message.get(con.getLocale(), (String)i.field("description"))));	
+	                                    		itemMenu.append("<BR>");  
+	                                    	}
+	                                    	break;
+	                					}
+	                				}
+	                			}
+	                		}
+	                	}
+	                }
+	                if (itemMenu.length() > 0) {
+		                menu.append(paragraph("menuheader",Message.get(con.getLocale(), (String)m.field("name"))));
+		                menu.append(itemMenu);
+	                }
+                }
+			}
 			menu.append("<BR><BR><BR><BR>"+xxSmall(Message.getLocaleSelector(con.getLocale(),parms)));
 		} catch( Exception e ) {
 			System.out.println("Error in Menu: "+e);
+			e.printStackTrace();
 		} finally {
 			if (dbcon != null) {
 				Server.getDatabase().freeConnection(dbcon);

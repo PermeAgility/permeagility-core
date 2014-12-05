@@ -296,6 +296,16 @@ public class Database implements Serializable {
 			p = theClass.createProperty(propertyName, propertyType);
 			errors.append(Weblet.paragraph("success","CheckInstallation: Created property "+theClass.getName()+"."+propertyName+" of type "+propertyType.name()));
 		}
+		if (p != null) {
+			if (p.isMandatory()) {
+				p.setMandatory(false);
+				errors.append(Weblet.paragraph("success","CheckInstallation: setting non-mandatory on "+theClass.getName()+"."+propertyName+" of type "+propertyType.name()));
+			}
+			if (p.isNotNull()) {
+				p.setNotNull(false);
+				errors.append(Weblet.paragraph("success","CheckInstallation: setting nullable on "+theClass.getName()+"."+propertyName+" of type "+propertyType.name()));
+			}
+		}
 		return p;
 	}
 
@@ -308,6 +318,12 @@ public class Database implements Serializable {
 		}
 		if (c == null) {
 			errors.append(Weblet.paragraph("error","CheckInstallation: Error creating "+className+" class/table"));
+		}
+		if (c != null) {
+			if (c.isStrictMode()) {
+				c.setStrictMode(false);
+				errors.append(Weblet.paragraph("success","CheckInstallation: Set non-strict "+className+" class/table"));
+			}
 		}
 		return c;
 	}

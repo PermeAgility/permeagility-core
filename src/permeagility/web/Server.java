@@ -1080,6 +1080,7 @@ public class Server extends Thread {
 		}
 		if ((table.equals("user")
 		  || table.equals("menu")
+		  || table.equals("menuItem")
 		  || table.equals("ORole")
 		  || table.equals("OUser")
 		  || table.equals("key"))) {

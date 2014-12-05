@@ -382,7 +382,8 @@ public class Table extends Weblet {
 				return true;
 			} catch (Exception e) {
 				e.printStackTrace();
-				errors.append(paragraph("error", Message.get(con.getLocale(),"CANNOT_CREATE_ROW") + e.getMessage()));
+				Throwable cause = e.getCause();
+				errors.append(paragraph("error", Message.get(con.getLocale(),"CANNOT_CREATE_ROW") + (cause != null ? cause.getMessage() : e.getMessage())));
 				return false;
 			}
 		}
@@ -694,8 +695,9 @@ public class Table extends Weblet {
 						getCache().refreshContains(table);
 						return true;
 					} catch (Exception e) {
-						errors.append(paragraph("error", "Row could not be updated: " + e.getMessage()));
-						e.printStackTrace();
+						Throwable cause = e.getCause();
+						errors.append(paragraph("error", Message.get(con.getLocale(), "CANNOT_UPDATE") + (cause != null ? cause.getMessage() : e.getMessage())));
+						//e.printStackTrace();
 						return false;
 					}
 				} else {
@@ -1317,7 +1319,9 @@ public class Table extends Weblet {
 			if (l != null) {
 				if (DEBUG) System.out.println("linkList size="+l.size()+(l.size()>0 ? " type="+l.get(0).getClass().getName() : ""));
 				for (ODocument o : l) {
-					ll.append(getDescriptionFromDocument(con, o)+br());
+					if (o != null) {
+						ll.append(getDescriptionFromDocument(con, o)+br());
+					}
 				}
 			}
 			sb.append(column(xSmall(ll.toString())));
@@ -1326,7 +1330,9 @@ public class Table extends Weblet {
 			StringBuffer ll = new StringBuffer();
 			if (l != null) {
 				for (ODocument o : l) {
-					ll.append(getDescriptionFromDocument(con, o)+br());
+					if (o != null) {
+						ll.append(getDescriptionFromDocument(con, o)+br());
+					}
 				}
 			}
 			sb.append(column(xSmall(ll.toString())));

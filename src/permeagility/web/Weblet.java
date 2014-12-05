@@ -808,23 +808,25 @@ public abstract class Weblet {
 	    Vector<String> listchecks = new Vector<String>(qr.size());
 	    if (picked != null) {
 		    for(ODocument pick : picked) {
-		    	String rid = pick.field("rid");
-		    	if (rid == null) {
-		    		rid = pick.getIdentity().toString();
+		    	if (pick != null) {
+			    	String rid = pick.field("rid");
+			    	if (rid == null) {
+			    		rid = pick.getIdentity().toString();
+			    	}
+			    	if (rid.startsWith("#")) rid = rid.substring(1);
+			    	listvalues.add(rid);
+			    	listnames.add(getDescriptionFromDocument(con, pick));
+			    	listtooltips.add((String)pick.field("tooltip"));
+			    	Integer active = listMap.get(rid);
+			    	if (active == null) {
+			    		active = new Integer(1);
+			    	} else {
+			    		active = new Integer(active.intValue()+1);
+			    	}
+			    	//System.out.println("Adding to listValues: "+rid+" active="+active);
+			    	listMap.put(rid, active);	    	
+			    	listchecks.add(active.toString());
 		    	}
-		    	if (rid.startsWith("#")) rid = rid.substring(1);
-		    	listvalues.add(rid);
-		    	listnames.add(getDescriptionFromDocument(con, pick));
-		    	listtooltips.add((String)pick.field("tooltip"));
-		    	Integer active = listMap.get(rid);
-		    	if (active == null) {
-		    		active = new Integer(1);
-		    	} else {
-		    		active = new Integer(active.intValue()+1);
-		    	}
-		    	//System.out.println("Adding to listValues: "+rid+" active="+active);
-		    	listMap.put(rid, active);	    	
-		    	listchecks.add(active.toString());
 		    }
 	    }
 	    for(ODocument row : qr.get()) {

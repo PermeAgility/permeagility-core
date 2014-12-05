@@ -25,6 +25,7 @@ public class DatabaseSetup {
 	public static String TABLE_COLUMNS = "columns";
 	public static String TABLE_MENU = "menu";
 	public static String TABLE_KEY = "key";
+	public static String TABLE_MENUITEM = "menuItem";
 	public static String TABLE_NEWS = "article";
 	public static String TABLE_USERREQUEST = "userRequest";
 	
@@ -165,6 +166,8 @@ public class DatabaseSetup {
 			mCount += checkCreateMessage(con, loc, "SHUTDOWN_CONFIRM_MESSAGE", "This will shutdown the server, the server will need to be restarted at the host to continue");
 			mCount += checkCreateMessage(con, loc, "CONFIRM_SHUTDOWN", "Shut down");
 			mCount += checkCreateMessage(con, loc, "SQL_WEBLET", "Query");
+			mCount += checkCreateMessage(con, loc, "CANNOT_CREATE_ROW", "Error creating row: ");
+			mCount += checkCreateMessage(con, loc, "CANNOT_UPDATE", "Error updating row: ");
 			
 			if (mCount > 0) {
 				installMessages.append(Weblet.paragraph("success","CheckInstallation: Created "+mCount+" messages"));
@@ -371,10 +374,54 @@ public class DatabaseSetup {
 				k3.field("classname","permeagility.web.Table");
 				k3.field("active",true);
 				k3.field("roles", allRoles.toArray());
-				k3.save();			
-
-			
+				k3.save();				
 			}			
+
+			System.out.print(TABLE_MENUITEM+" ");
+			OClass menuItemTable = Database.checkCreateClass(oschema, TABLE_MENUITEM, installMessages);
+			Database.checkCreateProperty(menuItemTable, "name", OType.STRING, installMessages);
+			Database.checkCreateProperty(menuItemTable, "classname", OType.STRING, installMessages);
+			Database.checkCreateProperty(menuItemTable, "active", OType.BOOLEAN, installMessages);
+			Database.checkCreateProperty(menuItemTable, "description", OType.STRING, installMessages);
+			Database.checkClassSuperclass(oschema, menuItemTable, "ORestricted", installMessages);
+			
+			if (menuItemTable.count() == 0 && keyTable.count() > 0) {
+				ArrayList<ODocument> items = new ArrayList<ODocument>();
+				QueryResult keys = con.query("SELECT FROM key");
+				if (keys != null) {
+					for (ODocument k : keys.get()) {
+						ODocument mi = con.create(TABLE_MENUITEM);
+						mi.field("name",k.field("name"));
+						mi.field("classname",k.field("classname"));
+						mi.field("active",k.field("active"));
+						mi.field("description",k.field("description"));
+						mi.field("_allow",adminRoles);
+						mi.field("_allowRead",k.field("roles"));
+						mi.save();
+						if (k.field("menu") !=  null) {
+							items.add(mi);
+						}
+						installMessages.append(Weblet.paragraph("warning","Converted menu item "+k.field("name")));
+					}
+					ODocument mi_blank = con.create(TABLE_MENUITEM);
+					mi_blank.field("name","");
+					mi_blank.field("active",true);
+					mi_blank.field("description","Blank menu item");
+					mi_blank.field("_allow",adminRoles);
+					mi_blank.field("_allowRead",allRoles);
+					mi_blank.save();
+					
+				}
+				// Add the items property to the menu
+				Database.checkCreateProperty(menuTable, "items", OType.LINKLIST, menuItemTable, installMessages);
+				ODocument menuDoc = con.queryDocument("SELECT FROM menu");
+				if (menuDoc != null && items.size() > 0) {
+					menuDoc.field("items",items.toArray());
+					menuDoc.save();
+				} else {
+					installMessages.append(Weblet.paragraph("error","menu is null or no items to add"));
+				}
+			}
 
 			System.out.print(TABLE_USERREQUEST+" ");
 			OClass urTable = Database.checkCreateClass(oschema, TABLE_USERREQUEST, installMessages);
