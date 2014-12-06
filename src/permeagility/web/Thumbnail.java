@@ -6,17 +6,11 @@ at the URL "http://www.eclipse.org/legal/epl-v10.html".
 package permeagility.web;
 
 import java.awt.Graphics2D;
+import java.awt.GraphicsEnvironment;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.net.URL;
-import java.net.URLConnection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
 
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
@@ -46,7 +40,8 @@ public class Thumbnail {
 	public static String getThumbnailLink(String tid, String description) {
 		if (description.startsWith("image")) {
 			return "<A CLASS=\"thumbnail\" href=\"#thumb\">\n"
-				+"<IMG WIDTH=\""+THUMBNAIL_SMALL_WIDTH+"\" HEIGHT=\""+THUMBNAIL_SMALL_HEIGHT+"\" SRC=\"../thumbnail?ID=" + tid + "\" >\n"
+				+"<IMG SRC=\"../thumbnail?ID=" + tid + "\" >\n"
+//				+"<IMG WIDTH=\""+THUMBNAIL_SMALL_WIDTH+"\" HEIGHT=\""+THUMBNAIL_SMALL_HEIGHT+"\" SRC=\"../thumbnail?ID=" + tid + "\" >\n"
 				+"<SPAN>"
 				+description
 				+"<button onClick=\"window.open('/thumbnail?SIZE=FULL&ID="+tid+"')\">Download full size</button><br>"
@@ -206,6 +201,10 @@ public class Thumbnail {
 			StringBuffer content_type = new StringBuffer();
 			StringBuffer content_filename = new StringBuffer();
 			
+			if (image == null) { 
+				System.out.println("Empty thumbnail for table="+table+" column="+column+" rid="+doc.getIdentity().toString());
+				return null;
+			}
 			byte[] bytes = image.toStream();
 			if (DEBUG) System.out.println("bytes length="+bytes.length);
 			ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
@@ -246,25 +245,32 @@ public class Thumbnail {
 					thumbnail.field("small",new ORecordBytes(content.toByteArray()));
 					thumbnail.field("medium",new ORecordBytes(content.toByteArray()));					
 				} else if (content_type.toString().startsWith("image")) {
-					if (DEBUG) System.out.println(" -> Encoding "+content.size()+" bytes of image");
+					if (DEBUG) System.out.println(" -> Encoding "+content.size()+" bytes of image envHeadless="+GraphicsEnvironment.isHeadless());
 					// Now scale it down into two sizes
 					ImageIcon imagefull = new ImageIcon(content.toByteArray());
+					if (DEBUG) System.out.println(" -> Image full read as "+imagefull.toString());
 					int width = imagefull.getIconWidth();
 					int height = imagefull.getIconHeight();
 					int gheight = (int)((double)THUMBNAIL_SMALL_WIDTH/(double)width*(double)height);
 					int g2height = (int)((double)THUMBNAIL_MEDIUM_WIDTH/(double)width*(double)height);
+					if (DEBUG) System.out.println(" -> width="+width+" height="+height+" gheight="+gheight+" g2height="+g2height);
 					BufferedImage imagesmall = new BufferedImage(THUMBNAIL_SMALL_WIDTH,gheight,BufferedImage.TYPE_INT_RGB);
 					BufferedImage imagemedium = new BufferedImage(THUMBNAIL_MEDIUM_WIDTH,g2height,BufferedImage.TYPE_INT_RGB);
+					if (DEBUG) System.out.println(" -> ismall="+imagesmall.toString()+" imedium="+imagemedium);
 					Graphics2D g = (Graphics2D)imagesmall.getGraphics();
 					Graphics2D g2 = (Graphics2D)imagemedium.getGraphics();
-					g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-					g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+					if (DEBUG) System.out.println(" -> gsmall="+g.toString()+" gmedium="+g2.toString());
+					g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+					g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
 					g.drawImage(imagefull.getImage(), 0, 0, THUMBNAIL_SMALL_WIDTH, gheight, null);
 					g2.drawImage(imagefull.getImage(), 0, 0, THUMBNAIL_MEDIUM_WIDTH, g2height, null);
+					if (DEBUG) System.out.println(" -> gsmall="+g.toString()+" gmedium="+g2.toString());
 					ByteArrayOutputStream tos = new ByteArrayOutputStream();
 					ByteArrayOutputStream tos2 = new ByteArrayOutputStream();
 					ImageIO.write(imagesmall, "jpg", tos);
 					ImageIO.write(imagemedium, "jpg", tos2);
+					tos.close();
+					tos2.close();
 					g.dispose();
 					g2.dispose();
 					thumbnail.field("width",width);
