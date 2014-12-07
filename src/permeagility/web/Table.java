@@ -1229,7 +1229,7 @@ public class Table extends Weblet {
 			}
 			if (column.field("type") == OType.TRANSIENT) {
 				sb.append(tableHead("sorttable_nosort", center(xSmall(bold(columnName)))));				
-			} else if (!columnName.toUpperCase().endsWith("PASSWORD") && !columnName.startsWith("_")
+			} else if (!columnName.toUpperCase().endsWith("PASSWORD")  // && !columnName.startsWith("_")
 					&& (hideColumn == null || !columnName.equals(hideColumn)) ) {
 				if (columnName.startsWith("button(") && columnName.length() > 8 && columnName.indexOf(':',7) > 7) {
 					int cp = columnName.indexOf(':',7);
@@ -1249,11 +1249,12 @@ public class Table extends Weblet {
 //		if (DEBUG) System.out.println("Table.getRow colCount="+columns.size());
 		for (ODocument column : columns.get()) {
 			String fieldName = column.field("name");
-			if ((hideColumn == null || !fieldName.equals(hideColumn)) 
-					&& !fieldName.toUpperCase().endsWith("PASSWORD") && !fieldName.startsWith("_")) {
+			if (!fieldName.toUpperCase().endsWith("PASSWORD")   // && !fieldName.startsWith("_")
+					&& 	(hideColumn == null || !fieldName.equals(hideColumn)) 
+					) {
 				if (fieldName.startsWith("button(") && fieldName.length() > 8 && fieldName.indexOf(':',7) > 7) {
 					int cp = fieldName.indexOf(':',7);
-					String n = fieldName.substring(7,cp);
+					String n = fieldName.substring(7,cp);  
 					String l = fieldName.substring(cp+1,fieldName.length()-1);
 					sb.append(column(form(button(n,d.getIdentity().toString().substring(1),l))));
 				} else {
