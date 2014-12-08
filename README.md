@@ -13,6 +13,8 @@ An eclipse project is also configured, just import the project using eclipse.
 Once the server is running, open browser to http://localhost:1999 
 (browser will open automatically on Windows or OSX)
 
+A log directory will be created unless a log file exists, otherwise output to console.  
+
 Login to the server using admin/admin
 
 
@@ -21,7 +23,7 @@ Copyright 2014 PermeAgility
 Licensed under Eclipse Public License http://www.eclipse.org/legal/epl-v10.html
 
 
-Other components and copyrights: (Database and JavaScript Components)
+Includes other components and copyrights: (Database and JavaScript Components)
 
 - OrientDB - http://www.orientechnologies.com/orientdb/
 - PrettyPhoto - Stephane Caron (http://www.no-margin-for-errors.com)
@@ -29,3 +31,4 @@ Other components and copyrights: (Database and JavaScript Components)
 - JSColor - Jan Odvarko, http://odvarko.cz, http://jscolor.com
 - SortTable - Stuart Langridge, http://www.kryogenix.org/code/browser/sorttable/
 - JSCalendar - Mihai Bazon, http://www.dynarch.com/projects/calendar
+- AngularJs - Google, Inc. http://angularjs.org  License: MIT
