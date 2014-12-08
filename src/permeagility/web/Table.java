@@ -760,6 +760,18 @@ public class Table extends Weblet {
 
 	public String getTableRowForm(DatabaseConnection con, String table, HashMap<String, String> parms) {
 		String edit_id = parms.get("EDIT_ID");
+		
+		// Cannot view abstract class directly - redirect to the actual record's class
+		if (DEBUG) System.out.println("Table.getTableRowForm: table="+table+" class.isAbstract="+con.getSchema().getClass(table).isAbstract());
+		if (con.getSchema().getClass(table).isAbstract()) {
+			ODocument d = con.get(edit_id);
+			if (d != null) {
+				OClass c = d.getSchemaClass();
+				table = c.getName();
+				parms.put("TABLENAME", table);
+			}
+		}
+
 		//String update_id = parms.get("UPDATE_ID");
 		String formName = (edit_id == null ? "NEWROW" : "UPDATEROW");
 		return paragraph("banner", (edit_id == null ? Message.get(con.getLocale(), "CREATE_ROW") 
@@ -1002,8 +1014,9 @@ public class Table extends Weblet {
 		} else if (type == 14) {
 			List<ODocument> l = null;
 			try { l = initialValues.field(name); } catch (NullPointerException e) { } // It will do this if it doesn't exist
+			String linkedClass = column.field("linkedClass");
 			return row(columnTopRight(50, small(prettyName))
-					+ columnNoWrap(50, xSmall(linkListControl(con, PARM_PREFIX+name, (String)column.field("linkedClass"), getCache().getResult(con,getQueryForTable(con, (String)column.field("linkedClass"))), con.getLocale(), l))));
+					+ columnNoWrap(50, xSmall(linkListControl(con, PARM_PREFIX+name, linkedClass, getCache().getResult(con,getQueryForTable(con, linkedClass)), con.getLocale(), l))));
 //				+ column(50, xSmall(ll.toString()+createListFromTable(name, "", con, (String)column.field("linkedClass"), null, true, null, true))));
 
 		// Link set
@@ -1011,16 +1024,18 @@ public class Table extends Weblet {
 			Set<ODocument> l = null;
 			try {  l = initialValues.field(name);  } catch (NullPointerException e) { }  // It will do this if it doesn't exist
 			//System.out.println("linkset size="+l.size());			
+			String linkedClass = column.field("linkedClass");
 			return row(columnTopRight(50, small(prettyName))
-					+ columnNoWrap(50, xSmall(linkSetControl(PARM_PREFIX+name, (String)column.field("linkedClass"), con.query(getQueryForTable(con, (String)column.field("linkedClass"))), con.getLocale(), l))));
+					+ columnNoWrap(50, xSmall(linkSetControl(PARM_PREFIX+name, linkedClass, con.query(getQueryForTable(con, linkedClass)), con.getLocale(), l))));
 
 		// Link map
 		} else if (type == 16) {
 			Map<String,ODocument> l = null;
 			try {  l = initialValues.field(name);  } catch (NullPointerException e) { }  // It will do this if it doesn't exist
 			if (l != null && DEBUG) System.out.println("linkmap size="+l.size());			
+			String linkedClass = column.field("linkedClass");
 			return row(columnTopRight(50, small(prettyName))
-					+ columnNoWrap(50, xSmall(linkMapControl(con,PARM_PREFIX+name, (String)column.field("linkedClass"), con.query(getQueryForTable(con, (String)column.field("linkedClass"))), con.getLocale(), l))));
+					+ columnNoWrap(50, xSmall(linkMapControl(con,PARM_PREFIX+name, linkedClass, con.query(getQueryForTable(con, linkedClass)), con.getLocale(), l))));
 			
 		} else {
 			System.out.println("Table.GetColumnAsField: Unrecognized type: "+type);
@@ -1034,9 +1049,9 @@ public class Table extends Weblet {
 		Stack<String> tables = new Stack<String>();
 		Stack<String> columns = new Stack<String>();
 		Stack<OType> types = new Stack<OType>();
-		if (DEBUG) System.out.println("getTableRowRelated start..");
-		
+
 		String edit_id = parms.get("EDIT_ID");
+			
 		for (OClass c : con.getSchema().getClasses()) {
 			for (OProperty p : c.properties()) {
 				if (p.getLinkedClass() != null && p.getLinkedClass().getName().equals(table)) {
