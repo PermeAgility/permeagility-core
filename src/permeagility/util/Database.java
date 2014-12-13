@@ -16,6 +16,7 @@ import permeagility.web.Weblet;
 
 import com.orientechnologies.orient.core.OConstants;
 import com.orientechnologies.orient.core.command.OCommandOutputListener;
+import com.orientechnologies.orient.core.db.ODatabase;
 import com.orientechnologies.orient.core.db.ODatabase.STATUS;
 import com.orientechnologies.orient.core.db.ODatabaseRecordThreadLocal;
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
@@ -264,7 +265,7 @@ public class Database implements Serializable {
 				System.out.println("setting "+user+" password to "+password+" you should probably change this now");
 				OUser u = d.getMetadata().getSecurity().getUser("server");
 				if (u == null) {
-					u = d.getMetadata().getSecurity().createUser(user, password, "admin");
+					u = d.getMetadata().getSecurity().createUser("server", "server", "admin");
 					u.save();
 				} else {
 					u.setPassword(password);

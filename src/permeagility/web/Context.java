@@ -97,7 +97,8 @@ public class Context extends Weblet {
 		
 		// Return content
 		return
-		    paragraph("Server has been running since "+Server.getServerInitTime()+" connected to "+Server.DB_NAME+" using "+Server.getDatabase().getUser())
+		    paragraph("HTTP server on port "+Server.HTTP_PORT+" has been running since "+Server.getServerInitTime()+" connected to "+Server.DB_NAME+" using "+Server.getDatabase().getUser())
+		    +paragraph("Database info="+Server.getDatabase().getName(con)+"<br>clientversion="+Server.getDatabase().getClientVersion()+"<br>serverversion="+Server.getDatabase().getDatabaseVersion(con))
 		    +paragraph("banner","Cached Lists")
 			+form(button("REFRESH_COLUMNS_ALL","REFRESHCOLUMNS","Clear table columns cache")+hidden("CLEAR_COLUMNS","ALL") + " cached="+Server.columnsCacheSize())
 			+br()

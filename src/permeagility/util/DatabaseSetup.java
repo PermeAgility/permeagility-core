@@ -38,12 +38,15 @@ public class DatabaseSetup {
 			
 			System.out.print("DatabaseSetup.checkInstallation ");
 
+			// Setup roles lists
 			ArrayList<ODocument> allRoles = new ArrayList<ODocument>();			
+			ArrayList<ODocument> allRolesButGuest = new ArrayList<ODocument>();			
 			ArrayList<ODocument> adminRoles = new ArrayList<ODocument>();			
 			ArrayList<ODocument> guestRoles = new ArrayList<ODocument>();			
 			QueryResult qr = con.query("SELECT FROM ORole");
 			for (ODocument role : qr.get()) {
 				allRoles.add(role);
+				if (!role.field("name").equals("guest")) allRolesButGuest.add(role);
 				if (role.field("name").equals("admin")) adminRoles.add(role);
 				if (role.field("name").equals("guest")) guestRoles.add(role);
 			}
@@ -136,6 +139,7 @@ public class DatabaseSetup {
 			mCount += checkCreateMessage(con, loc, "USER_LABEL", "User");
 			mCount += checkCreateMessage(con, loc, "PASSWORD_LABEL", "Password");
 			mCount += checkCreateMessage(con, loc, "REQUEST_LOGIN", "Request login");
+			mCount += checkCreateMessage(con, loc, "PASSWORD_CHANGE_SUCCESS", "Password changed");
 			mCount += checkCreateMessage(con, loc, "CHANGE_PASSWORD_FOR", "Change {0} password");
 			mCount += checkCreateMessage(con, loc, "CURRENT_PASSWORD", "Current password");
 			mCount += checkCreateMessage(con, loc, "NEW_PASSWORD", "New password");
@@ -313,7 +317,7 @@ public class DatabaseSetup {
 				mi_password.field("description","Change password");
 				mi_password.field("classname","permeagility.web.ChangePassword");
 				mi_password.field("active",true);
-				mi_password.field("_allowRead", adminRoles.toArray());
+				mi_password.field("_allowRead", allRolesButGuest.toArray());
 				mi_password.save();
 
 				ODocument mi_userRequest = con.create(TABLE_MENUITEM);
@@ -356,16 +360,12 @@ public class DatabaseSetup {
 				mi_query.field("_allowRead", adminRoles.toArray());
 				mi_query.save();
 
-				// Following are for allRoles but not guest
-				if (guestRoles.size() >0) {
-					allRoles.remove(guestRoles.get(0));
-				}
 				ODocument mi_schema = con.create(TABLE_MENUITEM);
 				mi_schema.field("name","Tables");
 				mi_schema.field("description","Table Catalog");
 				mi_schema.field("classname","permeagility.web.Schema");
 				mi_schema.field("active",true);
-				mi_schema.field("_allowRead", allRoles.toArray());
+				mi_schema.field("_allowRead", allRolesButGuest.toArray());
 				mi_schema.save();
 
 				ODocument mi_table = con.create(TABLE_MENUITEM);
@@ -373,8 +373,16 @@ public class DatabaseSetup {
 				mi_table.field("description","Table editor");
 				mi_table.field("classname","permeagility.web.Table");
 				mi_table.field("active",true);
-				mi_table.field("_allowRead", allRoles.toArray());
+				mi_table.field("_allowRead", allRolesButGuest.toArray());
 				mi_table.save();				
+
+				ODocument mi_backup = con.create(TABLE_MENUITEM);
+				mi_backup.field("name","Backup/Restore");
+				mi_backup.field("description","Backup and restore the database");
+				mi_backup.field("classname","permeagility.web.BackupRestore");
+				mi_backup.field("active",true);
+				mi_backup.field("_allowRead", adminRoles.toArray());
+				mi_backup.save();				
 
 				ODocument mi_blank = con.create(TABLE_MENUITEM);
 				mi_blank.field("name","");
@@ -393,6 +401,7 @@ public class DatabaseSetup {
 				items.add(mi_context);
 				items.add(mi_settings);
 				items.add(mi_password);
+				items.add(mi_backup);
 				items.add(mi_shutdown);
 
 				// Add the menu items property to the menu

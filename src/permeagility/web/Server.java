@@ -1222,7 +1222,7 @@ public class Server extends Thread {
 				System.out.println(con.getUser()+" password changed successfully "+rc);
 				con.setPassword(newPassword);
 			    if (con.getUser().equalsIgnoreCase("server")) {
-			    	System.out.println("Setting localsetting for server password using key="+Server.DB_NAME + Server.HTTP_PORT+" and pass="+newPassword);
+			    	//System.out.println("Setting localsetting for server password using key="+Server.DB_NAME + Server.HTTP_PORT+" and pass="+newPassword);
 			    	Server.setLocalSetting(Server.DB_NAME + Server.HTTP_PORT, newPassword);
 			    }
 				return true;
