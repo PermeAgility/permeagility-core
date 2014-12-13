@@ -24,7 +24,6 @@ public class DatabaseSetup {
 	public static String TABLE_TABLEGROUP = "tableGroup";
 	public static String TABLE_COLUMNS = "columns";
 	public static String TABLE_MENU = "menu";
-	public static String TABLE_KEY = "key";
 	public static String TABLE_MENUITEM = "menuItem";
 	public static String TABLE_NEWS = "article";
 	public static String TABLE_USERREQUEST = "userRequest";
@@ -61,11 +60,11 @@ public class DatabaseSetup {
 						+ ", \"database.class.style\":2,\"database.cluster.style\":2 }");
 				guestRoles.add(guestRole);
 				allRoles.add(guestRole);
-				installMessages.append(Weblet.paragraph("success","CheckInstallation: Created guest role"));
+				installMessages.append(Weblet.paragraph("CheckInstallation: Created guest role"));
 			}
 			if (guestUser == null) {
 				guestUser = (ODocument)con.update("insert into OUser set name = 'guest', password = 'guest', status = 'ACTIVE', roles = (select from ORole where name = 'guest')");
-				installMessages.append(Weblet.paragraph("success","CheckInstallation: Created guest user"));
+				installMessages.append(Weblet.paragraph("CheckInstallation: Created guest user"));
 			}
 			
 			System.out.print(TABLE_THUMBNAIL+" ");
@@ -111,7 +110,7 @@ public class DatabaseSetup {
 				loc.field("description","English");
 				loc.field("active",true);
 				loc.save();
-				installMessages.append(Weblet.paragraph("success","CheckInstallation: Created en locale"));
+				installMessages.append(Weblet.paragraph("CheckInstallation: Created en locale"));
 			} else {
 				loc = con.queryDocument("SELECT FROM locale WHERE name='en'");
 			}
@@ -137,6 +136,13 @@ public class DatabaseSetup {
 			mCount += checkCreateMessage(con, loc, "USER_LABEL", "User");
 			mCount += checkCreateMessage(con, loc, "PASSWORD_LABEL", "Password");
 			mCount += checkCreateMessage(con, loc, "REQUEST_LOGIN", "Request login");
+			mCount += checkCreateMessage(con, loc, "CHANGE_PASSWORD_FOR", "Change {0} password");
+			mCount += checkCreateMessage(con, loc, "CURRENT_PASSWORD", "Current password");
+			mCount += checkCreateMessage(con, loc, "NEW_PASSWORD", "New password");
+			mCount += checkCreateMessage(con, loc, "CONFIRM_PASSWORD", "Confirm password");
+			mCount += checkCreateMessage(con, loc, "SERVER_SETTINGS", "Server settings");
+			mCount += checkCreateMessage(con, loc, "SET_STYLE", "Stylesheet");
+			mCount += checkCreateMessage(con, loc, "SET_ROWCOUNT", "Table page limit");
 			mCount += checkCreateMessage(con, loc, "INVALID_USER_OR_PASSWORD", "Invalid user/password");
 			mCount += checkCreateMessage(con, loc, "LOGOUT", "Logout");
 			mCount += checkCreateMessage(con, loc, "TABLE_NONGROUPED", "Ungrouped");
@@ -170,9 +176,11 @@ public class DatabaseSetup {
 			mCount += checkCreateMessage(con, loc, "SQL_WEBLET", "Query");
 			mCount += checkCreateMessage(con, loc, "CANNOT_CREATE_ROW", "Error creating row: ");
 			mCount += checkCreateMessage(con, loc, "CANNOT_UPDATE", "Error updating row: ");
+			mCount += checkCreateMessage(con, loc, "NEW_ROW_CREATED", "New row created: ");
+			
 			
 			if (mCount > 0) {
-				installMessages.append(Weblet.paragraph("success","CheckInstallation: Created "+mCount+" messages"));
+				installMessages.append(Weblet.paragraph("CheckInstallation: Created "+mCount+" messages"));
 			}
 			
 			System.out.print(TABLE_NEWS+" ");
@@ -233,9 +241,8 @@ public class DatabaseSetup {
 			Database.checkCreateProperty(tableGroupTable, "tables", OType.STRING, installMessages);
 
 			if (tableGroupTable.count() == 0) {
-				con.create(TABLE_TABLEGROUP).field("name","Security and Users").field("tables","OUser, user, ORole, menu, menuItem, userRequest").field("_allowRead", adminRoles.toArray()).save();
-				con.create(TABLE_TABLEGROUP).field("name","Application").field("tables","article, columns, constant, tableGroup, pickList, style, locale, message, -thumbnail").field("_allowRead", adminRoles.toArray()).save();
-				con.create(TABLE_TABLEGROUP).field("name","OrientDB System").field("tables","ORole, OUser, OFunction, OSchedule, -ORIDs, -E, -V").field("_allowRead", adminRoles.toArray()).save();
+				con.create(TABLE_TABLEGROUP).field("name","Application").field("tables","article, columns, constant, tableGroup, pickList, style, locale, message, menu, menuItem, userRequest, -thumbnail").field("_allowRead", adminRoles.toArray()).save();
+				con.create(TABLE_TABLEGROUP).field("name","System").field("tables","ORole, OUser, OFunction, OSchedule, -ORIDs, -E, -V, -_studio").field("_allowRead", adminRoles.toArray()).save();
 				con.create(TABLE_TABLEGROUP).field("name","News").field("tables","article").field("_allowRead", allRoles.toArray()).save();
 			}
 			
@@ -276,110 +283,6 @@ public class DatabaseSetup {
 				defaultMenu = con.queryDocument("SELECT FROM menu WHERE name='Admin'");
 			}
 			
-			System.out.print(TABLE_KEY+" ");
-			OClass keyTable = con.getSchema().getClass(TABLE_KEY);
-/*			OClass keyTable = Database.checkCreateClass(oschema, TABLE_KEY, installMessages);
-			Database.checkCreateProperty(keyTable, "name", OType.STRING, installMessages);
-			Database.checkCreateProperty(keyTable, "classname", OType.STRING, installMessages);
-			Database.checkCreateProperty(keyTable, "active", OType.BOOLEAN, installMessages);
-			Database.checkCreateProperty(keyTable, "description", OType.STRING, installMessages);
-			Database.checkCreateProperty(keyTable, "sortOrder", OType.INTEGER, installMessages);
-			Database.checkCreateProperty(keyTable, "menu", OType.LINK, menuTable, installMessages);
-			OClass roleTable = oschema.getClass("ORole");
-			Database.checkCreateProperty(keyTable, "roles", OType.LINKSET, roleTable, installMessages);
-			
-			if (keyTable.count() == 0) {
-				ODocument k0 = con.create(TABLE_KEY);
-				k0.field("name","Login");
-				k0.field("description","Login page");
-				k0.field("classname","permeagility.web.Login");
-				k0.field("active",true);
-				k0.field("roles", allRoles.toArray());
-				k0.save();
-
-				ODocument k1 = con.create(TABLE_KEY);
-				k1.field("name","Home");
-				k1.field("description","Home page including news");
-				k1.field("classname","permeagility.web.Home");
-				k1.field("active",true);
-				k1.field("roles", allRoles.toArray());
-				k1.save();
-
-				ODocument k4 = con.create(TABLE_KEY);
-				k4.field("name","Change password");
-				k4.field("description","Change password");
-				k4.field("classname","permeagility.web.ChangePassword");
-				k4.field("active",true);
-				k4.field("menu",defaultMenu);
-				k4.field("roles", adminRoles.toArray());
-				k4.save();
-
-				ODocument k5 = con.create(TABLE_KEY);
-				k5.field("name","UserRequest");
-				k5.field("description","User Request");
-				k5.field("classname","permeagility.web.UserRequest");
-				k5.field("active",true);
-				k5.field("roles", guestRoles.toArray());
-				k5.save();
-
-				ODocument k6 = con.create(TABLE_KEY);
-				k6.field("name","Context");
-				k6.field("description","Context");
-				k6.field("classname","permeagility.web.Context");
-				k6.field("active",true);
-				k6.field("menu",defaultMenu);
-				k6.field("roles", adminRoles.toArray());
-				k6.save();
-
-				ODocument k6a = con.create(TABLE_KEY);
-				k6a.field("name","Settings");
-				k6a.field("description","Basic settings");
-				k6a.field("classname","permeagility.web.Settings");
-				k6a.field("active",true);
-				k6a.field("menu",defaultMenu);
-				k6a.field("roles", adminRoles.toArray());
-				k6a.save();
-
-				ODocument k7 = con.create(TABLE_KEY);
-				k7.field("name","Shutdown");
-				k7.field("description","Shutdown the server");
-				k7.field("classname","permeagility.web.Shutdown");
-				k7.field("active",true);
-				k7.field("menu",defaultMenu);
-				k7.field("roles", adminRoles.toArray());
-				k7.save();
-
-				ODocument k8 = con.create(TABLE_KEY);
-				k8.field("name","Query");
-				k8.field("description","Query the database");
-				k8.field("classname","permeagility.web.SQL");
-				k8.field("active",true);
-				k8.field("menu",defaultMenu);
-				k8.field("roles", adminRoles.toArray());
-				k8.save();
-
-				// Following are for allRoles but not guest
-				if (guestRoles.size() >0) {
-					allRoles.remove(guestRoles.get(0));
-				}
-				ODocument k2 = con.create(TABLE_KEY);
-				k2.field("name","Tables");
-				k2.field("description","Table Catalog");
-				k2.field("classname","permeagility.web.Schema");
-				k2.field("active",true);
-				k2.field("menu",defaultMenu);
-				k2.field("roles", allRoles.toArray());
-				k2.save();			
-
-				ODocument k3 = con.create(TABLE_KEY);
-				k3.field("name","Table Editor");
-				k3.field("description","Table editor");
-				k3.field("classname","permeagility.web.Table");
-				k3.field("active",true);
-				k3.field("roles", allRoles.toArray());
-				k3.save();				
-			}			
-*/
 			System.out.print(TABLE_MENUITEM+" ");
 			OClass menuItemTable = Database.checkCreateClass(oschema, TABLE_MENUITEM, installMessages);
 			Database.checkCreateProperty(menuItemTable, "name", OType.STRING, installMessages);
@@ -388,139 +291,111 @@ public class DatabaseSetup {
 			Database.checkCreateProperty(menuItemTable, "description", OType.STRING, installMessages);
 			Database.checkClassSuperclass(oschema, menuItemTable, "ORestricted", installMessages);
 			
-			if (menuItemTable.count() == 0 && keyTable != null && keyTable.count() > 0) {
-				ArrayList<ODocument> items = new ArrayList<ODocument>();
-				QueryResult keys = con.query("SELECT FROM key");
-				if (keys != null) {
-					for (ODocument k : keys.get()) {
-						ODocument mi = con.create(TABLE_MENUITEM);
-						mi.field("name",k.field("name"));
-						mi.field("classname",k.field("classname"));
-						mi.field("active",k.field("active"));
-						mi.field("description",k.field("description"));
-						mi.field("_allow",adminRoles);
-						mi.field("_allowRead",k.field("roles"));
-						mi.save();
-						if (k.field("menu") !=  null) {
-							items.add(mi);
-						}
-						installMessages.append(Weblet.paragraph("warning","Converted menu item "+k.field("name")));
-					}
-					ODocument mi_blank = con.create(TABLE_MENUITEM);
-					mi_blank.field("name","");
-					mi_blank.field("active",true);
-					mi_blank.field("description","Blank menu item");
-					mi_blank.field("_allow",adminRoles);
-					mi_blank.field("_allowRead",allRoles);
-					mi_blank.save();
-					
-				}
-				// Add the items property to the menu
-				Database.checkCreateProperty(menuTable, "items", OType.LINKLIST, menuItemTable, installMessages);
-				ODocument menuDoc = con.queryDocument("SELECT FROM menu");
-				if (menuDoc != null && items.size() > 0) {
-					menuDoc.field("items",items.toArray());
-					menuDoc.save();
-				} else {
-					installMessages.append(Weblet.paragraph("error","menu is null or no items to add"));
-				}
-			}
-
 			if (menuItemTable.count() == 0) {
-				ArrayList<ODocument> items = new ArrayList<ODocument>();
+				ODocument mi_login = con.create(TABLE_MENUITEM);
+				mi_login.field("name","Login");
+				mi_login.field("description","Login page");
+				mi_login.field("classname","permeagility.web.Login");
+				mi_login.field("active",true);
+				mi_login.field("_allowRead", allRoles.toArray());
+				mi_login.save();
 
-				ODocument k0 = con.create(TABLE_MENUITEM);
-				k0.field("name","Login");
-				k0.field("description","Login page");
-				k0.field("classname","permeagility.web.Login");
-				k0.field("active",true);
-				k0.field("_allowRead", allRoles.toArray());
-				k0.save();
+				ODocument mi_home = con.create(TABLE_MENUITEM);
+				mi_home.field("name","Home");
+				mi_home.field("description","Home page including news");
+				mi_home.field("classname","permeagility.web.Home");
+				mi_home.field("active",true);
+				mi_home.field("_allowRead", allRoles.toArray());
+				mi_home.save();
 
-				ODocument k1 = con.create(TABLE_MENUITEM);
-				k1.field("name","Home");
-				k1.field("description","Home page including news");
-				k1.field("classname","permeagility.web.Home");
-				k1.field("active",true);
-				k1.field("_allowRead", allRoles.toArray());
-				k1.save();
+				ODocument mi_password = con.create(TABLE_MENUITEM);
+				mi_password.field("name","Change password");
+				mi_password.field("description","Change password");
+				mi_password.field("classname","permeagility.web.ChangePassword");
+				mi_password.field("active",true);
+				mi_password.field("_allowRead", adminRoles.toArray());
+				mi_password.save();
 
-				ODocument k4 = con.create(TABLE_MENUITEM);
-				k4.field("name","Change password");
-				k4.field("description","Change password");
-				k4.field("classname","permeagility.web.ChangePassword");
-				k4.field("active",true);
-				k4.field("_allowRead", adminRoles.toArray());
-				k4.save();
-				items.add(k4);
+				ODocument mi_userRequest = con.create(TABLE_MENUITEM);
+				mi_userRequest.field("name","UserRequest");
+				mi_userRequest.field("description","User Request");
+				mi_userRequest.field("classname","permeagility.web.UserRequest");
+				mi_userRequest.field("active",true);
+				mi_userRequest.field("_allowRead", guestRoles.toArray());
+				mi_userRequest.save();
 
-				ODocument k5 = con.create(TABLE_MENUITEM);
-				k5.field("name","UserRequest");
-				k5.field("description","User Request");
-				k5.field("classname","permeagility.web.UserRequest");
-				k5.field("active",true);
-				k5.field("_allowRead", guestRoles.toArray());
-				k5.save();
-				items.add(k5);
+				ODocument mi_context = con.create(TABLE_MENUITEM);
+				mi_context.field("name","Context");
+				mi_context.field("description","Context");
+				mi_context.field("classname","permeagility.web.Context");
+				mi_context.field("active",true);
+				mi_context.field("_allowRead", adminRoles.toArray());
+				mi_context.save();
 
-				ODocument k6 = con.create(TABLE_MENUITEM);
-				k6.field("name","Context");
-				k6.field("description","Context");
-				k6.field("classname","permeagility.web.Context");
-				k6.field("active",true);
-				k6.field("_allowRead", adminRoles.toArray());
-				k6.save();
-				items.add(k6);
+				ODocument mi_settings = con.create(TABLE_MENUITEM);
+				mi_settings.field("name","Settings");
+				mi_settings.field("description","Basic settings");
+				mi_settings.field("classname","permeagility.web.Settings");
+				mi_settings.field("active",true);
+				mi_settings.field("_allowRead", adminRoles.toArray());
+				mi_settings.save();
 
-				ODocument k6a = con.create(TABLE_MENUITEM);
-				k6a.field("name","Settings");
-				k6a.field("description","Basic settings");
-				k6a.field("classname","permeagility.web.Settings");
-				k6a.field("active",true);
-				k6a.field("_allowRead", adminRoles.toArray());
-				k6a.save();
-				items.add(k6a);
+				ODocument mi_shutdown = con.create(TABLE_MENUITEM);
+				mi_shutdown.field("name","Shutdown");
+				mi_shutdown.field("description","Shutdown the server");
+				mi_shutdown.field("classname","permeagility.web.Shutdown");
+				mi_shutdown.field("active",true);
+				mi_shutdown.field("_allowRead", adminRoles.toArray());
+				mi_shutdown.save();
 
-				ODocument k7 = con.create(TABLE_MENUITEM);
-				k7.field("name","Shutdown");
-				k7.field("description","Shutdown the server");
-				k7.field("classname","permeagility.web.Shutdown");
-				k7.field("active",true);
-				k7.field("_allowRead", adminRoles.toArray());
-				k7.save();
-				items.add(k7);
-
-				ODocument k8 = con.create(TABLE_MENUITEM);
-				k8.field("name","Query");
-				k8.field("description","Query the database");
-				k8.field("classname","permeagility.web.SQL");
-				k8.field("active",true);
-				k8.field("_allowRead", adminRoles.toArray());
-				k8.save();
-				items.add(k8);
+				ODocument mi_query = con.create(TABLE_MENUITEM);
+				mi_query.field("name","Query");
+				mi_query.field("description","Query the database");
+				mi_query.field("classname","permeagility.web.SQL");
+				mi_query.field("active",true);
+				mi_query.field("_allowRead", adminRoles.toArray());
+				mi_query.save();
 
 				// Following are for allRoles but not guest
 				if (guestRoles.size() >0) {
 					allRoles.remove(guestRoles.get(0));
 				}
-				ODocument k2 = con.create(TABLE_MENUITEM);
-				k2.field("name","Tables");
-				k2.field("description","Table Catalog");
-				k2.field("classname","permeagility.web.Schema");
-				k2.field("active",true);
-				k2.field("_allowRead", allRoles.toArray());
-				k2.save();
-				items.add(k2);
+				ODocument mi_schema = con.create(TABLE_MENUITEM);
+				mi_schema.field("name","Tables");
+				mi_schema.field("description","Table Catalog");
+				mi_schema.field("classname","permeagility.web.Schema");
+				mi_schema.field("active",true);
+				mi_schema.field("_allowRead", allRoles.toArray());
+				mi_schema.save();
 
-				ODocument k3 = con.create(TABLE_MENUITEM);
-				k3.field("name","Table Editor");
-				k3.field("description","Table editor");
-				k3.field("classname","permeagility.web.Table");
-				k3.field("active",true);
-				k3.field("_allowRead", allRoles.toArray());
-				k3.save();				
+				ODocument mi_table = con.create(TABLE_MENUITEM);
+				mi_table.field("name","Table Editor");
+				mi_table.field("description","Table editor");
+				mi_table.field("classname","permeagility.web.Table");
+				mi_table.field("active",true);
+				mi_table.field("_allowRead", allRoles.toArray());
+				mi_table.save();				
 
-				// Add the items property to the menu
+				ODocument mi_blank = con.create(TABLE_MENUITEM);
+				mi_blank.field("name","");
+				mi_blank.field("active",true);
+				mi_blank.field("description","Blank menu item");
+				mi_blank.field("_allow",adminRoles);
+				mi_blank.field("_allowRead",allRoles);
+				mi_blank.save();
+
+				// Build default menu
+				ArrayList<ODocument> items = new ArrayList<ODocument>();
+				items.add(mi_userRequest);
+				items.add(mi_schema);
+				items.add(mi_query);
+				items.add(mi_blank);
+				items.add(mi_context);
+				items.add(mi_settings);
+				items.add(mi_password);
+				items.add(mi_shutdown);
+
+				// Add the menu items property to the menu
 				Database.checkCreateProperty(menuTable, "items", OType.LINKLIST, menuItemTable, installMessages);
 				ODocument menuDoc = con.queryDocument("SELECT FROM menu");
 				if (menuDoc != null && items.size() > 0) {
@@ -535,19 +410,21 @@ public class DatabaseSetup {
 			OClass urTable = Database.checkCreateClass(oschema, TABLE_USERREQUEST, installMessages);
 			Database.checkCreateProperty(urTable, "name", OType.STRING, installMessages);
 			Database.checkCreateProperty(urTable, "email", OType.STRING, installMessages);
+			Database.checkCreateProperty(urTable, "password", OType.STRING, installMessages);
 
 			con.flush();
 			
 			System.out.println("- verified.");
 			
 		} catch (Exception e) {
-			//e.printStackTrace();
 			System.out.println("- failed: "+e.getMessage());
+			e.printStackTrace();
 			return false;
 		}
 		return true;
 	}
 
+	/** Create message if it doesn't already exist */
 	private static int checkCreateMessage(DatabaseConnection con, ODocument loc, String name, String description) {
 		if (Message.get(con.getLocale(), name).equals(name)) {
 			ODocument m = con.create(TABLE_MESSAGE);

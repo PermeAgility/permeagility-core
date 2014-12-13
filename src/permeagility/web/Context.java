@@ -12,39 +12,40 @@ import permeagility.util.DatabaseConnection;
 import permeagility.util.DatabaseSetup;
 import permeagility.util.QueryResult;
 
-
 public class Context extends Weblet {
 
-    public boolean DEBUG = true;
-
-	public Context() {
-		super();
-	}
+    public boolean DEBUG = true;  // Normally its nice to see these messages in the log
 
 	public String getPage(DatabaseConnection con, java.util.HashMap<String,String> parms) {
-	
+		return 	head("Context")+
+		    body(standardLayout(con, parms,getHTML(con, parms)));
+    }
+
+    public String getHTML(DatabaseConnection con, java.util.HashMap<String,String> parms) {
+
 		parms.put("SERVICE","PermeAgility Server Context");
 		
+		// Do stuff if asked
 		String ref = parms.get("TABLE_NAME");
-		if (ref != null) {
+		if (ref != null && Server.isDBA(con)) {
+		    if (DEBUG) System.out.println("Context: Cache refresh="+ref);
 		    getCache().refresh(ref);
-		    if (DEBUG) System.out.println("CONTEXT: Cache refresh="+ref);
 		}
 
 		String cc = parms.get("CLEAR_COLUMNS");
-		if (cc != null && !cc.equals("")) {
+		if (cc != null && !cc.equals("") && Server.isDBA(con)) {
+		    if (DEBUG) System.out.println("Context: Column Cache refresh="+cc);
 			Server.clearColumnsCache(cc);
-		    if (DEBUG) System.out.println("CONTEXT: Column Cache refresh="+cc);
 		}
 	
 		String cm = parms.get("CLEAR_MENUS");
-		if (cm != null && cm.equals("ALL")) {
+		if (cm != null && cm.equals("ALL") && Server.isDBA(con)) {
+		    if (DEBUG) System.out.println("Context: Menu Cache refresh");
 			Menu.clearCache();
-		    if (DEBUG) System.out.println("CONTEXT: Menu Cache refresh");
 		}
 	
 		String refSec = parms.get("REFRESH_SECURITY_MODEL");
-		if (refSec != null) {
+		if (refSec != null && Server.isDBA(con)) {
 		    if (DEBUG) System.out.println("Context: refresh security");
 			Server.refreshSecurity();
 		}
@@ -54,14 +55,9 @@ public class Context extends Weblet {
 		    if (DEBUG) System.out.println("Context: Check Installation");
 			DatabaseSetup.checkInstallation(con);
 		}
-
-		return 	head("Context")+
-		    body(standardLayout(con, parms,getHTML(con, parms)));
-    }
-
-    public String getHTML(DatabaseConnection con, java.util.HashMap<String,String> parms) {
-		
-		StringBuffer cacheList = new StringBuffer(256);
+    	
+		// Prepare cached query list
+		StringBuffer cacheList = new StringBuffer();
 		Object[] keys = getCache().keySet().toArray();
 		for (Object key : keys) {
 			QueryResult qr = getCache().get(key);
@@ -70,36 +66,13 @@ public class Context extends Weblet {
 			}
 		}
 	
-		StringBuffer localeList = new StringBuffer(256);
+		// Prepare locale list
+		StringBuffer localeList = new StringBuffer();
 		for (Locale l : Message.getLocales()) {
 		    localeList.append(row("data",column(30,l.getLanguage()+" "+l.getCountry()+" "+l.getVariant())+column(30,l.getDisplayLanguage()+" "+l.getDisplayCountry()+" "+l.getDisplayVariant())));
 		}
 		
-/*		StringBuffer securityReport = new StringBuffer();
-//		OSecurity sec = con.getDb().getMetadata().getSecurity();
-		QueryResult r = con.query("SELECT FROM ORole");
-		for (ODocument d : r.get()) {
-			String n = d.field("name");
-			securityReport.append("<BR>Role="+n+" rules=");
-			Map<String,Object> m = d.field("rules");
-			for (String k : m.keySet()) {
-				securityReport.append(k+"="+m.get(k)+" ");
-			}
-		}
-		securityReport.append("<BR>");
-		QueryResult r2 = con.query("SELECT FROM OUser");
-		for (ODocument d : r2.get()) {
-			String n = d.field("name");
-			securityReport.append("<BR>User="+n+" roles=");
-			OMVRBTreeRIDSet m = d.field("roles");
-			for (Object k : m.toArray()) {
-				if (k instanceof ODocument) {
-					ODocument nd = (ODocument)k;
-					securityReport.append(nd.field("name")+" ");
-				}
-			}
-		}
-*/		
+		// Prepare session report
 		StringBuffer sessionReport = new StringBuffer();
 		sessionReport.append("<p>Sessions:<br>");
 		for (String usr : Server.sessionsDB.keySet()) {
@@ -119,31 +92,31 @@ public class Context extends Weblet {
 		}
 		sessionReport.append("</p>");
 
+		// Get install messages
 		String installMessages = DatabaseSetup.getMessages();
 		
+		// Return content
 		return
-		    paragraph("Server has been running since "+Server.getServerInitTime())
-			+(con.getUser().equals("admin") ? form(button("CHECK_INSTALLATION","CHECKINSTALLATION","Check Installation")) : "")
-		    +(installMessages != null && !installMessages.equals("") ? paragraph("banner","Installation messages")+paragraph(installMessages) : "")
-		    +paragraph("banner","Sessions")
-			+sessionReport.toString()
+		    paragraph("Server has been running since "+Server.getServerInitTime()+" connected to "+Server.DB_NAME+" using "+Server.getDatabase().getUser())
 		    +paragraph("banner","Cached Lists")
+			+form(button("REFRESH_COLUMNS_ALL","REFRESHCOLUMNS","Clear table columns cache")+hidden("CLEAR_COLUMNS","ALL") + " cached="+Server.columnsCacheSize())
+			+br()
+			+form(button("REFRESH_MENUS_ALL","REFRESHMENUS","Clear menu cache")+hidden("CLEAR_MENUS","ALL") + " cached="+Menu.cacheSize())
 		    +table("data",
-			  row(tableHead("Query")+tableHead("Size")+tableHead("Time of execution"))
-			  +cacheList.toString()
-			  )
-			+form(button("REFRESH_CACHE_ALL","REFRESHCACHE","Clear all cached lists")+hidden("TABLE_NAME","ALL"))
-			+form(button("REFRESH_COLUMNS_ALL","REFRESHCOLUMNS","Clear all cached table columns")+hidden("CLEAR_COLUMNS","ALL"))
-			+form(button("REFRESH_MENUS_ALL","REFRESHMENUS","Clear all cached menus")+hidden("CLEAR_MENUS","ALL"))
+			  row(tableHead("Cached query")+tableHead("Size")+tableHead("Time of execution"))
+			  +cacheList.toString())
+			+form(button("REFRESH_CACHE_ALL","REFRESHCACHE","Clear all query cache")+hidden("TABLE_NAME","ALL") + " cached="+getCache().size())
+			+paragraph("banner","Security")
+			+sessionReport.toString()
+			+form(button("REFRESH_SECURITY_MODEL","REFRESHSEC","Refresh security")+" lastUpdated="+Server.getSecurityRefreshTime())
 		    +paragraph("banner","Active Locales")
 		    +table("data",
 			  row(tableHead("Name")+tableHead("Description"))+
 			  localeList.toString()
 			  )
-			+paragraph("banner","Security")
-			+paragraph("Last updated "+Server.getSecurityRefreshTime())
-			+form(button("REFRESH_SECURITY_MODEL","REFRESHSEC","Refresh security"));
-//			securityReport.toString();
+		    +paragraph("banner","Setup")
+			+form(button("CHECK_INSTALLATION","CHECKINSTALLATION","Check Installation"))
+			+(installMessages != null && !installMessages.equals("") ? installMessages : "");
     }
 
 }

@@ -27,7 +27,6 @@ public class DatabaseConnection {
 	
 	private static ConcurrentHashMap<String,Long> tableCountCache = new ConcurrentHashMap<String,Long>();
 	
-	
 	protected DatabaseConnection(Database _db, ODatabaseDocumentTx _c) {
 		db = _db;
 		c = _c;
@@ -40,34 +39,30 @@ public class DatabaseConnection {
 	}
 	
 	public boolean isConnected() {
-		if (c != null) {
-			return true;
-		} else {
-			return false;
-		}
+		return c != null;
 	}
 	
-	// Verification of password when changing password
+	/** Verification of password when changing password */
 	public boolean isPassword(String pass) {
 		return db.isPassword(pass);
 	}
 
-	// Should only call when the password is changed by the user (this does not actually change the password)
+	/** Should only be called when the password is changed by the user (this does not actually change the password) */
 	public void setPassword(String pass) {
 		db.setPassword(pass);
 	}
 	
+	/** Return the user name */
 	public String getUser() {
 		return db.getUser();
 	}
 	
+	/** Return the user's locale */
 	public Locale getLocale() {
 		return db.getLocale();
 	}
 	
-	/** Allows overriding the locale for the connection. 
-	 *  This is for supporting non-users changing the language for the request
-	 */
+	/** Allows overriding the locale for the connection. This is for supporting non-users changing the language for the request */
 	public void setLocale(Locale l) {
 		db.setLocale(l);
 	}
@@ -76,6 +71,7 @@ public class DatabaseConnection {
 		return c;
 	}
 
+	/** Get the OrientDB OSchema object */
 	public OSchema getSchema() {
 		if (c == null) {
 			return null;
@@ -84,6 +80,7 @@ public class DatabaseConnection {
 		}
 	}
 	
+	/** Create a document - supply the classname */
 	public ODocument create(String className) {
 		return c.newInstance(className);
 	}
@@ -100,9 +97,7 @@ public class DatabaseConnection {
 		c.rollback();
 	}
 
-	/**
-	 * Returns total number of rows in table
-	 */
+	/** Returns total number of rows in table from cache if found */
 	public long getRowCount(String table) {
 		// Find in cache?
 		Long count = tableCountCache.get(table);
@@ -110,7 +105,6 @@ public class DatabaseConnection {
 			//System.out.println("Row count cache hit on table "+table);
 			return count.longValue();
 		}
-		// Otherwise call the counter
 		//System.out.println("Counting rows of "+table);
 		try {
 			long cnt = c.countClass(table);
@@ -122,10 +116,12 @@ public class DatabaseConnection {
 		}
 	}
 	
+	/** Called when the table is changed to clear the rowcount cache */
 	public static void rowCountChanged(String table) {
 		tableCountCache.remove(table);
 	}
 	
+	/** Change the user's password - must supply old and new */
 	public boolean changePassword(String oldPassword, String newPassword) {
 		if (!db.isPassword(oldPassword)) {
 			System.out.println("Attempt to change password with incorrect old password");
@@ -143,6 +139,7 @@ public class DatabaseConnection {
 		}
 	}
 	
+	/** Execute a query and return a QueryResult object */
     public synchronized QueryResult query(String expression) {
     	if (DEBUG) System.out.println("DatabaseConnection.DEBUG(query)="+expression+";");
     	if (expression == null) { return null; }
@@ -151,6 +148,7 @@ public class DatabaseConnection {
     	return new QueryResult(result);
     }
 
+    /** Get the first document found by this query */
     public synchronized ODocument queryDocument(String expression) {
     	if (DEBUG) System.out.println("DatabaseConnection.DEBUG(queryDocument)="+expression+";");
     	if (expression == null) { return null; }
@@ -163,20 +161,20 @@ public class DatabaseConnection {
     	}
     }
 
+    /** Execute and update statement */
     public synchronized Object update(String expression) {
         if (DEBUG) System.out.println("DatabaseConnection.DEBUG(update)="+expression+";");
        	lastAccess = System.currentTimeMillis();
         return c.command(new OCommandSQL(expression)).execute();    // run the query return the resulting object
     }
 
+    /** Get a document by its RID */
     public synchronized ODocument get(String rid) {
        	lastAccess = System.currentTimeMillis();
        	return c.getRecord(new ORecordId(rid));
     }
     
-    /*
-     * Not used very often if at all. Dumps the contents of a result set to System.out
-     */
+    /** Not used very often if at all. Dumps the contents of a result set to System.out */
     public static void dump(QueryResult rows) {
     	if (rows.size() > 0) {
     		for (String header : rows.get(0).fieldNames()) {
@@ -194,6 +192,7 @@ public class DatabaseConnection {
     	}
     }
 
+    /** FLush the local cache */
 	public void flush() {
 		c.getLocalCache().invalidate();		
 	}

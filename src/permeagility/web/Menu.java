@@ -5,13 +5,13 @@ at the URL "http://www.eclipse.org/legal/epl-v10.html".
 */
 package permeagility.web;
 
-import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import permeagility.util.DatabaseConnection;
+import permeagility.util.DatabaseSetup;
 import permeagility.util.QueryResult;
 
 import com.orientechnologies.orient.core.record.impl.ODocument;
@@ -35,99 +35,32 @@ public class Menu extends Weblet {
 			return cmenu;
 		}
 		
-		StringBuffer menu = new StringBuffer(512);
+		StringBuffer menu = new StringBuffer();
 		if (DEBUG) System.out.println("Menu: Getting menu for "+con.getUser());
 
-		String query = // Sort order is just not working here - aaargh!
-				"select menu.name as menuname, name, description, classname, menu.description as menudesc, menu.sortOrder * 10000 + sortOrder as sortOrder "
-				+ "from key where active=true and menu is not null "
-				+ "and roles contains (@rid in (select roles from OUser where name='"+con.getUser()+"') ) "
-				+ "order by sortOrder";
-
-		if (DEBUG) System.out.println("Menu(query):"+ query);
-
-		String previousGroup = null;
-		String serviceGroup = null;
-		String serviceName = null;
-		String serviceDesc = null;
-		String serviceClass = null;
-
-		QueryResult rs = null;
 		DatabaseConnection dbcon = null;
 		try {
 			menu.append("<P>");
 
-			// Only the server and admin need to connect to the user table
+			// Only the server and admin need to see the menu table
 			dbcon = Server.getDatabase().getConnection();
 			if (DEBUG) System.out.println("Menu: Connected as (server) "+dbcon.getUser());
-			try {
-				rs = dbcon.query(query);
-				for (ODocument row : rs.get()) {
-					serviceGroup = row.field("menuname");
-					serviceName = row.field("name");
-					serviceDesc = row.field("description");
-					serviceClass = row.field("classname");
-	
-	                if (previousGroup == null || !serviceGroup.equals(previousGroup)) {
-	                    if (previousGroup != null) {
-	                        menu.append("<BR>");
-	                    }
-	                    menu.append(paragraph("menuheader",Message.get(con.getLocale(), serviceGroup)));
-	                }
-	                previousGroup = serviceGroup;
-	                
-	                if (serviceClass.toLowerCase().startsWith("http")) {
-	                    menu.append(linkNewWindow(serviceClass,Message.get(con.getLocale(), serviceName),Message.get(con.getLocale(), serviceDesc)));
-	                    menu.append("<BR>");
-	                } else {
-	                    try {
-							if (serviceName.equals("*")) { // If name=* getMenu() will be called
-							    Class<?> xclass = Class.forName( serviceClass );
-								Object serviceObject = xclass.newInstance();	
-								try {
-									Method method = xclass.getMethod("getMenu",new Class[] {DatabaseConnection.class, java.util.HashMap.class});
-									String menuHTML = (String)method.invoke(serviceObject,new Object[] { con, parms });
-									menu.append(menuHTML);
-								} catch (Exception e) {
-									System.out.println("Menu: Unable to get menu items from "+serviceClass+": "+e.getLocalizedMessage());
-								}
-							} else {
-								menu.append(link(serviceClass,Message.get(con.getLocale(), serviceName),Message.get(con.getLocale(), serviceDesc)));	
-		                        menu.append("<BR>");
-							}
-						} catch( Throwable t ) {
-			                System.out.println("Menu: "+ serviceClass + " " + t.toString() );
-			                t.printStackTrace();
-						}		
-	                }
-				}
-			} catch (Exception e) {
-				System.out.println(e.getMessage());
-			}
-			QueryResult qr = dbcon.query("SELECT FROM menu WHERE active=TRUE ORDER BY sortOrder");
+
+			// Assemble menu based on the users roles and the menuItem's _allowRead
+			QueryResult qr = dbcon.query("SELECT FROM "+DatabaseSetup.TABLE_MENU+" WHERE active=TRUE ORDER BY sortOrder");
 			for (ODocument m : qr.get()) {
 				StringBuffer itemMenu = new StringBuffer();
                 List<ODocument> items = m.field("items");
                 if (items != null) {
 	                for (ODocument i : items) {
 	                	Set<ODocument> readRoles = i.field("_allowRead");
-	                	Object userRoles[] = Server.getUserRoles(con);
-	                	if (readRoles != null && userRoles != null) {
-	                		for (ODocument r : readRoles) {
-	                			for (Object u : userRoles) {
-	                				if (r != null && u != null) {
-	                					if (r.equals(u)) {
-	                                    	if (i.field("classname") == null || ((String)i.field("classname")).equals("")) {
-	                                            itemMenu.append("<BR>");                	                	
-	                                    	} else {
-	                                    		itemMenu.append(link((String)i.field("classname"),Message.get(con.getLocale(), (String)i.field("name")),Message.get(con.getLocale(), (String)i.field("description"))));	
-	                                    		itemMenu.append("<BR>");  
-	                                    	}
-	                                    	break;
-	                					}
-	                				}
-	                			}
-	                		}
+	                	if (Server.isRoleMatch(Server.getUserRoles(con),readRoles.toArray())) {
+                        	if (i.field("classname") == null || ((String)i.field("classname")).equals("")) {
+                                itemMenu.append("<BR>");                	                	
+                        	} else {
+                        		itemMenu.append(link((String)i.field("classname"),Message.get(con.getLocale(), (String)i.field("name")),Message.get(con.getLocale(), (String)i.field("description"))));	
+                        		itemMenu.append("<BR>");  
+                        	}
 	                	}
 	                }
 	                if (itemMenu.length() > 0) {
@@ -136,6 +69,7 @@ public class Menu extends Weblet {
 	                }
                 }
 			}
+			// Add the locale selector
 			menu.append("<BR><BR><BR><BR>"+xxSmall(Message.getLocaleSelector(con.getLocale(),parms)));
 		} catch( Exception e ) {
 			System.out.println("Error in Menu: "+e);
@@ -159,7 +93,11 @@ public class Menu extends Weblet {
 		menuCache.clear();
 	}
 	
-	// Override link to use framemenu class
+	public static int cacheSize() {
+		return menuCache.size();
+	}
+	
+	// Override links to use framemenu class
 	public static String link(String ref, String name, String desc) { 
 		return "<A CLASS=\"framemenu\" HREF=\""+ref+"\" TITLE=\""+desc+"\">"+xxSmall(name)+"</A>";
 	}
@@ -168,5 +106,3 @@ public class Menu extends Weblet {
 	}
 
 }
-
-

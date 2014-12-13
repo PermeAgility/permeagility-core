@@ -376,7 +376,7 @@ public class Table extends Weblet {
 				if (rc != null && rc instanceof ODocument && blobList.size() > 0) {
 					updateBlobs((ODocument)rc, table, blobList, parms, errors);
 				}
-				errors.append(paragraph("success", Message.get(con.getLocale(),"NEW_ROW_CREATED")+rc));
+				errors.append(paragraph("success", Message.get(con.getLocale(),"NEW_ROW_CREATED")+(rc != null)));
 				Server.tableUpdated(table);
 				DatabaseConnection.rowCountChanged(table);
 				return true;

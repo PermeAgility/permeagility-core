@@ -200,11 +200,11 @@ public class Database implements Serializable {
 		while ( pooledConnections.size() < POOL_SIZE) {
 			ODatabaseDocumentTx c = new ODatabaseDocumentTx(url);
 			try {
-				if (c.exists()) {
+				//if (c.exists()) {
 					c.open(user,password);
-				}
+				//}
 			} catch (Exception e) {
-				System.out.println(e.getMessage());
+				System.out.println("CONNECT ERROR: "+e.getMessage());
 				//e.printStackTrace();
 			}
 			if (c.getStatus() != STATUS.OPEN) {
@@ -234,9 +234,7 @@ public class Database implements Serializable {
 		dbc.close();
 	}
 
-	/**
-	 * Create a plocal database and load starterdb.json if it exists - if no starter DatabaseSetup.checkInstallation will install what is needed
-	 */
+	/** Create a plocal database and load starterdb.json if it exists - if no starter DatabaseSetup.checkInstallation will install what is needed */
 	public void createLocal() {
 		if (url.startsWith("plocal") || url.startsWith("local")) {
 			System.out.println("* Creating new database "+url+" in "+System.getProperty("user.dir")+" *");
@@ -280,41 +278,44 @@ public class Database implements Serializable {
 		}
 	}
 
-	// This assumes you want a link type, otherwise the linkClass may have adverse effects
+	// The following methods are meant to only be invoked by admin/dba during a module installation :-)  they will likely fail for everyone else
+
+	/** Check for the existence of a class property or add it This assumes you want a link type, otherwise the linkClass may have adverse effects */
 	public static OProperty checkCreateProperty(OClass theClass, String propertyName, OType propertyType, OClass linkClass, StringBuffer errors) {
 		OProperty p = theClass.getProperty(propertyName);
 		if (p == null) {
 			p = theClass.createProperty(propertyName, propertyType, linkClass);
-			errors.append(Weblet.paragraph("success","CheckInstallation: Created property "+theClass.getName()+"."+propertyName+" of type "+propertyType.name()+" linked to "+linkClass.getName()));
+			errors.append(Weblet.paragraph("CheckInstallation: Created property "+theClass.getName()+"."+propertyName+" of type "+propertyType.name()+" linked to "+linkClass.getName()));
 		}
 		return p;
 	}
 
+	/** Check for the existence of a class property or add it */
 	public static OProperty checkCreateProperty(OClass theClass, String propertyName, OType propertyType, StringBuffer errors) {
 		OProperty p = theClass.getProperty(propertyName);
 		if (p == null) {
 			p = theClass.createProperty(propertyName, propertyType);
-			errors.append(Weblet.paragraph("success","CheckInstallation: Created property "+theClass.getName()+"."+propertyName+" of type "+propertyType.name()));
+			errors.append(Weblet.paragraph("CheckInstallation: Created property "+theClass.getName()+"."+propertyName+" of type "+propertyType.name()));
 		}
 		if (p != null) {
 			if (p.isMandatory()) {
 				p.setMandatory(false);
-				errors.append(Weblet.paragraph("success","CheckInstallation: setting non-mandatory on "+theClass.getName()+"."+propertyName+" of type "+propertyType.name()));
+				errors.append(Weblet.paragraph("CheckInstallation: setting non-mandatory on "+theClass.getName()+"."+propertyName+" of type "+propertyType.name()));
 			}
 			if (p.isNotNull()) {
 				p.setNotNull(false);
-				errors.append(Weblet.paragraph("success","CheckInstallation: setting nullable on "+theClass.getName()+"."+propertyName+" of type "+propertyType.name()));
+				errors.append(Weblet.paragraph("CheckInstallation: setting nullable on "+theClass.getName()+"."+propertyName+" of type "+propertyType.name()));
 			}
 		}
 		return p;
 	}
 
-	// The following methods are meant to only be invoked by admin/dba during a module installation :-)  they will likely fail for everyone else
+	/** Check for the existence of a class or add it */
 	public static OClass checkCreateClass(OSchema oschema, String className, StringBuffer errors) {
 		OClass c = oschema.getClass(className);
 		if (c == null) {
 			c = oschema.createClass(className);
-			errors.append(Weblet.paragraph("success","CheckInstallation: Created "+className+" class/table"));
+			errors.append(Weblet.paragraph("CheckInstallation: Created "+className+" class/table"));
 		}
 		if (c == null) {
 			errors.append(Weblet.paragraph("error","CheckInstallation: Error creating "+className+" class/table"));
@@ -322,13 +323,13 @@ public class Database implements Serializable {
 		if (c != null) {
 			if (c.isStrictMode()) {
 				c.setStrictMode(false);
-				errors.append(Weblet.paragraph("success","CheckInstallation: Set non-strict "+className+" class/table"));
+				errors.append(Weblet.paragraph("CheckInstallation: Set non-strict "+className+" class/table"));
 			}
 		}
 		return c;
 	}
 
-	// The following methods are meant to only be invoked by admin/dba during a module installation :-)  they will likely fail for everyone else
+	/** Check for the existence of a class's superclass or set it */
 	public static void checkClassSuperclass(OSchema oschema, OClass oclass, String superClassName, StringBuffer errors) {
 		OClass s = oschema.getClass(superClassName);
 		if (s == null) {
@@ -338,7 +339,7 @@ public class Database implements Serializable {
 		OClass sc = oclass.getSuperClass();
 		if (sc == null) {
 			oclass.setSuperClass(s);
-			errors.append(Weblet.paragraph("success","CheckInstallation: Assigned superclass "+superClassName+" to class "+oclass.getName()));
+			errors.append(Weblet.paragraph("CheckInstallation: Assigned superclass "+superClassName+" to class "+oclass.getName()));
 			return;
 		} else {
 			if (!sc.getName().equals(superClassName)) {

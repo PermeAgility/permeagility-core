@@ -38,9 +38,9 @@ public class Login extends Weblet {
 			}
 		}
 		return
-			head("PermeAgility Login")+
+			head(Message.get(locale, "LOGIN_TITLE"))+
 			bodyOnLoad(
-				image("palogo.gif")+br()
+				image(Header.LOGO_FILE)+br()
 				+form("LOGIN",destinationClass,
 				    hidden("LOCALE",locale.toString())
 				    +(error != null ? paragraph("error",error) : "")
@@ -64,7 +64,7 @@ public class Login extends Weblet {
 				+Message.getLocaleSelector(locale, parms)	
 				+br()
 				+ link("permeagility.web.UserRequest",Message.get(locale, "REQUEST_LOGIN"))+br() 
-				+paragraph(xxSmall("Copyright (c)2014 <A HREF=http://www.permeagility.com>PermeAgility</A> Incorporated"))+"\n"
+				+paragraph(xxSmall("&copy;2014 <A HREF=http://www.permeagility.com>PermeAgility Incorporated</A>"))+"\n"
 			,"self.focus(); document.LOGIN.USERNAME.focus();");
 	} 
 	

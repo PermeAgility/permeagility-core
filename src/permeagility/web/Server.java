@@ -57,6 +57,7 @@ public class Server extends Thread {
 
 	/* Overrideable constants */
 	public static boolean DEBUG = true;
+	
 	public static int SOCKET_TIMEOUT = 60000;  // One minute timeout
 	public static boolean ALLOW_KEEP_ALIVE = true;
 	public static boolean KEEP_ALIVE = true;  // Keep sockets alive by default, don't wait for browser to ask
@@ -110,7 +111,6 @@ public class Server extends Thread {
 	private static ClassLoader plusClassLoader;
 
 	Socket socket;
-	
 	
 //	static OServer oserver = null; 
 
@@ -306,7 +306,7 @@ public class Server extends Thread {
 				if (st2.hasMoreTokens()) {
 					className = st2.nextToken();
 				} else {
-					System.out.println("Could not determine target class, going home");
+					if (DEBUG) System.out.println("Could not determine target class, going home");
 					className = HOME_CLASS;
 				}
 				
@@ -545,25 +545,7 @@ public class Server extends Thread {
 						if (DEBUG) System.out.println("Authorizing user "+db.getUser()+" for class "+className);
 						Object[] uRoles = userRoles.get(db.getUser());
 						Object[] kRoles = keyRoles.get(className);
-						boolean authorized = false;
-						if (uRoles != null && kRoles != null) {
-							OUT: for (Object ur: uRoles) {
-								for (Object kr: kRoles) {
-									if (ur.equals(kr)) {
-										if (DEBUG) System.out.println("Match: Authorized!");
-										authorized = true;
-										break OUT;
-									}
-								}
-							}
-						} else {
-							if (uRoles == null) {
-								System.out.println("uRoles is null for "+db.getUser());
-							}
-							if (kRoles == null) {
-								System.out.println("kRoles is null for "+className);
-							}
-						}
+						boolean authorized = isRoleMatch(uRoles,kRoles);
 						if (authorized) {
 							if (DEBUG) System.out.println("User "+db.getUser()+" is allowed to use "+className);								
 						} else {
@@ -944,6 +926,27 @@ public class Server extends Thread {
 		database.freeConnection(con);
 	}
 
+	/** Returns true is one of the first set of roles is a match for a role in the second set - please pass in arrays of ORoles */
+	public static boolean isRoleMatch(Object uRoles[], Object kRoles[]) {
+		boolean authorized = false;
+
+		if (uRoles == null || kRoles == null) {
+			System.out.println("Server.isRoleAuthorized: kRoles/uRoles is null");
+			return authorized;
+		}
+
+		OUT: for (Object ur: uRoles) {
+			for (Object kr: kRoles) {
+				if (ur != null && kr != null && ur.equals(kr)) {
+					if (DEBUG) System.out.println("Server.isRoleAuthorized: Match: Authorized!");
+					authorized = true;
+					break OUT;
+				}
+			}
+		}
+		return authorized;
+	}
+	
 	/** Recursive function to return the rules for a role that has been given (includes inherited rules) */
 	public static int getRoleRules(ODocument role, ArrayList<OTrackedMap<Object>> rules) {
 		if (role.field("inheritedRole") != null) {
@@ -1097,6 +1100,10 @@ public class Server extends Thread {
 		return result;
 	}
 	
+	public static int columnsCacheSize() {
+		return columnsCache.size();
+	}
+	
 	public static void clearColumnsCache(String table) {
 		if (table.equals("ALL")) {
 			columnsCache.clear();
@@ -1141,15 +1148,20 @@ public class Server extends Thread {
 			// List of columns to override natural alphabetical order
 			QueryResult columnList = null;
 			if (columnOverride == null) {
-				columnList = con.query("SELECT columnList FROM columns WHERE name='"+table+"'");
+				columnList = con.query("SELECT columnList FROM "+DatabaseSetup.TABLE_COLUMNS+" WHERE name='"+table+"'");
 			}
 			database.freeConnection(con);
+			boolean addDynamicColumns = true;
 			if (columnOverride != null || (columnList != null && columnList.size()>0)) {
 				String list = (columnOverride == null ? columnList.getStringValue(0, "columnList") : columnOverride);
 				String columnNames[] = list.split(",");
 				if (columnNames.length > 0 ) {
 					ArrayList<ODocument> newList = new ArrayList<ODocument>();
 					for (String name : columnNames) {
+						if (name.trim().equals("-")) {
+							if (DEBUG) System.out.println("ColumnOverride="+columnOverride+" no dynamic columns");
+							addDynamicColumns = false;
+						}
 						if (!name.trim().startsWith("-")) {
 							int i = result.findFirstRow("name", name.trim());
 							if (i>-1) {
@@ -1165,18 +1177,20 @@ public class Server extends Thread {
 							}
 						}
 					}
-					for (ODocument col : result.get()) {
-						String name = col.field("name");
-						boolean found = false;
-						for (String cn : columnNames) {
-							String cnt = cn.trim();
-							if (cnt.equals(name) 
-							  || (cnt.startsWith("-") && cnt.substring(1).equals(name))) {
-								found = true;
+					if (addDynamicColumns) {
+						for (ODocument col : result.get()) {
+							String name = col.field("name");
+							boolean found = false;
+							for (String cn : columnNames) {
+								String cnt = cn.trim();
+								if (cnt.equals(name) 
+								  || (cnt.startsWith("-") && cnt.substring(1).equals(name))) {
+									found = true;
+								}
 							}
-						}
-						if (!found) {
-							newList.add(col);
+							if (!found) {
+								newList.add(col);
+							}
 						}
 					}
 					if (newList.size() > 0 ) {
@@ -1248,16 +1262,16 @@ public class Server extends Thread {
 	}
 	
 	static boolean initializeServer() {
-//		if (USE_SERVER) startServer();
-		
 		System.out.println("Initializing server using OrientDB Version "+OConstants.getVersion()+" Build number "+OConstants.getBuildNumber());
-		OGlobalConfiguration.CACHE_LOCAL_ENABLED.setValue(false);  // To ensure concurrency
+		OGlobalConfiguration.CACHE_LOCAL_ENABLED.setValue(false);  // To ensure concurrency across threads
 		try {
 			String p = getLocalSetting(DB_NAME+HTTP_PORT, "");
 			//System.out.println("Localsetting for password is "+p);
 			database = new Database(DB_NAME, "server", (p == null || p.equals("") ? "server" : p));
-//			database = new Database(DB_NAME, "admin", (p == null || p.equals("") ? "admin" : p));
-			database.setPoolSize(SERVER_POOL_SIZE);
+			if (!database.isConnected()) {    
+				System.out.println("Panic: Cannot login with server user, maybe this is first time so will try admin/admin");
+				database = new Database(DB_NAME, "admin", "admin");
+			}
 			if (!database.isConnected()) {
 				System.out.println("Unable to acquire initial connection for "+DB_NAME);
 				if (DB_NAME.startsWith("plocal")) {
@@ -1266,11 +1280,12 @@ public class Server extends Thread {
 					database.createLocal();  // New database will default to password given in local setting
 					database.fillPool();
 				} else {
-					System.out.println("***\n*** Exit condition: can only create a plocal and couldn't connect to remote - Exiting.\n***");
+					System.out.println("***\n*** Exit condition: couldn't connect to remote as server, please add server OUser with admin role - Exiting.\n***");
 					System.exit(-1);					
 				}
 			}
 			if (database.isConnected()) {
+				database.setPoolSize(SERVER_POOL_SIZE);
 				DatabaseConnection con = database.getConnection();
 				if (!DatabaseSetup.checkInstallation(con)) {
 					System.out.println("---\n--- Warning condition: checkInstallation failed - Exiting.\n---");
@@ -1305,60 +1320,7 @@ public class Server extends Thread {
 		return true;
 	}
 
-/*	private static void startServer() {
-		  try {
-			oserver = OServerMain.create();
-			oserver.startup(
-		   "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n"
-		   + "<orient-server>\n"
-		   + "<network>\n"
-		   + "	<protocols>\n"
-		   + "		<protocol name=\"binary\" implementation=\"com.orientechnologies.orient.server.network.protocol.binary.ONetworkProtocolBinary\"/>\n"
-		   + "		<protocol name=\"http\" implementation=\"com.orientechnologies.orient.server.network.protocol.http.ONetworkProtocolHttpDb\"/>\n"
-		   + "	</protocols>\n"
-		   + "	<listeners>\n"
-		   + "		<listener ip-address=\"0.0.0.0\" port-range=\"2424-2430\" protocol=\"binary\"/>\n"
-		   + "		<listener ip-address=\"0.0.0.0\" port-range=\"2480-2490\" protocol=\"http\">\n"
-		   + "			<commands>\n"
-		   + "			<command pattern=\"GET|www GET|studio/ GET| GET|*.htm GET|*.html GET|*.xml GET|*.jpeg GET|*.jpg GET|*.png GET|*.gif GET|*.js GET|*.css GET|*.swf GET|*.ico GET|*.txt GET|*.otf GET|*.pjs GET|*.svg\" implementation=\"com.orientechnologies.orient.server.network.protocol.http.command.get.OServerCommandGetStaticContent\">\n"
-           	+ "				<parameters>\n"
-           + "				<entry name=\"http.cache:*.htm *.html\" value=\"Cache-Control: no-cache, no-store, max-age=0, must-revalidate\r\nPragma: no-cache\"/>\n"
-           + "				<entry name=\"http.cache:default\" value=\"Cache-Control: max-age=120\"/>\n"
-            + "				</parameters>\n"
-           + "			</command>\n"
-           + "			</commands>\n"
-           + "			<parameters>\n"
-       		+ "				<parameter name=\"network.http.charset\" value=\"utf-8\"/>\n"
-       		+ "			</parameters>\n"
-        	+ "		</listener>\n"
-       		+ "	</listeners>\n"
-		   + "</network>\n"
-		   + "<users>"
-		   + "	<user name=\"root\" password=\"me\" resources=\"*\"/>"
-	       + " <user name=\"guest\" password=\"guest\" resources=\"connect,server.listDatabases\"/>\n"
-		   + "</users>"
-		   + "<properties>"
-		   + "	<entry name=\"orientdb.www.path\" value=\"site\"/>"
-//		   + "	<entry name=\"orientdb.config.file\" value=\"C:/work/dev/orientechnologies/orientdb/releases/1.0rc1-SNAPSHOT/config/orientdb-server-config.xml\"/>"
-		   + "	<entry name=\"server.cache.staticResources\" value=\"false\"/>"
-		   + "	<entry name=\"log.console.level\" value=\"info\"/>"
-		   + "	<entry name=\"log.file.level\" value=\"fine\"/>"
-		   //The following is required to eliminate an error or warning "Error on resolving property: ORIENTDB_HOME"
-		   + "	<entry name=\"plugin.dynamic\" value=\"true\"/>"
-		   + "</properties>" 
-		   + "</orient-server>"); 
-		  oserver.activate();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-	}
-	
-	private static void stopServer() {
-		if (oserver != null) {
-			oserver.shutdown();
-		}
-	}
-*/	
+	/** Get the guest connection */
 	public Database getNonUserDatabase() {
 		if (dbNone == null)	{  // Just once, thank you
 			Database d = null;

@@ -8,6 +8,7 @@ package permeagility.web;
 import java.util.ArrayList;
 
 import permeagility.util.DatabaseConnection;
+import permeagility.util.DatabaseSetup;
 import permeagility.util.QueryResult;
 
 import com.orientechnologies.orient.core.metadata.schema.OClass;
@@ -48,7 +49,7 @@ public class Schema extends Weblet {
 		int cellCount = 0;
 		StringBuffer rows = new StringBuffer();
 		StringBuffer columns = new StringBuffer();
-		QueryResult schemas = con.query("SELECT from tableGroup ORDER BY name");
+		QueryResult schemas = con.query("SELECT from "+DatabaseSetup.TABLE_TABLEGROUP+" WHERE _allowRead in ["+Server.getUserRolesList(con)+"] ORDER BY name");
 		QueryResult tables = con.query("SELECT name, superClass FROM (SELECT expand(classes) FROM metadata:schema) WHERE abstract=false ORDER BY name");
 		ArrayList<String> tablesInGroups = new ArrayList<String>(); 
 		for (ODocument schema : schemas.get()) {
@@ -83,8 +84,6 @@ public class Schema extends Weblet {
 						groupHasTable = true;
 					}
 				}
-			
-				
 			}
 			if (groupHasTable && !groupName.startsWith("-")) {
 				columns.append(columnTop(100/(schemas.size()+1),tablelist.toString()));
@@ -122,9 +121,7 @@ public class Schema extends Weblet {
 			rows.append(columns);
 		}
 
-		/* 
-		 * Return result
-		 */
+		// Return result
 		return 	
 			head("Schema Weblet")+
 			body( standardLayout(con, parms,  
