@@ -97,7 +97,7 @@ public class Database implements Serializable {
 	public String getDatabaseVersion(DatabaseConnection con) {
 		if (con != null) {
 			try {
-				return con.c.getUnderlying().toString();
+				return con.c.getConfiguration().toString();
 			} catch (Exception e) {
 				e.printStackTrace();
 				return "Exception "+e.getLocalizedMessage();

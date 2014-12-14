@@ -11,12 +11,13 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
 import com.orientechnologies.orient.core.id.ORecordId;
-import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OSchema;
+import com.orientechnologies.orient.core.metadata.security.OSecurity;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 import com.orientechnologies.orient.core.sql.OCommandSQL;
 import com.orientechnologies.orient.core.sql.query.OSQLSynchQuery;
 
+/** This abstracts the native database connections a bit and give us somewhere to put some helper functions */
 public class DatabaseConnection {
 
 	public static boolean DEBUG = false;
@@ -67,6 +68,7 @@ public class DatabaseConnection {
 		db.setLocale(l);
 	}
 	
+	/** Get the native connection object. A ODatabaseDocumentTx */ 
 	public ODatabaseDocumentTx getDb() {
 		return c;
 	}
@@ -77,6 +79,15 @@ public class DatabaseConnection {
 			return null;
 		} else {
 			return c.getMetadata().getSchema();
+		}
+	}
+
+	/** Get the OrientDB OSecurity object */
+	public OSecurity getSecurity() {
+		if (c == null) {
+			return null;
+		} else {
+			return c.getMetadata().getSecurity();
 		}
 	}
 	

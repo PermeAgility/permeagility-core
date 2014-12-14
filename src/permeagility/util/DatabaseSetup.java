@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Date;
 
 import permeagility.web.Message;
+import permeagility.web.Server;
 import permeagility.web.Weblet;
 
 import com.orientechnologies.orient.core.metadata.schema.OClass;
@@ -55,12 +56,22 @@ public class DatabaseSetup {
 			ODocument guestUser = con.queryDocument("SELECT FROM OUser WHERE name='guest'");
 
 			if (guestRoles.size() == 0) {
-				ODocument guestRole = (ODocument)con.update("insert into ORole set name = 'guest', mode = 0"
-						+", rules = {\"database.schema\":2, \"database\":2, \"database.command\":3"
-						+", \"database.class.userrequest\":1, \"database.cluster.userrequest\":1"
-						+", \"database.class.article\":2, \"database.cluster.article\":2"
-						+", \"database.cluster.*\":2"
-						+ ", \"database.class.style\":2,\"database.cluster.style\":2 }");
+				ODocument guestRole = (ODocument)con.update("insert into ORole set name = 'guest', mode = 0");
+//						+", rules = {\"database.schema\":2, \"database\":2, \"database.command\":3"
+//						+", \"database.class.userrequest\":1, \"database.cluster.userrequest\":1"
+//						+", \"database.class.article\":2, \"database.cluster.article\":2"
+//						+", \"database.cluster.*\":2"
+//						+ ", \"database.class.style\":2,\"database.cluster.style\":2 }");
+				try {
+					con.update("GRANT READ ON database.cluster.* TO guest");
+					con.update("GRANT READ ON database.class.article TO guest");
+					con.update("GRANT READ ON database.class.style TO guest");
+					con.update("GRANT READ ON database.class.locale TO guest");
+					con.update("GRANT CREATE ON database.class.userrequest TO guest");
+					con.update("GRANT CREATE ON database.cluster.userrequest TO guest");
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
 				guestRoles.add(guestRole);
 				allRoles.add(guestRole);
 				installMessages.append(Weblet.paragraph("CheckInstallation: Created guest role"));
@@ -181,10 +192,12 @@ public class DatabaseSetup {
 			mCount += checkCreateMessage(con, loc, "CANNOT_CREATE_ROW", "Error creating row: ");
 			mCount += checkCreateMessage(con, loc, "CANNOT_UPDATE", "Error updating row: ");
 			mCount += checkCreateMessage(con, loc, "NEW_ROW_CREATED", "New row created: ");
+			mCount += checkCreateMessage(con, loc, "GOTO_ROW", "Goto&gt;");
 			
 			
 			if (mCount > 0) {
 				installMessages.append(Weblet.paragraph("CheckInstallation: Created "+mCount+" messages"));
+				Server.tableUpdated("message");
 			}
 			
 			System.out.print(TABLE_NEWS+" ");
@@ -377,7 +390,7 @@ public class DatabaseSetup {
 				mi_table.save();				
 
 				ODocument mi_backup = con.create(TABLE_MENUITEM);
-				mi_backup.field("name","Backup/Restore");
+				mi_backup.field("name","Backup");
 				mi_backup.field("description","Backup and restore the database");
 				mi_backup.field("classname","permeagility.web.BackupRestore");
 				mi_backup.field("active",true);
@@ -495,8 +508,8 @@ public class DatabaseSetup {
 +"}\n"
 +"TABLE.layout { background-color: none;  width: 100%; }\n"
 +"TH { background-color: #303b43; color: white; font-weight: bold; border-radius: 4px 4px 0px 0px; }\n"
-+"TR.data, TD.data { background-color: #DCDCDC; }\n"
-+"TR.clickable { background-color: #DCDCDC; }\n"
++"TR.data, TD.data { background-color: #DCDCDC; vertical-align: top; }\n"
++"TR.clickable { background-color: #DCDCDC; vertical-align: top; }\n"
 +"TR.clickable:hover { background-color: #AAAADC; text-decoration: bold; }\n"
 +"TD.number { text-align: right; }\n"
 +"TR.footer { font-weight: bold; }\n"

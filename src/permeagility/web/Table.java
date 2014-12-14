@@ -20,6 +20,7 @@ import java.util.Stack;
 import permeagility.util.DatabaseConnection;
 import permeagility.util.QueryResult;
 
+import com.orientechnologies.orient.core.id.ORecordId;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OProperty;
 import com.orientechnologies.orient.core.metadata.schema.OType;
@@ -1026,7 +1027,7 @@ public class Table extends Weblet {
 			//System.out.println("linkset size="+l.size());			
 			String linkedClass = column.field("linkedClass");
 			return row(columnTopRight(50, small(prettyName))
-					+ columnNoWrap(50, xSmall(linkSetControl(PARM_PREFIX+name, linkedClass, con.query(getQueryForTable(con, linkedClass)), con.getLocale(), l))));
+					+ columnNoWrap(50, xSmall(linkSetControl(con, PARM_PREFIX+name, linkedClass, con.query(getQueryForTable(con, linkedClass)), con.getLocale(), l))));
 
 		// Link map
 		} else if (type == 16) {
@@ -1103,8 +1104,8 @@ public class Table extends Weblet {
 						)
 				: Message.get(con.getLocale(),"NO_ACCESS_TO_TABLE"))
 			);
-	}
-	return sb.toString();
+	    }
+	    return sb.toString();
 	}
 
 	public String newColumnForm(DatabaseConnection con) {
@@ -1227,8 +1228,8 @@ public class Table extends Weblet {
 			return table("sortable", sb.toString());
 		} catch (Exception e) {
 			Throwable cause = e.getCause();
-			System.out.println("permeagility.web.Table: Error: <BR>" + e.getMessage() + (cause == null ? "" : "<BR>" + cause.getMessage()));
-			//e.printStackTrace();
+			System.out.println("permeagility.web.Table: Error: " + e.getMessage() + (cause == null ? "" : ": " + cause.getMessage()));
+			e.printStackTrace();
 			return "Error: " + e.getMessage() + (cause == null ? "" : "<BR>" + cause.getMessage());
 		}
 	}
@@ -1345,9 +1346,14 @@ public class Table extends Weblet {
 			Set<ODocument> l = d.field(columnName);
 			StringBuffer ll = new StringBuffer();
 			if (l != null) {
-				for (ODocument o : l) {
+				for (Object o : l) {
 					if (o != null) {
-						ll.append(getDescriptionFromDocument(con, o)+br());
+						if (o instanceof ORecordId) {
+							o = con.getDb().getRecord((ORecordId)o);
+						}
+						if (o != null) {
+							ll.append(getDescriptionFromDocument(con, (ODocument)o)+br());
+						}
 					}
 				}
 			}
@@ -1379,7 +1385,6 @@ public class Table extends Weblet {
 		} else if (columnType == 23) {   // Any
 			Object value = d.field(columnName);
 			sb.append(column(xSmall(value == null ? "null" : value.toString() )));
-//		} else if (columnType == 5555) {  // ?? BLOB??
 		} else {
 			if (DEBUG) System.out.println("Table: unrecognized type "+columnType);
 			sb.append(column(xSmall("??"+columnType+"??")));
@@ -1538,30 +1543,32 @@ public class Table extends Weblet {
 
 		for (String role : privs.keySet()) {
 			Number b = privs.get(role);
-			StringBuffer sb = new StringBuffer();
-			if (b.intValue() == 0) {
-				sb.append(Message.get(con.getLocale(), "PRIV_NONE"));
-			} else if (b.intValue() == PRIV_ALL) {
-					sb.append(Message.get(con.getLocale(), "PRIV_ALL"));
-			} else {
-				if (DEBUG) System.out.println("role="+role+" table="+table+" create="+(b.intValue() & PRIV_CREATE)+" read="+(b.intValue() & PRIV_READ)+" update="+(b.intValue() & PRIV_UPDATE)+" delete="+(b.intValue() & PRIV_DELETE));
-				if ((b.intValue() & PRIV_CREATE) > 0) {
-					sb.append(Message.get(con.getLocale(), "PRIV_CREATE"));
+			if (b != null) {
+				StringBuffer sb = new StringBuffer();
+				if (b.intValue() == 0) {
+					sb.append(Message.get(con.getLocale(), "PRIV_NONE"));
+				} else if (b.intValue() == PRIV_ALL) {
+						sb.append(Message.get(con.getLocale(), "PRIV_ALL"));
+				} else {
+					if (DEBUG) System.out.println("role="+role+" table="+table+" create="+(b.intValue() & PRIV_CREATE)+" read="+(b.intValue() & PRIV_READ)+" update="+(b.intValue() & PRIV_UPDATE)+" delete="+(b.intValue() & PRIV_DELETE));
+					if ((b.intValue() & PRIV_CREATE) > 0) {
+						sb.append(Message.get(con.getLocale(), "PRIV_CREATE"));
+					}
+					if ((b.intValue() & PRIV_READ) > 0) {
+						if (sb.length() > 0) { sb.append(", "); }
+						sb.append(Message.get(con.getLocale(), "PRIV_READ"));
+					}
+					if ((b.intValue() & PRIV_UPDATE) > 0) {
+						if (sb.length() > 0) { sb.append(", "); }
+						sb.append(Message.get(con.getLocale(), "PRIV_UPDATE"));
+					}
+					if ((b.intValue() & PRIV_DELETE) > 0) {
+						if (sb.length() > 0) { sb.append(", "); }
+						sb.append(Message.get(con.getLocale(), "PRIV_DELETE"));
+					}
 				}
-				if ((b.intValue() & PRIV_READ) > 0) {
-					if (sb.length() > 0) { sb.append(", "); }
-					sb.append(Message.get(con.getLocale(), "PRIV_READ"));
-				}
-				if ((b.intValue() & PRIV_UPDATE) > 0) {
-					if (sb.length() > 0) { sb.append(", "); }
-					sb.append(Message.get(con.getLocale(), "PRIV_UPDATE"));
-				}
-				if ((b.intValue() & PRIV_DELETE) > 0) {
-					if (sb.length() > 0) { sb.append(", "); }
-					sb.append(Message.get(con.getLocale(), "PRIV_DELETE"));
-				}
+				currentRights.append(Message.get(con.getLocale(), "ROLE_CAN_PRIV", role,sb.toString())+br());
 			}
-			currentRights.append(Message.get(con.getLocale(), "ROLE_CAN_PRIV", role,sb.toString())+br());
 		}
 
 		rightsNames.add("NONE");

@@ -28,7 +28,9 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -42,9 +44,10 @@ import permeagility.util.PlusClassLoader;
 import permeagility.util.QueryResult;
 
 import com.orientechnologies.orient.core.OConstants;
-import com.orientechnologies.orient.core.config.OGlobalConfiguration;
-import com.orientechnologies.orient.core.db.record.OTrackedMap;
 import com.orientechnologies.orient.core.id.ORecordId;
+import com.orientechnologies.orient.core.metadata.security.ORole;
+import com.orientechnologies.orient.core.metadata.security.ORule;
+import com.orientechnologies.orient.core.metadata.security.ORule.ResourceGeneric;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 
 public class Server extends Thread {
@@ -863,7 +866,8 @@ public class Server extends Thread {
 		DatabaseConnection con = database.getConnection();
 		int entryCount = 0;
 		try {
-			QueryResult qr = con.query("SELECT name, roles from OUser");
+			QueryResult qr = new QueryResult(con.getSecurity().getAllUsers());
+//			QueryResult qr = con.query("SELECT name, roles from OUser");
 			if (qr != null) {
 				for (int i=0;i<qr.size();i++) {
 					String n = qr.getStringValue(i, "name");
@@ -894,26 +898,33 @@ public class Server extends Thread {
 			for (String user : userRoles.keySet()) {
 				// User object rules are compiled into a simple HashMap<String,Byte>
 				Object[] roles = userRoles.get(user);  // I believe these are ODocuments or ORecordIds
-				ArrayList<OTrackedMap<Object>> rules = new ArrayList<OTrackedMap<Object>>();  // To hold the rules
+				ArrayList<Set<ORule>> rules = new ArrayList<Set<ORule>>();  // To hold the rules
 				for (Object role : roles) {
 					ODocument r;
 					if (role instanceof ORecordId) {
 						r = con.getDb().getRecord((ORecordId)role);
-						//System.out.println("priv=");
 					} else {
 						r = (ODocument)role;
-						//System.out.println("priv="+r.field("rules"));				
 					}
-					getRoleRules(r,rules);				
+					getRoleRules(new ORole(r),rules);				
 				}
 				if (DEBUG) System.out.println(user+" rules="+rules);
 				// Collapse the rules into a single HashMap 
 				HashMap<String,Number> newRules = new HashMap<String,Number>();
-				for (OTrackedMap<Object> m : rules) {
-					for (Object res : m.keySet()) {
-						String resource = (String)res;
-						Number newPriv = (Number)m.get(res);
-						newRules.put(resource, newPriv);
+				for (Set<ORule> m : rules) {
+					for (ORule rule : m) {
+						ResourceGeneric rg = rule.getResourceGeneric();
+						if (rg != null) {
+							//if (DEBUG) System.out.println("ResourceGeneric="+rg.name()+" priv="+rule.getAccess());
+							newRules.put(rg.name(), rule.getAccess());
+						}
+						Map<String,Byte> spec = rule.getSpecificResources();
+						for (String res : spec.keySet()) {
+							String resource = res;
+							Number newPriv = spec.get(res);
+							//if (DEBUG) System.out.println("Resource="+resource+" newPriv="+newPriv+" generic="+rule.getResourceGeneric());
+							newRules.put(resource, newPriv);
+						}
 					}
 				}
 				if (DEBUG) System.out.println(user+" newRules="+newRules);
@@ -948,12 +959,11 @@ public class Server extends Thread {
 	}
 	
 	/** Recursive function to return the rules for a role that has been given (includes inherited rules) */
-	public static int getRoleRules(ODocument role, ArrayList<OTrackedMap<Object>> rules) {
-		if (role.field("inheritedRole") != null) {
-			getRoleRules((ODocument)role.field("inheritedRole"), rules);
+	public static int getRoleRules(ORole role, ArrayList<Set<ORule>> rules) {
+		if (role.getParentRole() != null) {
+			getRoleRules(role.getParentRole(), rules);
 		} 
-		@SuppressWarnings("unchecked")
-		OTrackedMap<Object> ru = (OTrackedMap<Object>)role.field("rules");
+		Set<ORule> ru = (Set<ORule>)role.getRuleSet();
 		rules.add(ru);
 		return rules.size();
 	}
@@ -1006,17 +1016,17 @@ public class Server extends Thread {
 		}
 		// Find the most specific privilege for the table from the user's rules
 		Number o;
-		o = newRules.get("database.bypassrestricted");  // Not sure this is exactly right
+		o = newRules.get("BYPASS_RESTRICTED");  // Not sure this is exactly right
 		if (o != null) {
 			//System.out.println("Found database.bypassrestricted="+o);
 			priv = o.intValue();
 		}
-		o = newRules.get("database.class.*");
+		o = newRules.get("CLASS");
 		if (o != null) {
 			//System.out.println("Found database.class.*="+o);
 			priv = o.intValue();
 		}
-		o = newRules.get("database.class."+table.toLowerCase());
+		o = newRules.get(table.toLowerCase());
 		if (o != null) {
 			//System.out.println("Found database.class."+table.toLowerCase()+"="+o);
 			priv = o.intValue();
@@ -1037,18 +1047,18 @@ public class Server extends Thread {
 		database.freeConnection(con);		
 		for (ODocument role : roles.get()) {
 			String roleName = role.field("name");
-			ArrayList<OTrackedMap<Object>> rules = new ArrayList<OTrackedMap<Object>>();
-			getRoleRules(role,rules);
-			for (OTrackedMap<Object> rs : rules) {
-				Object o = rs.get("database.class."+table.toLowerCase());
-				if (o != null) {
-					map.put(roleName, (Number)o);
-					//if (DEBUG) System.out.println("getTablePrivs:"+roleName+"="+o);
-				} else {
-					o = rs.get("database.class.*");
-					if (o != null) {
-						map.put(roleName, (Number)o);
-						//if (DEBUG) System.out.println("getTablePrivs*:"+roleName+"="+o);						
+			ArrayList<Set<ORule>> rules = new ArrayList<Set<ORule>>();
+			getRoleRules(new ORole(role),rules);
+			for (Set<ORule> rs : rules) {
+				for (ORule rule : rs) {
+					if (rule.containsSpecificResource(table.toLowerCase())) {
+						//System.out.println("getTablePrivs: specific "+rule.toString()+": "+rule.getAccess());
+						map.put(roleName, rule.getAccess());
+					} else if (rule.getResourceGeneric() == ResourceGeneric.CLASS) {
+						//System.out.println("getTablePrivs: all classes: "+rule.getAccess());
+						if (rule.getAccess() != null) {
+							map.put(roleName, rule.getAccess());
+						}
 					}
 				}
 			}
@@ -1263,7 +1273,7 @@ public class Server extends Thread {
 	
 	static boolean initializeServer() {
 		System.out.println("Initializing server using OrientDB Version "+OConstants.getVersion()+" Build number "+OConstants.getBuildNumber());
-		OGlobalConfiguration.CACHE_LOCAL_ENABLED.setValue(false);  // To ensure concurrency across threads
+//		OGlobalConfiguration.CACHE_LOCAL_ENABLED.setValue(false);  // To ensure concurrency across threads
 		try {
 			String p = getLocalSetting(DB_NAME+HTTP_PORT, "");
 			//System.out.println("Localsetting for password is "+p);

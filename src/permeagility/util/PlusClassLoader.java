@@ -9,7 +9,7 @@ import java.util.ArrayList;
 /**
  * This class extends the URLClassLoader to load jars named 'plus-*' from the plus directory
  * each 'plus' jar may have a ClassPath set to load additional libraries (not named plus-)
- * the additional libraries must be in the root of the plus directory to ensure no conflicts
+ * the additional libraries must be in the root of the plus directory to ensure no conflicts in VM space
  */
 public class PlusClassLoader extends URLClassLoader {
 

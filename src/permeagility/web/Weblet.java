@@ -30,6 +30,8 @@ import permeagility.util.DatabaseSetup;
 import permeagility.util.QueryCache;
 import permeagility.util.QueryResult;
 
+import com.orientechnologies.orient.core.id.ORID;
+import com.orientechnologies.orient.core.id.ORecordId;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 
 public abstract class Weblet {
@@ -744,7 +746,7 @@ public abstract class Weblet {
     	return sb.toString();
     }
 
-    public String linkSetControl(String name, String table, QueryResult qr, Locale l, Set<ODocument> picked) {
+    public String linkSetControl(DatabaseConnection con, String name, String table, QueryResult qr, Locale l, Set<ODocument> picked) {
 	    Vector<String> names = new Vector<String>(qr.size());
 	    Vector<String> values = new Vector<String>(qr.size());
 	    Vector<String> tooltips = new Vector<String>(qr.size());
@@ -761,8 +763,14 @@ public abstract class Weblet {
 	    	tooltips.add((String)row.field("tooltip"));
 	    	boolean pick = false;
 	    	if (picked != null) { // Find in the list of picked, hope it isn't long
-	    		for (ODocument p : picked) {
-	    			if (p.getIdentity().toString().substring(1).equals(rid)) {
+	    		for (Object p : picked) {
+	    			ORID id = null;
+	    			if (p instanceof ORecordId) {
+	    				id = ((ORecordId)p).getIdentity();
+	    			} else {  // Assume ODocument
+	    				id = ((ODocument)p).getIdentity();
+	    			}
+	    			if (id != null && id.toString().substring(1).equals(rid)) {
 	    				pick = true;
 	    			}
 	    		}
@@ -784,7 +792,7 @@ public abstract class Weblet {
 		result.append("  <li ng-tooltip=\"Link Set\" ng-repeat=\"v in values | filter: { active: true }\" \">\n");
 		result.append("    {{v.name}}&nbsp;&nbsp;&nbsp;\n");
 		result.append("    <A title=\"Click to delete\" ng-click=\"toggleActive(v)\">&times;</A>\n");
-		result.append("    <A HREF=\"permeagility.web.Table?TABLENAME="+table+"&EDIT_ID={{v.rid}}\">Goto&gt;</A>\n");
+		result.append("    <A HREF=\"permeagility.web.Table?TABLENAME="+table+"&EDIT_ID={{v.rid}}\">"+Message.get(l, "GOTO_ROW")+"</A>\n");
 		result.append("  </li>\n");
 		result.append("</ul>\n");
 		result.append("Add/Remove ");
@@ -868,7 +876,7 @@ public abstract class Weblet {
 		result.append("    <A title=\"Click to move down\" ng-click=\"down(v)\">&#x2193;</A>\n");
 		result.append("    {{v.name}}&nbsp;&nbsp;&nbsp;\n");
 		result.append("    <A title=\"Click to delete\" ng-click=\"delete(v)\">&times;</A>\n");
-		result.append("    <A HREF=\"permeagility.web.Table?TABLENAME="+table+"&EDIT_ID={{v.rid}}\">Goto&gt;</A>\n");
+		result.append("    <A HREF=\"permeagility.web.Table?TABLENAME="+table+"&EDIT_ID={{v.rid}}\">"+Message.get(l, "GOTO_ROW")+"</A>\n");
 		result.append("  </li>\n");
 		result.append("</ol>\n");
 		result.append("Add ");
@@ -957,7 +965,7 @@ public abstract class Weblet {
 		result.append("<INPUT CLASS=\"text\" NAME=\"map\" ng-model=\"v.map\" SIZE=20  VALUE=\"{{v.map}}\"/>&nbsp;");
 		result.append("{{v.name}}&nbsp;&nbsp;&nbsp;");
 		result.append("  <A title=\"Click to delete\" ng-click=\"delete(v)\">&times;</A>\n");
-		result.append("  <A HREF=\"permeagility.web.Table?TABLENAME="+table+"&EDIT_ID={{v.rid}}\">Goto&gt;</A>\n");
+		result.append("  <A HREF=\"permeagility.web.Table?TABLENAME="+table+"&EDIT_ID={{v.rid}}\">G"+Message.get(l, "GOTO_ROW")+"</A>\n");
 		result.append("  </li>\n");
 		result.append(" </ol>\n");
 		result.append("Add&nbsp;");
@@ -1111,6 +1119,8 @@ public abstract class Weblet {
 				return qr.getStringValue(0, "description");
 			}
 			System.out.println("Unable to load style sheet called: "+DEFAULT_STYLE);
+		} else {
+			System.out.println("No database connection to use to retrieve stylesheets");
 		}
 		return DatabaseSetup.DEFAULT_STYLESHEET;
 	}

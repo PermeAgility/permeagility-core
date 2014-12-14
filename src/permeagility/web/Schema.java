@@ -43,9 +43,7 @@ public class Schema extends Weblet {
 			}
 		}
 		
-		/* 
-		 * Prepare response
-		 */
+		// Prepare response
 		int cellCount = 0;
 		StringBuffer rows = new StringBuffer();
 		StringBuffer columns = new StringBuffer();
