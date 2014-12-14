@@ -103,15 +103,25 @@ public class Table extends Weblet {
 		}
 		if (parms.containsKey("UPDATE_ID")) {
 			if (DEBUG) System.out.println("update_id="+parms.get("UPDATE_ID"));
-			if (submit != null && submit.equals(Message.get(con.getLocale(), "DELETE"))) {
-				if (deleteRow(con, table, parms, errors)) {
-					parms.remove("EDIT_ID");
-					parms.remove("UPDATE_ID");
-					submit = null;
-				} else {
-					return head(title)
-							+ body(standardLayout(con, parms, getTableRowForm(con, table, parms) + errors.toString()));
-				}
+			if (submit != null && submit.equals(Message.get(con.getLocale(), "COPY"))) {
+					parms.put("EDIT_ID", parms.get("UPDATE_ID"));
+					return head(title,getDateControlScript()+getColorControlScript()+getPrettyPhotoScript()+getAngularControlScript())
+							+ body(standardLayout(con, parms, errors.toString()
+								+form("NEWROW","#",
+										paragraph("banner",Message.get(con.getLocale(), "CREATE_ROW"))
+										+getTableRowFields(con, table, parms)
+										+submitButton(Message.get(con.getLocale(), "CREATE_ROW"))
+								)
+							));
+			} else if (submit != null && submit.equals(Message.get(con.getLocale(), "DELETE"))) {
+					if (deleteRow(con, table, parms, errors)) {
+						parms.remove("EDIT_ID");
+						parms.remove("UPDATE_ID");
+						submit = null;
+					} else {
+						return head(title)
+								+ body(standardLayout(con, parms, getTableRowForm(con, table, parms) + errors.toString()));
+					}
 			} else if (submit != null && submit.equals(Message.get(con.getLocale(), "UPDATE"))) {
 				if (DEBUG) System.out.println("In updating row");
 				if (updateRow(con, table, parms, errors)) {
@@ -786,7 +796,10 @@ public class Table extends Weblet {
 					: ((Server.getTablePriv(con, table) & PRIV_UPDATE) > 0 ? submitButton(Message.get(con.getLocale(), "UPDATE")) : "") 
 						+ "&nbsp;&nbsp;"
 						+ submitButton(Message.get(con.getLocale(), "CANCEL"))))
-			+ (edit_id != null && (Server.getTablePriv(con, table) & PRIV_DELETE) > 0 ? paragraph("delete", deleteButton(con.getLocale())) : "")
+			+paragraph("delete",
+					  (edit_id != null && (Server.getTablePriv(con, table) & PRIV_CREATE) > 0 ? submitButton(Message.get(con.getLocale(), "COPY")) : "")
+					+ (edit_id != null && (Server.getTablePriv(con, table) & PRIV_DELETE) > 0 ? deleteButton(con.getLocale()) : "")
+			)
 			+ "</FORM>"
 			+ getTableRowRelated(con,table,parms);
 	}
@@ -795,6 +808,7 @@ public class Table extends Weblet {
 		return getTableRowFields(con, table, parms, null);
 	}
 	
+	/** Returns the fields for a table - can be for insert of a new row or update of an existing (as specified by the EDIT_ID in parms) */
 	public String getTableRowFields(DatabaseConnection con, String table, HashMap<String, String> parms, String columnOverride) {
 		String edit_id = (parms != null ? parms.get("EDIT_ID") : null);
 		ODocument initialValues = null;
@@ -936,19 +950,20 @@ public class Table extends Weblet {
 			if (initialValue != null) {
 				StringBuffer sb = new StringBuffer();
 				sb.append("[\n");
-				@SuppressWarnings("unchecked")
-				List<Object> l = (List<Object>)initialValue;
-				String comma = " ";
-				for (Object o : l.toArray()) {
-					if (o instanceof String) {
-						sb.append(comma+"\""+o+"\"\n");
-					} else {
-						sb.append(comma+o+"\n");
+				if (initialValue instanceof List) {
+					List<Object> l = (List<Object>)initialValue;
+					String comma = " ";
+					for (Object o : l.toArray()) {
+						if (o instanceof String) {
+							sb.append(comma+"\""+o+"\"\n");
+						} else {
+							sb.append(comma+o+"\n");
+						}
+						comma = ",";
 					}
-					comma = ",";
+					sb.append("]");
+					val = sb.toString();
 				}
-				sb.append("]");
-				val = sb.toString();
 			}
 			return row(columnTopRight(50, small(prettyName))
 					+ column(50, textArea(PARM_PREFIX+name, val, 5, TEXT_AREA_WIDTH)));

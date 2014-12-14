@@ -192,7 +192,12 @@ public class DatabaseSetup {
 			mCount += checkCreateMessage(con, loc, "CANNOT_CREATE_ROW", "Error creating row: ");
 			mCount += checkCreateMessage(con, loc, "CANNOT_UPDATE", "Error updating row: ");
 			mCount += checkCreateMessage(con, loc, "NEW_ROW_CREATED", "New row created: ");
+			mCount += checkCreateMessage(con, loc, "ROW_UPDATED", "Row updated: {0}");
 			mCount += checkCreateMessage(con, loc, "GOTO_ROW", "Goto&gt;");
+			mCount += checkCreateMessage(con, loc, "COPY", "Copy");
+			mCount += checkCreateMessage(con, loc, "DELETE", "Delete");
+			mCount += checkCreateMessage(con, loc, "UPDATE", "Update");
+			mCount += checkCreateMessage(con, loc, "CANCEL", "Cancel");
 			
 			
 			if (mCount > 0) {
