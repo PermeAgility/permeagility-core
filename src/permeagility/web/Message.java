@@ -21,7 +21,7 @@ import com.orientechnologies.orient.core.record.impl.ODocument;
 public class Message {
 
 	public static boolean DEBUG = false;
-	public static boolean GENERATE_MESSAGES = false;
+	public static boolean GENERATE_MESSAGES = false;  // Will blast message to log about unfound messages - can be annoying
 	public static String DEFAULT_LOCALE = "en";
 	
 	private static HashMap<Locale,TreeMap<String,String>> bundles = null;
@@ -111,7 +111,7 @@ public class Message {
 		}
 		String string = (String)bundle.get(key);
 		if(string==null && GENERATE_MESSAGES) {
-		    //messageError(key);  // Not implemented yet - meant to register messages that need translation
+			System.out.println("************************** Warning - no "+locale.getDisplayLanguage()+" message found for name:"+key);
 		}
 		return string != null ? string : key;
 	}	
@@ -217,6 +217,5 @@ public class Message {
 		    return arg0 + ", " + arg1 + ", " + arg2;
 		}
     }
-
-	
+    
 }

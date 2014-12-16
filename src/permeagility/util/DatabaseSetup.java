@@ -138,13 +138,32 @@ public class DatabaseSetup {
 			Message.initialize(con);
 			
 			int mCount = 0;
-			mCount += checkCreateMessage(con, loc, "HEADER_TITLE", "The dynamic adaptive data management platform");
+			// These first ones are pretty special as Data format and type format are universally needed but locale specific
 			mCount += checkCreateMessage(con, loc, "DATE_FORMAT", "yyyy-MM-dd");
 			mCount += checkCreateMessage(con, loc, "TIME_FORMAT", "hh:mm:ss");
+
+			// These are the data types that can be used
+			mCount += checkCreateMessage(con, loc, "DATATYPE_FLOAT", "Floating point number (double)");
+			mCount += checkCreateMessage(con, loc, "DATATYPE_INT", "Whole number (integer)");
+			mCount += checkCreateMessage(con, loc, "DATATYPE_TEXT", "Text (any length)");
+			mCount += checkCreateMessage(con, loc, "DATATYPE_BOOLEAN", "Boolean (true/false)");
+			mCount += checkCreateMessage(con, loc, "DATATYPE_DATETIME", "Date and time");
+			mCount += checkCreateMessage(con, loc, "DATATYPE_DATE", "Date");
+			mCount += checkCreateMessage(con, loc, "DATATYPE_DECIMAL", "Decimal (Currency)");
+			mCount += checkCreateMessage(con, loc, "DATATYPE_BLOB", "Binary (image/file)");
+			mCount += checkCreateMessage(con, loc, "DATATYPE_LINK", "Link (single reference)");
+			mCount += checkCreateMessage(con, loc, "DATATYPE_LINKLIST", "Link list (ordered)");
+			mCount += checkCreateMessage(con, loc, "DATATYPE_LINKSET", "Link set (unordered)");
+			mCount += checkCreateMessage(con, loc, "DATATYPE_LINKMAP", "Link map (with names, ordered)");
+
+			// These are core messages
+			mCount += checkCreateMessage(con, loc, "HEADER_TITLE", "The dynamic adaptive data management platform");
+			mCount += checkCreateMessage(con, loc, "HEADER_LOGO_DESC", "Go to the home page");
 			mCount += checkCreateMessage(con, loc, "WELCOME_USER", "Welcome {0}");
 			mCount += checkCreateMessage(con, loc, "DATE_LABEL", "Date:");
 			mCount += checkCreateMessage(con, loc, "TABLE_EDITOR", "{0} editor");
 			mCount += checkCreateMessage(con, loc, "LOGIN_TITLE", "Login");
+			mCount += checkCreateMessage(con, loc, "PAGE_NAV", "Page");
 			mCount += checkCreateMessage(con, loc, "HOME_PAGE_TITLE", "Home page");
 			mCount += checkCreateMessage(con, loc, "LOGIN_BUTTON_TEXT", "Login");
 			mCount += checkCreateMessage(con, loc, "USER_LABEL", "User");
@@ -160,6 +179,7 @@ public class DatabaseSetup {
 			mCount += checkCreateMessage(con, loc, "SET_ROWCOUNT", "Table page limit");
 			mCount += checkCreateMessage(con, loc, "INVALID_USER_OR_PASSWORD", "Invalid user/password");
 			mCount += checkCreateMessage(con, loc, "LOGOUT", "Logout");
+			mCount += checkCreateMessage(con, loc, "NO_ACCESS_TO_TABLE", "Unsufficient privilege to access table");
 			mCount += checkCreateMessage(con, loc, "TABLE_NONGROUPED", "Ungrouped");
 			mCount += checkCreateMessage(con, loc, "ALL_ROWS_IN_TABLE", "All rows");
 			mCount += checkCreateMessage(con, loc, "NEW_ROW", "+Row");
@@ -179,7 +199,10 @@ public class DatabaseSetup {
 			mCount += checkCreateMessage(con, loc, "RENAME_TABLE_BUTTON", "Rename table");
 			mCount += checkCreateMessage(con, loc, "RENAME_COLUMN_BUTTON", "Rename column");
 			mCount += checkCreateMessage(con, loc, "DROP_COLUMN_BUTTON", "Drop column");
+			mCount += checkCreateMessage(con, loc, "DROP_COLUMN", "Drop column");
 			mCount += checkCreateMessage(con, loc, "DROP_TABLE_BUTTON", "Drop table");
+			mCount += checkCreateMessage(con, loc, "DROP_TABLE", "Drop table");
+			mCount += checkCreateMessage(con, loc, "DROP_TABLE_CONFIRM", "Are you sure you want to drop this table? (cannot be undone)");
 			mCount += checkCreateMessage(con, loc, "NEW_TABLE", "New table");
 			mCount += checkCreateMessage(con, loc, "PRIV_CREATE", "Create");
 			mCount += checkCreateMessage(con, loc, "PRIV_READ", "Read");
@@ -188,17 +211,83 @@ public class DatabaseSetup {
 			mCount += checkCreateMessage(con, loc, "PRIV_ALL", "do anything");
 			mCount += checkCreateMessage(con, loc, "SHUTDOWN_CONFIRM_MESSAGE", "This will shutdown the server, the server will need to be restarted at the host to continue");
 			mCount += checkCreateMessage(con, loc, "CONFIRM_SHUTDOWN", "Shut down");
+			mCount += checkCreateMessage(con, loc, "SHUTDOWN_SERVER", "Shut down the server");
 			mCount += checkCreateMessage(con, loc, "SQL_WEBLET", "Query");
 			mCount += checkCreateMessage(con, loc, "CANNOT_CREATE_ROW", "Error creating row: ");
+			mCount += checkCreateMessage(con, loc, "CANNOT_CREATE_COLUMN", "Error creating column: ");
 			mCount += checkCreateMessage(con, loc, "CANNOT_UPDATE", "Error updating row: ");
 			mCount += checkCreateMessage(con, loc, "NEW_ROW_CREATED", "New row created: ");
+			mCount += checkCreateMessage(con, loc, "NEW_COLUMN_CREATED", "New column created");
 			mCount += checkCreateMessage(con, loc, "ROW_UPDATED", "Row updated: {0}");
 			mCount += checkCreateMessage(con, loc, "GOTO_ROW", "Goto&gt;");
 			mCount += checkCreateMessage(con, loc, "COPY", "Copy");
+			mCount += checkCreateMessage(con, loc, "DELETE_MESSAGE", "Are you sure you want to delete this?");
 			mCount += checkCreateMessage(con, loc, "DELETE", "Delete");
 			mCount += checkCreateMessage(con, loc, "UPDATE", "Update");
 			mCount += checkCreateMessage(con, loc, "CANCEL", "Cancel");
-			
+			mCount += checkCreateMessage(con, loc, "ONLY_ONE_ROW_CAN_BE_EDITED", "Sorry, Only one row can be edited at a time");
+			mCount += checkCreateMessage(con, loc, "ROW_CANNOT_BE_DELETED", "Sorry, The row could not be deleted:");
+			mCount += checkCreateMessage(con, loc, "ROW_DELETED", "Row deleted");
+			mCount += checkCreateMessage(con, loc, "NOTHING_TO_UPDATE", "Nothing to update");
+			mCount += checkCreateMessage(con, loc, "INVALID_DATE_VALUE", "Cannot read date value {0} column not updated");
+			mCount += checkCreateMessage(con, loc, "INVALID_NUMBER_VALUE", "Cannot read number value {0} column not updated");
+			mCount += checkCreateMessage(con, loc, "COLUMN_NAME_AND_TYPE_REQUIRED", "Column name and type required");
+			mCount += checkCreateMessage(con, loc, "SPECIFY_COLUMN_NAME", "Column name required");
+			mCount += checkCreateMessage(con, loc, "LINK_TYPES_NEED_LINK_TABLE", "Link columns must specify a link table");
+			mCount += checkCreateMessage(con, loc, "REDIRECT_TO_SCHEMA", "No table specified, redirecting to tables page");
+			mCount += checkCreateMessage(con, loc, "REDIRECT", "Redirecting...");
+			mCount += checkCreateMessage(con, loc, "UNKNOWN_FIELD_TYPE", "Cannot recognize field type {0} in column {1}");
+			mCount += checkCreateMessage(con, loc, "THUMBNAIL_NOT_FOUND", "Cannot find thumbnail for column {0} in record {1}");
+			mCount += checkCreateMessage(con, loc, "BACK_TO_TABLE", "Return to table");
+			mCount += checkCreateMessage(con, loc, "RENAME_TABLE_TO", "Rename table to");
+			mCount += checkCreateMessage(con, loc, "RENAME_COLUMN", "Rename column");
+			mCount += checkCreateMessage(con, loc, "CHANGE_NAME_TO", "change name to");
+			mCount += checkCreateMessage(con, loc, "ADD_OR_REMOVE", "add/remove");
+			mCount += checkCreateMessage(con, loc, "CLICK_TO_DELETE", "click to delete");
+			mCount += checkCreateMessage(con, loc, "CLICK_TO_MOVE_UP", "click to move up");
+			mCount += checkCreateMessage(con, loc, "CLICK_TO_MOVE_DOWN", "click to move down");
+			mCount += checkCreateMessage(con, loc, "ADD_ITEM", "add item");
+			mCount += checkCreateMessage(con, loc, "USE_CONTROLS_TO_CHANGE", "use controls to change items");
+			mCount += checkCreateMessage(con, loc, "OPTION_NONE", "None");
+			mCount += checkCreateMessage(con, loc, "SUBMIT_BUTTON", "Submit");
+			mCount += checkCreateMessage(con, loc, "EXECUTE_QUERY", "Execute query");
+			mCount += checkCreateMessage(con, loc, "QUERY_RESULTS", "Query results");
+			mCount += checkCreateMessage(con, loc, "RESULTS_TOP", "top");
+			mCount += checkCreateMessage(con, loc, "RESULTS_BOTTOM", "bottom");
+			mCount += checkCreateMessage(con, loc, "NO_QUERY_GIVEN", "no query was given");
+			mCount += checkCreateMessage(con, loc, "QUERY_IS", "Query is:");
+			mCount += checkCreateMessage(con, loc, "ERROR_IN_QUERY", "Error in query:");
+			mCount += checkCreateMessage(con, loc, "ROWS_UPDATED", "{0} rows updated");
+			mCount += checkCreateMessage(con, loc, "SECURITY_REFRESHED", "security cache was refreshed");
+			mCount += checkCreateMessage(con, loc, "SECURITY_UPDATED", "security last updated");
+			mCount += checkCreateMessage(con, loc, "REFRESH_SECURITY", "Refresh security");
+			mCount += checkCreateMessage(con, loc, "CHECK_INSTALLATION", "Check installation");
+			mCount += checkCreateMessage(con, loc, "SERVER_CONTEXT", "Server context information");
+			mCount += checkCreateMessage(con, loc, "SERVER_SETUP", "Server setup information");
+			mCount += checkCreateMessage(con, loc, "SERVER_SECURITY", "Server security information");
+			mCount += checkCreateMessage(con, loc, "SERVER_SESSIONS", "Sessions");
+			mCount += checkCreateMessage(con, loc, "SERVER_ON_PORT", "HTTP/Web server on port");
+			mCount += checkCreateMessage(con, loc, "SERVER_RUNNING", "running since");
+			mCount += checkCreateMessage(con, loc, "SERVER_CONNECT", "connected to");
+			mCount += checkCreateMessage(con, loc, "SERVER_USER", "with user");
+			mCount += checkCreateMessage(con, loc, "SERVER_VERSION", "OrientDB version is");
+			mCount += checkCreateMessage(con, loc, "SERVER_CACHE", "Cached lists");
+			mCount += checkCreateMessage(con, loc, "CACHE_COUNT", "{0} Cached");
+			mCount += checkCreateMessage(con, loc, "CACHE_CLEAR_COLUMNS", "Clear table columns cache");
+			mCount += checkCreateMessage(con, loc, "CACHE_CLEAR_MENUS", "Clear menu cache");
+			mCount += checkCreateMessage(con, loc, "CACHE_CLEAR_LISTS", "Clear list cache");
+			mCount += checkCreateMessage(con, loc, "CACHED_QUERY", "Cached query");
+			mCount += checkCreateMessage(con, loc, "CACHE_SIZE", "Cache size");
+			mCount += checkCreateMessage(con, loc, "CACHE_LASTREFRESH", "Last refreshed");
+			mCount += checkCreateMessage(con, loc, "BACKUP_AND_RESTORE", "Backup and restore");
+			mCount += checkCreateMessage(con, loc, "BACKUP_THE_DATABASE", "Backup the database");
+			mCount += checkCreateMessage(con, loc, "BACKUP_FILENAME", "Backup filename");
+			mCount += checkCreateMessage(con, loc, "BACKUP_NOW", "Backup now");
+			mCount += checkCreateMessage(con, loc, "RESTORE_THE_DATABASE", "Restore the database");
+			mCount += checkCreateMessage(con, loc, "RESTORE_NOW", "Restore now");
+			mCount += checkCreateMessage(con, loc, "RESTORE_ACCESS", "You must be admin or a dba to backup and restore a database");
+			mCount += checkCreateMessage(con, loc, "RESTORE_PLOCAL", "You can only restore a plocal database using this tool");
+
 			
 			if (mCount > 0) {
 				installMessages.append(Weblet.paragraph("CheckInstallation: Created "+mCount+" messages"));

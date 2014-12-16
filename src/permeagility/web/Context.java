@@ -18,12 +18,13 @@ public class Context extends Weblet {
 
 	public String getPage(DatabaseConnection con, java.util.HashMap<String,String> parms) {
 		return 	head("Context")+
-		    body(standardLayout(con, parms,getHTML(con, parms)));
+		    body(standardLayout(con, parms, getHTML(con, parms)));
     }
 
     public String getHTML(DatabaseConnection con, java.util.HashMap<String,String> parms) {
 
-		parms.put("SERVICE","PermeAgility Server Context");
+		Locale locale = con.getLocale();
+		parms.put("SERVICE",Message.get(locale, "SERVER_CONTEXT"));
 		
 		// Do stuff if asked
 		String ref = parms.get("TABLE_NAME");
@@ -66,15 +67,9 @@ public class Context extends Weblet {
 			}
 		}
 	
-		// Prepare locale list
-		StringBuffer localeList = new StringBuffer();
-		for (Locale l : Message.getLocales()) {
-		    localeList.append(row("data",column(30,l.getLanguage()+" "+l.getCountry()+" "+l.getVariant())+column(30,l.getDisplayLanguage()+" "+l.getDisplayCountry()+" "+l.getDisplayVariant())));
-		}
-		
 		// Prepare session report
 		StringBuffer sessionReport = new StringBuffer();
-		sessionReport.append("<p>Sessions:<br>");
+		sessionReport.append("<p>"+Message.get(locale,"SERVER_SESSIONS")+"<br>");
 		for (String usr : Server.sessionsDB.keySet()) {
 			if (usr != null) {
 				int scnt = 0;
@@ -97,26 +92,33 @@ public class Context extends Weblet {
 		
 		// Return content
 		return
-		    paragraph("HTTP server on port "+Server.HTTP_PORT+" has been running since "+Server.getServerInitTime()+" connected to "+Server.DB_NAME+" using "+Server.getDatabase().getUser())
-		    +paragraph("Database info="+Server.getDatabase().getName(con)+"<br>clientversion="+Server.getDatabase().getClientVersion()+"<br>serverversion="+Server.getDatabase().getDatabaseVersion(con))
-		    +paragraph("banner","Cached Lists")
-			+form(button("REFRESH_COLUMNS_ALL","REFRESHCOLUMNS","Clear table columns cache")+hidden("CLEAR_COLUMNS","ALL") + " cached="+Server.columnsCacheSize())
+		    paragraph(Message.get(locale, "SERVER_ON_PORT")+"&nbsp;"+Server.HTTP_PORT
+		    		+br()+Message.get(locale, "SERVER_RUNNING")+" "+Server.getServerInitTime()
+		    		+br()+Message.get(locale, "SERVER_CONNECT")+" "+Server.DB_NAME
+		    		+br()+Message.get(locale, "SERVER_USER")+" "+Server.getDatabase().getUser()
+		    		+br()+Message.get(locale, "SERVER_VERSION")+Server.getDatabase().getClientVersion())
+		    +paragraph("banner",Message.get(locale, "SERVER_CACHE"))
+			+form(button("REFRESH_COLUMNS_ALL","REFRESHCOLUMNS",Message.get(locale, "CACHE_CLEAR_COLUMNS"))
+					+hidden("CLEAR_COLUMNS","ALL") + "&nbsp;"
+					+Message.get(locale, "CACHE_COUNT",""+Server.columnsCacheSize()))
 			+br()
-			+form(button("REFRESH_MENUS_ALL","REFRESHMENUS","Clear menu cache")+hidden("CLEAR_MENUS","ALL") + " cached="+Menu.cacheSize())
+			+form(button("REFRESH_MENUS_ALL","REFRESHMENUS",Message.get(locale, "CACHE_CLEAR_MENUS"))
+					+hidden("CLEAR_MENUS","ALL") + "&nbsp;"
+					+Message.get(locale, "CACHE_COUNT",""+Menu.cacheSize()))
 		    +table("data",
-			  row(tableHead("Cached query")+tableHead("Size")+tableHead("Time of execution"))
+			  row(tableHead(Message.get(locale, "CACHED_QUERY"))
+					  +tableHead(Message.get(locale, "CACHE_SIZE"))
+					  +tableHead(Message.get(locale, "CACHE_LASTREFRESH")))
 			  +cacheList.toString())
-			+form(button("REFRESH_CACHE_ALL","REFRESHCACHE","Clear all query cache")+hidden("TABLE_NAME","ALL") + " cached="+getCache().size())
-			+paragraph("banner","Security")
+			+form(button("REFRESH_CACHE_ALL","REFRESHCACHE",Message.get(locale, "CACHE_CLEAR_LISTS"))
+					+hidden("TABLE_NAME","ALL") + "&nbsp;"
+					+Message.get(locale, "CACHE_COUNT",""+getCache().size()))
+			+paragraph("banner",Message.get(locale, "SERVER_SECURITY"))
 			+sessionReport.toString()
-			+form(button("REFRESH_SECURITY_MODEL","REFRESHSEC","Refresh security")+" lastUpdated="+Server.getSecurityRefreshTime())
-		    +paragraph("banner","Active Locales")
-		    +table("data",
-			  row(tableHead("Name")+tableHead("Description"))+
-			  localeList.toString()
-			  )
-		    +paragraph("banner","Setup")
-			+form(button("CHECK_INSTALLATION","CHECKINSTALLATION","Check Installation"))
+			+form(button("REFRESH_SECURITY_MODEL","REFRESHSEC",Message.get(locale, "REFRESH_SECURITY"))
+					+"&nbsp;"+Message.get(locale, "SECURITY_UPDATED")+"&nbsp;"+Server.getSecurityRefreshTime())
+		    +paragraph("banner",Message.get(locale,"SERVER_SETUP"))
+			+form(button("CHECK_INSTALLATION","CHECKINSTALLATION",Message.get(locale,"CHECK_INSTALLATION")))
 			+(installMessages != null && !installMessages.equals("") ? installMessages : "");
     }
 

@@ -13,9 +13,11 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
+import java.util.concurrent.ConcurrentHashMap;
 
 import permeagility.util.DatabaseConnection;
 import permeagility.util.QueryResult;
@@ -37,8 +39,10 @@ public class Table extends Weblet {
 	public static long DOT_INTERVAL = 5;  // Probably should derive this to be more dynamic
 	public static long PAGE_WINDOW = 3;
 
-	static List<String> dataTypeNames = new ArrayList<String>();
-	public static String DATATYPE_FLOAT = "Floating point number (double)";
+	// Need to store the data types by locale and don't want to generate it every time
+	static ConcurrentHashMap<Locale,ArrayList<String>> dataTypeNames = new ConcurrentHashMap<Locale,ArrayList<String>>();
+	
+/*	public static String DATATYPE_FLOAT = "Floating point number (double)";
 	public static String DATATYPE_INT = "Whole number (integer)";
 	public static String DATATYPE_TEXT = "Text (any length)";
 	public static String DATATYPE_BOOLEAN = "Boolean (true/false)";
@@ -50,7 +54,7 @@ public class Table extends Weblet {
 	public static String DATATYPE_LINKLIST = "Link list (ordered)";
 	public static String DATATYPE_LINKSET = "Link set (unordered)";
 	public static String DATATYPE_LINKMAP = "Link map (with names, ordered)";
-
+*/
 	public static String PARM_PREFIX = "PARM_";
 	
 	public static boolean SHOW_ALL_RELATED_TABLES = true;
@@ -66,11 +70,41 @@ public class Table extends Weblet {
 	public static String ROLES_LIST = "SELECT name as rid, name FROM ORole ORDER BY name";
 
 	public String getPage(DatabaseConnection con, java.util.HashMap<String, String> parms) {
-		String title = Message.get(con.getLocale(), "TABLE_EDITOR", parms.get("TABLENAME") != null ? makeCamelCasePretty( parms.get("TABLENAME")) : "None");
-		parms.put("SERVICE", title);
+		Locale locale = con.getLocale();
+		
+		// Make sure data type names are set up for this locale
+		if (dataTypeNames.get(locale) == null) {
+			ArrayList<String> names = new ArrayList<String>();
+			names.add(Message.get(locale, "DATATYPE_TEXT"));
+			names.add(Message.get(locale, "DATATYPE_FLOAT"));
+			names.add(Message.get(locale, "DATATYPE_INT"));
+			names.add(Message.get(locale, "DATATYPE_DECIMAL"));  
+			names.add(Message.get(locale, "DATATYPE_DATE"));  // Calendar
+			names.add(Message.get(locale, "DATATYPE_DATETIME")); // Calendar and time
+			names.add(Message.get(locale, "DATATYPE_BOOLEAN"));   // Checkbox
+			names.add(Message.get(locale, "DATATYPE_LINK"));    // PickList
+			names.add(Message.get(locale, "DATATYPE_LINKSET"));  // Link Set control
+			names.add(Message.get(locale, "DATATYPE_LINKLIST")); // Link List control
+			names.add(Message.get(locale, "DATATYPE_LINKMAP"));  // Link map control
+			names.add(Message.get(locale, "DATATYPE_BLOB"));  // Image (with thumbnail)
+			dataTypeNames.put(locale,names);
+		}
+				
 		String submit = parms.get("SUBMIT");
 		String table = parms.get("TABLENAME");
 		String pagest = parms.get("PAGE");
+		String sourceTable = parms.get("SOURCETABLENAME");
+		if (isNullOrBlank(table)) {
+			return head("Redirect") + bodyOnLoad(Message.get(con.getLocale(),"REDIRECT_TO_SCHEMA"), "window.location.href='permeagility.web.Schema';");
+		}
+
+		String prettyTable = Message.get(con.getLocale(),"TABLE_"+table);
+		if (table != null && ("TABLE_"+table).equals(prettyTable)) {  // No translation
+			prettyTable = makeCamelCasePretty( parms.get("TABLENAME"));
+		}
+		String title = Message.get(con.getLocale(), "TABLE_EDITOR", table != null ? prettyTable : "None");
+		parms.put("SERVICE", title);
+
 		long page = 1;
 		if (pagest != null) {
 			try {
@@ -78,10 +112,6 @@ public class Table extends Weblet {
 			} catch (Exception e) {
 				System.out.println("Unable to interpret page number "+pagest+" as a number");
 			}
-		}
-		String sourceTable = parms.get("SOURCETABLENAME");
-		if (isNullOrBlank(table)) {
-			return head("Redirect") + bodyOnLoad("No table specified, Redirecting...", "window.location.href='permeagility.web.Schema';");
 		}
 
 		StringBuffer errors = new StringBuffer();
@@ -145,71 +175,71 @@ public class Table extends Weblet {
 				String tr = parms.get("NEWTABLEREF");
 				
 				OType type = null;
-				if (dt.equals(DATATYPE_FLOAT)) {
+				if (dt.equals(Message.get(locale, "DATATYPE_FLOAT"))) {
 					type = OType.DOUBLE;
 					tr = null;
-				} else if (dt.equals(DATATYPE_INT)) {
+				} else if (dt.equals(Message.get(locale, "DATATYPE_INT"))) {
 					type = OType.LONG;
 					tr = null;
-				} else if (dt.equals(DATATYPE_BOOLEAN)) {
+				} else if (dt.equals(Message.get(locale, "DATATYPE_BOOLEAN"))) {
 					type = OType.BOOLEAN;
 					tr = null;
-				} else if (dt.equals(DATATYPE_TEXT)) {
+				} else if (dt.equals(Message.get(locale, "DATATYPE_TEXT"))) {
 					type = OType.STRING;
 					tr = null;
-				} else if (dt.equals(DATATYPE_DATETIME)) {
+				} else if (dt.equals(Message.get(locale, "DATATYPE_DATETIME"))) {
 					type = OType.DATETIME;
 					tr = null;
-				} else if (dt.equals(DATATYPE_DATE)) {
+				} else if (dt.equals(Message.get(locale, "DATATYPE_DATE"))) {
 					type = OType.DATE;
 					tr = null;
-				} else if (dt.equals(DATATYPE_BLOB)) {
+				} else if (dt.equals(Message.get(locale, "DATATYPE_BLOB"))) {
 					type = OType.CUSTOM;
 					tr = null;
-				} else if (dt.equals(DATATYPE_DECIMAL)) {
+				} else if (dt.equals(Message.get(locale, "DATATYPE_DECIMAL"))) {
 					type = OType.DECIMAL;
 					tr = null;
-				} else if (dt.equals(DATATYPE_LINK)) {
+				} else if (dt.equals(Message.get(locale, "DATATYPE_LINK"))) {
 					type = OType.LINK;
 					if (isNullOrBlank(tr)) {
-						errors.append(paragraph("error", "Link table must be specified for reference column types"));
+						errors.append(paragraph("error", Message.get(con.getLocale(), "LINK_TYPES_NEED_LINK_TABLE")));
 					}
-				} else if (dt.equals(DATATYPE_LINKLIST)) {
+				} else if (dt.equals(Message.get(locale, "DATATYPE_LINKLIST"))) {
 					type = OType.LINKLIST;
 					if (isNullOrBlank(tr)) {
-						errors.append(paragraph("error", "Link table must be specified for reference column types"));
+						errors.append(paragraph("error", Message.get(con.getLocale(), "LINK_TYPES_NEED_LINK_TABLE")));
 					}
-				} else if (dt.equals(DATATYPE_LINKSET)) {
+				} else if (dt.equals(Message.get(locale, "DATATYPE_LINKSET"))) {
 					type = OType.LINKSET;
 					if (isNullOrBlank(tr)) {
-						errors.append(paragraph("error", "Link table must be specified for reference column types"));
+						errors.append(paragraph("error", Message.get(con.getLocale(), "LINK_TYPES_NEED_LINK_TABLE")));
 					}
-				} else if (dt.equals(DATATYPE_LINKMAP)) {
+				} else if (dt.equals(Message.get(locale, "DATATYPE_LINKMAP"))) {
 					type = OType.LINKMAP;
 					if (isNullOrBlank(tr)) {
-						errors.append(paragraph("error", "Link table must be specified for reference column types"));
+						errors.append(paragraph("error", Message.get(con.getLocale(), "LINK_TYPES_NEED_LINK_TABLE")));
 					}
 				}
 				if (type == null || isNullOrBlank(cn) || isNullOrBlank(dt)) {
-					errors.append(paragraph("error", "Column name and data type must be specified"));
+					errors.append(paragraph("error", Message.get(con.getLocale(), "COLUMN_NAME_AND_TYPE_REQUIRED")));
 				} else {
 					try {
 						OClass c = con.getSchema().getClass(table);
 						if (c == null) {
-							errors.append(paragraph("error", "Cannot find class to create column in table: " + table));							
+							errors.append(paragraph("error", Message.get(con.getLocale(), "CANNOT_CREATE_COLUMN") + " Cannot find class to create column in table: " + table));							
 						} else {
 							if (tr != null) {
 								c.createProperty(cn, type, con.getSchema().getClass(tr));
 							} else {
 								c.createProperty(cn, type);
 							}
-							errors.append(paragraph("success", "New column created"));
+							errors.append(paragraph("success", Message.get(con.getLocale(), "NEW_COLUMN_CREATED")));
 							Server.tableUpdated("metadata:schema");
 							Server.clearColumnsCache(table);
 						}
 					} catch (Exception e) {
 						e.printStackTrace();
-						errors.append(paragraph("error", "Cannot create column: " + e.getMessage()));
+						errors.append(paragraph("error", Message.get(con.getLocale(), "CANNOT_CREATE_COLUMN") + e.getMessage()));
 					}
 
 				}
@@ -230,21 +260,6 @@ public class Table extends Weblet {
 					+ body(standardLayout(con, parms, getTableRowForm(con, table, parms)));
 		}
 
-		if (dataTypeNames.size() == 0) {  // Do this once only
-			dataTypeNames.add(DATATYPE_TEXT);
-			dataTypeNames.add(DATATYPE_FLOAT);
-			dataTypeNames.add(DATATYPE_INT);
-			dataTypeNames.add(DATATYPE_DECIMAL);  
-			dataTypeNames.add(DATATYPE_DATE);  // Calendar
-			dataTypeNames.add(DATATYPE_DATETIME); // Calendar and time
-			dataTypeNames.add(DATATYPE_BOOLEAN);   // Checkbox
-			dataTypeNames.add(DATATYPE_LINK);    // PickList
-			dataTypeNames.add(DATATYPE_LINKSET);  // Link Set control
-			dataTypeNames.add(DATATYPE_LINKLIST); // Link List control
-			dataTypeNames.add(DATATYPE_LINKMAP);  // Link map control
-			dataTypeNames.add(DATATYPE_BLOB);  // Image (with thumbnail)
-		}
-		
 		parms.remove("EDIT_ID"); // Need to avoid confusing getTableRowForm
 		
 		// Make the result
@@ -271,69 +286,79 @@ public class Table extends Weblet {
 				));
 	}
 
+	// Clear all the dataTypes from the list if a message or locale has changed - called by Server
+	public static void clearDataTypes() {
+		dataTypeNames.clear();
+	}
+	
 	public boolean insertRow(DatabaseConnection con, String table, HashMap<String, String> parms, StringBuffer errors) {
 		StringBuffer ins = new StringBuffer("INSERT INTO "+table+" SET ");
 		int colCount = 0;
 		ArrayList<String> blobList = new ArrayList<String>();
-		
+		String comma = "";
 		for (ODocument column : Server.getColumns(table).get()) {
 			Integer type = column.field("type");
 			String name = column.field("name");
 			String value = parms.get(PARM_PREFIX+name);
 			if (DEBUG) System.out.println("InsertRow: column "+name+" is a "+type+" and its value is "+value);
 			if (value != null && !value.trim().equals("")) {
-				if (colCount > 0) {
-					ins.append(", ");
-				}
-				colCount++;
-	
-				if (type == 0) {
+				
+				if (type == 0) {  // Boolean
 					if (value == null) value = "off";
 					if (!isNullOrBlank(value)) {
-						ins.append(name+" = "+(value.equals("on") ? "true" : "false"));
+						ins.append(comma+name+" = "+(value.equals("on") ? "true" : "false"));
+						colCount++;	
 					}
 					
-				} else if (type == 1 || type == 2 || type == 3 || type == 17) {
+				} else if (type == 1 || type == 2 || type == 3 || type == 17) {   // Number (int,long, etc...)
 					if (value == null || value.equals("") || value.equals("null")) {
-						ins.append(name+" = null");					
+						ins.append(comma+name+" = null");					
+						colCount++;	
 					} else {
 						try {
-							int intValue = Integer.parseInt(value);
-							ins.append(name+" = "+intValue);
+							long longValue = Long.parseLong(value);
+							ins.append(comma+name+" = "+longValue);
+							colCount++;	
 						} catch (Exception e) {
-							errors.append(paragraph("error", "Unable to determine whole number value from " + value));
+							errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_NUMBER_VALUE",value)));
 							value = null;
 						}						
 					}
 					
 				} else if (type == 4 || type == 5 || type == 21) {  // Float - Double - Decimal
 					if (value == null || value.equals("") || value.equals("null")) {
-						ins.append(name+" = null");
+						ins.append(comma+name+" = null");
+						colCount++;	
 					} else {
 						try {
 							double dubValue = Double.parseDouble(value);
-							ins.append(name+" = "+dubValue);
+							ins.append(comma+name+" = "+dubValue);
+							colCount++;	
 						} catch (Exception e) {
-							errors.append(paragraph("error", "Unable to determine number value from " + value));
+							errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_NUMBER_VALUE", value)));
 							value = null;
 						}
 					}
 					
 				} else if (type == 6) {  // Datetime
-					ins.append(name+" = "+(value == null || value.equals("") ? "null" : "'"+value+"'"));
+					ins.append(comma+name+" = "+(value == null || value.equals("") ? "null" : "'"+value+"'"));
+					colCount++;	
 					
 				} else if (type == 7) {  // String 
-					ins.append(name+" = '"+value+"'");
+					ins.append(comma+name+" = '"+value+"'");
+					colCount++;	
 	
 				} else if (type == 20) {  // Binary/image (8 = binary, 20 = custom)
 					if (DEBUG) System.out.println("Adding "+name+" to blobList");
 					blobList.add(name);
 					
 				} else if (type >= 9 && type <= 12) {  // Embedded types
-					ins.append(name+" = "+value+"");
+					ins.append(comma+name+" = "+value+"");
+					colCount++;	
 	
-				} else if (type == 13) {
-					ins.append(name+" = "+(value == null || value.equals("null") ? "" : "#")+value);
+				} else if (type == 13) {  // Link
+					ins.append(comma+name+" = "+(value == null || value.equals("null") ? "" : "#")+value);
+					colCount++;	
 					
 				} else if (type == 14) { // LinkList
 					if (value != null && !value.trim().equals("")) {
@@ -344,7 +369,8 @@ public class Table extends Weblet {
 							if (vs.length() > 0) vs.append(", ");
 							vs.append("#"+nv);
 						}
-						ins.append(name+" = ["+vs.toString()+"]");
+						ins.append(comma+name+" = ["+vs.toString()+"]");
+						colCount++;	
 					}				
 				} else if (type == 15) { // Linkset
 					if (value != null && !value.trim().equals("")) {
@@ -355,7 +381,8 @@ public class Table extends Weblet {
 							if (vs.length() > 0) vs.append(", ");
 							vs.append("#"+nv);
 						}
-						ins.append(name+" = ["+vs.toString()+"]");
+						ins.append(comma+name+" = ["+vs.toString()+"]");
+						colCount++;	
 					}				
 				} else if (type == 16) { // LinkMap
 					if (value != null && !value.trim().equals("")) {
@@ -367,14 +394,19 @@ public class Table extends Weblet {
 							String[] v = nv.split(":",2);
 							vs.append(v[0]+":#"+v[1]);
 						}
-						ins.append(name+" = {"+vs.toString()+"}");
+						ins.append(comma+name+" = {"+vs.toString()+"}");
+						colCount++;	
 					}				
 				} else if (type == 19) {  // Date
-					ins.append(name+" = '"+value+"'");
+					ins.append(comma+name+" = '"+value+"'");
+					colCount++;	
 					
 				} else {
-					errors.append(paragraph("error", "Not able to recognize field type " + type + " for column " + name));
+					errors.append(paragraph("error", Message.get(con.getLocale(),"UNKNOWN_FIELD_TYPE",""+type,name)));
 				}
+			}
+			if (colCount > 0) {
+				comma = ", ";
 			}
 		}
 		if (ins.toString().endsWith("SET ")) {
@@ -473,7 +505,7 @@ public class Table extends Weblet {
 						try {
 							newVal = Long.parseLong(newValue);
 						} catch (Exception e) {
-							//errors.append(paragraph("error", "Value could not be updated: " + e.getMessage()));
+							errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_NUMBER_VALUE",newValue)+" " + e.getMessage()));
 						}
 						if ((newValue != null && originalValue != null && !newVal.equals(originalValue)) 
 								  || (newValue == null && originalValue != null)
@@ -489,7 +521,7 @@ public class Table extends Weblet {
 						try {
 							newVal = Double.parseDouble(newValue);
 						} catch (Exception e) {
-							errors.append(paragraph("error", "Value could not be updated: " + e.getMessage()));
+							errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_READ_NUMBER_VALUE",newValue)+" " + e.getMessage()));
 						}
 						if ((newValue != null && originalValue != null && !newVal.equals(originalValue)) 
 								  || (newValue == null && originalValue != null)
@@ -505,7 +537,7 @@ public class Table extends Weblet {
 						try {
 							newVal = new BigDecimal(newValue);
 						} catch (Exception e) {
-							errors.append(paragraph("error", "Value could not be updated: " + e.getMessage()));
+							errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_READ_NUMBER_VALUE",newValue)+" "+e.getMessage()));
 						}
 						if ((newValue != null && originalValue != null && !newVal.equals(originalValue)) 
 								  || (newValue == null && originalValue != null)
@@ -519,7 +551,7 @@ public class Table extends Weblet {
 						Date originalValue = updateRow.field(columnName);
 						Date newDate = parseDate(con.getLocale(),newValue);
 						if (newValue != null && newDate == null) {
-							errors.append(paragraph("error", "Invalid datetime value "+newValue+". "+columnName+" could not be updated"));							
+							errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_DATE_VALUE",newValue)));							
 						} else {
 							
 							if (DEBUG) System.out.println("Updating Datetime "+(originalValue == null ? "" : originalValue.toString())+" to "+newDate);
@@ -656,7 +688,7 @@ public class Table extends Weblet {
 						Date originalValue = updateRow.field(columnName);
 						Date newDate = parseDate(con.getLocale(),newValue);
 						if (newValue != null && newDate == null) {
-							errors.append(paragraph("error", "Invalid date value "+newValue+". "+columnName+" could not be updated"));							
+							errors.append(paragraph("error", Message.get(con.getLocale(),"INVALID_DATE_VALUE",newValue)));							
 						} else {
 							if (DEBUG) System.out.println("Updating Date/Datetime "+(originalValue == null ? "" : originalValue.toString())+" to "+newDate);
 							if ((newValue != null && originalValue != null && !newDate.equals(originalValue)) 
@@ -674,7 +706,7 @@ public class Table extends Weblet {
 						try {
 							newVal = new BigDecimal(newValue);
 						} catch (Exception e) {
-							errors.append(paragraph("error", "Decimal value could not be updated: " + e.getMessage()));
+							errors.append(paragraph("error", Message.get(con.getLocale(),"INVALID_NUMBER_VALUE", newValue)));
 						}
 						if ((newValue != null && originalValue != null && !newVal.equals(originalValue)) 
 								  || (newValue == null && originalValue != null)
@@ -717,7 +749,7 @@ public class Table extends Weblet {
 				}
 			} else {
 				if (DEBUG) System.out.println("Error in permeagility.web.Table:getTableRowForm: Only one row may be returned by ID for editing");
-				errors.append("Error in permeagility.web.Table:getTableRowForm: Only one row may be returned by ID for editing");
+				errors.append(paragraph("error",Message.get(con.getLocale(),"ONLY_ONE_ROW_CAN_BE_EDITED")));
 				return false;
 			}
 		}
@@ -729,15 +761,6 @@ public class Table extends Weblet {
 		if (update_id != null) {
 			QueryResult initrows = con.query("SELECT FROM #" + update_id);
 			if (initrows != null && initrows.size() == 1) {
-				for (String columnName : initrows.getColumns()) {
-					if (initrows.changed(initrows.getStringValue(0, columnName), parms.get(PARM_PREFIX+columnName))) {
-						if (columnName.equals("LAST_MOD_TIME")) {
-							errors.append(paragraph("error", "Row was changed by " + initrows.getStringValue(0, "LAST_MOD_USER")
-									+ " at " + initrows.getStringValue(0, "LAST_MOD_TIME")));
-							return false;
-						}
-					}
-				}
 				try {
 					String deleteStatement = "DELETE FROM #" + update_id;
 					if (DEBUG) System.out.println(deleteStatement);
@@ -745,7 +768,7 @@ public class Table extends Weblet {
 					Thumbnail.deleteThumbnail(table, update_id);
 					if (DEBUG) System.out.println("After delete. RowCount=" + rc);
 					if (rc != null) {
-						errors.append(paragraph("success", "Row deleted"));
+						errors.append(paragraph("success", Message.get(con.getLocale(), "ROW_DELETED") ));
 						Server.tableUpdated(table);
 						DatabaseConnection.rowCountChanged(table);
 						getCache().refreshContains(table);
@@ -756,16 +779,16 @@ public class Table extends Weblet {
 						return false;
 					}
 				} catch (Exception e) {
-					errors.append(paragraph("error", "Row could not be deleted: " + e.getMessage()));
+					errors.append(paragraph("error", Message.get(con.getLocale(), "ROW_CANNOT_BE_DELETED")  + e.getMessage()));
 					return false;
 				}
 			} else {
 				if (DEBUG) System.out.println("Error in permeagility.web.Table:deleteRow: Only one row may be returned by ID for deleting");
-				errors.append("Error in permeagility.web.Table:deleteRow: Only one row may be returned by ID for deleting");
+				errors.append(paragraph("error",Message.get(con.getLocale(), "ROW_CANNOT_BE_DELETED") + "Error in permeagility.web.Table:deleteRow: Only one row may be returned by ID for deleting"));
 				return false;
 			}
 		}
-		errors.append("Error in permeagility.web.Table:deleteRow: update_id is null?");
+		errors.append(paragraph("error",Message.get(con.getLocale(), "ROW_CANNOT_BE_DELETED") +" update_id is null?"));
 		return false;
 	}
 
@@ -820,7 +843,7 @@ public class Table extends Weblet {
 				if (DEBUG) System.out.println("Error in permeagility.web.Table:getTableRowForm: Only one row may be returned by ID for editing rows="
 									+ initrows.size());
 				return paragraph("error",
-						"Error in permeagility.web.Table:getTableRowForm: Only one row may be returned by ID for editing");
+						Message.get(con.getLocale(), "ONLY_ONE_ROW_CAN_BE_EDITED"));
 			}
 		} else {
 			if (DEBUG) System.out.println("getTableRowFields: No EDIT_ID specified");
@@ -862,10 +885,14 @@ public class Table extends Weblet {
 	 * @param edit_id - record id of the value to be edited (the identity of initialValues would be misleading on a new record) 
 	 * @return
 	 */
-	private String getColumnAsField(ODocument column, ODocument initialValues, DatabaseConnection con, String formName, String edit_id, HashMap<String, String> parms) {
+	private String getColumnAsField(ODocument column, ODocument initialValues, DatabaseConnection con, String formName, String edit_id, HashMap<String,String> parms) {
 		Integer type = column.field("type");
 		String name = (String) column.field("name");
 		String prettyName = makeCamelCasePretty(name);
+		String trName = Message.get(con.getLocale(),"COLUMN_"+name);
+		if (!trName.equals("COLUMN_"+name)) {
+			prettyName = trName;
+		}
 		if (DEBUG) System.out.println("Table.getColumnAsField() " + name + " is a " + type);
 
 		Object initialValue;
@@ -929,7 +956,7 @@ public class Table extends Weblet {
 				if (blobid != null) {
 					nail = Thumbnail.getThumbnailLink(blobid, desc.toString());
 				} else {
-					nail = xSmall("Thumbnail not found for column "+name+" with rid="+edit_id);					
+					nail = xSmall(Message.get(con.getLocale(), "THUMBNAIL_NOT_FOUND",name, edit_id));					
 				} 
 				return row(columnTopRight(50, small(prettyName+nail) + column(50, "<INPUT TYPE=FILE NAME=\""+PARM_PREFIX+name+"\" VALUE=\"None\">")));
 			} else {
@@ -1113,9 +1140,9 @@ public class Table extends Weblet {
 				+ br() 
 				+ ((Server.getTablePriv(con, relTable) & PRIV_READ) > 0 ?
 						(fkType == OType.LINKLIST || fkType == OType.LINKSET || fkType == OType.LINKMAP || fkType == OType.LINKBAG 
-							? (fkType == OType.LINKMAP ? getTableWhere(con,relTable,fkColumn,"containsvalue",edit_id) 
-														:getTableWhere(con,relTable,fkColumn,"contains",edit_id))
-							: getTableWhere(con,relTable,fkColumn,edit_id)
+							? (fkType == OType.LINKMAP ? getTableWhere(con,relTable,fkColumn,"containsvalue",edit_id,-1) 
+														:getTableWhere(con,relTable,fkColumn,"contains",edit_id,-1))
+							: getTableWhere(con,relTable,fkColumn,edit_id,-1)
 						)
 				: Message.get(con.getLocale(),"NO_ACCESS_TO_TABLE"))
 			);
@@ -1124,15 +1151,16 @@ public class Table extends Weblet {
 	}
 
 	public String newColumnForm(DatabaseConnection con) {
-		String show = "ng-show=\"NEWDATATYPE == '"+DATATYPE_LINK+"' || NEWDATATYPE == '"+DATATYPE_LINKLIST+"' || NEWDATATYPE == '"+DATATYPE_LINKSET+"' || NEWDATATYPE == '"+DATATYPE_LINKMAP+"' \"";
+		Locale l = con.getLocale();
+		String show = "ng-show=\"NEWDATATYPE == '"+Message.get(l, "DATATYPE_LINK")+"' || NEWDATATYPE == '"+Message.get(l, "DATATYPE_LINKLIST")+"' || NEWDATATYPE == '"+Message.get(l, "DATATYPE_LINKSET")+"' || NEWDATATYPE == '"+Message.get(l, "DATATYPE_LINKMAP")+"' \"";
 		return
-			paragraph("banner",Message.get(con.getLocale(), "NEW_COLUMN"))
-			+ createList(con.getLocale(),"NEWDATATYPE", DATATYPE_INT, dataTypeNames, "ng-model=\"NEWDATATYPE\"", false, null, true)
+			paragraph("banner",Message.get(l, "NEW_COLUMN"))
+			+ createList(l,"NEWDATATYPE", Message.get(l, "DATATYPE_INT"), dataTypeNames.get(l), "ng-model=\"NEWDATATYPE\"", false, null, true)
 			+ createListFromCache("NEWTABLEREF", null, con, TABLE_REF_LIST, show, false, null, true)
 			+ br()
 			+ input("NEWCOLUMNNAME", "")
 			+ br()
-			+ submitButton(Message.get(con.getLocale(), "NEW_COLUMN"));
+			+ submitButton(Message.get(l, "NEW_COLUMN"));
 	}
 	
 	public HashMap<String, String> getTableRowParameters(DatabaseConnection con, String schema, String table, HashMap<String, String> parms) {
@@ -1198,32 +1226,34 @@ public class Table extends Weblet {
 		try {
 			StringBuffer sb = new StringBuffer();
 			int rowCount = 0;
-			
-			// Handle Paging
 			long totalRows = con.getRowCount(table);
-			if (totalRows > ROW_COUNT_LIMIT) {
-				sb.append("Page&nbsp;");
-				long pageCount = totalRows/ROW_COUNT_LIMIT+1;
-				for (long p=1; p<=pageCount; p++) {
-					if (Math.abs(page - p) < PAGE_WINDOW || pageCount - p < PAGE_WINDOW || p < PAGE_WINDOW) {
-						if (p == page) {
-							sb.append(fontSize(3, bold(color("red", ""+p)))+"&nbsp;");
+			// Handle Paging
+			if (page > -1) {
+				if (totalRows > ROW_COUNT_LIMIT) {
+					sb.append(Message.get(con.getLocale(), "PAGE_NAV")+"&nbsp;");
+					long pageCount = totalRows/ROW_COUNT_LIMIT+1;
+					for (long p=1; p<=pageCount; p++) {
+						if (Math.abs(page - p) < PAGE_WINDOW || pageCount - p < PAGE_WINDOW || p < PAGE_WINDOW) {
+							if (p == page) {
+								sb.append(fontSize(3, bold(color("red", ""+p)))+"&nbsp;");
+							} else {
+								sb.append(linkWithTip("permeagility.web.Table?TABLENAME="+table+"&PAGE="+p,""+p,"Page "+p)+"&nbsp;");
+							}
 						} else {
-							sb.append(linkWithTip("permeagility.web.Table?TABLENAME="+table+"&PAGE="+p,""+p,"Page "+p)+"&nbsp;");
-						}
-					} else {
-						if (p % DOT_INTERVAL == 0) {
-							sb.append(linkWithTip("permeagility.web.Table?TABLENAME="+table+"&PAGE="+p,".","Page "+p));							
+							if (p % DOT_INTERVAL == 0) {
+								sb.append(linkWithTip("permeagility.web.Table?TABLENAME="+table+"&PAGE="+p,".","Page "+p));							
+							}
 						}
 					}
 				}
-			}
-			String skip = "";
-			if (page > 0) {
-				skip = " SKIP "+((page - 1) * ROW_COUNT_LIMIT);
+				String skip = "";
+				if (page > 0) {
+					skip = " SKIP "+((page - 1) * ROW_COUNT_LIMIT);
+				}
+				query += skip + " LIMIT "+ROW_COUNT_LIMIT;
 			}
 			if (DEBUG) System.out.println("permeagility.web.Table:query="+query);
-			QueryResult rs = con.query(query + skip + " LIMIT "+ROW_COUNT_LIMIT);
+			QueryResult rs = con.query(query);
 			
 			// Get the table's columns
 			QueryResult columns = Server.getColumns(table, columnOverride);
@@ -1238,7 +1268,7 @@ public class Table extends Weblet {
 					rowCount++;
 					if (rowCount >= ROW_COUNT_LIMIT) break;
 				}
-				sb.append(tableFoot(columnSpan(columns.size(), paragraph("RowCount=" + rowCount + " of " + totalRows + " rows, page="+page) )));
+				sb.append(tableFoot(columnSpan(columns.size(), paragraph("RowCount=" + rowCount + " of " + totalRows + (page > -1 ? " rows, page="+page : " total rows")) )));
 			}
 			return table("sortable", sb.toString());
 		} catch (Exception e) {
@@ -1253,9 +1283,11 @@ public class Table extends Weblet {
 		StringBuffer sb = new StringBuffer();
 		for (ODocument column : columns.get()) {
 			String columnName = column.field("name");
-			String messageKey = table + '.' + columnName;
-			String colNameI18N = Message.get(con.getLocale(), messageKey);
-			if (colNameI18N.equals(messageKey)) {
+			String colNameI18N;
+			String trName = Message.get(con.getLocale(),"COLUMN_"+columnName);
+			if (!trName.equals("COLUMN_"+columnName)) {
+				colNameI18N = trName;
+			} else {
 				colNameI18N = makeCamelCasePretty(columnName);
 			}
 			if (column.field("type") == OType.TRANSIENT) {
@@ -1408,28 +1440,29 @@ public class Table extends Weblet {
 	}
 
 	public String advancedOptions(DatabaseConnection con, String table, HashMap<String, String> parms) {
+		Locale locale = con.getLocale();
 		StringBuffer errors = new StringBuffer();
 		String submit = parms.get("SUBMIT");
 		if (submit != null) {
-			if (submit.equals(Message.get(con.getLocale(), "RENAME_TABLE_BUTTON"))) {
+			if (submit.equals(Message.get(locale, "RENAME_TABLE_BUTTON"))) {
 				if (isNullOrBlank(parms.get("RENAME_TABLE"))) {
 					errors.append(paragraph("error", "Please specify a new name"));
 				} else {
 					try {
 						String newtable = parms.get("RENAME_TABLE");
+						Server.clearColumnsCache(table);
 						con.update("ALTER CLASS "+table+" NAME "+newtable);
 						table = newtable;
 						Server.tableUpdated("metadata:schema");
-						Server.clearColumnsCache(table);
-						return head("Redirect")
-								+ bodyOnLoad("Redirecting...", "window.location.href='permeagility.web.Table?TABLENAME=" + table + "';");
+						return head(Message.get(locale, "REDIRECT"))
+								+ bodyOnLoad(Message.get(locale, "REDIRECT"), "window.location.href='permeagility.web.Table?TABLENAME=" + table + "';");
 					} catch (Exception e) {
 						errors.append(paragraph("error", e.getMessage()));
 					}
 				}
-			} else if (submit.equals(Message.get(con.getLocale(), "RENAME_COLUMN_BUTTON"))) {
+			} else if (submit.equals(Message.get(locale, "RENAME_COLUMN_BUTTON"))) {
 				if (isNullOrBlank(parms.get("RENAME_COLUMN"))) {
-					errors.append(paragraph("error", "Please specify a new name for the column"));
+					errors.append(paragraph("error", Message.get(locale, "SPECIFY_COLUMN_NAME")));
 				} else {
 					try {
 						String oldcolumn = parms.get("COLUMN_TO_RENAME");
@@ -1437,15 +1470,15 @@ public class Table extends Weblet {
 						con.update("ALTER PROPERTY " + table + "."+ oldcolumn +" NAME " + newcolumn);
 						Server.tableUpdated("metadata:schema");
 						Server.clearColumnsCache(table);
-						return head("Redirect")
-								+ bodyOnLoad("Redirecting...", "window.location.href='permeagility.web.Table?TABLENAME=" + table + "';");
+						return head(Message.get(locale, "REDIRECT"))
+								+ bodyOnLoad(Message.get(locale, "REDIRECT"), "window.location.href='permeagility.web.Table?TABLENAME=" + table + "';");
 					} catch (Exception e) {
 						errors.append(paragraph("error", e.getMessage()));
 					}
 				}
-			} else if (submit.equals(Message.get(con.getLocale(), "DROP_COLUMN_BUTTON"))) {
+			} else if (submit.equals(Message.get(locale, "DROP_COLUMN_BUTTON"))) {
 				if (isNullOrBlank(parms.get("COLUMN_TO_DROP"))) {
-					errors.append(paragraph("error", "Please specify a column to drop"));
+					errors.append(paragraph("error", Message.get(locale, "SPECIFY_COLUMN_NAME")));
 				} else {
 					try {
 						OClass c = con.getSchema().getClass(table);
@@ -1453,62 +1486,63 @@ public class Table extends Weblet {
 						con.getSchema().save();
 						Server.tableUpdated("metadata:schema");
 						Server.clearColumnsCache(table);
-						return head("Redirect")
-								+ bodyOnLoad("Redirecting...", "window.location.href='permeagility.web.Table?TABLENAME=" + table + "';");
+						return head(Message.get(locale, "REDIRECT"))
+								+ bodyOnLoad(Message.get(locale, "REDIRECT"), "window.location.href='permeagility.web.Table?TABLENAME=" + table + "';");
 					} catch (Exception e) {
 						errors.append(paragraph("error", e.getMessage()));
 					}
 				}
-			} else if (submit.equals(Message.get(con.getLocale(), "DROP_TABLE_BUTTON"))) {
+			} else if (submit.equals(Message.get(locale, "DROP_TABLE_BUTTON"))) {
 				try {
 					con.update("DROP class " + table);
 					Server.clearColumnsCache(table);
 					DatabaseConnection.rowCountChanged(table);
-					return head("Redirect") + bodyOnLoad("Redirecting...", "window.location.href='permeagility.web.Schema';");
+					return head(Message.get(locale, "REDIRECT")) + bodyOnLoad(Message.get(locale, "REDIRECT"), "window.location.href='permeagility.web.Schema';");
 				} catch (Exception e) {
 					errors.append(paragraph("error", e.getMessage()));
 				}
 			}
 		}
-
-		String title = table + " " + Message.get(con.getLocale(), "ADVANCED_OPTIONS");
+		String title = table + " " + Message.get(locale, "ADVANCED_OPTIONS");
 		parms.put("SERVICE", title);
 		return head(title)
 				+ body(standardLayout(con, parms,
 					advancedOptionsForm(con, table, parms,errors.toString())
 					+ br()
-					+ link("permeagility.web.Table?TABLENAME=" + table, "Back to table manager")
+					+ link("permeagility.web.Table?TABLENAME=" + table, Message.get(locale, "BACK_TO_TABLE"))
 				));
 	}
 
 	public String advancedOptionsForm(DatabaseConnection con, String table, HashMap<String, String> parms,String errors) {
+		Locale locale = con.getLocale();
 		return form(hidden("ADVANCED_OPTIONS", "YES")
-				+ paragraph("banner",Message.get(con.getLocale(), "ADVANCED_OPTIONS"))
+				+ paragraph("banner",Message.get(locale, "ADVANCED_OPTIONS"))
 				+ errors
-				+ paragraph("Rename table to " + input("RENAME_TABLE", (parms != null ? parms.get("RENAME_TABLE") : ""))
-					+ submitButton(Message.get(con.getLocale(), "RENAME_TABLE_BUTTON")))
-				+ paragraph("Rename column "
+				+ paragraph(Message.get(locale, "RENAME_TABLE_TO") + input("RENAME_TABLE", (parms != null ? parms.get("RENAME_TABLE") : ""))
+					+ submitButton(Message.get(locale, "RENAME_TABLE_BUTTON")))
+				+ paragraph(Message.get(locale, "RENAME_COLUMN") + " " 
 					+ createListFromCache("COLUMN_TO_RENAME", (parms != null ? parms.get("COLUMN_TO_RENAME") : ""), con,
 							"SELECT name as rid, name FROM (SELECT expand(properties) FROM (select expand(classes) from metadata:schema) where name = '" + table + "') ORDER BY name") 
-						+ " to "
+						+ Message.get(locale, "CHANGE_NAME_TO")
 					+ input("RENAME_COLUMN", (parms != null ? parms.get("RENAME_COLUMN") : ""))
-					+ submitButton(Message.get(con.getLocale(), "RENAME_COLUMN_BUTTON")))
-				+ paragraph("Drop column "
+					+ submitButton(Message.get(locale, "RENAME_COLUMN_BUTTON")))
+				+ paragraph(Message.get(locale, "DROP_COLUMN") + " " 
 					+ createListFromCache("COLUMN_TO_DROP", (parms != null ? parms.get("COLUMN_TO_DROP") : ""), con,
 							"SELECT name as rid, name FROM (SELECT expand(properties) FROM (select expand(classes) from metadata:schema) where name = '" + table + "') ORDER BY name") 
-					+ confirmButton(Message.get(con.getLocale(), "DROP_COLUMN_BUTTON"), "Drop column?"))
-				+ paragraph("Drop Table " + table + "   "
-					+ confirmButton(Message.get(con.getLocale(), "DROP_TABLE_BUTTON"),
-							"Table will be dropped/deleted - this can not be undone. Proceed?"))
+					+ confirmButton(Message.get(locale, "DROP_COLUMN_BUTTON"), Message.get(locale, "DROP_COLUMN")))
+				+ paragraph(Message.get(locale, "DROP_TABLE") + " " + table + "   "
+					+ confirmButton(Message.get(locale, "DROP_TABLE_BUTTON"),
+							Message.get(locale, "DROP_TABLE_CONFIRM")))
 		);
 	}
 
 	public String rightsOptions(DatabaseConnection con, String table, HashMap<String, String> parms) {
+		Locale locale = con.getLocale();
 		StringBuffer errors = new StringBuffer();
 		String submit = (parms != null ? parms.get("SUBMIT") : null);
 		String right = (parms != null ? parms.get("RIGHT") : null);
 		String role = (parms != null ? parms.get("ROLESELECT") : null);
-		if (submit != null && submit.equals(Message.get(con.getLocale(), "GRANT_RIGHT"))) {
+		if (submit != null && submit.equals(Message.get(locale, "GRANT_RIGHT"))) {
 			if (DEBUG) System.out.println("Granting right");
 			String grantQuery = "GRANT "+right
 								+" ON database.class."+table
@@ -1522,9 +1556,10 @@ public class Table extends Weblet {
 				errors.append(e.getLocalizedMessage());
 				e.printStackTrace();
 			}
-			return head("Redirect") + bodyOnLoad("Redirecting...", "window.location.href='permeagility.web.Table?TABLENAME="+table+"';");
+			return head(Message.get(locale, "REDIRECT")) 
+					+ bodyOnLoad(Message.get(locale, "REDIRECT"), "window.location.href='permeagility.web.Table?TABLENAME="+table+"';");
 		}
-		if (submit != null && submit.equals(Message.get(con.getLocale(), "REVOKE_RIGHT"))) {
+		if (submit != null && submit.equals(Message.get(locale, "REVOKE_RIGHT"))) {
 			if (DEBUG) System.out.println("Revoking right ");
 			String revokeQuery = "REVOKE "+right
 								+" ON database.class."+table
@@ -1538,16 +1573,17 @@ public class Table extends Weblet {
 				errors.append(e.getLocalizedMessage());
 				e.printStackTrace();
 			}
-			return head("Redirect") + bodyOnLoad("Redirecting...", "window.location.href='permeagility.web.Table?TABLENAME="+table+"';");
+			return head(Message.get(locale, "REDIRECT")) 
+					+ bodyOnLoad(Message.get(locale, "REDIRECT"), "window.location.href='permeagility.web.Table?TABLENAME="+table+"';");
 		}
 
-		String title = table + " " + Message.get(con.getLocale(), "ADVANCED_OPTIONS");
+		String title = table + " " + Message.get(locale, "ADVANCED_OPTIONS");
 		parms.put("SERVICE", title);
 		return head(title)
 				+ body(standardLayout(con, parms,
 					rightsOptionsForm(con, table, parms,errors.toString())
 					+ br()
-					+ link("permeagility.web.Table?TABLENAME=" + table, "Back to table manager")
+					+ link("permeagility.web.Table?TABLENAME=" + table, Message.get(locale, "BACK_TO_TABLE"))
 				));
 	}
 
@@ -1608,32 +1644,32 @@ public class Table extends Weblet {
     	return "<INPUT TYPE=\"PASSWORD\" NAME=\""+name+"\" VALUE=\""+(value==null ? "" : value)+"\" SIZE=\""+size+"\">";
     }
 
-	public static String getTypeName(Integer i) {
+	public static String getTypeName(Locale l, Integer i) {
 		OType type = OType.getById(i.byteValue());
 		if (type == OType.DOUBLE) {
-			return DATATYPE_FLOAT;
+			return Message.get(l, "DATATYPE_FLOAT");
 		} else if (type == OType.LONG) {
-			return DATATYPE_INT;
+			return Message.get(l, "DATATYPE_INT");
 		} else if (type == OType.BOOLEAN) {
-			return DATATYPE_BOOLEAN;
+			return Message.get(l, "DATATYPE_BOOLEAN");
 		} else if (type == OType.STRING) {
-			return DATATYPE_TEXT;
+			return Message.get(l, "DATATYPE_TEXT");
 		} else if (type == OType.DATETIME) {
-			return DATATYPE_DATETIME;
+			return Message.get(l, "DATATYPE_DATETIME");
 		} else if (type == OType.DATE) {
-			return DATATYPE_DATE;
+			return Message.get(l, "DATATYPE_DATE");
 		} else if (type == OType.CUSTOM) {
-			return DATATYPE_BLOB;
+			return Message.get(l, "DATATYPE_BLOB");
 		} else if (type == OType.DECIMAL) {
-			return DATATYPE_DECIMAL;
+			return Message.get(l, "DATATYPE_DECIMAL");
 		} else if (type == OType.LINK) {
-			return DATATYPE_LINK;
+			return Message.get(l, "DATATYPE_LINK");
 		} else if (type == OType.LINKLIST) {
-			return DATATYPE_LINKLIST;
+			return Message.get(l, "DATATYPE_LINKLIST");
 		} else if (type == OType.LINKMAP) {
-			return DATATYPE_LINKMAP;
+			return Message.get(l, "DATATYPE_LINKMAP");
 		} else if (type == OType.LINKSET) {
-			return DATATYPE_LINKSET;
+			return Message.get(l, "DATATYPE_LINKSET");
 		} else if (type == OType.LINKBAG) {
 			return "LinkBag (not supported)";
 		} else {

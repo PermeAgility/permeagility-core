@@ -29,10 +29,12 @@ public class Menu extends Weblet {
 
 	public String getHTML(DatabaseConnection con, HashMap<String,String> parms) {
 		
+		String localeSelector = "<BR><BR><BR><BR>"+xxSmall(Message.getLocaleSelector(con.getLocale(),parms));
+		
 		// Return value from cache if it is there
 		String cmenu = menuCache.get(con.getUser());
 		if (cmenu != null) {
-			return cmenu;
+			return cmenu + localeSelector;
 		}
 		
 		StringBuffer menu = new StringBuffer();
@@ -54,23 +56,42 @@ public class Menu extends Weblet {
                 if (items != null) {
 	                for (ODocument i : items) {
 	                	Set<ODocument> readRoles = i.field("_allowRead");
+	                	String menuName = (String)i.field("name");
+	                	String menuDesc = (String)i.field("description");
+	                	String pretty = Message.get(con.getLocale(),"MENUITEM_"+menuName);
+	            		if (menuName != null && ("MENUITEM_"+menuName).equals(pretty)) {  // No translation
+	            			pretty = menuName;
+	            		} else if (menuName == null) {
+	            			pretty = "";
+	            		}
+	                	String prettyDesc = Message.get(con.getLocale(),"MENUITEMDESC_"+menuDesc);
+	            		if (menuDesc != null && ("MENUITEMDESC_"+menuDesc).equals(pretty)) {  // No translation
+	            			prettyDesc = menuDesc;
+	            		} else if (menuDesc == null) {
+	            			pretty = "";
+	            		}
 	                	if (Server.isRoleMatch(Server.getUserRoles(con),readRoles.toArray())) {
                         	if (i.field("classname") == null || ((String)i.field("classname")).equals("")) {
                                 itemMenu.append("<BR>");                	                	
                         	} else {
-                        		itemMenu.append(link((String)i.field("classname"),Message.get(con.getLocale(), (String)i.field("name")),Message.get(con.getLocale(), (String)i.field("description"))));	
+                        		itemMenu.append(link((String)i.field("classname"), pretty, prettyDesc));	
                         		itemMenu.append("<BR>");  
                         	}
 	                	}
 	                }
 	                if (itemMenu.length() > 0) {
-		                menu.append(paragraph("menuheader",Message.get(con.getLocale(), (String)m.field("name"))));
+	                	String menuHeader = (String)m.field("name");
+	                	String pretty = Message.get(con.getLocale(),"MENU_"+menuHeader);
+	            		if (menuHeader != null && ("MENU_"+menuHeader).equals(pretty)) {  // No translation
+	            			pretty = menuHeader;
+	            		} else if (menuHeader == null) {
+	            			pretty = "";
+	            		}
+		                menu.append(paragraph("menuheader",pretty));
 		                menu.append(itemMenu);
 	                }
                 }
 			}
-			// Add the locale selector
-			menu.append("<BR><BR><BR><BR>"+xxSmall(Message.getLocaleSelector(con.getLocale(),parms)));
 		} catch( Exception e ) {
 			System.out.println("Error in Menu: "+e);
 			e.printStackTrace();
@@ -81,8 +102,9 @@ public class Menu extends Weblet {
 		}
 		menu.append("</P>\n");
 		if (DEBUG) System.out.println("Menu: Adding menu for "+con.getUser()+" to menuCache");
-		menuCache.put(con.getUser(), menu.toString());
-		return menu.toString();
+		String newMenu = menu.toString();
+		menuCache.put(con.getUser(), newMenu);
+		return newMenu + localeSelector;
 	}		
 
 	public static void clearMenu(String user) {

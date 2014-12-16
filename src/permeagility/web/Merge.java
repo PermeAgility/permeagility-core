@@ -179,7 +179,7 @@ public class Merge extends Table {
 	    		sb.append("Error retrieving import patterns: "+e.getMessage());
 	    	}
 		}
-		return 	head("Context")+body(standardLayout(con, parms, 
+		return 	head("Merge")+body(standardLayout(con, parms, 
 				errors.toString()
 				+sb.toString()
 				+((Server.getTablePriv(con, MERGE_TABLE) & PRIV_CREATE) > 0 && connect == null 
@@ -356,7 +356,7 @@ public class Merge extends Table {
 				Integer cType = col.field("type");
 				String cClass = col.field("linkedClass");
 				if (columnInit.length()>0) columnInit.append(", ");
-				columnInit.append("{ table:'"+tName+"', column:'"+cName+"', type:'"+Table.getTypeName(cType)+(cClass == null ? "" : " to "+cClass)+"'}");
+				columnInit.append("{ table:'"+tName+"', column:'"+cName+"', type:'"+Table.getTypeName(con.getLocale(),cType)+(cClass == null ? "" : " to "+cClass)+"'}");
 			}
 		}
 		

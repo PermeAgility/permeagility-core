@@ -25,55 +25,34 @@ public class SQL extends Weblet {
 		parms.put("SERVICE", Message.get(con.getLocale(), "SQL_WEBLET"));
 		String query = (String)parms.get("SQL");
 		String submit = (String)parms.get("SUBMIT");
-		if (submit == null) submit = "ExecuteQuery";  // Otherwise, it will think its an update statement
 		return 	
-			head("Query Weblet:"+query,getSortTableScript()+getAngularControlScript())+
+			head(Message.get(con.getLocale(), "SQL_WEBLET")+"&nbsp;"+query,getSortTableScript()+getAngularControlScript())+
 			body( standardLayout(con, parms,  
 				getSQLBuilder(con)
 				+form("QUERY","#",
 					"<textarea spellcheck=\"false\" name=\"SQL\" rows=6 cols=80 text-build>"+(query==null ? "" : query)+"</textarea>"
 					+br()
-					+submitButton("ExecuteQuery")+"&nbsp;&nbsp;"
-					+submitButton("ExecuteUpdate")
+					+submitButton(Message.get(con.getLocale(), "EXECUTE_QUERY"))
 				) 
 				+br()
-				+paragraph("banner","Results")
-				+anchor("TOP","Top")+"     "
-				+link("#BOTTOM","Bottom")
-				+paragraph(medium("Query="+query))
-				+table("sortable", (submit.equals("ExecuteQuery") ? getResult(con, query) : getUpdate(con, query)))
-				+anchor("BOTTOM","Bottom")+"     "
-				+link("#TOP","Top")		  
+				+paragraph("banner",Message.get(con.getLocale(), "QUERY_RESULTS"))
+				+anchor("TOP",Message.get(con.getLocale(), "RESULTS_TOP"))+"&nbsp;&nbsp;&nbsp;"
+				+link("#BOTTOM",Message.get(con.getLocale(), "RESULTS_BOTTOM"))
+				+paragraph(medium(Message.get(con.getLocale(), "QUERY_IS")+"&nbsp;"+query))
+				+table("sortable", getResult(con, query))
+				+anchor("BOTTOM",Message.get(con.getLocale(), "RESULTS_BOTTOM"))+"&nbsp;&nbsp;&nbsp;"
+				+link("#TOP",Message.get(con.getLocale(), "RESULTS_TOP"))		  
 			));
-	}
-
-	public String getUpdate(DatabaseConnection con, String query) {
-		if (query == null || query.equals("")) {
-			return "No Update SQL Specified";
-		}
-		if (query.trim().toUpperCase().startsWith("SELECT")) {
-			return "Update cannot occur with a SELECT statement";			
-		}
-		Object rc = null;
-		boolean secRef = false;
-		try {
-			rc = con.update(query);
-			if (rc != null && (query.trim().toUpperCase().startsWith("GRANT") || query.trim().toUpperCase().startsWith("REVOKE"))) {
-				Server.refreshSecurity();
-				secRef = true;
-			}
-		} catch (Exception e) {
-			System.out.println("Error in SQL Weblet update: "+e.getMessage());
-			e.printStackTrace();
-			return paragraph("error","Error: "+e.getMessage());
-		}
-		return rc+" rows updated"+(secRef ? " and security refreshed" : "");
 	}
 
 	public String getResult(DatabaseConnection con, String query) {
 		if (query == null || query.equals("")) {
-			return paragraph("No SQL Specified");
+			return paragraph(Message.get(con.getLocale(), "NO_QUERY_GIVEN"));
 		}
+		if (!query.trim().toUpperCase().startsWith("SELECT")) {  // If not a select, then update
+			return getUpdate(con,query);			
+		}
+		
 		try {
 			StringBuffer sb = new StringBuffer();
 			int rowCount = 0;
@@ -90,9 +69,30 @@ public class SQL extends Weblet {
 			Throwable cause = e.getCause();
 			System.out.println("Error in SQL Weblet select: "+e.getMessage());
 			e.printStackTrace();
-			return paragraph("Error: "+e.getMessage()+(cause == null ? "" : "<BR>"+cause.getMessage()));
+			return paragraph("error",Message.get(con.getLocale(), "ERROR_IN_QUERY")+e.getMessage()+(cause == null ? "" : "<BR>"+cause.getMessage()));
 		}
 	}
+
+	public String getUpdate(DatabaseConnection con, String query) {
+		if (query == null || query.equals("")) {
+			return Message.get(con.getLocale(), "NO_QUERY_GIVEN");
+		}
+		Object rc = null;
+		boolean secRef = false;
+		try {
+			rc = con.update(query);
+			if (rc != null && (query.trim().toUpperCase().startsWith("GRANT") || query.trim().toUpperCase().startsWith("REVOKE"))) {
+				Server.refreshSecurity();
+				secRef = true;
+			}
+		} catch (Exception e) {
+			System.out.println("Error in SQL Weblet update: "+e.getMessage());
+			e.printStackTrace();
+			return paragraph("error",Message.get(con.getLocale(), "ERROR_IN_QUERY")+e.getMessage());
+		}
+		return Message.get(con.getLocale(), "ROWS_UPDATED",""+rc)+(secRef ? Message.get(con.getLocale(), "SECURITY_REFRESHED") : "");
+	}
+
 
 	public String getRowHeader(QueryResult rs, ArrayList<String> cols) throws SQLException {
 		StringBuffer sb = new StringBuffer();
@@ -138,7 +138,7 @@ public class SQL extends Weblet {
 				if (blobid != null) {
 					out = column(Thumbnail.getThumbnailLink(blobid, desc.toString()));
 				} else {
-					out = column(xSmall("Thumbnail not found for column "+colName+" class="+row.getClassName()+" with rid="+row.getIdentity().toString()));					
+					out = column(xSmall(Message.get(con.getLocale(), "THUMBNAIL_NOT_FOUND",colName,row.getIdentity().toString())));					
 				} 
 				sb.append(out);
 			} else if (o instanceof List) {  // LinkList
@@ -263,7 +263,7 @@ public class SQL extends Weblet {
 				Integer cType = col.field("type");
 				String cClass = col.field("linkedClass");
 				if (columnInit.length()>0) columnInit.append(", ");
-				columnInit.append("{ table:'"+tName+"', column:'"+cName+"', type:'"+Table.getTypeName(cType)+(cClass == null ? "" : " to "+cClass)+"'}");
+				columnInit.append("{ table:'"+tName+"', column:'"+cName+"', type:'"+Table.getTypeName(con.getLocale(),cType)+(cClass == null ? "" : " to "+cClass)+"'}");
 			}
 		}
 		

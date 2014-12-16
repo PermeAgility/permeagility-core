@@ -44,6 +44,7 @@ import permeagility.util.PlusClassLoader;
 import permeagility.util.QueryResult;
 
 import com.orientechnologies.orient.core.OConstants;
+import com.orientechnologies.orient.core.config.OGlobalConfiguration;
 import com.orientechnologies.orient.core.id.ORecordId;
 import com.orientechnologies.orient.core.metadata.security.ORole;
 import com.orientechnologies.orient.core.metadata.security.ORule;
@@ -82,7 +83,7 @@ public class Server extends Thread {
 	static Database dbNone = null;  // Used for login and account request
 
 	static boolean restore_lockout = false;
-	static File restore_file = null;  // Backup file to restore when initializing
+	static String restore_file = null;  // Backup file to restore when initializing
 	static String lockout_message = "<p>The system is unavailable because a system restore is being performed. Please try again later.</p><a href='/'>Try it now</a>";
 
 	static long resource_jar_last_modified = 0l;
@@ -115,9 +116,6 @@ public class Server extends Thread {
 
 	Socket socket;
 	
-//	static OServer oserver = null; 
-
-
 	public Server() {
 		socket = null;
 	}  
@@ -178,7 +176,7 @@ public class Server extends Thread {
 			}
 		}
 		
-		if (initializeServer()) {
+		if (initializeServer("starterdb.json")) {   // StarterDB is the default startup (not needed for core)
 			// Add shutdown hook to stop processes and shutdown database
 			Runtime.getRuntime().addShutdownHook(new Thread() {
 				public void run() {
@@ -204,7 +202,6 @@ public class Server extends Thread {
 					database.close();
 				}
 				System.out.println("Database disconnected");
-				//if (USE_SERVER) stopServer();
 				System.out.println("Server Stopped");
 				System.exit(0);
 			}
@@ -995,7 +992,7 @@ public class Server extends Thread {
 
 	public static boolean isDBA(DatabaseConnection con) {
 		String user = con.getUser();
-		if (user.equals("admin") || user.equals("dba")) {
+		if (user.equals("admin") || user.equals("server") || user.equals("dba")) {
 			return true;
 		}
 		return false;
@@ -1090,6 +1087,8 @@ public class Server extends Thread {
 			DatabaseConnection con = database.getConnection();
 			Message.initialize(con);
 			database.freeConnection(con);
+			Menu.clearCache();
+			Table.clearDataTypes();
 		}
 		if (table.equals("user")
 		  || table.equals("menu")
@@ -1271,7 +1270,7 @@ public class Server extends Thread {
 		return localSettings.getProperty(key,def);	
 	}
 	
-	static boolean initializeServer() {
+	static boolean initializeServer(String backupFile) {
 		System.out.println("Initializing server using OrientDB Version "+OConstants.getVersion()+" Build number "+OConstants.getBuildNumber());
 //		OGlobalConfiguration.CACHE_LOCAL_ENABLED.setValue(false);  // To ensure concurrency across threads
 		try {
@@ -1286,8 +1285,12 @@ public class Server extends Thread {
 				System.out.println("Unable to acquire initial connection for "+DB_NAME);
 				if (DB_NAME.startsWith("plocal")) {
 					System.out.println("Creating new database Using saved password key="+DB_NAME+HTTP_PORT+". pass="+p);
-					sessions.clear();   // All sessions are no good for the new database
-					database.createLocal();  // New database will default to password given in local setting
+					sessions.clear();   // All existing sessions are no good for the new database
+					for (Database d : sessionsDB.values()) {
+						d.close();
+					}
+					sessionsDB.clear();
+					database.createLocal(backupFile);  // New database will default to password given in local setting
 					database.fillPool();
 				} else {
 					System.out.println("***\n*** Exit condition: couldn't connect to remote as server, please add server OUser with admin role - Exiting.\n***");
@@ -1298,9 +1301,9 @@ public class Server extends Thread {
 				database.setPoolSize(SERVER_POOL_SIZE);
 				DatabaseConnection con = database.getConnection();
 				if (!DatabaseSetup.checkInstallation(con)) {
-					System.out.println("---\n--- Warning condition: checkInstallation failed - Exiting.\n---");
+					System.out.println("---\n--- Warning condition: checkInstallation failed\n---");
 				}
-				System.out.println("Connected to database name="+database.getName(con)+" clientversion="+database.getClientVersion()+" serverversion="+database.getDatabaseVersion(con));
+				System.out.println("Connected to database name="+DB_NAME+" version="+database.getClientVersion());
 				if (!ConstantOverride.apply(con)) {
 					System.out.println("***\n*** Exit condition: Could not apply constant overrides\n***");
 					System.exit(-1);

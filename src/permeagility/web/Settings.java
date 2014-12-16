@@ -22,10 +22,7 @@ public class Settings extends Weblet {
 		StringBuffer errors = new StringBuffer();
 		
 		// Get current style
-		QueryResult currentStyleResult = con.query(
-				"SELECT FROM constant"
-				+" WHERE classname='permeagility.web.Context'"
-				+" AND field='DEFAULT_STYLE'");
+		QueryResult currentStyleResult = con.query("SELECT FROM constant WHERE classname='permeagility.web.Context' AND field='DEFAULT_STYLE'");
 		ODocument currentStyle = null;
 		String currentStyleName = null;
 		if (currentStyleResult != null && currentStyleResult.size()>0) {
@@ -37,10 +34,7 @@ public class Settings extends Weblet {
 		}
 
 		// Get current table row limit
-		QueryResult currentRowCountResult = con.query(
-				"SELECT value FROM constant"
-				+" WHERE classname='permeagility.web.Table'"
-				+" AND field='ROW_COUNT_LIMIT'");
+		QueryResult currentRowCountResult = con.query("SELECT value FROM constant WHERE classname='permeagility.web.Table' AND field='ROW_COUNT_LIMIT'");
 		String currentRowCount = "";
 		if (currentRowCountResult != null && currentRowCountResult.size()>0) {
 			currentRowCount = currentRowCountResult.getStringValue(0, "value");
@@ -76,10 +70,7 @@ public class Settings extends Weblet {
 				}
 				if (newRowCount > 0) {
 				try {
-					con.update("UPDATE constant"
-							+" SET value = '"+newRowCount+"'"
-							+" WHERE classname='permeagility.web.Table'"
-							+" AND field='ROW_COUNT_LIMIT'");
+					con.update("UPDATE constant SET value = '"+newRowCount+"' WHERE classname='permeagility.web.Table' AND field='ROW_COUNT_LIMIT'");
 					currentRowCount = setRowCount;
 					Server.tableUpdated("constant");
 					errors.append(paragraph("success",Message.get(con.getLocale(),"ROW_COUNT_LIMIT_UPDATED",setRowCount)));
@@ -99,15 +90,9 @@ public class Settings extends Weblet {
 	    standardLayout(con, parms,errors
 	    	+form(
 	    		table("layout",
-	    			row(
-	       				columnRight(20,Message.get(con.getLocale(), "SET_STYLE"))+column(40,createListFromTable("SET_STYLE", selectedStyleID, con, "style", null, false, null, true))
-		   				)
-	    			+row(
-	       				columnRight(20,Message.get(con.getLocale(), "SET_ROWCOUNT"))+column(40,input("SET_ROWCOUNT", currentRowCount))
-	   				)
-	    			+row(
-	        			columnRight(20,"")+column(40,submitButton())
-	        		)
+	    			row(columnRight(Message.get(con.getLocale(), "SET_STYLE"))+column(createListFromTable("SET_STYLE", selectedStyleID, con, "style", null, false, null, true)))
+	    			+row(columnRight(Message.get(con.getLocale(), "SET_ROWCOUNT"))+column(input("SET_ROWCOUNT", currentRowCount)))
+	    			+row(columnRight("")+column(submitButton(Message.get(con.getLocale(), "SUBMIT_BUTTON"))))
 	        	)
 	    	)
     	);

@@ -131,7 +131,12 @@ public class DatabaseConnection {
 	public static void rowCountChanged(String table) {
 		tableCountCache.remove(table);
 	}
-	
+
+	/** Called when the database is restored */
+	public static void clearRowCounts() {
+		tableCountCache.clear();
+	}
+
 	/** Change the user's password - must supply old and new */
 	public boolean changePassword(String oldPassword, String newPassword) {
 		if (!db.isPassword(oldPassword)) {

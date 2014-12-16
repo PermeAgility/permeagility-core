@@ -237,6 +237,10 @@ public abstract class Weblet {
 		return "<TD ALIGN=\"RIGHT\" WIDTH=\"" + width + "%\" CLASS=\"" + c + "\">" + (s == null ? "&nbsp;" : s) + "</TD>\n";
 	}
 
+	public static String columnRight(String s) {
+		return "<TD ALIGN=\"RIGHT\">" + (s == null ? "&nbsp;" : s) + "</TD>\n";
+	}
+
 	public static String columnTop(int width, String s) {
 		return "<TD VALIGN=\"TOP\" WIDTH=\"" + width + "%\">" + (s == null ? "&nbsp;" : s) + "</TD>\n";
 	}
@@ -429,10 +433,6 @@ public abstract class Weblet {
 	public static String textAreaReadOnly(String n, Object s, int rows, int cols) {
 		return "<TEXTAREA NAME=\"" + n + "\" ROWS=\"" + rows + "\" COLS=\"" + cols + "\" READONLY >" + (s == null ? "" : s)
 				+ "</TEXTAREA>";
-	}
-
-	public String submitButton() {
-		return submitButton("Submit");
 	}
 
 	public String submitButton(String s) {
@@ -789,15 +789,15 @@ public abstract class Weblet {
 		}
 		result.append("]\">\n");
 		result.append("<ul>\n");
-		result.append("  <li ng-tooltip=\"Link Set\" ng-repeat=\"v in values | filter: { active: true }\" \">\n");
+		result.append("  <li ng-tooltip=\""+Message.get(l, "USE_CONTROLS_TO_CHANGE")+"\" ng-repeat=\"v in values | filter: { active: true }\" \">\n");
 		result.append("    {{v.name}}&nbsp;&nbsp;&nbsp;\n");
-		result.append("    <A title=\"Click to delete\" ng-click=\"toggleActive(v)\">&times;</A>\n");
+		result.append("    <A title=\""+Message.get(l, "CLICK_TO_DELETE")+"\" ng-click=\"toggleActive(v)\">&times;</A>\n");
 		result.append("    <A HREF=\"permeagility.web.Table?TABLENAME="+table+"&EDIT_ID={{v.rid}}\">"+Message.get(l, "GOTO_ROW")+"</A>\n");
 		result.append("  </li>\n");
 		result.append("</ul>\n");
-		result.append("Add/Remove ");
+		result.append(Message.get(l,"ADD_OR_REMOVE")+"&nbsp;");
 		result.append("  <select ng-model=\"selValue\" ng-options=\"v.name for v in values\" ng-change=\"toggleActive(selValue)\">\n");
-		result.append("    <option value=\"\">None</option>\n");
+		result.append("    <option value=\"\">"+Message.get(l, "OPTION_NONE")+"</option>\n");
 		result.append("      </select>\n");
 		result.append("<INPUT CLASS=\"text\" TYPE=\"hidden\" NAME=\""+name+"\"  VALUE=\"{{resultList()}}\"/>\n");  // TYPE=\"hidden\"
 		result.append("</div>\n");
@@ -871,17 +871,17 @@ public abstract class Weblet {
 		}
 		result.append("];\">\n");
 		result.append("<ol>\n");
-		result.append("  <li ng-tooltip=\"Click to remove\" ng-repeat=\"v in listValues\">\n");
-		result.append("    <A title=\"Click to move up\" ng-click=\"up(v)\">&#x2191;</A>\n");
-		result.append("    <A title=\"Click to move down\" ng-click=\"down(v)\">&#x2193;</A>\n");
+		result.append("  <li ng-tooltip=\""+Message.get(l, "USE_CONTROLS_TO_CHANGE")+"\" ng-repeat=\"v in listValues\">\n");
+		result.append("    <A title=\""+Message.get(l, "CLICK_TO_MOVE_UP")+"\" ng-click=\"up(v)\">&#x2191;</A>\n");
+		result.append("    <A title=\""+Message.get(l, "CLICK_TO_MOVE_DOWN")+"\" ng-click=\"down(v)\">&#x2193;</A>\n");
 		result.append("    {{v.name}}&nbsp;&nbsp;&nbsp;\n");
-		result.append("    <A title=\"Click to delete\" ng-click=\"delete(v)\">&times;</A>\n");
+		result.append("    <A title=\""+Message.get(l, "CLICK_TO_DELETE")+"\" ng-click=\"delete(v)\">&times;</A>\n");
 		result.append("    <A HREF=\"permeagility.web.Table?TABLENAME="+table+"&EDIT_ID={{v.rid}}\">"+Message.get(l, "GOTO_ROW")+"</A>\n");
 		result.append("  </li>\n");
 		result.append("</ol>\n");
-		result.append("Add ");
+		result.append(Message.get(l, "ADD_ITEM")+"&nbsp;");
 		result.append("  <select ng-model=\"selValue\" ng-options=\"v.name for v in values\" ng-change=\"selected(selValue)\">\n");
-		result.append("    <option value=\"\">None</option>\n");
+		result.append("    <option value=\"\">"+Message.get(l, "OPTION_NONE")+"</option>\n");
 		result.append("      </select>\n");
 		result.append("<INPUT CLASS=\"text\" TYPE=\"hidden\" NAME=\""+name+"\"  VALUE=\"{{resultList()}}\"/>\n");  // TYPE=\"hidden\"
 //		result.append("<INPUT CLASS=\"text\" NAME=\""+name+"\"  VALUE=\"{{resultList()}}\"/>\n"); 
@@ -959,18 +959,18 @@ public abstract class Weblet {
 		}
 		result.append("];\">\n");
 		result.append(" <ol>\n");
-		result.append("  <li ng-tooltip=\"Use controls to move or delete items\" ng-repeat=\"v in listValues\">\n");
-		result.append("<A title=\"Click to move up\" ng-click=\"up(v)\">&#x2191;</A>&nbsp;");
-		result.append("<A title=\"Click to move down\" ng-click=\"down(v)\">&#x2193;</A>&nbsp;");
+		result.append("  <li ng-tooltip=\""+Message.get(l, "USE_CONTROLS_TO_CHANGE")+"\" ng-repeat=\"v in listValues\">\n");
+		result.append("<A title=\""+Message.get(l, "CLICK_TO_MOVE_UP")+"\" ng-click=\"up(v)\">&#x2191;</A>&nbsp;");
+		result.append("<A title=\""+Message.get(l, "CLICK_TO_MOVE_DOWN")+"\" ng-click=\"down(v)\">&#x2193;</A>&nbsp;");
 		result.append("<INPUT CLASS=\"text\" NAME=\"map\" ng-model=\"v.map\" SIZE=20  VALUE=\"{{v.map}}\"/>&nbsp;");
 		result.append("{{v.name}}&nbsp;&nbsp;&nbsp;");
-		result.append("  <A title=\"Click to delete\" ng-click=\"delete(v)\">&times;</A>\n");
+		result.append("  <A title=\""+Message.get(l, "CLICK_TO_DELETE")+"\" ng-click=\"delete(v)\">&times;</A>\n");
 		result.append("  <A HREF=\"permeagility.web.Table?TABLENAME="+table+"&EDIT_ID={{v.rid}}\">G"+Message.get(l, "GOTO_ROW")+"</A>\n");
 		result.append("  </li>\n");
 		result.append(" </ol>\n");
-		result.append("Add&nbsp;");
+		result.append(Message.get(l, "ADD_ITEM")+"&nbsp;");
 		result.append("  <select ng-model=\"selValue\" ng-options=\"v.name for v in values\" ng-change=\"selected(selValue)\">\n");
-		result.append("    <option value=\"\">None</option>\n");
+		result.append("    <option value=\"\">"+Message.get(l, "OPTION_NONE")+"</option>\n");
 		result.append("  </select>\n");
 		result.append("<INPUT CLASS=\"text\" TYPE=\"hidden\" NAME=\""+name+"\"  VALUE=\"{{resultList()}}\"/>\n");  // TYPE=\"hidden\"
 //		result.append("<INPUT CLASS=\"text\" NAME=\""+name+"\"  VALUE=\"{{resultList()}}\"/>\n"); 
@@ -991,7 +991,7 @@ public abstract class Weblet {
 		if (initial == null && allowNull) {
 			sb.append("<OPTION SELECTED VALUE=null>" + "Select" + "\n");
 		} else if (allowNull) {
-			sb.append("<OPTION VALUE=null>" + "None" + "\n");
+			sb.append("<OPTION VALUE=null>"+Message.get(con.getLocale(), "OPTION_NONE")+"\n");
 		}
 		if (qr != null) {
 			for (ODocument item : qr.get()) {
@@ -1051,7 +1051,7 @@ public abstract class Weblet {
 	
 	public static String getDescriptionFromTable(DatabaseConnection con, String table, String id) {
 		//System.out.println("GetDescriptionFromTable table="+table+" id="+id);
-		if (id == null || id.equals("")) return "None";
+		if (id == null || id.equals("")) return "Null";
 		//System.out.println(getQueryForTable(con, table));
 		QueryResult qr = getCache().getResult(con, getQueryForTable(con, table));
 		if (qr != null) {
@@ -1062,7 +1062,7 @@ public abstract class Weblet {
 				return "Not found";
 			}
 		} else {
-			return "None";
+			return "Null";
 		}
 	}
 	
@@ -1083,13 +1083,15 @@ public abstract class Weblet {
 		} else if (allowNull) {
 			sb.append("<OPTION VALUE=null>" + Message.get(locale,"OPTION_NONE"));
 		}
-		for (String item : names) {
-			sb.append("<OPTION ");
-			if (initial != null && item.equals(initial)) {
-				sb.append("SELECTED ");
+		if (names != null) {
+			for (String item : names) {
+				sb.append("<OPTION ");
+				if (initial != null && item.equals(initial)) {
+					sb.append("SELECTED ");
+				}
+				sb.append(">");
+				sb.append(item);
 			}
-			sb.append(">");
-			sb.append(item);
 		}
 		sb.append("</SELECT>\n");
 		return sb.toString();

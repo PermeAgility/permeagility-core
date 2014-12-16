@@ -58,7 +58,12 @@ public class Schema extends Weblet {
 			if (tablelist != null) {
 				table = tablesf.split(",");
 			}
-			tablelist.append(paragraph("banner",groupName));
+			String prettyGroup = Message.get(con.getLocale(), "TABLEGROUP_"+groupName);
+			if (prettyGroup != null && ("TABLEGROUP_"+groupName).equals(prettyGroup)) {
+				prettyGroup = makeCamelCasePretty(groupName);
+			}
+
+			tablelist.append(paragraph("banner",prettyGroup));
 			boolean groupHasTable = false;
 			for (String tableName : table) {
 				tableName = tableName.trim();
@@ -67,18 +72,17 @@ public class Schema extends Weblet {
 					show = false;
 					tableName = tableName.substring(1);
 				}
+				String pretty = Message.get(con.getLocale(), "TABLE_"+tableName);
+				if (pretty != null && ("TABLE_"+tableName).equals(pretty)) {
+					pretty = makeCamelCasePretty(tableName);
+				}
 				tablesInGroups.add(tableName);
 				if (show) {
 					int privs = Server.getTablePriv(con, tableName);
 					//System.out.println("Table privs for table "+tableName+" for user "+con.getUser()+" privs="+privs);
 					if (privs > 0) {
 						tableName = tableName.trim();
-						tablelist.append(link(
-								"permeagility.web.Table?TABLENAME="
-								+tableName
-								,makeCamelCasePretty(tableName))
-								+br()
-						);
+						tablelist.append(link("permeagility.web.Table?TABLENAME="+tableName,pretty)+br());
 						groupHasTable = true;
 					}
 				}

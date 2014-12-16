@@ -80,34 +80,7 @@ public class Database implements Serializable {
 	public String getUser() {
 		return user;
 	}
-	
-	public String getName(DatabaseConnection con) {
-		if (con != null) {
-			try {
-				return con.c.toString();
-			} catch (Exception e) {
-				e.printStackTrace();
-				return "Exception "+e.getLocalizedMessage();
-			}
-		} else {
-			return "Unknown";
-		}
-	}
-
-	public String getDatabaseVersion(DatabaseConnection con) {
-		if (con != null) {
-			try {
-				return con.c.getConfiguration().toString();
-			} catch (Exception e) {
-				e.printStackTrace();
-				return "Exception "+e.getLocalizedMessage();
-			}
-		} else {
-			return "Unknown";
-		}
-	}
-
-	
+		
 	public Date getLastAccessed() {
 		return lastAccessed;
 	}
@@ -191,6 +164,7 @@ public class Database implements Serializable {
 		} catch (Exception e) {
 			System.out.println("Error closing db "+e.getMessage());
 		}
+		
 	}
 		
 	public Database fillPool() {
@@ -236,7 +210,7 @@ public class Database implements Serializable {
 	}
 
 	/** Create a plocal database and load starterdb.json if it exists - if no starter DatabaseSetup.checkInstallation will install what is needed */
-	public void createLocal() {
+	public void createLocal(String backupFile) {
 		if (url.startsWith("plocal") || url.startsWith("local")) {
 			System.out.println("* Creating new database "+url+" in "+System.getProperty("user.dir")+" *");
 			ODatabaseDocumentTx	d = new ODatabaseDocumentTx(url);
@@ -247,11 +221,11 @@ public class Database implements Serializable {
 				System.exit(-1);
 			}
 			if (d.exists()) {
-				if (new File("starterdb.json").isFile()) {
-					System.out.println("Loading starterdb.json....");
+				if (backupFile != null && new File(backupFile).isFile()) {
+					System.out.println("Loading "+backupFile+"....");
 					try {
 						ODatabaseImport importdb;
-						importdb = new ODatabaseImport(d,"starterdb.json", new OCommandOutputListener() {
+						importdb = new ODatabaseImport(d,backupFile, new OCommandOutputListener() {
 							public void onMessage(String arg0) {
 								System.out.println("Import Message: "+arg0);
 							}
@@ -261,6 +235,8 @@ public class Database implements Serializable {
 					} catch (IOException e) {
 						e.printStackTrace();
 					}
+				} else {
+					System.out.println("**********\n*** Trying to restore from "+backupFile+" but it is not a file\n*************");
 				}
 				System.out.println("setting "+user+" password to "+password+" you should probably change this now");
 				OUser u = d.getMetadata().getSecurity().getUser("server");
