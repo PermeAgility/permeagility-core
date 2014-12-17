@@ -44,7 +44,6 @@ import permeagility.util.PlusClassLoader;
 import permeagility.util.QueryResult;
 
 import com.orientechnologies.orient.core.OConstants;
-import com.orientechnologies.orient.core.config.OGlobalConfiguration;
 import com.orientechnologies.orient.core.id.ORecordId;
 import com.orientechnologies.orient.core.metadata.security.ORole;
 import com.orientechnologies.orient.core.metadata.security.ORule;
@@ -55,9 +54,10 @@ public class Server extends Thread {
 
 	//private static final boolean USE_SERVER = false;  // Read at initial run time only - no changes via constant table
 	
-	static int HTTP_PORT = 1999;
-	static String DB_NAME = "plocal:db";
+	static int HTTP_PORT = 1999;  // First parameter
+	static String DB_NAME = "plocal:db";  // Second parameter
 	private static Date serverInitTime = new Date();
+	private static String DEFAULT_DBFILE = "starterdb.json.gz";  //  Used at initial start
 
 	/* Overrideable constants */
 	public static boolean DEBUG = true;
@@ -78,13 +78,13 @@ public class Server extends Thread {
 	public static boolean ALLOW_GUEST_POOL_GROWTH = true;   // Will increase size by if active guest connections > 75% of pool 
 	public static int SERVER_POOL_SIZE = 10;
 	public static boolean LOGOUT_KILLS_USER = false; // Set this to true to kill all sessions for a user when a user logs out (more secure)
+	public static String LOCKOUT_MESSAGE = "<p>The system is unavailable because a system restore is being performed. Please try again later.</p><a href='/'>Try it now</a>";
 	
 	static Database database;  // Server database connection
 	static Database dbNone = null;  // Used for login and account request
 
 	static boolean restore_lockout = false;
 	static String restore_file = null;  // Backup file to restore when initializing
-	static String lockout_message = "<p>The system is unavailable because a system restore is being performed. Please try again later.</p><a href='/'>Try it now</a>";
 
 	static long resource_jar_last_modified = 0l;
 	static String resource_jar_last_modified__string = "";
@@ -176,7 +176,7 @@ public class Server extends Thread {
 			}
 		}
 		
-		if (initializeServer("starterdb.json")) {   // StarterDB is the default startup (not needed for core)
+		if (initializeServer()) {   // StarterDB is the default startup (not needed for core)
 			// Add shutdown hook to stop processes and shutdown database
 			Runtime.getRuntime().addShutdownHook(new Thread() {
 				public void run() {
@@ -275,7 +275,7 @@ public class Server extends Thread {
 						while (cookiet.hasMoreTokens() && !cookiet.nextToken().equalsIgnoreCase("value")) {}
 						if (cookiet.hasMoreTokens()) {
 							cookieValue = cookiet.nextToken();
-							if (DEBUG) System.out.println("got cookie "+cookieValue);
+							if (DEBUG) System.out.println("GOT COOKIE "+cookieValue);
 						}
 					} else if (ALLOW_KEEP_ALIVE && get.equalsIgnoreCase("Connection: keep-alive")) {
 						keep_alive = true;
@@ -350,8 +350,8 @@ public class Server extends Thread {
 								
 				// Prepare the output
 				if (restore_lockout) {
-					os.write(getLogHeader("text/html", lockout_message.getBytes().length, keep_alive).getBytes());
-					os.write(lockout_message.getBytes());
+					os.write(getLogHeader("text/html", LOCKOUT_MESSAGE.getBytes().length, keep_alive).getBytes());
+					os.write(LOCKOUT_MESSAGE.getBytes());
 					socket.close();	
 					return;
 				}
@@ -459,6 +459,11 @@ public class Server extends Thread {
 							try {
 								db = sessionsDB.get(parmUserName);
 								if (db == null || !db.isPassword(parms.get("PASSWORD"))) { 	
+									if (db != null) {
+										System.out.println("session with wrong password found - removing it");
+										if (cookieValue != null) sessions.remove(cookieValue);
+										sessionsDB.remove(parmUserName);
+									}
 									db = new Database(DB_NAME,parmUserName,parms.get("PASSWORD"));
 									if (!db.isConnected()) {
 										System.out.println("Database login failed for user "+parmUserName);
@@ -471,14 +476,6 @@ public class Server extends Thread {
 								System.out.println("Error logging in "+e);
 							}
 						}
-						if (db == null) {
-							try {
-								if (DEBUG) System.out.println("Using guest connection");
-								db = getNonUserDatabase();
-							} catch (Exception e) {
-								System.out.println("Error logging in with guest "+e);
-							}									
-						}
 
 						if (db != null && parmUserName != null) {
 							if (DEBUG) System.out.println("Calculating new cookie for: "+parmUserName);
@@ -489,6 +486,15 @@ public class Server extends Thread {
 							}
 							if (DEBUG) System.out.println("User "+db.getUser()+" logged in");
 						}		
+
+						if (db == null) {
+							try {
+								if (DEBUG) System.out.println("Using guest connection");
+								db = getNonUserDatabase();
+							} catch (Exception e) {
+								System.out.println("Error logging in with guest "+e);
+							}									
+						}
 					}
 										
 					// Set locale if specified (TODO: need to be by sessions)
@@ -1274,7 +1280,7 @@ public class Server extends Thread {
 		return localSettings.getProperty(key,def);	
 	}
 	
-	static boolean initializeServer(String backupFile) {
+	static boolean initializeServer() {
 		System.out.println("Initializing server using OrientDB Version "+OConstants.getVersion()+" Build number "+OConstants.getBuildNumber());
 //		OGlobalConfiguration.CACHE_LOCAL_ENABLED.setValue(false);  // To ensure concurrency across threads
 		try {
@@ -1290,7 +1296,7 @@ public class Server extends Thread {
 				if (DB_NAME.startsWith("plocal")) {
 					System.out.println("Creating new database Using saved password key="+DB_NAME+HTTP_PORT+". pass="+p);
 					String restore = getLocalSetting("restore", null);
-					database.createLocal((restore == null ? "starterdb.json.gz" : restore));  // New database will default to password given in local setting
+					database.createLocal((restore == null ? DEFAULT_DBFILE : restore));  // New database will default to password given in local setting
 					database.fillPool();
 					if (restore != null) {
 						setLocalSetting("restore",null);
