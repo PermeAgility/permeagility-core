@@ -95,7 +95,6 @@ public abstract class Weblet {
 	public static String bodyOnLoad(String s, String l) { return "<body "+BODY_OPTIONS+" onLoad=\"" + l + "\">\n" + s + "</body>"; }
 
 	public static String thumbnail(long id, String description) {
-		//return "<a href=\"/thumbnail?SIZE=MEDIUM&ID="+id+"\" rel=\"prettyPhoto\" title=\""+description+"\"><img src=\"../thumbnail?ID="+id+"\" width=\"50\" height=\"50\" alt=\""+description+"\" /></a>";
 		String but = "<button onClick=window.open('/thumbnail?SIZE=FULL&ID="+id+"')>View full size</button>";
 		return "<a href=\"/thumbnail?SIZE=MEDIUM&ID="+id+"\" rel=\"prettyPhoto\" title=\""+description+but+"\"><img src=\"../thumbnail?ID="+id+"\" alt=\""+description+"\" /></a>";
 	}
@@ -303,29 +302,16 @@ public abstract class Weblet {
     	return "</FORM>\n";
     }
 
-    /*
-     * Creates a link which will popup a form containing the content given as a parameter
-     */
+    /** Creates a link which will popup a form containing the content given as a parameter */
     public static String popupForm(String formName, String action, String linkText, String linkClass, String focusField, String content) {
 		return "<a "+(linkClass!=null ? "class=\""+linkClass+"\"" : "")+" href=\"javascript:var%20f=document.getElementById('"+formName+"_DIV');%20f.style.display=(f.style.display=='block'?'none':'block');%20%20%20document.forms['"+formName+"']."+focusField+".focus();%20%20void%200;\">"+linkText+POPUP_SUFFIX+"</a>"
 				+"<div id=\""+formName+"_DIV\" class=\"popup\" style=\"position: absolute; margin-top: -0.4em;\">"
 				+"<form id=\""+formName+"\" name=\""+formName+"\" method=\"post\" ENCTYPE=\"multipart/form-data\" action=\""+(action!=null ? action : "#" )+"\" onsubmit=\"document.getElementById('"+formName+"_DIV').style.display='none'; return true;\" class=\"subtle small\" style=\"position: relative; left: 1em; top: 2px;\">"
-//				+"<form id=\""+formName+"\" ng-app=\"permeagility\" ng-submit=\"$('"+formName+"').submit();\" name=\""+formName+"\" method=\"post\" ENCTYPE=\"multipart/form-data\""+(action!=null ? " action=\"/"+action+"\"" : "")+" onsubmit=\"document.getElementById('"+formName+"_DIV').style.display='none'; return true;\" class=\"subtle small\" style=\"position: relative; right: 1em; top: 2px;\">"
 				+content
 				+"</form></div>";
     }
-/*
-    public static String popupForm(String formName, String action, String linkText, String linkClass, String focusField, String content) {
-		return "<a ng-click=\""+formName+"_SWITCH=!"+formName+"_SWITCH\" "+(linkClass!=null ? "class=\""+linkClass+"\"" : "")+" href=''>"+linkText+POPUP_SUFFIX+"</a>"
-				+"<div ng-show=\"!"+formName+"_SWITCH\" class=\"popup\" style=\"position: absolute; margin-top: -0.4em;\">"
-				+"<form id=\""+formName+"\" name=\""+formName+"\" method=\"post\" ENCTYPE=\"multipart/form-data\" action=\""+(action!=null ? action : "#" )+"\" "
-				+" class=\"subtle small\" style=\"position: relative; left: 1em; top: 2px;\">"
-				+content
-				+"</form></div>";
-    }
-    */
-    
-	public static String fieldSet(String s) {
+
+    public static String fieldSet(String s) {
 		return "<FIELDSET>" + s + "</FIELDSET>";
 	}
 
@@ -448,8 +434,7 @@ public abstract class Weblet {
 	public String button(String name, String value, String text) {
 		return "<BUTTON " + (isReadOnly() ? "DISABLED" : "") + "  CLASS=\"button\" NAME=\"" + name + "\" VALUE=\"" + value
 //		+ "\" ONCLICK='if (!this.submitted) { this.submitted = true; return true; } else return false;'>"
-		+ "\">"
-				+ text + "</BUTTON>";
+		+ "\">" + text + "</BUTTON>";
 	}
 
 	public String retrieveButton(String s) {
@@ -568,7 +553,6 @@ public abstract class Weblet {
 	public static String standardLayout(DatabaseConnection con, java.util.HashMap<String, String> parms, String html) {
 		return span("header", (new Header()).getHTML(con, parms)) 
 				+ span("menu", (new Menu()).getHTML(con, parms))
-//				+ span("service", html);
 				+ span("service", html);
 	}
 
@@ -618,15 +602,12 @@ public abstract class Weblet {
 		return "<script src=\"../js/sorttable.js\"></script>\n";
 	}
 
-	int dateControlCount = 0;
-	int linkControlCount = 0;
-
 	public String getColorControl(String formName, String controlName, String initialValue) {
-		//dateControlCount++;
-		//String varName = "dateControl" + dateControlCount;
 		return "<input name='"+controlName+"' class='color' value='"+initialValue+"'>";
 	}
 	
+	int dateControlCount = 0;
+
 	public String getDateControl(String formName, String controlName, String initialValue) {
 		dateControlCount++;
 		String varName = "dateControl" + dateControlCount;
@@ -672,20 +653,7 @@ public abstract class Weblet {
     	return sb.toString();
     }
 
-    /*
-     * Build a list of checkboxes based on a query.  
-     * 
-     * name - HTML control name
-     * qr - QueryResult 
-     * l - locale
-     * 
-     * Your query result should have at least these four columns:
-     * 
-     * ID - The value to be returned when the checkbox is selected
-     * NAME - The description that goes beside the checkbox
-     * TOOLTIP - The popup message when the user hovers over the checkbox
-     * CHECKED - Null means unchecked, non-null means checked
-     */
+    /** Build a list of checkboxes based on a query  */
     public static String multiCheckboxList(String name, QueryResult qr, Locale l, Set<ODocument> picked) {
 	    Vector<String> names = new Vector<String>(qr.size());
 	    Vector<String> values = new Vector<String>(qr.size());
@@ -1028,7 +996,7 @@ public abstract class Weblet {
 
 	public static String getQueryForTable(DatabaseConnection con, String table) {
 		String query = "SELECT FROM "+table;
-		QueryResult lists = getCache().getResult(con, "SELECT tablename, query FROM pickList WHERE tablename='"+table+"'");
+		QueryResult lists = getCache().getResult(con, "SELECT tablename, query FROM "+DatabaseSetup.TABLE_PICKLIST+" WHERE tablename='"+table+"'");
 		if (lists != null && lists.size()>0) {
 			return lists.getStringValue(0, "query");
 		}
@@ -1391,10 +1359,7 @@ public abstract class Weblet {
 
 	DecimalFormat decimalFormat = new DecimalFormat(DECIMAL_FORMAT);
 
-	public String debug(Object o) {
-		return "<br>--Debug--<br>\n" + o.toString() + "\n<br>--Debug--<br>\n";
-	}
-
+	/** If an overridden version of this returns true, then the generated fields will be disabled */
 	public boolean isReadOnly() {
 		return false;
 	}
@@ -1445,7 +1410,7 @@ public abstract class Weblet {
 		}
 	}
 
-	/** Turn a camelCase into "Camel Case" */
+	/** Turn a "camelCase" into "Camel Case" */
 	public static String makeCamelCasePretty(String input) {
 		StringBuffer cn = new StringBuffer();
 		if (input.startsWith("_")) input = input.substring(1);  // Remove possible leading underscore (_allowREAD)
@@ -1473,7 +1438,7 @@ public abstract class Weblet {
 	 * "first name" becomes "firstName" 
 	 * "User ID" becomes "userId" 
 	 * "USER_ID" becomes "userId" (Note: if all caps, will be turned to all lowercase)
-	 * "543-device-reading" becomes "n543DeviceReading" ??? */
+	 * "543-device-reading" becomes "n543DeviceReading"  */
 	public static String makePrettyCamelCase(String input) {
 		StringBuffer cn = new StringBuffer();
 		input = input.trim();

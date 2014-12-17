@@ -7,6 +7,7 @@ package permeagility.web;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -29,7 +30,8 @@ public class Menu extends Weblet {
 
 	public String getHTML(DatabaseConnection con, HashMap<String,String> parms) {
 		
-		String localeSelector = "<BR><BR><BR><BR>"+xxSmall(Message.getLocaleSelector(con.getLocale(),parms));
+		Locale locale = con.getLocale();
+		String localeSelector = "<BR><BR><BR><BR>"+xxSmall(Message.getLocaleSelector(locale,parms));
 		
 		// Return value from cache if it is there
 		String cmenu = menuCache.get(con.getUser());
@@ -58,30 +60,33 @@ public class Menu extends Weblet {
 	                	Set<ODocument> readRoles = i.field("_allowRead");
 	                	String menuName = (String)i.field("name");
 	                	String menuDesc = (String)i.field("description");
-	                	String pretty = Message.get(con.getLocale(),"MENUITEM_"+menuName);
-	            		if (menuName != null && ("MENUITEM_"+menuName).equals(pretty)) {  // No translation
-	            			pretty = menuName;
-	            		} else if (menuName == null) {
-	            			pretty = "";
-	            		}
-	                	String prettyDesc = Message.get(con.getLocale(),"MENUITEMDESC_"+menuDesc);
-	            		if (menuDesc != null && ("MENUITEMDESC_"+menuDesc).equals(pretty)) {  // No translation
-	            			prettyDesc = menuDesc;
-	            		} else if (menuDesc == null) {
-	            			prettyDesc = "";
-	            		}
-	                	if (Server.isRoleMatch(Server.getUserRoles(con),readRoles.toArray())) {
-                        	if (i.field("classname") == null || ((String)i.field("classname")).equals("")) {
-                                itemMenu.append("<BR>");                	                	
-                        	} else {
-                        		itemMenu.append(link((String)i.field("classname"), pretty, prettyDesc));	
-                        		itemMenu.append("<BR>");  
-                        	}
+	                	Boolean itemActive = i.field("active");
+	                	if (itemActive != null && itemActive.booleanValue()==true) {
+		                	String pretty = Message.get(locale,"MENUITEM_"+menuName);
+		            		if (menuName != null && ("MENUITEM_"+menuName).equals(pretty)) {  // No translation
+		            			pretty = menuName;
+		            		} else if (menuName == null) {
+		            			pretty = "";
+		            		}
+		                	String prettyDesc = Message.get(locale,"MENUITEMDESC_"+menuName);
+		            		if (menuDesc != null && ("MENUITEMDESC_"+menuName).equals(prettyDesc)) {  // No translation
+		            			prettyDesc = menuDesc;
+		            		} else if (menuDesc == null) {
+		            			prettyDesc = "";
+		            		}
+		                	if (Server.isRoleMatch(Server.getUserRoles(con),readRoles.toArray())) {
+	                        	if (i.field("classname") == null || ((String)i.field("classname")).equals("")) {
+	                                itemMenu.append("<BR>");                	                	
+	                        	} else {
+	                        		itemMenu.append(link((String)i.field("classname"), pretty, prettyDesc));	
+	                        		itemMenu.append("<BR>");  
+	                        	}
+		                	}
 	                	}
 	                }
 	                if (itemMenu.length() > 0) {
 	                	String menuHeader = (String)m.field("name");
-	                	String pretty = Message.get(con.getLocale(),"MENU_"+menuHeader);
+	                	String pretty = Message.get(locale,"MENU_"+menuHeader);
 	            		if (menuHeader != null && ("MENU_"+menuHeader).equals(pretty)) {  // No translation
 	            			pretty = menuHeader;
 	            		} else if (menuHeader == null) {

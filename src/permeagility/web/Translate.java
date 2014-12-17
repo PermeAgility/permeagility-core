@@ -93,7 +93,7 @@ public class Translate extends Table {
 						+row(columnRight("Translate column names")+column(checkbox("DO_COLUMNS",false)+" will use COLUMN_name as message name"))
 						+row(columnRight("Translate news articles")+column(checkbox("DO_NEWS",false)+" will create new articles for the new locale"))
 						+row(columnRight("Email address")+column(input("EMAIL","")+" up to 10000/day if email given"))
-						+row(column("")+column(submitButton("GO", "Go")))
+						+row(column("")+column(submitButton("GO", "Go")+" warning: can take a while"))
 				)));
 			} else {
 				ODocument oldLocale = con.queryDocument("SELECT FROM "+DatabaseSetup.TABLE_LOCALE+" WHERE name='"+toLocale+"'");

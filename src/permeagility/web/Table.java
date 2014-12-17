@@ -1253,9 +1253,10 @@ public class Table extends Weblet {
 					sb.append(rowOnClick("clickable", getRow(columns, row, con, hideColumn), "window.location.href='" + this.getClass().getName()
 							+ "?EDIT_ID=" + row.getIdentity().toString().substring(1) + "&TABLENAME=" + table + "';"));
 					rowCount++;
-					if (rowCount >= ROW_COUNT_LIMIT) break;
+					if (page > -1 && rowCount >= ROW_COUNT_LIMIT) break;
 				}
-				sb.append(tableFoot(columnSpan(columns.size(), paragraph("RowCount=" + rowCount + " of " + totalRows + (page > -1 ? " rows, page="+page : " total rows")) )));
+				String rowCountInfo = paragraph(Message.get(con.getLocale(), "ROWS_OF", ""+rowCount, ""+totalRows) + "&nbsp;"+(page > -1 ? Message.get(con.getLocale(), "PAGE_NAV")+"&nbsp;"+page : ""));
+				sb.append(tableFoot(columnSpan(columns.size(), rowCountInfo )));
 			}
 			return table("sortable", sb.toString());
 		} catch (Exception e) {

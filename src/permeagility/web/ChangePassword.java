@@ -42,7 +42,7 @@ public class ChangePassword extends Weblet {
 				       column(10,password("NEWPASS","")))+
 				   row(columnRight(10,Message.get(con.getLocale(),"CONFIRM_PASSWORD"))+
 				       column(10,password("CONFIRMPASS","")))+
-				   row(columnRight(10,submitButton("SUBMIT",Message.get(con.getLocale(),"SUBMIT")))+
+				   row(columnRight(10,submitButton("SUBMIT",Message.get(con.getLocale(),"SUBMIT_BUTTON")))+
 				       column(10,""))
 				  )
 			);

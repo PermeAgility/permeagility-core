@@ -17,6 +17,7 @@ import javax.swing.ImageIcon;
 
 import permeagility.util.Database;
 import permeagility.util.DatabaseConnection;
+import permeagility.util.DatabaseSetup;
 import permeagility.util.QueryResult;
 
 import com.orientechnologies.orient.core.record.impl.ODocument;
@@ -186,7 +187,7 @@ public class Thumbnail {
 		}
 		try {
 			// Delete any and all that may already exist
-			String query = "SELECT FROM thumbnail\n"
+			String query = "SELECT FROM "+DatabaseSetup.TABLE_THUMBNAIL+"\n"
 					+"WHERE table = '"+table+"'\n"
 					+"AND id = '"+doc.getIdentity().toString().substring(1)+"'\n"
 					+"AND column = '"+column+"'";
@@ -237,7 +238,7 @@ public class Thumbnail {
 				}
 			} 
 
-			ODocument thumbnail = con.create("thumbnail");
+			ODocument thumbnail = con.create(DatabaseSetup.TABLE_THUMBNAIL);
 
 			if (content != null) {
 				if (content_type.toString().equals("image/svg+xml")) {  // SVG scales to any size and doesn't take up much space
@@ -309,7 +310,7 @@ public class Thumbnail {
 		}
 		try {
 			// Delete any and all that may already exist for this row
-			String query = "SELECT FROM thumbnail\n"
+			String query = "SELECT FROM "+DatabaseSetup.TABLE_THUMBNAIL+"\n"
 					+"WHERE table = '"+table+"'\n"
 					+"AND id = '"+id+"'";
 			QueryResult qr = con.query(query);

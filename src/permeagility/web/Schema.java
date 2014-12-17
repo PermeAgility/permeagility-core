@@ -106,12 +106,11 @@ public class Schema extends Weblet {
 				String tablename = row.field("name");
 				if (!tablesInGroups.contains(tablename)) {
 					if (Server.getTablePriv(con, tablename) > 0) {
-						tablelist.append(link(
-							"permeagility.web.Table?TABLENAME="
-							+(String)tablename
-							,makeCamelCasePretty((String)tablename))
-							+br()
-						);
+						String pretty = Message.get(con.getLocale(), "TABLE_"+tablename);
+						if (pretty != null && ("TABLE_"+tablename).equals(pretty)) {
+							pretty = makeCamelCasePretty(tablename);
+						}
+						tablelist.append(link("permeagility.web.Table?TABLENAME="+(String)tablename,pretty)+br());
 					}
 				}
 			}

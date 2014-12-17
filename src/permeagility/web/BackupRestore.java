@@ -214,7 +214,10 @@ public class BackupRestore extends Weblet {
 	    	+paragraph("banner",Message.get(locale, "RESTORE_THE_DATABASE"))
 	    	+form(
 	    		table("sortable", 
-	    			row(tableHead("Filename")+tableHead("Size")+tableHead("Date")+tableHead("Restore"))
+	    			row(tableHead(Message.get(locale, "BACKUP_FILENAME"))
+    					+tableHead(Message.get(locale, "BACKUP_SIZE"))
+    					+tableHead(Message.get(locale, "BACKUP_DATE"))
+    					+tableHead(Message.get(locale, "RESTORE_NOW")))
 	    			+restorePoints.toString())
 	    	)
     	);

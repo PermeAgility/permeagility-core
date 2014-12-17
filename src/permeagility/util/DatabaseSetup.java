@@ -16,18 +16,18 @@ public class DatabaseSetup {
 
 	static StringBuffer installMessages = new StringBuffer();
 	
-	public static String TABLE_THUMBNAIL = "thumbnail";
-	public static String TABLE_CONSTANT = "constant";
-	public static String TABLE_LOCALE = "locale";
-	public static String TABLE_MESSAGE = "message";
-	public static String TABLE_STYLE = "style";
-	public static String TABLE_PICKLIST = "pickList";
-	public static String TABLE_TABLEGROUP = "tableGroup";
-	public static String TABLE_COLUMNS = "columns";
-	public static String TABLE_MENU = "menu";
-	public static String TABLE_MENUITEM = "menuItem";
-	public static String TABLE_NEWS = "article";
-	public static String TABLE_USERREQUEST = "userRequest";
+	public static final String TABLE_THUMBNAIL = "thumbnail";
+	public static final String TABLE_CONSTANT = "constant";
+	public static final String TABLE_LOCALE = "locale";
+	public static final String TABLE_MESSAGE = "message";
+	public static final String TABLE_STYLE = "style";
+	public static final String TABLE_PICKLIST = "pickList";
+	public static final String TABLE_TABLEGROUP = "tableGroup";
+	public static final String TABLE_COLUMNS = "columns";
+	public static final String TABLE_MENU = "menu";
+	public static final String TABLE_MENUITEM = "menuItem";
+	public static final String TABLE_NEWS = "article";
+	public static final String TABLE_USERREQUEST = "userRequest";
 	
 	/**
 	 *  Verify the installation of the permeagility-core table structures
@@ -259,6 +259,7 @@ public class DatabaseSetup {
 			mCount += checkCreateMessage(con, loc, "QUERY_IS", "Query is:");
 			mCount += checkCreateMessage(con, loc, "ERROR_IN_QUERY", "Error in query:");
 			mCount += checkCreateMessage(con, loc, "ROWS_UPDATED", "{0} rows updated");
+			mCount += checkCreateMessage(con, loc, "ROWS_OF", "{0} rows of {1}");
 			mCount += checkCreateMessage(con, loc, "SECURITY_REFRESHED", "security cache was refreshed");
 			mCount += checkCreateMessage(con, loc, "SECURITY_UPDATED", "security last updated");
 			mCount += checkCreateMessage(con, loc, "REFRESH_SECURITY", "Refresh security");
@@ -284,6 +285,8 @@ public class DatabaseSetup {
 			mCount += checkCreateMessage(con, loc, "BACKUP_DIRECTORY_CREATED", "Backup directory was created");
 			mCount += checkCreateMessage(con, loc, "BACKUP_THE_DATABASE", "Backup the database");
 			mCount += checkCreateMessage(con, loc, "BACKUP_FILENAME", "Backup filename");
+			mCount += checkCreateMessage(con, loc, "BACKUP_DATE", "Backup date");
+			mCount += checkCreateMessage(con, loc, "BACKUP_SIZE", "Backup size");
 			mCount += checkCreateMessage(con, loc, "BACKUP_FILENAME_NEEDED", "Backup filename needed");
 			mCount += checkCreateMessage(con, loc, "BACKUP_NOW", "Backup now");
 			mCount += checkCreateMessage(con, loc, "BACKUP_SUCCESS", "The database was successfully backed up to:");
@@ -293,7 +296,7 @@ public class DatabaseSetup {
 			mCount += checkCreateMessage(con, loc, "RESTORE_CONFIRM", "Restoring a backup will logout and lockout all users,<br> restore the database and restart the system.<br> Data that is currently in the database may be lost.<br> Please confirm this action");
 			mCount += checkCreateMessage(con, loc, "RESTORE_ACCESS", "You must be admin or a dba to backup and restore a database");
 			mCount += checkCreateMessage(con, loc, "RESTORE_PLOCAL", "You can only restore a plocal database using this tool");
-
+			mCount += checkCreateMessage(con, loc, "USERREQUEST_INSERTED", "Your request was inserted - you will receive an email to confirm your account");
 			
 			if (mCount > 0) {
 				installMessages.append(Weblet.paragraph("CheckInstallation: Created "+mCount+" messages"));
@@ -388,16 +391,14 @@ public class DatabaseSetup {
 			Database.checkCreateProperty(menuTable, "description", OType.STRING, installMessages);
 			Database.checkCreateProperty(menuTable, "sortOrder", OType.INTEGER, installMessages);
 
-			ODocument defaultMenu;
 			if (menuTable.count() == 0) {
+				ODocument defaultMenu;
 				defaultMenu = con.create(TABLE_MENU);
 				defaultMenu.field("name","");  // Default blank menu
 				defaultMenu.field("active",true);
 				defaultMenu.field("description","Default menu");
 				defaultMenu.field("sortOrder",10);
 				defaultMenu.save();
-			} else {
-				defaultMenu = con.queryDocument("SELECT FROM menu WHERE name='Admin'");
 			}
 			
 			System.out.print(TABLE_MENUITEM+" ");

@@ -14,6 +14,7 @@ import java.util.StringTokenizer;
 import java.util.TreeMap;
 
 import permeagility.util.DatabaseConnection;
+import permeagility.util.DatabaseSetup;
 import permeagility.util.QueryResult;
 
 import com.orientechnologies.orient.core.record.impl.ODocument;
@@ -40,7 +41,7 @@ public class Message {
 			System.out.println("Cannot initialize messages with null connection");
 			return;
 		}
-		QueryResult qr = con.query("SELECT name FROM locale WHERE active=true");
+		QueryResult qr = con.query("SELECT name FROM "+DatabaseSetup.TABLE_LOCALE+" WHERE active=true");
 		if (qr == null || qr.size()==0) {
 			System.out.println("Error - cannot load locale list from locale table");
 			return;
@@ -83,7 +84,7 @@ public class Message {
 		TreeMap<String,String> table = new TreeMap<String,String>();
 		try {
 //			String query = "SELECT name, description FROM message WHERE locale.name='"+locale.toString()+"' ORDER BY name";
-			String query = "SELECT name, description FROM message WHERE locale.name='"+locale.toString()+"'";  // Not sure if order helps the TreeMap
+			String query = "SELECT name, description FROM "+DatabaseSetup.TABLE_MESSAGE+" WHERE locale.name='"+locale.toString()+"'";  // Not sure if order helps the TreeMap
 			if (DEBUG) System.out.println("query: "+query );
 			QueryResult rs = con.query(query);
 			for (ODocument row : rs.get()) {
