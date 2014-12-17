@@ -1,3 +1,8 @@
 /target/
 /db/
 /testdb/
+/.DS_Store
+/db_saved/
+/backup/
+/plus/
+/init.pa

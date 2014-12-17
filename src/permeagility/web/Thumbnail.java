@@ -202,7 +202,7 @@ public class Thumbnail {
 			StringBuffer content_filename = new StringBuffer();
 			
 			if (image == null) { 
-				System.out.println("Empty thumbnail for table="+table+" column="+column+" rid="+doc.getIdentity().toString());
+				if (DEBUG) System.out.println("Empty thumbnail for table="+table+" column="+column+" rid="+doc.getIdentity().toString());
 				return null;
 			}
 			byte[] bytes = image.toStream();

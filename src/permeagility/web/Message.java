@@ -21,7 +21,7 @@ import com.orientechnologies.orient.core.record.impl.ODocument;
 public class Message {
 
 	public static boolean DEBUG = false;
-	public static boolean GENERATE_MESSAGES = false;  // Will blast message to log about unfound messages - can be annoying
+	public static boolean ALERT_MISSING_MESSAGES = false;  // Will blast message to log about unfound messages - can be annoying
 	public static String DEFAULT_LOCALE = "en";
 	
 	private static HashMap<Locale,TreeMap<String,String>> bundles = null;
@@ -45,7 +45,8 @@ public class Message {
 			System.out.println("Error - cannot load locale list from locale table");
 			return;
 		}
-		bundles = new HashMap<Locale,TreeMap<String,String>>(qr.size());
+		
+		HashMap<Locale,TreeMap<String,String>> newbundles = new HashMap<Locale,TreeMap<String,String>>(qr.size());
 		for (int r=0; r<qr.size(); r++) {
 			Locale locale = null;
 			try {
@@ -57,12 +58,13 @@ public class Message {
 				System.out.println("Message: Loading messages (locale="+locale+")");
 				TreeMap<String,String> bundle = loadBundle(con, locale);
 				if (bundle != null) {
-					bundles.put( locale, bundle );
-					if (locale.getLanguage().equalsIgnoreCase("en")) { defaultBundle = bundle; }
+					newbundles.put( locale, bundle );
+					if (locale.getLanguage().equalsIgnoreCase(DEFAULT_LOCALE)) { defaultBundle = bundle; }
 				}
-				if (bundles.size() == 1) { defaultLocale = locale; }  // First locale is default
+				if (newbundles.size() == 1) { defaultLocale = locale; }  // First locale is default
 			}
-		}		
+		}
+		bundles = newbundles;
 	}	
 
 	public static Locale parseLocaleString(String s) {
@@ -80,7 +82,8 @@ public class Message {
 	public static TreeMap<String,String> loadBundle(DatabaseConnection con, Locale locale) {
 		TreeMap<String,String> table = new TreeMap<String,String>();
 		try {
-			String query = "SELECT name, description FROM message WHERE locale.name='"+locale.toString()+"' ORDER BY name";
+//			String query = "SELECT name, description FROM message WHERE locale.name='"+locale.toString()+"' ORDER BY name";
+			String query = "SELECT name, description FROM message WHERE locale.name='"+locale.toString()+"'";  // Not sure if order helps the TreeMap
 			if (DEBUG) System.out.println("query: "+query );
 			QueryResult rs = con.query(query);
 			for (ODocument row : rs.get()) {
@@ -96,7 +99,7 @@ public class Message {
 		TreeMap<String,String> bundle = loadBundle(con, locale);
 		if (bundle != null) {
 			bundles.put( locale, bundle );
-			if (locale.getLanguage().equalsIgnoreCase("en")) { defaultBundle = bundle; }
+			if (locale.getLanguage().equalsIgnoreCase(DEFAULT_LOCALE)) { defaultBundle = bundle; }
 		}
 	}	
 
@@ -110,7 +113,7 @@ public class Message {
 			if (bundle == null) { return key; }
 		}
 		String string = (String)bundle.get(key);
-		if(string==null && GENERATE_MESSAGES) {
+		if(string==null && ALERT_MISSING_MESSAGES) {
 			System.out.println("************************** Warning - no "+locale.getDisplayLanguage()+" message found for name:"+key);
 		}
 		return string != null ? string : key;

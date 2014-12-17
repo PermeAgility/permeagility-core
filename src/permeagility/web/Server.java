@@ -181,7 +181,7 @@ public class Server extends Thread {
 			Runtime.getRuntime().addShutdownHook(new Thread() {
 				public void run() {
 					System.out.println("Shutting down the server");
-					database.close();
+					closeAllConnections();
 				}
 			});
 			try {
@@ -1253,7 +1253,11 @@ public class Server extends Thread {
 	}
 
 	public static void setLocalSetting(String key, String value) {
-		localSettings.put(key,value);
+		if (value == null) {
+			localSettings.remove(key);
+		} else {
+			localSettings.put(key,value);
+		}
 		try {
 			localSettings.store(new FileWriter(SETTINGS_FILE), "Initialization Parameters for PermeAgility server");
 		} catch (IOException e) {
@@ -1285,13 +1289,12 @@ public class Server extends Thread {
 				System.out.println("Unable to acquire initial connection for "+DB_NAME);
 				if (DB_NAME.startsWith("plocal")) {
 					System.out.println("Creating new database Using saved password key="+DB_NAME+HTTP_PORT+". pass="+p);
-					sessions.clear();   // All existing sessions are no good for the new database
-					for (Database d : sessionsDB.values()) {
-						d.close();
-					}
-					sessionsDB.clear();
-					database.createLocal(backupFile);  // New database will default to password given in local setting
+					String restore = getLocalSetting("restore", null);
+					database.createLocal((restore == null ? "starterdb.json.gz" : restore));  // New database will default to password given in local setting
 					database.fillPool();
+					if (restore != null) {
+						setLocalSetting("restore",null);
+					}
 				} else {
 					System.out.println("***\n*** Exit condition: couldn't connect to remote as server, please add server OUser with admin role - Exiting.\n***");
 					System.exit(-1);					
@@ -1325,6 +1328,8 @@ public class Server extends Thread {
 				messages = new Message(con);
 				Thumbnail.setDatabase(database);
 				database.freeConnection(con);
+				
+				if (restore_lockout) restore_lockout = false;
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -1347,6 +1352,21 @@ public class Server extends Thread {
 			}
 		}
 		return dbNone;
+	}
+	
+	protected static void closeAllConnections() {
+		System.out.print("dropping all connections...");
+		for (Database d : sessionsDB.values()) {
+			d.close();
+		}
+		sessions.clear();
+		sessionsDB.clear();
+		if (database != null) {
+			database.close();
+			database = null;
+		}
+		System.gc();
+		System.out.println("done");
 	}
 	
 	public static Date getServerInitTime() {   return serverInitTime;  }

@@ -68,7 +68,7 @@ public class Menu extends Weblet {
 	            		if (menuDesc != null && ("MENUITEMDESC_"+menuDesc).equals(pretty)) {  // No translation
 	            			prettyDesc = menuDesc;
 	            		} else if (menuDesc == null) {
-	            			pretty = "";
+	            			prettyDesc = "";
 	            		}
 	                	if (Server.isRoleMatch(Server.getUserRoles(con),readRoles.toArray())) {
                         	if (i.field("classname") == null || ((String)i.field("classname")).equals("")) {

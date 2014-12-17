@@ -16,7 +16,6 @@ import permeagility.web.Weblet;
 
 import com.orientechnologies.orient.core.OConstants;
 import com.orientechnologies.orient.core.command.OCommandOutputListener;
-import com.orientechnologies.orient.core.db.ODatabase;
 import com.orientechnologies.orient.core.db.ODatabase.STATUS;
 import com.orientechnologies.orient.core.db.ODatabaseRecordThreadLocal;
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
@@ -25,6 +24,7 @@ import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OProperty;
 import com.orientechnologies.orient.core.metadata.schema.OSchema;
 import com.orientechnologies.orient.core.metadata.schema.OType;
+import com.orientechnologies.orient.core.metadata.security.OSecurity;
 import com.orientechnologies.orient.core.metadata.security.OUser;
 
 public class Database implements Serializable {
@@ -154,11 +154,11 @@ public class Database implements Serializable {
 	public void close() {
 		try {
 			for (DatabaseConnection c : activeConnections) {
-				if (c != null) c.close();
+				if (c!= null) c.close();
 			}
 			activeConnections.removeAll(activeConnections);
 			for (DatabaseConnection c : pooledConnections) {
-				if (c != null) c.close();
+				if (c!= null) c.close();
 			}
 			pooledConnections.removeAll(pooledConnections);
 		} catch (Exception e) {
@@ -166,7 +166,7 @@ public class Database implements Serializable {
 		}
 		
 	}
-		
+
 	public Database fillPool() {
 		if (ALLOW_POOL_GROWTH && (double)activeConnections.size()/(double)POOL_SIZE > POOL_GROWTH_FACTOR) {
 			POOL_SIZE += POOL_GROWTH_STEP;
@@ -230,17 +230,28 @@ public class Database implements Serializable {
 								System.out.println("Import Message: "+arg0);
 							}
 						});
+//						importdb.setMerge(true);
+						importdb.setDeleteRIDMapping(true);
+						importdb.setIncludeSecurity(true);
+						importdb.setIncludeRecords(true);
+						importdb.setIncludeSchema(true);
+						importdb.setIncludeInfo(true);
+						importdb.setIncludeClusterDefinitions(true);
+						importdb.setIncludeIndexDefinitions(true);
+						importdb.setIncludeManualIndexes(true);
 						importdb.importDatabase();
 						importdb.close();
+						d.getLocalCache().invalidate();		
 					} catch (IOException e) {
 						e.printStackTrace();
 					}
 				} else {
-					System.out.println("**********\n*** Trying to restore from "+backupFile+" but it is not a file\n*************");
+					System.out.println("Cannot restore from "+backupFile+" as it does not exist - not a problem");
 				}
-				System.out.println("setting "+user+" password to "+password+" you should probably change this now");
-				OUser u = d.getMetadata().getSecurity().getUser("server");
+				OSecurity osec = d.getMetadata().getSecurity();
+				OUser u = osec.getUser("server");
 				if (u == null) {
+					System.out.println("**** Security: Creating server user with server you should probably change this now");
 					u = d.getMetadata().getSecurity().createUser("server", "server", "admin");
 					u.save();
 				} else {

@@ -42,19 +42,6 @@ public class Table extends Weblet {
 	// Need to store the data types by locale and don't want to generate it every time
 	static ConcurrentHashMap<Locale,ArrayList<String>> dataTypeNames = new ConcurrentHashMap<Locale,ArrayList<String>>();
 	
-/*	public static String DATATYPE_FLOAT = "Floating point number (double)";
-	public static String DATATYPE_INT = "Whole number (integer)";
-	public static String DATATYPE_TEXT = "Text (any length)";
-	public static String DATATYPE_BOOLEAN = "Boolean (true/false)";
-	public static String DATATYPE_DATETIME = "Date and time";
-	public static String DATATYPE_DATE = "Date";
-	public static String DATATYPE_DECIMAL = "Decimal (Currency)";
-	public static String DATATYPE_BLOB = "Binary (image/file)";
-	public static String DATATYPE_LINK = "Link (single reference)";
-	public static String DATATYPE_LINKLIST = "Link list (ordered)";
-	public static String DATATYPE_LINKSET = "Link set (unordered)";
-	public static String DATATYPE_LINKMAP = "Link map (with names, ordered)";
-*/
 	public static String PARM_PREFIX = "PARM_";
 	
 	public static boolean SHOW_ALL_RELATED_TABLES = true;
@@ -956,9 +943,9 @@ public class Table extends Weblet {
 				if (blobid != null) {
 					nail = Thumbnail.getThumbnailLink(blobid, desc.toString());
 				} else {
-					nail = xSmall(Message.get(con.getLocale(), "THUMBNAIL_NOT_FOUND",name, edit_id));					
+					nail = "<div title=\""+Message.get(con.getLocale(), "THUMBNAIL_NOT_FOUND",name, edit_id+"\">"+xSmall(Message.get(con.getLocale(),"OPTION_NONE"))+"</div>");					
 				} 
-				return row(columnTopRight(50, small(prettyName+nail) + column(50, "<INPUT TYPE=FILE NAME=\""+PARM_PREFIX+name+"\" VALUE=\"None\">")));
+				return row(columnTopRight(50, small(prettyName) + column(50, nail+"<BR><INPUT TYPE=FILE NAME=\""+PARM_PREFIX+name+"\" VALUE=\"None\">")));
 			} else {
 				return row(columnTopRight(50, small(prettyName))
 					+ column(50, "<INPUT TYPE=FILE NAME=\""+PARM_PREFIX+name+"\" VALUE=\"None\">"));
@@ -1358,7 +1345,7 @@ public class Table extends Weblet {
 			if (blobid != null) {
 				sb.append(column(Thumbnail.getThumbnailLink(blobid, desc.toString())));
 			} else {
-				sb.append(column(xSmall("Thumbnail not found for column "+columnName+" with rid="+d.getIdentity().toString())));					
+				sb.append(column(xSmall("<div title=\""+Message.get(con.getLocale(), "THUMBNAIL_NOT_FOUND",columnName, d.getIdentity().toString()+"\">"+xSmall(Message.get(con.getLocale(),"OPTION_NONE"))+"</div>"))));					
 			} 
 
 		} else if (columnType >= 9 && columnType <= 12) {  // Embedded

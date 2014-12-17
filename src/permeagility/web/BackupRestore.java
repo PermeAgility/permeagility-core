@@ -12,12 +12,16 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Locale;
 
+import permeagility.util.Database;
 import permeagility.util.DatabaseConnection;
 
 import com.orientechnologies.orient.core.command.OCommandOutputListener;
+import com.orientechnologies.orient.core.db.ODatabaseRecordThreadLocal;
 import com.orientechnologies.orient.core.db.tool.ODatabaseExport;
 
 public class BackupRestore extends Weblet {
+	
+	private static StringBuffer errorLog; // To capture backup messages
 
     public String getPage(DatabaseConnection con, HashMap<String,String> parms) {
     	Locale locale = con.getLocale();
@@ -31,13 +35,13 @@ public class BackupRestore extends Weblet {
 
 		File backupDir = new File("backup");
 		if (backupDir == null || !backupDir.exists()) {
-			errors.append(paragraph("error","Could not open backup directory - creating one"));
+			errors.append(paragraph("error",Message.get(locale, "BACKUP_DIRECTORY_CREATED")));
 			backupDir.mkdir();
 		} else {
 			if (!backupDir.isDirectory()) {
 				boolean success = backupDir.mkdir();
 				if (success) {
-					errors.append(paragraph("warning","Backup directory was created"));
+					errors.append(paragraph("warning",Message.get(locale, "BACKUP_DIRECTORY_CREATED")));
 				} else {
 					errors.append(paragraph("error","Backup directory could not be created - cannot perform backups"));					
 				}
@@ -56,8 +60,8 @@ public class BackupRestore extends Weblet {
 		    		+paragraph("banner",Message.get(locale, "CONFIRM_RESTORE"))
 		    		+form(
 		    			hidden("RESTORE",parms.get("RESTORE"))
-		    			+paragraph("Restoring a backup will logout and lockout all users,<br> restore the database and restart the system.<br> Data that is currently in the database may be lost.<br> Please confirm this action")
-		    			+button("RESTORE_CONFIRM","YES",Message.get(locale,"CONFIRM_RESTORE"))
+		    			+paragraph(Message.get(locale, "RESTORE_CONFIRM"))
+		    			+button("RESTORE_CONFIRM","YES",Message.get(locale,"RESTORE_NOW"))
 		    			+button("RESTORE_CANCEL","YES",Message.get(locale,"CANCEL"))
 			        )
 			    );
@@ -65,28 +69,38 @@ public class BackupRestore extends Weblet {
 				System.out.println("Restoring the database from file "+parms.get("RESTORE"));
 				Server.restore_lockout = true;
 				Server.restore_file = "backup/"+parms.get("RESTORE");
-				System.out.println("Shutting down the database");
-				try {
-					//Server.shutdownDatabase();
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
+
 				Thread restore_thread = new Thread() {
 					public void run() {
-						System.out.println("Restore thread started... waiting 5 seconds for files to be released...");
-						// Delete the database files in the data directory
+
+						// Wait 5 seconds for requests to clear
 						try {
-							// Wait 5 seconds for requests to clear
-							System.out.println("Waiting 5 seconds...");
+							System.out.println("Waiting 5 seconds for requests to clear...");
 							sleep(5000);
 						} catch (InterruptedException e) {
 							e.printStackTrace();
 						}
+
+						System.out.println("Shutting down the database connections");
+						Server.closeAllConnections();
+
+						// Wait 5 seconds for requests to clear
+						try {
+							System.out.println("Waiting 5 seconds for connections to clear...");
+							sleep(5000);
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						}
+
+						System.gc();
 						
-						File dbdata = new File(Server.DB_NAME.split(":")[1]);
-						if (dbdata.isDirectory()) {
+						String dbDirectory = Server.DB_NAME.split(":")[1];
+
+						// Delete the database files in the db_saved directory if they exist from a previous restore
+						File dbSaved = new File(dbDirectory+"_saved");
+						if (dbSaved.isDirectory()) {
 							boolean deletesuccess = true;
-							for (File c : dbdata.listFiles()) {
+							for (File c : dbSaved.listFiles()) {
 								try {
 									if (!deleteFile(c)) {
 										deletesuccess = false;
@@ -96,32 +110,40 @@ public class BackupRestore extends Weblet {
 									deletesuccess = false;
 								}
 							}
-							if (!deletesuccess) {
-								System.out.println("Error deleting old database before restore - exiting");
+							if (deletesuccess) {
+								dbSaved.delete();
+							} else {
+								System.out.println("Error deleting saved database before restore - exiting");
+								System.exit(-1);
+							}
+						}
+
+						// Rename the database directory
+						File dbdata = new File(dbDirectory);
+						if (dbdata.isDirectory()) {
+							try {
+								dbdata.renameTo(new File(dbDirectory+"_saved"));
+							} catch (Exception e) {
+								e.printStackTrace();
+								System.out.println("Error renaming old database - exiting");
 								System.exit(-1);
 							}
 						} else {
-							System.out.println("The data directory is not a directory - aborting restore - sorry");
+							System.out.println("The data directory "+dbDirectory+" is not a directory - aborting restore - sorry");
 							System.exit(-1);
 						}
-						Server.clearColumnsCache("ALL");
-						DatabaseConnection.clearRowCounts();;
-						getCache().clear();
-						Menu.clearCache();
-						Table.clearDataTypes();
-						Server.getDatabase().close();
-						System.out.println("Now initializing server with "+Server.restore_file);
-						System.gc();
-						try {
-							// Wait 5 seconds for requests to clear
-							System.out.println("Waiting 5 seconds...");
-							sleep(5000);
-						} catch (InterruptedException e) {
-							e.printStackTrace();
-						}
-						Server.initializeServer(Server.restore_file);
-						Server.restore_lockout = false;
-						System.out.println("Database has been restored");
+
+						// Because the stuff below doesn't work we have to restart and use the settings file to pass the backup file name
+						System.out.println("Setting restore localSetting for restore on startup");
+						Server.setLocalSetting("restore", Server.restore_file);
+
+						System.out.println("Exit with restart (1)");
+						System.exit(1);
+						
+						// This doesn't work because the server keeps remembering the database even though the files are gone (well, directory renamed)
+/*						Server.initializeServer(Server.restore_file);
+						System.out.println("We are back up now - I hope");
+*/
 					}
 				};
 				
@@ -135,19 +157,22 @@ public class BackupRestore extends Weblet {
 			String backupName = parms.get("BACKUP_FILENAME");
 			System.out.println("Creating backup of database to file "+backupName);
 			if (backupName.equals("")) {
-				errors.append(paragraph("error","Backup filename not specified"));
+				errors.append(paragraph("error",Message.get(locale,"BACKUP_FILENAME_NEEDED")));
 			} else {
 				try {
 					ODatabaseExport exp = new ODatabaseExport(con.getDb(), "backup/"+backupName, new OCommandOutputListener() {
 						public void onMessage(String iText) {
+							if (errorLog == null) errorLog = new StringBuffer();
+							errorLog.append(paragraph("Export message: "+iText));
 							System.out.println("Export Message: "+iText);
 						}});
 					exp.exportDatabase();
 					exp.close();
-					errors.append(paragraph("success","The database was successfully backed up to "+backupName));
+					errors.append(errorLog.toString());
+					errors.append(paragraph("success",Message.get(locale,"BACKUP_SUCCESS")+backupName));
 				} catch (IOException e1) {
 					e1.printStackTrace();
-					errors.append(paragraph("error","Error performing backup: "+e1.getLocalizedMessage()));
+					errors.append(paragraph("error",Message.get(locale,"BACKUP_FAIL")+e1.getLocalizedMessage()));
 				}
 			}
 		}

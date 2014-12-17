@@ -35,6 +35,7 @@ public class DatabaseConnection {
 	}
 	
 	protected void close() {
+			c.getLocalCache().invalidate();
 			c.close();
 			c = null;
 	}

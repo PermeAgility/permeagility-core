@@ -29,6 +29,7 @@ public class Shutdown extends Weblet {
 	    		+form("SHUTDOWN_FORM",
 	    			hidden("SHUTDOWN",parms.get("SHUTDOWN"))
 	    			+paragraph(Message.get(con.getLocale(),"SHUTDOWN_CONFIRM_MESSAGE"))
+	    			+paragraph(checkbox("WITH_RESTART",false)+"&nbsp;"+Message.get(con.getLocale(),"SHUTDOWN_RESTART"))
 	    			+submitButton(Message.get(con.getLocale(),"CONFIRM_SHUTDOWN"))
 	    			+"&nbsp;&nbsp;&nbsp;&nbsp;"
 	    			+submitButton(Message.get(con.getLocale(),"CANCEL"))
@@ -37,14 +38,15 @@ public class Shutdown extends Weblet {
 		} else {
 				System.out.println("Database and Server shutdown initiated by user "+con.getUser());
 				Server.restore_lockout = true;
+				int exitCode = parms.get("WITH_RESTART") != null ? 1 : 0;
+				System.out.println("Shutting down the server with exit status "+exitCode);
 				try {
-					System.out.println("Shutting down the database");
-					System.exit(0);
+					return head("Redirect") + bodyOnLoad("Redirecting...", "window.location.href='/';");
 				} catch (Exception e) {
-					e.printStackTrace();
+				} finally {
+					System.exit(exitCode);
 				}
-				return head("Redirect")
-				+ bodyOnLoad("Redirecting...", "window.location.href='/';");
+				return head("Redirect") + bodyOnLoad("Redirecting...", "window.location.href='/';");
 		}
     }
 

@@ -211,6 +211,7 @@ public class DatabaseSetup {
 			mCount += checkCreateMessage(con, loc, "PRIV_ALL", "do anything");
 			mCount += checkCreateMessage(con, loc, "SHUTDOWN_CONFIRM_MESSAGE", "This will shutdown the server, the server will need to be restarted at the host to continue");
 			mCount += checkCreateMessage(con, loc, "CONFIRM_SHUTDOWN", "Shut down");
+			mCount += checkCreateMessage(con, loc, "SHUTDOWN_RESTART", "with restart? (if running in script)");
 			mCount += checkCreateMessage(con, loc, "SHUTDOWN_SERVER", "Shut down the server");
 			mCount += checkCreateMessage(con, loc, "SQL_WEBLET", "Query");
 			mCount += checkCreateMessage(con, loc, "CANNOT_CREATE_ROW", "Error creating row: ");
@@ -280,11 +281,16 @@ public class DatabaseSetup {
 			mCount += checkCreateMessage(con, loc, "CACHE_SIZE", "Cache size");
 			mCount += checkCreateMessage(con, loc, "CACHE_LASTREFRESH", "Last refreshed");
 			mCount += checkCreateMessage(con, loc, "BACKUP_AND_RESTORE", "Backup and restore");
+			mCount += checkCreateMessage(con, loc, "BACKUP_DIRECTORY_CREATED", "Backup directory was created");
 			mCount += checkCreateMessage(con, loc, "BACKUP_THE_DATABASE", "Backup the database");
 			mCount += checkCreateMessage(con, loc, "BACKUP_FILENAME", "Backup filename");
+			mCount += checkCreateMessage(con, loc, "BACKUP_FILENAME_NEEDED", "Backup filename needed");
 			mCount += checkCreateMessage(con, loc, "BACKUP_NOW", "Backup now");
+			mCount += checkCreateMessage(con, loc, "BACKUP_SUCCESS", "The database was successfully backed up to:");
+			mCount += checkCreateMessage(con, loc, "BACKUP_FAIL", "Error backing up the database:");
 			mCount += checkCreateMessage(con, loc, "RESTORE_THE_DATABASE", "Restore the database");
 			mCount += checkCreateMessage(con, loc, "RESTORE_NOW", "Restore now");
+			mCount += checkCreateMessage(con, loc, "RESTORE_CONFIRM", "Restoring a backup will logout and lockout all users,<br> restore the database and restart the system.<br> Data that is currently in the database may be lost.<br> Please confirm this action");
 			mCount += checkCreateMessage(con, loc, "RESTORE_ACCESS", "You must be admin or a dba to backup and restore a database");
 			mCount += checkCreateMessage(con, loc, "RESTORE_PLOCAL", "You can only restore a plocal database using this tool");
 
