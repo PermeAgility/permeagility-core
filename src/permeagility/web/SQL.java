@@ -186,7 +186,11 @@ public class SQL extends Weblet {
 			} else if (o instanceof Number) {
 				sb.append(column(paragraphRight(xSmall(""+row.field(colName)))));
 			} else {
-				sb.append(column(xSmall(""+row.field(colName))));
+				if (colName.toUpperCase().endsWith("PASSWORD")) {
+					sb.append(column(xSmall("---")));					
+				} else {
+					sb.append(column(xSmall(""+row.field(colName))));
+				}
 			}
 		}
 		return sb.toString();
@@ -270,7 +274,28 @@ public class SQL extends Weblet {
 	    return "<div ng-controller=\"TextBuildControl\""
 	           +" ng-init=\"tables=["+tableInit+"]; columns=["+columnInit+"];\">\n"
 	    +table(0,
-	    	row(column("")
+	    	row(columnSpan(5,"<select ng-model=\"statement\" ng-change=\"add(statement+' ')\">\n"
+				      +"  <option value=\"SELECT FROM\">SELECT [field, *] FROM class|rid [LET $a=(query)] [WHERE condition] [GROUP BY field, *] [ORDER BY field, *] [SKIP n] [LIMIT n]</option>\n"
+				      +"  <option value=\"EXPLAIN SELECT FROM\">EXPLAIN query</option>\n"
+				      +"  <option value=\"INSERT INTO\">INSERT INTO class [SET field=value, *] [FROM query] [RETURN ret]</option>\n"
+				      +"  <option value=\"UPDATE\">UPDATE [SET field=val *] [UPSERT] [WHERE condition *] [LIMIT n] [RETURN ret]</option>\n"
+				      +"  <option value=\"DELETE FROM\">DELETE class [WHERE condition *] [LIMIT n] [RETURN ret]</option>\n"
+				      +"  <option value=\"CREATE CLASS\">CREATE CLASS class [EXTENDS super] [CLUSTER name, *]</option>\n"
+				      +"  <option value=\"CREATE CLUSTER\">CREATE CLUSTER name [POSITION position|APPEND] [CLUSTER name, *]</option>\n"
+				      +"  <option value=\"CREATE PROPERTY\">CREATE PROPERTY class.property type [linkedClass]</option>\n"
+				      +"  <option value=\"CREATE INDEX\">CREATE INDEX name|class.property [ON class (property, *)] UNIQUE|NOTUNIQUE|FULLTEXT</option>\n"
+				      +"  <option value=\"CREATE LINK\">CREATE LINK name TYPE LINK|LINKSET|LINKLIST FROM class.property TO class.property [INVERSE]</option>\n"
+				      +"  <option value=\"ALTER CLASS\">ALTER CLASS class NAME|SHORTNAME|SUPERCLASS|OVERSIZE|ADDCLUSTER|REMOVECLUSTER|STRICTMODE value</option>\n"
+				      +"  <option value=\"ALTER CLUSTER\">ALTER CLUSTER name|id NAME|DATASEGMENT|COMPRESSION|USE_WAL|RECORD_GROW_FACTOR|CONFLICTSTRATEGY value</option>\n"
+				      +"  <option value=\"ALTER PROPERTY\">ALTER PROPERTY class.property NAME|LINKEDCLASS|MIN|MAX|MANDATORY|NOTNULL|REGEXP|TYPE|COLLATE value</option>\n"
+				      +"  <option value=\"DROP\">DROP CLASS|CLUSTER|INDEX|PROPERTY value</option>\n"
+				      +"  <option value=\"TRUNCATE\">TRUNCATE CLASS|CLUSTER|RECORD name|rid</option>\n"
+				      +"  <option value=\"GRANT\">GRANT NONE|CREATE|READ|UPDATE|DELETE|ALL ON class|resource TO role</option>\n"
+				      +"  <option value=\"REVOKE\">REVOKE NONE|CREATE|READ|UPDATE|DELETE|ALL ON class|resource FROM role</option>\n"
+				      +"  <option value=\"TRAVERSE\">TRAVERSE class.field|*|any()|all() FROM class|rid|query [LET var*] WHILE $depth<n [LIMIT n] [STRATEGY s] </option>\n"
+				      +"  <option value=\"\">None</option>\n"
+				      +"</select>\n"))
+	    	+row(column("")
 	    		+column(
 			    	"<select ng-model=\"selGroup\"\n"
 			    	+"  ng-options=\"v.group for v in tables | unique:'group'\" >\n"
