@@ -178,7 +178,6 @@ public class Server extends Thread {
 		}
 		
 		try {
-			if (SELF_TEST) throw new Exception("SelfTest exit");
 			System.out.println("Opening HTTP_PORT "  + HTTP_PORT);
 			ss = new ServerSocket(HTTP_PORT);
 
@@ -191,11 +190,15 @@ public class Server extends Thread {
 						closeAllConnections();
 					}
 				});
-				System.out.println("Accepting connections on HTTP_PORT "  + ss.getLocalPort());
-				viewPage("");  // Fire up the browser
-				while (true) {
-					Server s = new Server(ss.accept());
-					s.start();
+				if (SELF_TEST) {
+					System.out.println("self test - exiting...");
+				} else {
+					System.out.println("Accepting connections on HTTP_PORT "  + ss.getLocalPort());
+					viewPage("");  // Fire up the browser if Win or OS X
+					while (true) {
+						Server s = new Server(ss.accept());
+						s.start();
+					}
 				}
 			}
 		} catch (BindException b) {
