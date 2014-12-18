@@ -51,10 +51,13 @@ import com.orientechnologies.orient.core.metadata.security.ORule;
 import com.orientechnologies.orient.core.metadata.security.ORule.ResourceGeneric;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 
+/** This is the PermeAgility web server - it handles security, database connections and some useful caches for privileges and such
+  * all web requests go through the run() function for each thread/socket
+  *  
+  *  Parameters: [port=1999] [db=plocal:db] [selftest] 
+  */
 public class Server extends Thread {
 
-	//private static final boolean USE_SERVER = false;  // Read at initial run time only - no changes via constant table
-	
 	static int HTTP_PORT = 1999;  // First parameter
 	static String DB_NAME = "plocal:db";  // Second parameter
 	private static Date serverInitTime = new Date();
@@ -62,7 +65,6 @@ public class Server extends Thread {
 
 	/* Overrideable constants */
 	public static boolean DEBUG = true;
-	
 	public static int SOCKET_TIMEOUT = 60000;  // One minute timeout
 	public static boolean ALLOW_KEEP_ALIVE = true;
 	public static boolean KEEP_ALIVE = true;  // Keep sockets alive by default, don't wait for browser to ask
