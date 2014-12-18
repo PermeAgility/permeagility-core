@@ -1,4 +1,4 @@
-package permeagility.web;
+package permeagility.plus;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -7,6 +7,9 @@ import permeagility.util.Database;
 import permeagility.util.DatabaseConnection;
 import permeagility.util.DatabaseSetup;
 import permeagility.util.QueryResult;
+import permeagility.web.Message;
+import permeagility.web.Server;
+import permeagility.web.Table;
 
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OProperty;

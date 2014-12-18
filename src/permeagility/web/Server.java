@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.net.BindException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
@@ -176,35 +177,36 @@ public class Server extends Thread {
 			}
 		}
 		
-		if (initializeServer()) {   // StarterDB is the default startup (not needed for core)
-			// Add shutdown hook to stop processes and shutdown database
-			Runtime.getRuntime().addShutdownHook(new Thread() {
-				public void run() {
-					System.out.println("Shutting down the server");
-					closeAllConnections();
-				}
-			});
-			try {
-				if (SELF_TEST) throw new Exception("SelfTest exit");
-				System.out.println("Opening HTTP_PORT "  + HTTP_PORT);
-				ss = new ServerSocket(HTTP_PORT);
+		try {
+			if (SELF_TEST) throw new Exception("SelfTest exit");
+			System.out.println("Opening HTTP_PORT "  + HTTP_PORT);
+			ss = new ServerSocket(HTTP_PORT);
+
+			if (initializeServer()) {   // StarterDB is the default startup (not needed for core)
+
+				// Add shutdown hook
+				Runtime.getRuntime().addShutdownHook(new Thread() {
+					public void run() {
+						System.out.println("Shutting down the server");
+						closeAllConnections();
+					}
+				});
 				System.out.println("Accepting connections on HTTP_PORT "  + ss.getLocalPort());
 				viewPage("");  // Fire up the browser
 				while (true) {
 					Server s = new Server(ss.accept());
 					s.start();
 				}
-			} catch (Exception e) {
-				System.err.println("***\n*** Exit condition: \n***"+e.getMessage());
-				System.exit(1);
-			} finally {
-				if (database != null) {
-					database.close();
-				}
-				System.out.println("Database disconnected");
-				System.out.println("Server Stopped");
-				System.exit(0);
 			}
+		} catch (BindException b) {
+			System.err.println("***\n*** Exit condition: \n***"+b.getMessage());
+			viewPage("");  // Fire up the browser - server is probably already up		
+		} catch (Exception e) {
+			System.err.println("***\n*** Exit condition: \n***"+e.getClass().getName()+":"+e.getMessage());
+			System.exit(-1);
+		} finally {
+			System.out.println("Server Stopped");
+			System.exit(0);
 		}
 	}
 		
@@ -1282,7 +1284,7 @@ public class Server extends Thread {
 	
 	static boolean initializeServer() {
 		System.out.println("Initializing server using OrientDB Version "+OConstants.getVersion()+" Build number "+OConstants.getBuildNumber());
-//		OGlobalConfiguration.CACHE_LOCAL_ENABLED.setValue(false);  // To ensure concurrency across threads
+//		OGlobalConfiguration.CACHE_LOCAL_ENABLED.setValue(false);  // To ensure concurrency across threads (pre 2.0-M3)
 		try {
 			String p = getLocalSetting(DB_NAME+HTTP_PORT, "");
 			//System.out.println("Localsetting for password is "+p);

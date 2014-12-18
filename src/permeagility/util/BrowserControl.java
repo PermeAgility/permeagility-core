@@ -9,12 +9,11 @@ import java.io.IOException;
 
 /**
  * A simple, static class to display a URL in the system browser.
- *
- * Under Unix or Linux etc.. nothing will happen, assume in Cloud
- *
+ * Under Unix or Linux etc.. nothing will happen (assumes in Cloud)
  * Under Windows or Mac OS X, this will bring up the default browser.
  */
 public class BrowserControl {
+	
     /**
      * Display a file in the system browser. If you want to display a
      * file, you must include the absolute path name.
@@ -26,7 +25,7 @@ public class BrowserControl {
         String os = System.getProperty("os.name");
         String cmd = null;
 
-        System.out.println("Running on "+os+" for url "+url);
+        System.out.println("Call to open browser on "+os+" for url "+url);
         try {
             if (os.startsWith(WIN_OS_ID)) {
                 // cmd = 'rundll32 url.dll,FileProtocolHandler http://...'
@@ -39,20 +38,14 @@ public class BrowserControl {
             	System.out.println("Not configured to open a browser in this operating system");
             }
         }
-        catch(IOException x)
-        {
-            // couldn't exec browser
+        catch(IOException x) {
             System.err.println("Could not invoke browser, command=" + cmd);
             System.err.println("Caught: " + x);
         }
     }
 
-
-    /**
-     * Simple example.
-     */
-    public static void main(String[] args)
-    {
+    /** Simple example. */
+    public static void main(String[] args) {
         displayURL("http://www.google.com");
     }
 

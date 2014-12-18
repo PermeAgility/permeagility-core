@@ -93,9 +93,9 @@ public class Context extends Weblet {
 		// Return content
 		return
 		    paragraph(Message.get(locale, "SERVER_ON_PORT")+"&nbsp;"+Server.HTTP_PORT
-		    		+br()+Message.get(locale, "SERVER_RUNNING")+" "+Server.getServerInitTime()
-		    		+br()+Message.get(locale, "SERVER_CONNECT")+" "+Server.DB_NAME
-		    		+br()+Message.get(locale, "SERVER_USER")+" "+Server.getDatabase().getUser()
+		    		+br()+Message.get(locale, "SERVER_RUNNING")+"&nbsp;"+Server.getServerInitTime()
+		    		+br()+Message.get(locale, "SERVER_CONNECT")+"&nbsp;"+Server.DB_NAME
+		    		+br()+Message.get(locale, "SERVER_USER")+"&nbsp;"+Server.getDatabase().getUser()
 		    		+br()+Message.get(locale, "SERVER_VERSION")+Server.getDatabase().getClientVersion())
 		    +paragraph("banner",Message.get(locale, "SERVER_CACHE"))
 			+form(button("REFRESH_COLUMNS_ALL","REFRESHCOLUMNS",Message.get(locale, "CACHE_CLEAR_COLUMNS"))

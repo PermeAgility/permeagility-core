@@ -31,7 +31,7 @@ public class Menu extends Weblet {
 	public String getHTML(DatabaseConnection con, HashMap<String,String> parms) {
 		
 		Locale locale = con.getLocale();
-		String localeSelector = "<BR><BR><BR><BR>"+xxSmall(Message.getLocaleSelector(locale,parms));
+		String localeSelector = "<BR><BR><BR><BR>"+xxSmall(Message.getLocaleSelector(locale,parms)+"<BR><BR><BR><BR>");
 		
 		// Return value from cache if it is there
 		String cmenu = menuCache.get(con.getUser());

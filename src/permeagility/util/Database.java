@@ -38,7 +38,6 @@ public class Database implements Serializable {
 	public double POOL_GROWTH_FACTOR = 0.75; // When active connections reaches this portion of the MAX, increase the pool 
 	public boolean ALLOW_POOL_GROWTH = true;   // Will increase size by if active guest connections > 75% of pool 
 
-
 	private String url = null;
 	private String user = null;
 	private String password = null;
@@ -101,9 +100,7 @@ public class Database implements Serializable {
 		return pooledConnections.size();
 	}
 	
-	/*
-	 * Not very reliable. Can't be trusted to know if any of the connections are still good
-	 */
+	/* Not very reliable. Can't be trusted to know if any of the connections are still good */
 	public boolean isConnected() {
 		return pooledConnections.size() + activeConnections.size() > 0;
 	}
