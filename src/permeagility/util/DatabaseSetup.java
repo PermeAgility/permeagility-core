@@ -204,6 +204,7 @@ public class DatabaseSetup {
 			mCount += checkCreateMessage(con, loc, "DROP_TABLE", "Drop table");
 			mCount += checkCreateMessage(con, loc, "DROP_TABLE_CONFIRM", "Are you sure you want to drop this table? (cannot be undone)");
 			mCount += checkCreateMessage(con, loc, "NEW_TABLE", "New table");
+			mCount += checkCreateMessage(con, loc, "NEW_TABLE_CREATED", "New table created called {0} will be shown as {1} - translate with TABLE_{0}");			
 			mCount += checkCreateMessage(con, loc, "PRIV_CREATE", "Create");
 			mCount += checkCreateMessage(con, loc, "PRIV_READ", "Read");
 			mCount += checkCreateMessage(con, loc, "PRIV_UPDATE", "Update");

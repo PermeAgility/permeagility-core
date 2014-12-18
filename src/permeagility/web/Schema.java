@@ -12,15 +12,18 @@ import permeagility.util.DatabaseSetup;
 import permeagility.util.QueryResult;
 
 import com.orientechnologies.orient.core.metadata.schema.OClass;
+import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 
 public class Schema extends Weblet {
 	
 	public static int NUMBER_OF_COLUMNS = 4;
+	public static boolean ADD_NAME_TO_NEW_TABLE = true;   // Will always add a name field to a new table (if you don't like it, delete it)
 	
 	public String getPage(DatabaseConnection con, java.util.HashMap<String,String> parms) {
 		parms.put("SERVICE", Message.get(con.getLocale(),"SCHEMA_EDITOR"));
 		StringBuffer errors = new StringBuffer();
+		
 		String submit = (String)parms.get("SUBMIT");
 		if (submit != null) {
 			if (submit.equals(Message.get(con.getLocale(),"NEW_TABLE"))) {
@@ -29,9 +32,13 @@ public class Schema extends Weblet {
 					errors.append(paragraph("error","Table name must be specified"));
 				} else {
 					try {
-						OClass newclass = con.getSchema().createClass(tn);
+						String camel = makePrettyCamelCase(tn);
+						OClass newclass = con.getSchema().createClass(camel);
 						if (newclass != null) {
-							errors.append(paragraph("success","New table created"));
+							errors.append(paragraph("success",Message.get(con.getLocale(),"NEW_TABLE_CREATED",camel,makeCamelCasePretty(camel))));
+							if (ADD_NAME_TO_NEW_TABLE) {
+								newclass.createProperty("name", OType.STRING).setNotNull(false).setMandatory(false);
+							}
 						} else {
 							errors.append(paragraph("warning","New table returned null class"));							
 						}

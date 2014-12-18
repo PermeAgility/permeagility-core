@@ -215,12 +215,13 @@ public class Table extends Weblet {
 						if (c == null) {
 							errors.append(paragraph("error", Message.get(con.getLocale(), "CANNOT_CREATE_COLUMN") + " Cannot find class to create column in table: " + table));							
 						} else {
+							String camel = makePrettyCamelCase(cn);
 							if (tr != null) {
-								c.createProperty(cn, type, con.getSchema().getClass(tr));
+								c.createProperty(camel, type, con.getSchema().getClass(tr));
 							} else {
-								c.createProperty(cn, type);
+								c.createProperty(camel, type);
 							}
-							errors.append(paragraph("success", Message.get(con.getLocale(), "NEW_COLUMN_CREATED")));
+							errors.append(paragraph("success", Message.get(con.getLocale(), "NEW_COLUMN_CREATED")+":&nbsp;"+camel));
 							Server.tableUpdated("metadata:schema");
 							Server.clearColumnsCache(table);
 						}
