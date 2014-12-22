@@ -236,6 +236,7 @@ public class DatabaseSetup {
 			mCount += checkCreateMessage(con, loc, "ROW_CANNOT_BE_DELETED", "Sorry, The row could not be deleted:");
 			mCount += checkCreateMessage(con, loc, "ROW_DELETED", "Row deleted");
 			mCount += checkCreateMessage(con, loc, "NOTHING_TO_UPDATE", "Nothing to update");
+			mCount += checkCreateMessage(con, loc, "NOTHING_TO_INSERT", "Nothing to insert");
 			mCount += checkCreateMessage(con, loc, "INVALID_DATE_VALUE", "Cannot read date value {0} column not updated");
 			mCount += checkCreateMessage(con, loc, "INVALID_NUMBER_VALUE", "Cannot read number value {0} column not updated");
 			mCount += checkCreateMessage(con, loc, "COLUMN_NAME_AND_TYPE_REQUIRED", "Column name and type required");

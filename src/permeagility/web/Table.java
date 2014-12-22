@@ -137,7 +137,7 @@ public class Table extends Weblet {
 						submit = null;
 					} else {
 						return head(title)
-								+ body(standardLayout(con, parms, getTableRowForm(con, table, parms) + errors.toString()));
+								+ body(standardLayout(con, parms, errors.toString() + getTableRowForm(con, table, parms) ));
 					}
 			} else if (submit != null && submit.equals(Message.get(locale, "UPDATE"))) {
 				if (DEBUG) System.out.println("In updating row");
@@ -146,7 +146,7 @@ public class Table extends Weblet {
 					parms.remove("UPDATE_ID");
 				} else {
 					return head(title, getDateControlScript()+getColorControlScript()+getPrettyPhotoScript())
-							+ body(standardLayout(con, parms, getTableRowForm(con, table, parms) + errors.toString()));
+							+ body(standardLayout(con, parms, errors.toString() + getTableRowForm(con, table, parms) ));
 				}
 			} else {
 				// Cancel is assumed
