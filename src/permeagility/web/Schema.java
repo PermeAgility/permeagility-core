@@ -18,7 +18,7 @@ import com.orientechnologies.orient.core.record.impl.ODocument;
 public class Schema extends Weblet {
 	
 	public static int NUMBER_OF_COLUMNS = 4;
-	public static boolean ADD_NAME_TO_NEW_TABLE = true;   // Will always add a name field to a new table (if you don't like it, delete it)
+	public static boolean ADD_NAME_TO_NEW_TABLE = true;   // Will always add a name field to a new table (if you don't like it, delete it or change this constant)
 	
 	public String getPage(DatabaseConnection con, java.util.HashMap<String,String> parms) {
 		parms.put("SERVICE", Message.get(con.getLocale(),"SCHEMA_EDITOR"));
@@ -39,6 +39,7 @@ public class Schema extends Weblet {
 							if (ADD_NAME_TO_NEW_TABLE) {
 								newclass.createProperty("name", OType.STRING).setNotNull(false).setMandatory(false);
 							}
+							Server.tableUpdated("metadata:schema");
 						} else {
 							errors.append(paragraph("warning","New table returned null class"));							
 						}
@@ -121,24 +122,23 @@ public class Schema extends Weblet {
 					}
 				}
 			}
-			columns.append(columnTop(100/(schemas.size()+1),tablelist.toString()));
+			columns.append(column(tablelist.toString()));
 		}
 		
 		// Make sure the last row is added
 		if (columns.length() > 0) {
-			rows.append(columns);
+			rows.append(row(columns.toString()));
 		}
 
 		// Return result
 		return 	
-			head("Schema Weblet")+
+			head(Message.get(con.getLocale(),"SCHEMA_EDITOR"))+
 			body( standardLayout(con, parms,  
 					errors.toString()
-					+table(0,rows.toString())
-					+br()
+					+table(0,rows.toString())+br()
 					+(Server.isDBA(con) 
 						? popupForm("NEWTABLE_Ungrouped",null,Message.get(con.getLocale(),"NEW_TABLE"),"","NEWTABLENAME",
-								input("NEWTABLENAME","")
+								input("NEWTABLENAME","")+"&nbsp;&nbsp;"
 								+submitButton(Message.get(con.getLocale(),"NEW_TABLE"))
 								)
 						: "")

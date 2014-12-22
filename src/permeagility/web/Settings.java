@@ -52,6 +52,21 @@ public class Settings extends Weblet {
 					currentStyle.field("value", style.field("name"));
 					currentStyleName = style.field("name");
 					currentStyle.save();
+					Boolean horiz = style.field("horizontal");
+					ODocument currentMenuSetting = con.queryDocument("SELECT FROM "+DatabaseSetup.TABLE_CONSTANT+" WHERE classname='permeagility.web.Menu' AND field='HORIZONTAL_LAYOUT'");
+					if (currentMenuSetting == null) {
+						currentMenuSetting = con.create(DatabaseSetup.TABLE_CONSTANT);
+						currentMenuSetting.field("classname","permeagility.web.Menu");
+						currentMenuSetting.field("field","HORIZONTAL_LAYOUT");
+					}
+					if (horiz == null || horiz.booleanValue()==false) {
+						currentMenuSetting.field("value","false");
+					} else {
+						currentMenuSetting.field("value","true");						
+					}
+					currentMenuSetting.save();
+					setCreateConstant(con,"permeagility.web.Header","LOGO_FILE",(String)style.field("logo"));
+					Menu.clearCache();
 					Server.tableUpdated("constant");
 					errors.append(paragraph("success",Message.get(con.getLocale(),"SYSTEM_STYLE_UPDATED")));
 				} catch (Exception e) {
@@ -99,6 +114,22 @@ public class Settings extends Weblet {
     	);
     }
 
+    public boolean setCreateConstant(DatabaseConnection con, String classname, String field, String value) {
+    	try {
+			ODocument currentSetting = con.queryDocument("SELECT FROM "+DatabaseSetup.TABLE_CONSTANT+" WHERE classname='"+classname+"' AND field='"+field+"'");
+			if (currentSetting == null) {
+				currentSetting = con.create(DatabaseSetup.TABLE_CONSTANT);
+				currentSetting.field("classname",classname);
+				currentSetting.field("field",field);
+			}
+			currentSetting.field("value",value);
+			currentSetting.save();
+    	} catch (Exception e) {
+    		e.printStackTrace();
+    		return false;
+    	}
+    	return true;
+    }
 }
 
 

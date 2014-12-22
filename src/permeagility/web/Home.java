@@ -40,5 +40,3 @@ public class Home extends Weblet {
     }
 
 }
-
-

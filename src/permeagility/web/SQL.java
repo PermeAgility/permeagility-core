@@ -24,9 +24,8 @@ public class SQL extends Weblet {
 	public String getPage(DatabaseConnection con, java.util.HashMap<String,String> parms) {
 		parms.put("SERVICE", Message.get(con.getLocale(), "SQL_WEBLET"));
 		String query = (String)parms.get("SQL");
-		String submit = (String)parms.get("SUBMIT");
 		return 	
-			head(Message.get(con.getLocale(), "SQL_WEBLET")+"&nbsp;"+query,getSortTableScript()+getAngularControlScript())+
+			head(Message.get(con.getLocale(), "SQL_WEBLET")+"&nbsp;"+query,getSortTableScript())+
 			body( standardLayout(con, parms,  
 				getSQLBuilder(con)
 				+form("QUERY","#",
@@ -38,7 +37,7 @@ public class SQL extends Weblet {
 				+paragraph("banner",Message.get(con.getLocale(), "QUERY_RESULTS"))
 				+anchor("TOP",Message.get(con.getLocale(), "RESULTS_TOP"))+"&nbsp;&nbsp;&nbsp;"
 				+link("#BOTTOM",Message.get(con.getLocale(), "RESULTS_BOTTOM"))
-				+paragraph(medium(Message.get(con.getLocale(), "QUERY_IS")+"&nbsp;"+query))
+				+paragraph(Message.get(con.getLocale(), "QUERY_IS")+"&nbsp;"+query)
 				+table("sortable", getResult(con, query))
 				+anchor("BOTTOM",Message.get(con.getLocale(), "RESULTS_BOTTOM"))+"&nbsp;&nbsp;&nbsp;"
 				+link("#TOP",Message.get(con.getLocale(), "RESULTS_TOP"))		  
@@ -97,10 +96,10 @@ public class SQL extends Weblet {
 	public String getRowHeader(QueryResult rs, ArrayList<String> cols) throws SQLException {
 		StringBuffer sb = new StringBuffer();
 		String[] columns = rs.getColumns();
-		sb.append(tableHead(medium(bold("rid"))));		
+		sb.append(columnHeader("rid"));		
 		if (columns != null) {
 			for (String colName : columns) {
-				sb.append(tableHead(medium(bold(colName))));
+				sb.append(columnHeader(colName));
 				cols.add(colName);
 			}
 			return sb.toString();
@@ -114,35 +113,33 @@ public class SQL extends Weblet {
 		StringBuffer sb = new StringBuffer();
 		ODocument row = rs.get(r);
 		if (row.getIdentity().toString().contains("-")) {
-			sb.append(column(paragraphRight(xSmall(row.getIdentity().toString()))));
+			sb.append(column(paragraphRight(row.getIdentity().toString())));
 		} else {
-			sb.append(column(paragraphRight(xSmall(link("permeagility.web.Table?TABLENAME="+row.getClassName()+"&EDIT_ID="+row.getIdentity().toString().substring(1)
-					, row.getIdentity().toString()
-					, "_blank")))));			
+			sb.append(column(paragraphRight(link("permeagility.web.Table?TABLENAME="+row.getClassName()+"&EDIT_ID="+row.getIdentity().toString().substring(1), row.getIdentity().toString(), "_blank"))));			
 		}
 		for (String colName : columns) {
 			Object o = row.field(colName);
 			if (DEBUG) System.out.println(colName+"="+(o == null ? "null" : o.getClass().getName()));
 			if (o instanceof ODocument) {  // OrientDB Link  
 				ODocument d = row.field(colName);
-				sb.append(column(paragraphRight(xSmall(d == null ? "null" : getDocumentLink(con, d)))));
+				sb.append(column(paragraphRight(d == null ? "null" : getDocumentLink(con, d))));
 			} else if (o instanceof Boolean) { // OrientDB boolean
-				sb.append(column(paragraphRight(xSmall(""+row.field(colName)))));
+				sb.append(column(paragraphRight(""+row.field(colName))));
 			} else if (o instanceof Byte) { // OrientDB boolean
-				sb.append(column(paragraphRight(xSmall(""+row.field(colName)))));
+				sb.append(column(paragraphRight(""+row.field(colName))));
 			} else if (o instanceof ORecordBytes) { // PermeAgility Image/Blob or other?
 				String out;
-				ORecordBytes or = (ORecordBytes)o;
+				//ORecordBytes or = (ORecordBytes)o;
 				StringBuffer desc = new StringBuffer();
 				String blobid = Thumbnail.getThumbnailId(row.getClassName(), row.getIdentity().toString().substring(1), colName, desc);
 				if (blobid != null) {
 					out = column(Thumbnail.getThumbnailLink(blobid, desc.toString()));
 				} else {
-					out = column(xSmall(Message.get(con.getLocale(), "THUMBNAIL_NOT_FOUND",colName,row.getIdentity().toString())));					
+					out = column(Message.get(con.getLocale(), "THUMBNAIL_NOT_FOUND",colName,row.getIdentity().toString()));					
 				} 
 				sb.append(out);
 			} else if (o instanceof List) {  // LinkList
-				List<ODocument> l = (List)o;
+				List<ODocument> l = (List<ODocument>)o;
 				StringBuffer ll = new StringBuffer();
 				if (l != null) {
 					for (Object od : l) {
@@ -154,9 +151,9 @@ public class SQL extends Weblet {
 						}
 					}
 				}
-				sb.append(column(xSmall(ll.toString())));
+				sb.append(column(ll.toString()));
 			} else if (o instanceof Set) {  // LinkSet
-				Set<ODocument> l = (Set)o;
+				Set<ODocument> l = (Set<ODocument>)o;
 				StringBuffer ll = new StringBuffer();
 				if (l != null) {
 					for (Object od : l) {
@@ -168,9 +165,9 @@ public class SQL extends Weblet {
 						}
 					}
 				}
-				sb.append(column(xSmall(ll.toString())));
+				sb.append(column(ll.toString()));
 			} else if (o instanceof Map) {    // LinkMap
-				Map<String,ODocument> l = (Map)o;
+				Map<String,ODocument> l = (Map<String,ODocument>)o;
 				StringBuffer ll = new StringBuffer();
 				if (l != null) {
 					for (String k : l.keySet()) {
@@ -182,14 +179,14 @@ public class SQL extends Weblet {
 						}
 					}
 				}
-				sb.append(column(xSmall(ll.toString())));
+				sb.append(column(ll.toString()));
 			} else if (o instanceof Number) {
-				sb.append(column(paragraphRight(xSmall(""+row.field(colName)))));
+				sb.append(column(paragraphRight(""+row.field(colName))));
 			} else {
 				if (colName.toUpperCase().endsWith("PASSWORD")) {
-					sb.append(column(xSmall("---")));					
+					sb.append(column("---"));					
 				} else {
-					sb.append(column(xSmall(""+row.field(colName))));
+					sb.append(column(""+row.field(colName)));
 				}
 			}
 		}
@@ -223,7 +220,7 @@ public class SQL extends Weblet {
 			}
 			String groupName = (String)schema.field("name");
 			tablelist.append(paragraph("banner", groupName));
-			boolean groupHasTable = false;
+			//boolean groupHasTable = false;
 			for (String tableName : table) {
 				tableName = tableName.trim();
 				boolean show = true;
@@ -239,7 +236,7 @@ public class SQL extends Weblet {
 						tableName = tableName.trim();
 						if (tableInit.length()>0) tableInit.append(", ");
 						tableInit.append("{ group:'"+groupName+"', table:'"+tableName+"'}");
-						groupHasTable = true;
+				//		groupHasTable = true;
 					}
 				}
 			}
@@ -275,7 +272,8 @@ public class SQL extends Weblet {
 	           +" ng-init=\"tables=["+tableInit+"]; columns=["+columnInit+"];\">\n"
 	    +table(0,
 	    	row(columnSpan(5,"<select ng-model=\"statement\" ng-change=\"add(statement+' ')\">\n"
-				      +"  <option value=\"SELECT FROM\">SELECT [field, *] FROM class|rid [LET $a=(query)] [WHERE condition] [GROUP BY field, *] [ORDER BY field, *] [SKIP n] [LIMIT n]</option>\n"
+  				      +"  <option value=\"SELECT FROM\">SELECT [field, *] FROM class|rid [LET $a=(query)] [WHERE condition] [GROUP BY field, *] [ORDER BY field, *] [SKIP n] [LIMIT n]</option>\n"
+				      +"  <option value=\"SELECT EXPAND( $c ) LET $a = ( SELECT FROM t1 ), $b = ( SELECT FROM t2 ), $c = UNIONALL( $a, $b )\">SELECT (2 Table union template - replace t1 and t2)</option>\n"
 				      +"  <option value=\"EXPLAIN SELECT FROM\">EXPLAIN query</option>\n"
 				      +"  <option value=\"INSERT INTO\">INSERT INTO class [SET field=value, *] [FROM query] [RETURN ret]</option>\n"
 				      +"  <option value=\"UPDATE\">UPDATE [SET field=val *] [UPSERT] [WHERE condition *] [LIMIT n] [RETURN ret]</option>\n"
@@ -292,7 +290,7 @@ public class SQL extends Weblet {
 				      +"  <option value=\"TRUNCATE\">TRUNCATE CLASS|CLUSTER|RECORD name|rid</option>\n"
 				      +"  <option value=\"GRANT\">GRANT NONE|CREATE|READ|UPDATE|DELETE|ALL ON class|resource TO role</option>\n"
 				      +"  <option value=\"REVOKE\">REVOKE NONE|CREATE|READ|UPDATE|DELETE|ALL ON class|resource FROM role</option>\n"
-				      +"  <option value=\"TRAVERSE\">TRAVERSE class.field|*|any()|all() FROM class|rid|query [LET var*] WHILE $depth<n [LIMIT n] [STRATEGY s] </option>\n"
+				      +"  <option value=\"TRAVERSE\">TRAVERSE class.field|*|any()|all() FROM class|rid|query [LET var*] WHILE $depth&lt;n [LIMIT n] [STRATEGY s] </option>\n"
 				      +"  <option value=\"\">None</option>\n"
 				      +"</select>\n"))
 	    	+row(column("")

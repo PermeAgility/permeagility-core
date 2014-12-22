@@ -83,8 +83,7 @@ public class Message {
 	public static TreeMap<String,String> loadBundle(DatabaseConnection con, Locale locale) {
 		TreeMap<String,String> table = new TreeMap<String,String>();
 		try {
-//			String query = "SELECT name, description FROM message WHERE locale.name='"+locale.toString()+"' ORDER BY name";
-			String query = "SELECT name, description FROM "+DatabaseSetup.TABLE_MESSAGE+" WHERE locale.name='"+locale.toString()+"'";  // Not sure if order helps the TreeMap
+			String query = "SELECT name, description FROM "+DatabaseSetup.TABLE_MESSAGE+" WHERE locale.name='"+locale.toString()+"'";  // No order needed for TreeMap
 			if (DEBUG) System.out.println("query: "+query );
 			QueryResult rs = con.query(query);
 			for (ODocument row : rs.get()) {
@@ -153,10 +152,10 @@ public class Message {
 		if (locale == null) {
 		    locale = defaultLocale;
 		}
-		StringBuffer localeList = new StringBuffer(100);
+		StringBuffer localeList = new StringBuffer();
 		for (Locale l : getLocales()) {
 		    if (!l.getLanguage().equals(locale.getLanguage())) {
-			    localeList.append("<A HREF=\""+parms.get("REQUESTED_CLASS_NAME")+"?LOCALE="+l.getLanguage()+"\">"+l.getDisplayLanguage(l)+" "+l.getDisplayCountry(l)+" "+l.getDisplayVariant(l)+"</A><BR>\n");
+			    localeList.append("<a class=\"menuitem\" href=\""+parms.get("REQUESTED_CLASS_NAME")+"?LOCALE="+l.getLanguage()+"\">"+l.getDisplayLanguage(l)+" "+l.getDisplayCountry(l)+" "+l.getDisplayVariant(l)+"</a><br>\n");
 		    }				
 		}
 		return localeList.toString();

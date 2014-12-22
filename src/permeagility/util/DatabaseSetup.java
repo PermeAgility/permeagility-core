@@ -176,9 +176,12 @@ public class DatabaseSetup {
 			mCount += checkCreateMessage(con, loc, "CONFIRM_PASSWORD", "Confirm password");
 			mCount += checkCreateMessage(con, loc, "SERVER_SETTINGS", "Server settings");
 			mCount += checkCreateMessage(con, loc, "SET_STYLE", "Stylesheet");
-			mCount += checkCreateMessage(con, loc, "SET_ROWCOUNT", "Table page limit");
+			mCount += checkCreateMessage(con, loc, "SET_ROWCOUNT", "Table page size");
 			mCount += checkCreateMessage(con, loc, "INVALID_USER_OR_PASSWORD", "Invalid user/password");
+			mCount += checkCreateMessage(con, loc, "YOU_ARE_NOT_LOGGED_IN", "You are not logged in");
 			mCount += checkCreateMessage(con, loc, "LOGOUT", "Logout");
+			mCount += checkCreateMessage(con, loc, "LANGUAGE", "Language");
+			mCount += checkCreateMessage(con, loc, "SELECT_LANGUAGE", "Select");
 			mCount += checkCreateMessage(con, loc, "NO_ACCESS_TO_TABLE", "Unsufficient privilege to access table");
 			mCount += checkCreateMessage(con, loc, "TABLE_NONGROUPED", "Ungrouped");
 			mCount += checkCreateMessage(con, loc, "ALL_ROWS_IN_TABLE", "All rows");
@@ -221,6 +224,8 @@ public class DatabaseSetup {
 			mCount += checkCreateMessage(con, loc, "NEW_ROW_CREATED", "New row created: ");
 			mCount += checkCreateMessage(con, loc, "NEW_COLUMN_CREATED", "New column created");
 			mCount += checkCreateMessage(con, loc, "ROW_UPDATED", "Row updated: {0}");
+			mCount += checkCreateMessage(con, loc, "SYSTEM_STYLE_UPDATED", "Style changed");
+			mCount += checkCreateMessage(con, loc, "ROW_COUNT_LIMIT_UPDATED", "Page size updated");
 			mCount += checkCreateMessage(con, loc, "GOTO_ROW", "Goto&gt;");
 			mCount += checkCreateMessage(con, loc, "COPY", "Copy");
 			mCount += checkCreateMessage(con, loc, "DELETE_MESSAGE", "Are you sure you want to delete this?");
@@ -336,13 +341,24 @@ public class DatabaseSetup {
 			System.out.print(TABLE_STYLE+" ");
 			OClass styleTable = Database.checkCreateClass(oschema, TABLE_STYLE, installMessages);
 			Database.checkCreateProperty(styleTable, "name", OType.STRING, installMessages);
+			Database.checkCreateProperty(styleTable, "horizontal", OType.BOOLEAN, installMessages);
+			Database.checkCreateProperty(styleTable, "logo", OType.STRING, installMessages);
 			Database.checkCreateProperty(styleTable, "description", OType.STRING, installMessages);
 			
 			if (styleTable.count() == 0) {
 				ODocument style = con.create(TABLE_STYLE); 
 				style.field("name", "default");
 				style.field("description", DEFAULT_STYLESHEET);
+				style.field("logo", "Logo-blk.svg");
 				style.save();
+
+				ODocument style2 = con.create(TABLE_STYLE); 
+				style2.field("name", "horizontal");
+				style2.field("horizontal", true);
+				style2.field("logo", "Logo-yel.svg");
+				style2.field("description", DEFAULT_ALT_STYLESHEET);
+				style2.save();
+				
 			}
 			
 			System.out.print(TABLE_PICKLIST+" ");
@@ -379,7 +395,7 @@ public class DatabaseSetup {
 				con.create(TABLE_COLUMNS).field("name",TABLE_MENU).field("columnList","name, active, description").save();				
 				con.create(TABLE_COLUMNS).field("name",TABLE_MENUITEM).field("columnList","name, classname, active, description, _allowRead").save();				
 				con.create(TABLE_COLUMNS).field("name",TABLE_MESSAGE).field("columnList","name, description, locale").save();				
-				con.create(TABLE_COLUMNS).field("name",TABLE_STYLE).field("columnList","name, description").save();
+				con.create(TABLE_COLUMNS).field("name",TABLE_STYLE).field("columnList","name, horizontal, logo, description").save();
 				con.create(TABLE_COLUMNS).field("name",TABLE_THUMBNAIL).field("columnList","name, table, id, column, size, small, medium, width, height").save();
 				con.create(TABLE_COLUMNS).field("name",TABLE_PICKLIST).field("columnList","tablename, query, description").save();
 				con.create(TABLE_COLUMNS).field("name",TABLE_USERREQUEST).field("columnList","name, email").save();
@@ -428,7 +444,7 @@ public class DatabaseSetup {
 				mi_home.save();
 
 				ODocument mi_password = con.create(TABLE_MENUITEM);
-				mi_password.field("name","Change password");
+				mi_password.field("name","Password");
 				mi_password.field("description","Change password");
 				mi_password.field("classname","permeagility.web.ChangePassword");
 				mi_password.field("active",true);
@@ -507,6 +523,24 @@ public class DatabaseSetup {
 				mi_blank.field("_allowRead",allRoles);
 				mi_blank.save();
 
+				ODocument mi_translate = con.create(TABLE_MENUITEM);
+				mi_translate.field("name","Translate");
+				mi_translate.field("active",false);
+				mi_translate.field("description","Translate messages (plus)");
+				mi_translate.field("classname","permeagility.plus.Translate");
+				mi_translate.field("_allow",adminRoles);
+				mi_translate.field("_allowRead",adminRoles);
+				mi_translate.save();
+
+				ODocument mi_merge = con.create(TABLE_MENUITEM);
+				mi_merge.field("name","Merge");
+				mi_merge.field("active",false);
+				mi_merge.field("description","Merge data (plus)");
+				mi_merge.field("classname","permeagility.plus.Merge");
+				mi_merge.field("_allow",adminRoles);
+				mi_merge.field("_allowRead",adminRoles);
+				mi_merge.save();
+
 				// Build default menu
 				ArrayList<ODocument> items = new ArrayList<ODocument>();
 				items.add(mi_userRequest);
@@ -518,6 +552,8 @@ public class DatabaseSetup {
 				items.add(mi_password);
 				items.add(mi_backup);
 				items.add(mi_shutdown);
+				items.add(mi_translate);
+				items.add(mi_merge);
 
 				// Add the menu items property to the menu
 				Database.checkCreateProperty(menuTable, "items", OType.LINKLIST, menuItemTable, installMessages);
@@ -564,185 +600,309 @@ public class DatabaseSetup {
 		return installMessages.toString();
 	}
 	
-	public static final String DEFAULT_STYLESHEET = 
-"/* This is the default PermeAgility stylesheet */\n"
-+"*.warning { background-color: #FF9900; }\n"
-+"img.headerlogo { width: 120px; }\n"
-+"BODY { font-family: verdana,sans-serif; \n"
-+"       font-size: small; \n"
-+"       margin: 0em;\n"
-+"       padding: 0em; \n"
-+"}\n"
-+"#header { position: absolute; top: 0px; left: 0px; right: 0px;\n"
-+"         height: 68px; \n"
-+"         background-image: url(/images/header_background.jpg); \n"
-+"         background-repeat: no-repeat; \n"
-+"}\n"
-+"#headertitle { font-size: 1.25em; \n"
-+"               position: absolute; top: 5px; left: 160px;\n"
-+"}\n"
-+"#headerservice { font-size: 2em;  \n"
-+"                 position: absolute; top: 30px; left: 160px; \n"
-+"}\n"
-+"#headeruser { position: absolute; top: 52px; left: 5px; }\n"
-+"#headertime { position: absolute; top: 5px; right: 5px; }\n"
-+"#menu { position: absolute; top: 68px; left: 0px; \n"
-+"        width: 145px;  \n"
-+"        background-image: url(../images/menu_background.jpg); \n"
-+"        background-repeat: no-repeat; \n"
-+"        padding-left: 5px;\n"
-+"        z-index: 90;\n"
-+"}\n"
-+"#service { position: absolute; top: 68px; left: 155px; \n"
-+"            z-index: 50; display: inline-block;}\n"
-+"A.headerlogo:hover { text-decoration: none; background-color: transparent;}\n"
-+"A:hover { background-color: #D3D3D3; text-decoration: none; }\n"
-+"A.framemenu:link { color: blue; text-decoration: none; }\n"
-+"A.framemenu:visited { text-decoration: none; color: blue; }\n"
-+"A.framemenu:hover { /*background-color: dimgray; */\n"
-+"            text-decoration: underline; \n"
-+"            border: hidden;  \n"
-+"}\n"
-+"INPUT.number { text-align: right; width: 5em; height: 1.5em; }\n"
-+"TD.total { text-align: right; \n"
-+"           font-weight:bolder; \n"
-+"           normal: solid thin black; \n"
-+"}\n"
-+"TABLE.layout { background-color: none;  width: 100%; }\n"
-+"TH { background-color: #303b43; color: white; font-weight: bold; border-radius: 4px 4px 0px 0px; }\n"
-+"TR.data, TD.data { background-color: #DCDCDC; vertical-align: top; }\n"
-+"TR.clickable { background-color: #DCDCDC; vertical-align: top; }\n"
-+"TR.clickable:hover { background-color: #AAAADC; text-decoration: bold; }\n"
-+"TD.number { text-align: right; }\n"
-+"TR.footer { font-weight: bold; }\n"
-+"P.menuheader { font-size: 12pt; \n"
-+"     font-weight: bold; \n"
-+"     text-align:left; \n"
-+"     color: black; \n"
-+"     margin: 0.2em 0em 0em 0em; \n"
-+"     padding 0em;\n"
-+"}\n"
-+".headline { color: #303b43; font-size: large; font-weight: bold; \n"
-+"            margin-bottom: 2px; }\n"
-+".dateline { font-size: 6pt; line-height: 50%; \n"
-+"            margin-bottom: 1px; margin-top: 1px; padding: 0px;}\n"
-+".article { font-size: 12pt; }\n"
-+"P.banner { background-color: #303b43; \n"
-+"     font-size: medium; \n"
-+"     font-weight: bold; \n"
-+"     text-align:center; \n"
-+"     color: white; \n"
-+"     margin: 0.2em 0em 0em 0em; \n"
-+"     padding 0em; \n"
-+"     page-break-after: avoid; \n"
-+"     border-radius: 4px 4px 4px 4px; \n"
-+"}\n"
-+"P.error { background-color: rgb(117,0,0); \n"
-+"           font-size: medium; font-weight: bold; text-align:center; \n"
-+"           color: white; margin: 0.2em 0em 0em 0em; padding 0em;\n"
-+"          border-radius: 6px 6px 6px 6px;\n"
-+"}\n"
-+"P.warning { background-color: #FFCC00; \n"
-+"          font-size: medium; font-weight: bold; text-align:center; \n"
-+"          color: white; margin: 0.2em 0em 0em 0em; padding 0em; \n"
-+"          border-radius: 6px 6px 6px 6px;\n"
-+"}\n"
-+"P.success { background-color: #1d5e1f; \n"
-+"          font-size: medium; font-weight: bold; text-align:center; \n"
-+"          color: white; margin: 0.2em 0em 0em 0em; padding 0em; \n"
-+"          border-radius: 6px 6px 6px 6px;\n"
-+"}\n"
-+"P.nochange { background-color: rgb(0,0,200); \n"
-+"          font-size: medium; font-weight: bold; text-align:center; \n"
-+"          color: white; margin: 0.2em 0em 0em 0em; padding 0em; \n"
-+"}\n"
-+"P.delete { text-align:right; }\n"
-+"/*IMG { padding: 0em; margin: 0em; border: 0em; }*/\n"
-+"*.alert { background-color: #FF6666; }\n"
-+"INPUT {  font-size: x-small; margin: 0em; padding 0em; }\n"
-+"*.new { background-color: #FFFF9C }\n"
-+"*.changed { background-color: #DEBDDE }\n"
-+"TD { font-size: x-small; }\n"
-+"TD.total2 { text-align: right; font-weight:bolder; \n"
-+"            normal: solid thin black; font-size: medium; \n"
-+"}\n"
-+"TD.total3 { text-align: right; font-weight:bolder; \n"
-+"            normal: solid thin black; font-size: large; \n"
-+"}\n"
-+"P.bannerleft { background-color: #303b43; \n"
-+"       font-size: medium; font-weight: bold; text-align:left; \n"
-+"       color: white; margin: 0.2em 0em 0em 0em; padding 0em; \n"
-+"}\n"
-+"*.framelink { background-color: none; border:none; }\n"
-+"SELECT.framemenu { font-size: xx-small; }\n"
-+"FORM { margin: 4pt; white-space: nowrap; padding: 4pt; \n"
-+"         border: 0em; display: inline; z-index: 50;\n"
-+"}\n"
-+"/* Sortable tables */\n"
-+"table.sortable thead {\n"
-+"    background-color: #303b43;\n"
-+"    color: white;\n"
-+"    font-weight: bold;\n"
-+"    cursor: default;\n"
-+"}\n"
-+"/* Thumbnail images that popup on hover */\n"
-+".thumbnail{\n"
-+"position: relative;\n"
-+"z-index: 0; \n"
-+"}\n"
-+".thumbnail:hover{\n"
-+"background-color: transparent;\n"
-+"z-index: 200; \n"
-+"}\n"
-+".thumbnail span{ /*CSS for enlarged image*/\n"
-+"position: absolute;\n"
-+"background-color: lightyellow;\n"
-+"padding: 5px;\n"
-+"left: -1000px;\n"
-+"border: 1px dashed gray;\n"
-+"visibility: hidden;\n"
-+"color: black;\n"
-+"text-decoration: none;\n"
-+"z-index: 300; \n"
-+"}\n"
-+".thumbnail span img{ /*CSS for enlarged image*/\n"
-+"border-width: 0;\n"
-+"padding: 2px;\n"
-+"z-index: 350; \n"
-+"}\n"
-+".thumbnail:hover span{ /*CSS for enlarged image on hover*/\n"
-+"visibility: visible;\n"
-+"top: 0;\n"
-+"left: 50px; /*position where enlarged image should offset horizontally */\n"
-+"z-index: 400; \n"
-+"}\n"
-+"/* For popup forms */\n"
-+".popup {\n"
-+"  position: relative; left: 5px; display: none;\n"
-+"  z-index: 101;\n"
-+"}\n"
-+" .subtle {\n"
-+"  margin: 0px;\n"
-+"  padding: 5px;\n"
-+"  border: 2px solid gray;\n"
-+"  font-size: x-small;\n"
-+"  background-color: #EEE;\n"
-+"  color: #444;\n"
-+"  display: block;\n"
-+"  z-index: 100; \n"
-+"  position: relative;\n"
-+"}\n"
-+"form.small input, form.small select, form.small.textarea {\n"
-+"  font-size: x-small;\n"
-+"}\n"
-+"@media print { BODY { font-size: 6pt; margin: 1em; } }\n"
-+"@media print { #menu {display: none; } }\n"
-+"@media print { #service {position: absolute; top: 0.5in; left: auto;} }\n"
-+"@media print { TABLE.data { border: solid thin;  page-break-inside: avoid;} }\n"
-+"@media print { TD.header { border: solid thin; } }\n"
-+"@media print { *.new { border: dotted thin; } }\n"
-+"@media print { *.alert { border: solid medium; border-color: #FF0000;} }\n"
-+"@media print { *.changed { border: double thin; } }\n"
-+"@media print { *.button { display: none; } }";
-
+	public static final String DEFAULT_STYLESHEET = "/* This is the default PermeAgility stylesheet */\n" +
+			"img.headerlogo { width: 120px; padding-left: 2px; padding-top: 2px; position: fixed;}\n" +
+			"a.headerlogo:hover { text-decoration: none; background-color: transparent;}\n" +
+			"BODY { font-family: verdana,sans-serif; }\n" +
+			"#menu { position: fixed; top: 0px; left: 0px; bottom: 0px;\n" +
+			"  width: 145px; background-repeat: repeat-y; border: 0;\n" +
+			"  background-image: url(../images/menu_background.jpg);\n" +
+			"  padding-left: 5px; padding-top: 75px; /* menu starts below header */\n" +
+			"}\n" +
+			"a, a.menuitem, a.popuplink {color: black;}\n" +
+			"a.menuitem:link { text-decoration: none; }\n" +
+			"a.menuitem:visited { text-decoration: none; }\n" +
+			"a:hover, a.menuitem:hover, a.popuplink:hover { text-decoration: none; color: blue;\n" +
+			"         border-radius: 6px 6px 6px 6px;   border: 1px solid blue;  }\n" +
+			"#header { position: absolute; top: 0px; left: 0px; right: 0px; height: 75px;\n" +
+			"         background-image: url(/images/header_background.jpg);   }\n" +
+			"#headertitle { font-size: 1em; position: absolute; top: 5px; left: 160px;  }\n" +
+			"#headerservice { font-size: 1.5em;    position: absolute; top: 30px; left: 160px; }\n" +
+			"#headertime { position: absolute; top: 5px; right: 5px; }\n" +
+			"#headeruser { position: absolute; top: 25px; right: 5px; }\n" +
+			"#service { position: absolute; top: 75px; left: 125px;  display: inline-block;}\n" +
+			".label { color: black; }\n" +
+			"td.label { text-align: right; vertical-align: middle; font-size: x-small;\n" +
+			"  border-radius: 6px 6px 6px 6px;\n" +
+			" background: linear-gradient(to right, white, #E0E0E0);\n" +
+			"        border: none;  padding: 0px 5px 0px 25px;}\n" +
+			"a { text-decoration: none; }\n" +
+			"a:hover { text-decoration: underline; }\n" +
+			"input.number { text-align: right; }\n" +
+			"/* table.layout { background-color: none;  width: 100%; } */\n" +
+			"th { background-color: #303b43; color: white; font-weight: bold;\n" +
+			"     border-radius: 4px 4px 0px 0px;\n" +
+			"}\n" +
+			"tr.data, TD.data { background-color: #DCDCDC; vertical-align: top; }\n" +
+			"tr.clickable { background-color: #DCDCDC; vertical-align: top; }\n" +
+			"tr.clickable:hover { background-color: #AAAADC; text-decoration: bold; }\n" +
+			"tr.footer { font-weight: bold; }\n" +
+			"td {  }\n" +
+			"td.number { text-align: right; }\n" +
+			"td.total { text-align: right; font-weight:bolder; normal: solid thin black; }\n" +
+			"p.headline { color: #303b43; font-size: large; font-weight: bold;\n" +
+			"            margin-bottom: 2px; }\n" +
+			"p.dateline { font-size: 6pt; line-height: 50%;\n" +
+			"            margin-bottom: 1px; margin-top: 1px; }\n" +
+			"p.article { font-size: 12pt; }\n" +
+			"p.menuheader {  color: black;  margin: 0.2em 0em 0em 0em; }\n" +
+			"P.banner { background-color: #303b43;\n" +
+			"     font-size: medium;\n" +
+			"     font-weight: bold;\n" +
+			"     text-align:center;\n" +
+			"     color: white;\n" +
+			"     margin: 0.2em 0em 0em 0em;\n" +
+			"     page-break-after: avoid;\n" +
+			"     border-radius: 4px 4px 4px 4px;\n" +
+			"}\n" +
+			"P.error { background-color: rgb(117,0,0);\n" +
+			"           font-size: medium; font-weight: bold; text-align:center;\n" +
+			"           color: white; margin: 0.2em 0em 0em 0em;\n" +
+			"          border-radius: 6px 6px 6px 6px;\n" +
+			"}\n" +
+			"P.warning { background-color: #FFCC00;\n" +
+			"          font-size: medium; font-weight: bold; text-align:center;\n" +
+			"          color: white; margin: 0.2em 0em 0em 0em;\n" +
+			"          border-radius: 6px 6px 6px 6px;\n" +
+			"}\n" +
+			"P.success { background-color: #1d5e1f;\n" +
+			"          font-size: medium; font-weight: bold; text-align:center;\n" +
+			"          color: white; margin: 0.2em 0em 0em 0em;\n" +
+			"          border-radius: 6px 6px 6px 6px;\n" +
+			"}\n" +
+			"P.nochange { background-color: rgb(0,0,200);\n" +
+			"          font-size: medium; font-weight: bold; text-align:center;\n" +
+			"          color: white; margin: 0.2em 0em 0em 0em;\n" +
+			"}\n" +
+			"*.alert { background-color: #FF6666; }\n" +
+			"*.new { background-color: #FFFF9C }\n" +
+			"*.changed { background-color: #DEBDDE }\n" +
+			"*.warning { background-color: #FF9900; }\n" +
+			"P.delete { text-align:right; }\n" +
+			"P.bannerleft { background-color: #303b43;\n" +
+			"       font-size: medium; font-weight: bold; text-align:left;\n" +
+			"       color: white; margin: 0.2em 0em 0em 0em;\n" +
+			"}\n" +
+			"/* Sortable tables */\n" +
+			"table.sortable thead {\n" +
+			"    background-color: #303b43;\n" +
+			"    color: white;\n" +
+			"    font-weight: bold;\n" +
+			"    cursor: default;\n" +
+			"}\n" +
+			"/* Thumbnail images that popup on hover */\n" +
+			".thumbnail{\n" +
+			"position: relative;\n" +
+			"z-index: 0;\n" +
+			"}\n" +
+			".thumbnail:hover{\n" +
+			"background-color: transparent;\n" +
+			"z-index: 200;\n" +
+			"}\n" +
+			".thumbnail span{    /*CSS for enlarged image*/\n" +
+			"position: absolute;\n" +
+			"background-color: lightyellow;\n" +
+			"padding: 5px;\n" +
+			"left: -1000px;\n" +
+			"border: 1px dashed gray;\n" +
+			"visibility: hidden;\n" +
+			"color: black;\n" +
+			"text-decoration: none;\n" +
+			"z-index: 300;\n" +
+			"}\n" +
+			".thumbnail span img{     /*CSS for enlarged image*/\n" +
+			"border-width: 0;\n" +
+			"padding: 2px;\n" +
+			"z-index: 350;\n" +
+			"}\n" +
+			".thumbnail:hover span{    /*CSS for enlarged image on hover*/\n" +
+			"visibility: visible;\n" +
+			"top: 0;\n" +
+			"left: 50px; /*position where enlarged image should offset horizontally */\n" +
+			"z-index: 400;\n" +
+			"}\n" +
+			".canpopup {\n" +
+			"    z-index: 100; position: absolute;  display: none;\n" +
+			" /*   opacity: 0.9; */  background-color: white;\n" +
+			"    border: 1px solid gray;\n" +
+			"    padding: 0.4em 0.4em 0.4em 0.4em;\n" +
+			"     border-radius: 6px 6px 6px 6px;\n" +
+			"}\n" +
+			".screenfade {\n" +
+			"    z-index: 99; position: fixed;  display: none;\n" +
+			"    opacity: 0.6;   background-color: gray;\n" +
+			"    top: 0; left: 0; bottom: 0; right: 0;\n" +
+			"}\n" +
+			"@media print { BODY { font-size: 6pt; margin: 1em; } }\n" +
+			"@media print { #menu {display: none; } }\n" +
+			"@media print { #service {position: absolute; top: 0.5in; left: auto;} }\n" +
+			"@media print { TABLE.data { border: solid thin;  page-break-inside: avoid;} }\n" +
+			"@media print { TD.header { border: solid thin; } }\n" +
+			"@media print { *.new { border: dotted thin; } }\n" +
+			"@media print { *.alert { border: solid medium; border-color: #FF0000;} }\n" +
+			"@media print { *.changed { border: double thin; } }\n" +
+			"@media print { *.button { display: none; } }\n";
+					
+	public static final String DEFAULT_ALT_STYLESHEET = "/* New Gravity with horizontal menu */\n" +
+			"img.headerlogo { width: 60px; left: 2px; top: 25px; position: absolute;}\n" +
+			"a.headerlogo:hover { text-decoration: none; background-color: transparent;}\n" +
+			"body { font-family: verdana,sans-serif;\n" +
+			"       font-size: x-small; \n" +
+			"       color: white;\n" +
+			"       background-color: black; \n" +
+			" }\n" +
+			"#menu { position: fixed; left: 0px; top: 2px; right: 0px; height: 20px; z-index: 100;\n" +
+			"/*  background-repeat: repeat-y; border: 0;\n" +
+			"  background-image: url(../images/PSBlackMenu.jpg); */\n" +
+			"  padding-left: 5px; \n" +
+			"}\n" +
+			"a, a.menuitem, a.popuplink {color: lightgray;}\n" +
+			"a.menuitem:link { text-decoration: none; }\n" +
+			"a.menuitem:visited { text-decoration: none; }\n" +
+			"a:hover, a.menuitem:hover, a.popuplink:hover { text-decoration: none;   color: white;  \n" +
+			"         background: radial-gradient(ellipse, darkorange, black);\n" +
+			"/*         border-radius: 6px 6px 6px 6px;   border: 1px solid cyan;  */\n" +
+			"}\n" +
+			"#header { position: absolute; top: 0px; left: 0px; right: 0px; height: 60px;\n" +
+			"         background-image: url(/images/PSBlackHeader.jpg);   }\n" +
+			"#headertitle { font-size: 1em; position: absolute; top: 20px; left: 80px;  }\n" +
+			"#headerservice { font-size: 1.5em;    position: absolute; top: 35px; left: 80px; }\n" +
+			"#headertime { position: absolute; top: 15px; right: 5px; }\n" +
+			"#headeruser { position: absolute; top: 30px; right: 5px; }\n" +
+			"#service { position: absolute; top: 65px;  left: 5px; right: 5px; display: inline-block;}\n" +
+			".label { color: black; }\n" +
+			"td.label { text-align: right; vertical-align: middle; font-size: x-small; \n" +
+			"  color: white; font-weight: bold;\n" +
+			"  border-radius: 6px 6px 6px 6px;  \n" +
+			" background: linear-gradient(to right, black, #444444);\n" +
+			"        border: none;  padding: 0px 5px 0px 25px;}\n" +
+			"a { text-decoration: none; }\n" +
+			"a:hover { text-decoration: underline; }\n" +
+			"input, textarea, select {\n" +
+			"  background-color : #222222;\n" +
+			"  color: white; \n" +
+			"}\n" +
+			"input.number { text-align: right; }\n" +
+			"/* table.layout { background-color: none;  width: 100%; } */\n" +
+			"th { font-weight: bold; \n" +
+			"     border-radius: 8px 8px 0px 0px; \n" +
+			"/*    background-color: #339999;  */\n" +
+			"     background: radial-gradient(ellipse, #339999, black);\n" +
+			"    font-weight: bold; color: white;\n" +
+			"}\n" +
+			"tr.data, td.data { background-color: #222222; vertical-align: top; }\n" +
+			"tr.clickable { background-color: #222222; vertical-align: top; }\n" +
+			"tr.clickable:hover {         \n" +
+			"   background: radial-gradient(ellipse, darkorange, black);\n" +
+			"}\n" +
+			"tr.footer { font-weight: bold; }\n" +
+			"td {   }\n" +
+			"td.number { text-align: right; }\n" +
+			"td.total { text-align: right; font-weight:bolder; normal: solid thin black; }\n" +
+			"p.headline { color: #339999; font-size: large; font-weight: bold; \n" +
+			"            margin-bottom: 2px; }\n" +
+			"p.dateline { font-size: 6pt; line-height: 50%; \n" +
+			"            margin-bottom: 1px; margin-top: 1px; }\n" +
+			"p.article { font-size: 12pt; }\n" +
+			"p.menuheader {  color: white;  margin: 0.2em 0em 0em 0em; }\n" +
+			"P.banner { /* background-color: #336666; */\n" +
+			"     font-size: small; \n" +
+			"     font-weight: bold; \n" +
+			"     text-align:center; \n" +
+			"     color: white; \n" +
+			"     margin: 0.2em 0em 0em 0em; \n" +
+			"     page-break-after: avoid; \n" +
+			"     border-radius: 8px 8px 8px 8px; \n" +
+			"     background: radial-gradient(ellipse, #336666, black);\n" +
+			"}\n" +
+			"P.error { \n" +
+			"           font-size: small; font-weight: bold; text-align:center; \n" +
+			"           color: white; margin: 0.2em 0em 0em 0em; \n" +
+			"          border-radius: 6px 6px 6px 6px;\n" +
+			" background: radial-gradient(ellipse, rgb(117,0,0), black);\n" +
+			"}\n" +
+			"P.warning {\n" +
+			"    font-size: small; font-weight: bold; text-align:center; \n" +
+			"    color: white; margin: 0.2em 0em 0em 0em; \n" +
+			"    border-radius: 6px 6px 6px 6px;\n" +
+			"    background: radial-gradient(ellipse, #FFCC00, black);\n" +
+			"}\n" +
+			"P.success { background-color: #1d5e1f; \n" +
+			"          font-size: small; font-weight: bold; text-align:center; \n" +
+			"          color: white; margin: 0.2em 0em 0em 0em; \n" +
+			"          border-radius: 6px 6px 6px 6px;\n" +
+			"          background: radial-gradient(ellipse, #1d5e1f, black);\n" +
+			"}\n" +
+			"P.nochange { background-color: rgb(0,0,200); \n" +
+			"          font-size: small; font-weight: bold; text-align:center; \n" +
+			"          color: white; margin: 0.2em 0em 0em 0em; \n" +
+			"}\n" +
+			"*.alert { background-color: #FF6666; }\n" +
+			"*.new { background-color: #FFFF9C }\n" +
+			"*.changed { background-color: #DEBDDE }\n" +
+			"*.warning { background-color: #FF9900; }\n" +
+			"P.delete { text-align:right; }\n" +
+			"P.bannerleft { background-color: #303b43; \n" +
+			"       font-size: medium; font-weight: bold; text-align:left; \n" +
+			"       color: white; margin: 0.2em 0em 0em 0em; \n" +
+			"}\n" +
+			"/* Sortable tables */\n" +
+			"table.sortable thead {\n" +
+			"    background-color: #303b43;\n" +
+			"    color: white;\n" +
+			"    font-weight: bold;\n" +
+			"    cursor: default;\n" +
+			"}\n" +
+			"/* Thumbnail images that popup on hover */\n" +
+			".thumbnail{\n" +
+			"position: relative;\n" +
+			"z-index: 0; \n" +
+			"}\n" +
+			".thumbnail:hover{\n" +
+			"background-color: transparent;\n" +
+			"z-index: 200; \n" +
+			"}\n" +
+			".thumbnail span{    /*CSS for enlarged image*/\n" +
+			"position: absolute;\n" +
+			"background-color: lightyellow;\n" +
+			"padding: 5px;\n" +
+			"left: -1000px;\n" +
+			"border: 1px dashed gray;\n" +
+			"visibility: hidden;\n" +
+			"color: black;\n" +
+			"text-decoration: none;\n" +
+			"z-index: 300; \n" +
+			"}\n" +
+			".thumbnail span img{     /*CSS for enlarged image*/\n" +
+			"border-width: 0;\n" +
+			"padding: 2px;\n" +
+			"z-index: 350; \n" +
+			"}\n" +
+			".thumbnail:hover span{    /*CSS for enlarged image on hover*/\n" +
+			"visibility: visible;\n" +
+			"top: 0;\n" +
+			"left: 50px; /*position where enlarged image should offset horizontally */\n" +
+			"z-index: 400; \n" +
+			"}\n" +
+			".canpopup {\n" +
+			"    z-index: 100; position: absolute;  display: none;\n" +
+			" /*   opacity: 0.9; */  background-color: black;    \n" +
+			"    border: 1px solid gray;\n" +
+			"    padding: 0.4em 0.4em 0.4em 0.4em;\n" +
+			"     border-radius: 6px 6px 6px 6px; \n" +
+			"}\n" +
+			".screenfade {\n" +
+			"    z-index: 99; position: fixed;  display: none; \n" +
+			"    opacity: 0.7;   background-color: #000000;\n" +
+			"    top: 0; left: 0; bottom: 0; right: 0;\n" +
+			"}\n" +
+			"@media print { BODY { font-size: 6pt; margin: 1em; } }\n" +
+			"@media print { #menu {display: none; } }\n" +
+			"@media print { #service {position: absolute; top: 0.5in; left: auto;} }\n" +
+			"@media print { TABLE.data { border: solid thin;  page-break-inside: avoid;} }\n" +
+			"@media print { TD.header { border: solid thin; } }\n" +
+			"@media print { *.new { border: dotted thin; } }\n" +
+			"@media print { *.alert { border: solid medium; border-color: #FF0000;} }\n" +
+			"@media print { *.changed { border: double thin; } }\n" +
+			"@media print { *.button { display: none; } }\n";
 }

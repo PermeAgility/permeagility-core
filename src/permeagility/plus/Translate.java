@@ -54,7 +54,7 @@ public class Translate extends Table {
 				if (updateRow(con, tableName, parms, errors)) {
 					submit = null;
 				} else {
-					return head("Could not update", getDateControlScript()+getColorControlScript()+getPrettyPhotoScript()+getAngularControlScript())
+					return head("Could not update", getDateControlScript()+getColorControlScript()+getPrettyPhotoScript())
 							+ body(standardLayout(con, parms, getTableRowForm(con, tableName, parms) + errors.toString()));
 				}
 			} 
@@ -75,7 +75,7 @@ public class Translate extends Table {
 		
 		// Show edit form if row selected for edit
 		if (editId != null && submit == null && connect == null) {
-			return head("Edit", getDateControlScript()+getColorControlScript()+getPrettyPhotoScript()+getAngularControlScript())
+			return head("Edit", getDateControlScript()+getColorControlScript()+getPrettyPhotoScript())
 					+ body(standardLayout(con, parms, getTableRowForm(con, tableName, parms)));
 		}
 		

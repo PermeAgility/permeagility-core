@@ -58,7 +58,7 @@ public class Merge extends Table {
 				if (updateRow(con, tableName, parms, errors)) {
 					submit = null;
 				} else {
-					return head("Could not update", getDateControlScript()+getColorControlScript()+getPrettyPhotoScript()+getAngularControlScript())
+					return head("Could not update", getDateControlScript()+getColorControlScript()+getPrettyPhotoScript())
 							+ body(standardLayout(con, parms, getTableRowForm(con, tableName, parms) + errors.toString()));
 				}
 			} 
@@ -80,7 +80,7 @@ public class Merge extends Table {
 		// Show edit form if row selected for edit
 		if (editId != null && submit == null && connect == null) {
 			toTable = tableName;
-			return head("Edit", getDateControlScript()+getColorControlScript()+getPrettyPhotoScript()+getAngularControlScript())
+			return head("Edit", getDateControlScript()+getColorControlScript()+getPrettyPhotoScript())
 					+ body(standardLayout(con, parms, getTableRowForm(con, toTable, parms)));
 		}
 		

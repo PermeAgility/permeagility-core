@@ -9,9 +9,7 @@ import java.lang.reflect.Field;
 
 import com.orientechnologies.orient.core.record.impl.ODocument;
 
-/**
-*   Use database table to load static constants into classes
-*/
+/** Use database table to load static constants into classes */
 public class ConstantOverride {
 
 	public static boolean DEBUG = false;

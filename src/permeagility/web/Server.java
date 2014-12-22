@@ -54,7 +54,7 @@ import com.orientechnologies.orient.core.record.impl.ODocument;
 /** This is the PermeAgility web server - it handles security, database connections and some useful caches for privileges and such
   * all web requests go through the run() function for each thread/socket
   *  
-  *  Parameters: [port=1999] [db=plocal:db] [selftest] 
+  *  Parameters: [port(1999)] [db(plocal:db)] [selftest] 
   */
 public class Server extends Thread {
 
@@ -959,7 +959,7 @@ public class Server extends Thread {
 		OUT: for (Object ur: uRoles) {
 			for (Object kr: kRoles) {
 				if (ur != null && kr != null && ur.equals(kr)) {
-					if (DEBUG) System.out.println("Server.isRoleAuthorized: Match: Authorized!");
+					if (DEBUG) System.out.println("Server.isRoleAuthorized: Match on user role "+ur.toString()+" Authorized!");
 					authorized = true;
 					break OUT;
 				}
@@ -1092,11 +1092,13 @@ public class Server extends Thread {
 	/**  Call this when you update a table that the server or caches may be interested in   */
 	public static void tableUpdated(String table) {
 		if (table.equals("constant")) {
+			if (DEBUG) System.out.println("Server: tableUpdated("+table+") - constants applied");
 			DatabaseConnection con = database.getConnection();
 			ConstantOverride.apply(con);
 			database.freeConnection(con);
 		}
 		if (table.equals("locale") || table.equals("message")) {
+			if (DEBUG) System.out.println("Server: tableUpdated("+table+") - messages refreshed and menus cleared");
 			DatabaseConnection con = database.getConnection();
 			Message.initialize(con);
 			database.freeConnection(con);
@@ -1108,9 +1110,10 @@ public class Server extends Thread {
 		  || table.equals("menuItem")
 		  || table.equals("ORole")
 		  || table.equals("OUser")) {
-			refreshSecurity();
+			refreshSecurity();  // Will display its own messages
 			Menu.clearCache();
 		}
+		if (DEBUG) System.out.println("Server: tableUpdated("+table+") - query cache updated");
 		Weblet.queryCache.refreshContains(table);
 	}
 

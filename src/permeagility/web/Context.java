@@ -98,7 +98,7 @@ public class Context extends Weblet {
 		    		+br()+Message.get(locale, "SERVER_USER")+"&nbsp;"+Server.getDatabase().getUser()
 		    		+br()+Message.get(locale, "SERVER_VERSION")+Server.getDatabase().getClientVersion())
 		    +paragraph("banner",Message.get(locale, "SERVER_CACHE"))
-			+form(button("REFRESH_COLUMNS_ALL","REFRESHCOLUMNS",Message.get(locale, "CACHE_CLEAR_COLUMNS"))
+			+form(submitButton(Message.get(locale, "CACHE_CLEAR_COLUMNS"))
 					+hidden("CLEAR_COLUMNS","ALL") + "&nbsp;"
 					+Message.get(locale, "CACHE_COUNT",""+Server.columnsCacheSize()))
 			+br()
@@ -106,9 +106,9 @@ public class Context extends Weblet {
 					+hidden("CLEAR_MENUS","ALL") + "&nbsp;"
 					+Message.get(locale, "CACHE_COUNT",""+Menu.cacheSize()))
 		    +table("data",
-			  row(tableHead(Message.get(locale, "CACHED_QUERY"))
-					  +tableHead(Message.get(locale, "CACHE_SIZE"))
-					  +tableHead(Message.get(locale, "CACHE_LASTREFRESH")))
+			  row(columnHeader(Message.get(locale, "CACHED_QUERY"))
+					  +columnHeader(Message.get(locale, "CACHE_SIZE"))
+					  +columnHeader(Message.get(locale, "CACHE_LASTREFRESH")))
 			  +cacheList.toString())
 			+form(button("REFRESH_CACHE_ALL","REFRESHCACHE",Message.get(locale, "CACHE_CLEAR_LISTS"))
 					+hidden("TABLE_NAME","ALL") + "&nbsp;"
