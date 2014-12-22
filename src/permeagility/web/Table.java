@@ -252,7 +252,6 @@ public class Table extends Weblet {
 		
 		// Make the result
 		return head(title, getDateControlScript()+getSortTableScript()+getColorControlScript()+getPrettyPhotoScript())
-//		return head(title)
 				+ body(standardLayout(con, parms,  
 					link(this.getClass().getName(),"&lt;"+Message.get(locale,"ALL_TABLES"))
 					+"&nbsp;&nbsp;&nbsp;"
@@ -1056,7 +1055,6 @@ public class Table extends Weblet {
 			return row(label + column(input("other", PARM_PREFIX+name, initialValue)));
 		}
 	}
-
 
 	public String getTableRowRelated(DatabaseConnection con, String table, HashMap<String, String> parms) {
 		StringBuffer sb = new StringBuffer();

@@ -98,12 +98,13 @@ public class Context extends Weblet {
 		    		+br()+Message.get(locale, "SERVER_USER")+"&nbsp;"+Server.getDatabase().getUser()
 		    		+br()+Message.get(locale, "SERVER_VERSION")+Server.getDatabase().getClientVersion())
 		    +paragraph("banner",Message.get(locale, "SERVER_CACHE"))
-			+form(submitButton(Message.get(locale, "CACHE_CLEAR_COLUMNS"))
-					+hidden("CLEAR_COLUMNS","ALL") + "&nbsp;"
+			+form(button("CLEAR_COLUMNS","ALL",Message.get(locale, "CACHE_CLEAR_COLUMNS"))
+					//+hidden("CLEAR_COLUMNS","ALL") 
+					+ "&nbsp;"
 					+Message.get(locale, "CACHE_COUNT",""+Server.columnsCacheSize()))
 			+br()
-			+form(button("REFRESH_MENUS_ALL","REFRESHMENUS",Message.get(locale, "CACHE_CLEAR_MENUS"))
-					+hidden("CLEAR_MENUS","ALL") + "&nbsp;"
+			+form(button("CLEAR_MENUS","ALL",Message.get(locale, "CACHE_CLEAR_MENUS"))
+//					+hidden("CLEAR_MENUS","ALL") + "&nbsp;"
 					+Message.get(locale, "CACHE_COUNT",""+Menu.cacheSize()))
 		    +table("data",
 			  row(columnHeader(Message.get(locale, "CACHED_QUERY"))

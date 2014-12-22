@@ -152,12 +152,12 @@ public abstract class Weblet {
 	public static String div(String name, String contents) { return "<div id=\"" + name + "\">\n" + contents + "</div>\n"; }
 
 	public static String standardLayout(DatabaseConnection con, java.util.HashMap<String, String> parms, String html) {
-		if (Menu.HORIZONTAL_LAYOUT) {
+		if (Menu.HORIZONTAL_LAYOUT) {  // Needs menu over header
 			return div("header", (new Header()).getHTML(con, parms)) 
 					+ div("menu", (new Menu()).getHTML(con, parms))
 				    + div("service", html);
-		} else {
-			return div("menu", (new Menu()).getHTML(con, parms))
+		} else {  // Need header over menu
+			return div("menu", (new Menu()).getHTML(con, parms))  
 				    + div("header", (new Header()).getHTML(con, parms)) 
 					+ div("service", html);			
 		}

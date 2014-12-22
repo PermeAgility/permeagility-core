@@ -34,7 +34,7 @@ public class Header extends Weblet {
 	}
 
 	public String getHeaderUser(DatabaseConnection con, HashMap<String,String> parms) {
-		String pad = new String(new char[30]).replace("\0", "&nbsp;");
+		String pad = new String(new char[15]).replace("\0", "&nbsp;");
 		if (con.getUser().equals("guest")) {
 			return 
 				Message.get(con.getLocale(), "YOU_ARE_NOT_LOGGED_IN")+"&nbsp;"
@@ -45,8 +45,8 @@ public class Header extends Weblet {
 					+row(columnRight("")+column(submitButton(Message.get(con.getLocale(),"LOGIN_BUTTON_TEXT"))))
 					+row(columnSpan(2,link("permeagility.web.UserRequest",Message.get(con.getLocale(), "REQUEST_LOGIN"))))
 				))
-				+ (parms.get("USERNAME") == null ? "" : Message.get(con.getLocale(), "INVALID_USER_OR_PASSWORD"));
-				//+(PAD_LOGIN ? pad : "");
+				+ (parms.get("USERNAME") == null ? "" : color("red",bold(Message.get(con.getLocale(), "INVALID_USER_OR_PASSWORD"))))
+				+(PAD_LOGIN ? pad : "");
 		} else {
 			return Message.get(con.getLocale(),"WELCOME_USER",con.getUser())
 					+"&nbsp;&nbsp;"+link(Server.LOGIN_CLASS,Message.get(con.getLocale(), "LOGOUT"));
