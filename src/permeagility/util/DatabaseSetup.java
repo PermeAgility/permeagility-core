@@ -331,7 +331,7 @@ public class DatabaseSetup {
 
 				ODocument n2 = con.create(TABLE_NEWS);
 				n2.field("name","Welcome admin or dba");
-				n2.field("description","With great power comes great responsibility. Tread carefully.");
+				n2.field("description","With great power comes great responsibility. Proceed carefully.");
 				n2.field("dateline",new Date());
 				n2.field("locale",loc);
 				n2.field("archive",false);
@@ -621,7 +621,7 @@ public class DatabaseSetup {
 			"#headerservice { font-size: 1.5em;    position: absolute; top: 30px; left: 160px; }\n" +
 			"#headertime { position: absolute; top: 5px; right: 5px; }\n" +
 			"#headeruser { position: absolute; top: 25px; right: 5px; }\n" +
-			"#service { position: absolute; top: 75px; left: 125px;  display: inline-block;}\n" +
+			"#service { position: absolute; top: 75px; left: 125px; right: 0px; bottom: 0px; display: inline-block;}\n" +
 			".label { color: black; }\n" +
 			"td.label { text-align: right; vertical-align: middle; font-size: x-small;\n" +
 			"  border-radius: 6px 6px 6px 6px;\n" +
@@ -630,7 +630,10 @@ public class DatabaseSetup {
 			"a { text-decoration: none; }\n" +
 			"a:hover { text-decoration: underline; }\n" +
 			"input.number { text-align: right; }\n" +
-			"/* table.layout { background-color: none;  width: 100%; } */\n" +
+			"table.layout {  width: 100%; }\n" +
+			"td.layout { border-radius: 6px 6px 6px 6px;\n"+   
+            "    padding: 2px 2px 2px 2px;  background-color: #DCDCDC;\n"+
+            "}\n"+
 			"th { background-color: #303b43; color: white; font-weight: bold;\n" +
 			"     border-radius: 4px 4px 0px 0px;\n" +
 			"}\n" +
@@ -784,7 +787,10 @@ public class DatabaseSetup {
 			"  color: white; \n" +
 			"}\n" +
 			"input.number { text-align: right; }\n" +
-			"/* table.layout { background-color: none;  width: 100%; } */\n" +
+			"table.layout {  width: 100%; }\n" +
+			"td.layout { border-radius: 6px 6px 6px 6px;\n"+   
+            "    padding: 2px 2px 2px 2px;  background-color: #222222;\n"+
+            "}\n"+
 			"th { font-weight: bold; \n" +
 			"     border-radius: 8px 8px 0px 0px; \n" +
 			"/*    background-color: #339999;  */\n" +

@@ -96,7 +96,7 @@ public class Schema extends Weblet {
 				}
 			}
 			if (groupHasTable && !groupName.startsWith("-")) {
-				columns.append(columnTop(100/(schemas.size()+1),tablelist.toString()));
+				columns.append(column("layout",tablelist.toString()));
 				cellCount++;
 				if (cellCount == NUMBER_OF_COLUMNS) {
 					rows.append(row(columns.toString()));
@@ -122,7 +122,7 @@ public class Schema extends Weblet {
 					}
 				}
 			}
-			columns.append(column(tablelist.toString()));
+			columns.append(column("layout",tablelist.toString()));
 		}
 		
 		// Make sure the last row is added
@@ -135,7 +135,7 @@ public class Schema extends Weblet {
 			head(Message.get(con.getLocale(),"SCHEMA_EDITOR"))+
 			body( standardLayout(con, parms,  
 					errors.toString()
-					+table(0,rows.toString())+br()
+					+table("layout",rows.toString())+br()
 					+(Server.isDBA(con) 
 						? popupForm("NEWTABLE_Ungrouped",null,Message.get(con.getLocale(),"NEW_TABLE"),"","NEWTABLENAME",
 								input("NEWTABLENAME","")+"&nbsp;&nbsp;"
