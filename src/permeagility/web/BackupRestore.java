@@ -20,15 +20,16 @@ import com.orientechnologies.orient.core.db.ODatabaseRecordThreadLocal;
 import com.orientechnologies.orient.core.db.tool.ODatabaseExport;
 
 public class BackupRestore extends Weblet {
-	
-	private static StringBuffer errorLog; // To capture backup messages
+
+	StringBuffer exportLog = new StringBuffer();
 
     public String getPage(DatabaseConnection con, HashMap<String,String> parms) {
+    	
     	Locale locale = con.getLocale();
 		String service = Message.get(locale,"BACKUP_AND_RESTORE");
 		parms.put("SERVICE",service);
 		StringBuffer errors = new StringBuffer();
-		
+
 		if (!Server.isDBA(con)) {
 	    	return head(service)+standardLayout(con, parms,paragraph("error",Message.get(locale, "RESTORE_ACCESS")));
 		}
@@ -162,13 +163,12 @@ public class BackupRestore extends Weblet {
 				try {
 					ODatabaseExport exp = new ODatabaseExport(con.getDb(), "backup/"+backupName, new OCommandOutputListener() {
 						public void onMessage(String iText) {
-							if (errorLog == null) errorLog = new StringBuffer();
-							errorLog.append(paragraph("Export message: "+iText));
+							if (exportLog == null) exportLog = new StringBuffer();
+							exportLog.append(paragraph("Export message: "+iText));
 							System.out.println("Export Message: "+iText);
 						}});
 					exp.exportDatabase();
 					exp.close();
-					errors.append(errorLog.toString());
 					errors.append(paragraph("success",Message.get(locale,"BACKUP_SUCCESS")+backupName));
 				} catch (IOException e1) {
 					e1.printStackTrace();
@@ -220,6 +220,7 @@ public class BackupRestore extends Weblet {
     					+columnHeader(Message.get(locale, "RESTORE_NOW")))
 	    			+restorePoints.toString())
 	    	)
+	    	+(exportLog != null ? exportLog.toString() : "")
     	);
     }
 

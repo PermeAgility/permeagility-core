@@ -5,7 +5,6 @@ at the URL "http://www.eclipse.org/legal/epl-v10.html".
 */
 package permeagility.web;
 
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -17,7 +16,7 @@ import permeagility.util.QueryResult;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 import com.orientechnologies.orient.core.record.impl.ORecordBytes;
 
-public class SQL extends Weblet {
+public class Query extends Weblet {
 	
 	public static boolean DEBUG = false;
 	
@@ -93,7 +92,7 @@ public class SQL extends Weblet {
 	}
 
 
-	public String getRowHeader(QueryResult rs, ArrayList<String> cols) throws SQLException {
+	public String getRowHeader(QueryResult rs, ArrayList<String> cols) {
 		StringBuffer sb = new StringBuffer();
 		String[] columns = rs.getColumns();
 		sb.append(columnHeader("rid"));		
@@ -108,8 +107,7 @@ public class SQL extends Weblet {
 		}
 	}
 	
-	@SuppressWarnings("unchecked")
-	public String getRow(DatabaseConnection con, QueryResult rs, int r, ArrayList<String> columns) throws SQLException {
+	public String getRow(DatabaseConnection con, QueryResult rs, int r, ArrayList<String> columns) {
 		StringBuffer sb = new StringBuffer();
 		ODocument row = rs.get(r);
 		if (row.getIdentity().toString().contains("-")) {
@@ -133,12 +131,13 @@ public class SQL extends Weblet {
 				StringBuffer desc = new StringBuffer();
 				String blobid = Thumbnail.getThumbnailId(row.getClassName(), row.getIdentity().toString().substring(1), colName, desc);
 				if (blobid != null) {
-					out = column(Thumbnail.getThumbnailLink(blobid, desc.toString()));
+					out = column(Thumbnail.getThumbnailLink(con.getLocale(),blobid, desc.toString()));
 				} else {
 					out = column(Message.get(con.getLocale(), "THUMBNAIL_NOT_FOUND",colName,row.getIdentity().toString()));					
 				} 
 				sb.append(out);
 			} else if (o instanceof List) {  // LinkList
+				@SuppressWarnings("unchecked")
 				List<ODocument> l = (List<ODocument>)o;
 				StringBuffer ll = new StringBuffer();
 				if (l != null) {
@@ -153,6 +152,7 @@ public class SQL extends Weblet {
 				}
 				sb.append(column(ll.toString()));
 			} else if (o instanceof Set) {  // LinkSet
+				@SuppressWarnings("unchecked")
 				Set<ODocument> l = (Set<ODocument>)o;
 				StringBuffer ll = new StringBuffer();
 				if (l != null) {
@@ -167,6 +167,7 @@ public class SQL extends Weblet {
 				}
 				sb.append(column(ll.toString()));
 			} else if (o instanceof Map) {    // LinkMap
+				@SuppressWarnings("unchecked")
 				Map<String,ODocument> l = (Map<String,ODocument>)o;
 				StringBuffer ll = new StringBuffer();
 				if (l != null) {

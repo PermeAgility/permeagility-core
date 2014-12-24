@@ -35,11 +35,11 @@ import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.concurrent.ConcurrentHashMap;
 
-import permeagility.util.BrowserControl;
+import permeagility.util.Browser;
 import permeagility.util.ConstantOverride;
 import permeagility.util.Database;
 import permeagility.util.DatabaseConnection;
-import permeagility.util.DatabaseSetup;
+import permeagility.util.Setup;
 import permeagility.util.Dumper;
 import permeagility.util.PlusClassLoader;
 import permeagility.util.QueryResult;
@@ -1173,7 +1173,7 @@ public class Server extends Thread {
 			// List of columns to override natural alphabetical order
 			QueryResult columnList = null;
 			if (columnOverride == null) {
-				columnList = con.query("SELECT columnList FROM "+DatabaseSetup.TABLE_COLUMNS+" WHERE name='"+table+"'");
+				columnList = con.query("SELECT columnList FROM "+Setup.TABLE_COLUMNS+" WHERE name='"+table+"'");
 			}
 			database.freeConnection(con);
 			boolean addDynamicColumns = true;
@@ -1265,7 +1265,7 @@ public class Server extends Thread {
 	}
 
 	public static void viewPage(String url) {
-		BrowserControl.displayURL("http://localhost:"+HTTP_PORT+"/"+url);
+		Browser.displayURL("http://localhost:"+HTTP_PORT+"/"+url);
 	}
 
 	public static void setLocalSetting(String key, String value) {
@@ -1319,7 +1319,7 @@ public class Server extends Thread {
 			if (database.isConnected()) {
 				database.setPoolSize(SERVER_POOL_SIZE);
 				DatabaseConnection con = database.getConnection();
-				if (!DatabaseSetup.checkInstallation(con)) {
+				if (!Setup.checkInstallation(con)) {
 					System.out.println("---\n--- Warning condition: checkInstallation failed\n---");
 				}
 				System.out.println("Connected to database name="+DB_NAME+" version="+database.getClientVersion());

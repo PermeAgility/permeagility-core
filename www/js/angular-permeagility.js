@@ -25,7 +25,6 @@ app.directive('textBuild', ['$rootScope', function($rootScope) {
           domElement.value += val;
           domElement.focus();
         }
-
       });
     }
   }
@@ -64,14 +63,13 @@ app.controller('LinkListControl', function($scope) {
     
     $scope.delete = function(s) {
     	for (i = 0; i<$scope.listValues.length; i++) {
-    		if ($scope.listValues[i].rid == s.rid &&
-    			$scope.listValues[i].active == s.active) {
+    		if ($scope.listValues[i].rid == s.rid && $scope.listValues[i].active == s.active) {
     			$scope.listValues[i] = null;
     			// Shift up and pop
     			for (j = i+1; j< $scope.listValues.length; j++) {
-    				$scope.listValues[i] = $scope.listValues[j];
+    				$scope.listValues[j-1] = $scope.listValues[j];
     			}
-    			$scope.listValues.pop();	
+    			$scope.listValues.pop();
     		}
     	}       					
     }
@@ -128,7 +126,7 @@ app.controller('LinkMapControl', function($scope) {
     			$scope.listValues[i] = null;
     			// Shift up and pop
     			for (j = i+1; j< $scope.listValues.length; j++) {
-    				$scope.listValues[i] = $scope.listValues[j];
+    				$scope.listValues[j-1] = $scope.listValues[j];
     			}
     			$scope.listValues.pop();
     			// Enable list selection again

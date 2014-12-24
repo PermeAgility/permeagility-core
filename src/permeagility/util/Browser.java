@@ -12,7 +12,7 @@ import java.io.IOException;
  * Under Unix or Linux etc.. nothing will happen (assumes in Cloud)
  * Under Windows or Mac OS X, this will bring up the default browser.
  */
-public class BrowserControl {
+public class Browser {
 	
     /**
      * Display a file in the system browser. If you want to display a
@@ -46,7 +46,7 @@ public class BrowserControl {
 
     /** Simple example. */
     public static void main(String[] args) {
-        displayURL("http://www.google.com");
+        displayURL("http://www.permeagility.com");
     }
 
     // Used to identify the platform.

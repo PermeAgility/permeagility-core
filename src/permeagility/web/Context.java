@@ -9,7 +9,7 @@ import java.util.Locale;
 
 import permeagility.util.Database;
 import permeagility.util.DatabaseConnection;
-import permeagility.util.DatabaseSetup;
+import permeagility.util.Setup;
 import permeagility.util.QueryResult;
 
 public class Context extends Weblet {
@@ -54,7 +54,7 @@ public class Context extends Weblet {
 		String checkInst = parms.get("CHECK_INSTALLATION");
 		if (checkInst != null && Server.isDBA(con)) {
 		    if (DEBUG) System.out.println("Context: Check Installation");
-			DatabaseSetup.checkInstallation(con);
+			Setup.checkInstallation(con);
 		}
     	
 		// Prepare cached query list
@@ -88,7 +88,7 @@ public class Context extends Weblet {
 		sessionReport.append("</p>");
 
 		// Get install messages
-		String installMessages = DatabaseSetup.getMessages();
+		String installMessages = Setup.getMessages();
 		
 		// Return content
 		return

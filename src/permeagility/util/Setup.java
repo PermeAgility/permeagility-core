@@ -12,7 +12,7 @@ import com.orientechnologies.orient.core.metadata.schema.OSchema;
 import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 
-public class DatabaseSetup {
+public class Setup {
 
 	static StringBuffer installMessages = new StringBuffer();
 	
@@ -304,6 +304,9 @@ public class DatabaseSetup {
 			mCount += checkCreateMessage(con, loc, "RESTORE_ACCESS", "You must be admin or a dba to backup and restore a database");
 			mCount += checkCreateMessage(con, loc, "RESTORE_PLOCAL", "You can only restore a plocal database using this tool");
 			mCount += checkCreateMessage(con, loc, "USERREQUEST_INSERTED", "Your request was inserted - you will receive an email to confirm your account");
+			mCount += checkCreateMessage(con, loc, "IMAGE_VIEW_LINK", "View");
+			mCount += checkCreateMessage(con, loc, "IMAGE_VIEW_HEADER", "View");
+			mCount += checkCreateMessage(con, loc, "DOWNLOAD_FULL_SIZE", "Download full size");
 			
 			if (mCount > 0) {
 				installMessages.append(Weblet.paragraph("CheckInstallation: Created "+mCount+" messages"));
@@ -487,7 +490,7 @@ public class DatabaseSetup {
 				ODocument mi_query = con.create(TABLE_MENUITEM);
 				mi_query.field("name","Query");
 				mi_query.field("description","Query the database");
-				mi_query.field("classname","permeagility.web.SQL");
+				mi_query.field("classname","permeagility.web.Query");
 				mi_query.field("active",true);
 				mi_query.field("_allowRead", adminRoles.toArray());
 				mi_query.save();
@@ -601,315 +604,255 @@ public class DatabaseSetup {
 		return installMessages.toString();
 	}
 	
-	public static final String DEFAULT_STYLESHEET = "/* This is the default PermeAgility stylesheet */\n" +
-			"img.headerlogo { width: 120px; padding-left: 2px; padding-top: 2px; position: fixed;}\n" +
-			"a.headerlogo:hover { text-decoration: none; background-color: transparent;}\n" +
-			"BODY { font-family: verdana,sans-serif; }\n" +
-			"#menu { position: fixed; top: 0px; left: 0px; bottom: 0px;\n" +
-			"  width: 145px; background-repeat: repeat-y; border: 0;\n" +
-			"  background-image: url(../images/menu_background.jpg);\n" +
-			"  padding-left: 5px; padding-top: 75px; /* menu starts below header */\n" +
-			"}\n" +
-			"a, a.menuitem, a.popuplink {color: black;}\n" +
-			"a.menuitem:link { text-decoration: none; }\n" +
-			"a.menuitem:visited { text-decoration: none; }\n" +
-			"a:hover, a.menuitem:hover, a.popuplink:hover { text-decoration: none; color: blue;\n" +
-			"         border-radius: 6px 6px 6px 6px;   border: 1px solid blue;  }\n" +
-			"#header { position: absolute; top: 0px; left: 0px; right: 0px; height: 75px;\n" +
-			"         background-image: url(/images/header_background.jpg);   }\n" +
-			"#headertitle { font-size: 1em; position: absolute; top: 5px; left: 160px;  }\n" +
-			"#headerservice { font-size: 1.5em;    position: absolute; top: 30px; left: 160px; }\n" +
-			"#headertime { position: absolute; top: 5px; right: 5px; }\n" +
-			"#headeruser { position: absolute; top: 25px; right: 5px; }\n" +
-			"#service { position: absolute; top: 75px; left: 125px; right: 0px; bottom: 0px; display: inline-block;}\n" +
-			".label { color: black; }\n" +
-			"td.label { text-align: right; vertical-align: middle; font-size: x-small;\n" +
-			"  border-radius: 6px 6px 6px 6px;\n" +
-			" background: linear-gradient(to right, white, #E0E0E0);\n" +
-			"        border: none;  padding: 0px 5px 0px 25px;}\n" +
-			"a { text-decoration: none; }\n" +
-			"a:hover { text-decoration: underline; }\n" +
-			"input.number { text-align: right; }\n" +
-			"table.layout {  width: 100%; }\n" +
-			"td.layout { border-radius: 6px 6px 6px 6px;\n"+   
-            "    padding: 2px 2px 2px 2px;  background-color: #DCDCDC;\n"+
-            "}\n"+
-			"th { background-color: #303b43; color: white; font-weight: bold;\n" +
-			"     border-radius: 4px 4px 0px 0px;\n" +
-			"}\n" +
-			"tr.data, TD.data { background-color: #DCDCDC; vertical-align: top; }\n" +
-			"tr.clickable { background-color: #DCDCDC; vertical-align: top; }\n" +
-			"tr.clickable:hover { background-color: #AAAADC; text-decoration: bold; }\n" +
-			"tr.footer { font-weight: bold; }\n" +
-			"td { text-align: left; }\n" +
-			"td.number { text-align: right; }\n" +
-			"td.total { text-align: right; font-weight:bolder; normal: solid thin black; }\n" +
-			"p.headline { color: #303b43; font-size: large; font-weight: bold;\n" +
-			"            margin-bottom: 2px; }\n" +
-			"p.dateline { font-size: 6pt; line-height: 50%;\n" +
-			"            margin-bottom: 1px; margin-top: 1px; }\n" +
-			"p.article { font-size: 12pt; }\n" +
-			"p.menuheader {  color: black;  margin: 0.2em 0em 0em 0em; }\n" +
-			"P.banner { background-color: #303b43;\n" +
-			"     font-size: medium;\n" +
-			"     font-weight: bold;\n" +
-			"     text-align:center;\n" +
-			"     color: white;\n" +
-			"     margin: 0.2em 0em 0em 0em;\n" +
-			"     page-break-after: avoid;\n" +
-			"     border-radius: 4px 4px 4px 4px;\n" +
-			"}\n" +
-			"P.error { background-color: rgb(117,0,0);\n" +
-			"           font-size: medium; font-weight: bold; text-align:center;\n" +
-			"           color: white; margin: 0.2em 0em 0em 0em;\n" +
-			"          border-radius: 6px 6px 6px 6px;\n" +
-			"}\n" +
-			"P.warning { background-color: #FFCC00;\n" +
-			"          font-size: medium; font-weight: bold; text-align:center;\n" +
-			"          color: white; margin: 0.2em 0em 0em 0em;\n" +
-			"          border-radius: 6px 6px 6px 6px;\n" +
-			"}\n" +
-			"P.success { background-color: #1d5e1f;\n" +
-			"          font-size: medium; font-weight: bold; text-align:center;\n" +
-			"          color: white; margin: 0.2em 0em 0em 0em;\n" +
-			"          border-radius: 6px 6px 6px 6px;\n" +
-			"}\n" +
-			"P.nochange { background-color: rgb(0,0,200);\n" +
-			"          font-size: medium; font-weight: bold; text-align:center;\n" +
-			"          color: white; margin: 0.2em 0em 0em 0em;\n" +
-			"}\n" +
-			"*.alert { background-color: #FF6666; }\n" +
-			"*.new { background-color: #FFFF9C }\n" +
-			"*.changed { background-color: #DEBDDE }\n" +
-			"*.warning { background-color: #FF9900; }\n" +
-			"P.delete { text-align:right; }\n" +
-			"P.bannerleft { background-color: #303b43;\n" +
-			"       font-size: medium; font-weight: bold; text-align:left;\n" +
-			"       color: white; margin: 0.2em 0em 0em 0em;\n" +
-			"}\n" +
-			"/* Sortable tables */\n" +
-			"table.sortable thead {\n" +
-			"    background-color: #303b43;\n" +
-			"    color: white;\n" +
-			"    font-weight: bold;\n" +
-			"    cursor: default;\n" +
-			"}\n" +
-			"/* Thumbnail images that popup on hover */\n" +
-			".thumbnail{\n" +
-			"position: relative;\n" +
-			"z-index: 0;\n" +
-			"}\n" +
-			".thumbnail:hover{\n" +
-			"background-color: transparent;\n" +
-			"z-index: 200;\n" +
-			"}\n" +
-			".thumbnail span{    /*CSS for enlarged image*/\n" +
-			"position: absolute;\n" +
-			"background-color: lightyellow;\n" +
-			"padding: 5px;\n" +
-			"left: -1000px;\n" +
-			"border: 1px dashed gray;\n" +
-			"visibility: hidden;\n" +
-			"color: black;\n" +
-			"text-decoration: none;\n" +
-			"z-index: 300;\n" +
-			"}\n" +
-			".thumbnail span img{     /*CSS for enlarged image*/\n" +
-			"border-width: 0;\n" +
-			"padding: 2px;\n" +
-			"z-index: 350;\n" +
-			"}\n" +
-			".thumbnail:hover span{    /*CSS for enlarged image on hover*/\n" +
-			"visibility: visible;\n" +
-			"top: 0;\n" +
-			"left: 50px; /*position where enlarged image should offset horizontally */\n" +
-			"z-index: 400;\n" +
-			"}\n" +
-			".canpopup {\n" +
-			"    z-index: 100; position: absolute;  display: none;\n" +
-			" /*   opacity: 0.9; */  background-color: white;\n" +
-			"    border: 1px solid gray;\n" +
-			"    padding: 0.4em 0.4em 0.4em 0.4em;\n" +
-			"     border-radius: 6px 6px 6px 6px;\n" +
-			"}\n" +
-			".screenfade {\n" +
-			"    z-index: 99; position: fixed;  display: none;\n" +
-			"    opacity: 0.6;   background-color: gray;\n" +
-			"    top: 0; left: 0; bottom: 0; right: 0;\n" +
-			"}\n" +
-			"@media print { BODY { font-size: 6pt; margin: 1em; } }\n" +
-			"@media print { #menu {display: none; } }\n" +
-			"@media print { #service {position: absolute; top: 0.5in; left: auto;} }\n" +
-			"@media print { TABLE.data { border: solid thin;  page-break-inside: avoid;} }\n" +
-			"@media print { TD.header { border: solid thin; } }\n" +
-			"@media print { *.new { border: dotted thin; } }\n" +
-			"@media print { *.alert { border: solid medium; border-color: #FF0000;} }\n" +
-			"@media print { *.changed { border: double thin; } }\n" +
-			"@media print { *.button { display: none; } }\n";
+	public static final String DEFAULT_STYLESHEET = 
+"/* This is the default PermeAgility stylesheet */\n" +
+"img.headerlogo { width: 110px; height: 55px; position: fixed; top: 3px; left: 3px; border: none;}\n" +
+"a.headerlogo:hover { text-decoration: none; background-color: transparent;}\n" +
+"BODY { font-family: verdana,sans-serif; /* font-size: small; */ }\n" +
+"#menu { position: fixed; top: 0px; left: 0px; bottom: 0px;\n" +
+"  width: 145px; background-repeat: repeat-y; border: 0;\n" +
+"  background-image: url(../images/menu_background.jpg);\n" +
+"  padding-left: 5px; padding-top: 75px; /* menu starts below header */\n" +
+"}\n" +
+"a, a.menuitem, a.popuplink {color: black;}\n" +
+"a.menuitem:link { text-decoration: none; }\n" +
+"a.menuitem:visited { text-decoration: none; }\n" +
+"a:hover, a.menuitem:hover, a.popuplink:hover { text-decoration: none; color: blue;\n" +
+"         border-radius: 6px 6px 6px 6px;   border: 1px solid blue;  }\n" +
+"#header { position: absolute; top: 0px; left: 0px; right: 0px; height: 75px;\n" +
+"         background-image: url(/images/header_background.jpg);   }\n" +
+"#headertitle { font-size: 1em; position: absolute; top: 5px; left: 160px;  }\n" +
+"#headerservice { font-size: 1.5em;    position: absolute; top: 30px; left: 160px; }\n" +
+"#headertime { position: absolute; top: 5px; right: 5px; }\n" +
+"#headeruser { position: absolute; top: 25px; right: 5px; }\n" +
+"#service { position: absolute; top: 75px; left: 125px; right: 0px; bottom: 0px; display: inline-block;}\n" +
+".label { color: black; }\n" +
+"td.label { text-align: right; vertical-align: middle; font-size: x-small;\n" +
+"  border-radius: 6px 6px 6px 6px;\n" +
+" background: linear-gradient(to right, white, #E0E0E0);\n" +
+"        border: none;  padding: 0px 5px 0px 25px;}\n" +
+"a { text-decoration: none; }\n" +
+"a:hover { text-decoration: underline; }\n" +
+"input.number { text-align: right; }\n" +
+"table.layout {  width: 100%; }\n" +
+"td.layout { border-radius: 6px 6px 6px 6px; text-align: left;\n" +
+"    padding: 2px 2px 2px 2px;  background-color: #DCDCDC;\n" +
+"}\n" +
+"th { background-color: #303b43; color: white; font-weight: bold;\n" +
+"     border-radius: 4px 4px 0px 0px;\n" +
+"}\n" +
+"tr.data, TD.data { background-color: #DCDCDC; vertical-align: top; }\n" +
+"tr.clickable { background-color: #DCDCDC; vertical-align: top; }\n" +
+"tr.clickable:hover { background-color: #AAAADC; text-decoration: bold; }\n" +
+"tr.footer { font-weight: bold; }\n" +
+"td { text-align: left;  }\n" +
+"td.number { text-align: right; }\n" +
+"td.total { text-align: right; font-weight:bolder; normal: solid thin black; }\n" +
+"p.headline { color: #303b43; font-size: large; font-weight: bold;\n" +
+"            margin-bottom: 2px; }\n" +
+"p.dateline { font-size: 6pt; line-height: 50%;\n" +
+"            margin-bottom: 1px; margin-top: 1px; }\n" +
+"p.article { font-size: 12pt; }\n" +
+"p.menuheader {  color: black;  margin: 0.2em 0em 0em 0em; }\n" +
+"P.banner { background-color: #303b43;\n" +
+"     font-size: medium;\n" +
+"     font-weight: bold;\n" +
+"     text-align:center;\n" +
+"     color: white;\n" +
+"     margin: 0.2em 0em 0em 0em;\n" +
+"     page-break-after: avoid;\n" +
+"     border-radius: 4px 4px 4px 4px;\n" +
+"}\n" +
+"P.error { background-color: rgb(117,0,0);\n" +
+"           font-size: medium; font-weight: bold; text-align:center;\n" +
+"           color: white; margin: 0.2em 0em 0em 0em;\n" +
+"          border-radius: 6px 6px 6px 6px;\n" +
+"}\n" +
+"P.warning { background-color: #FFCC00;\n" +
+"          font-size: medium; font-weight: bold; text-align:center;\n" +
+"          color: white; margin: 0.2em 0em 0em 0em;\n" +
+"          border-radius: 6px 6px 6px 6px;\n" +
+"}\n" +
+"P.success { background-color: #1d5e1f;\n" +
+"          font-size: medium; font-weight: bold; text-align:center;\n" +
+"          color: white; margin: 0.2em 0em 0em 0em;\n" +
+"          border-radius: 6px 6px 6px 6px;\n" +
+"}\n" +
+"P.nochange { background-color: rgb(0,0,200);\n" +
+"          font-size: medium; font-weight: bold; text-align:center;\n" +
+"          color: white; margin: 0.2em 0em 0em 0em;\n" +
+"}\n" +
+"*.alert { background-color: #FF6666; }\n" +
+"*.new { background-color: #FFFF9C }\n" +
+"*.changed { background-color: #DEBDDE }\n" +
+"*.warning { background-color: #FF9900; }\n" +
+"P.delete { text-align:right; }\n" +
+"P.bannerleft { background-color: #303b43;\n" +
+"       font-size: medium; font-weight: bold; text-align:left;\n" +
+"       color: white; margin: 0.2em 0em 0em 0em;\n" +
+"}\n" +
+"/* Sortable tables */\n" +
+"table.sortable thead {\n" +
+"    background-color: #303b43;\n" +
+"    color: white;\n" +
+"    font-weight: bold;\n" +
+"    cursor: default;\n" +
+"}\n" +
+".canpopup {\n" +
+"    z-index: 100; position: absolute;  display: none;\n" +
+" /*   opacity: 0.9; */  background-color: white;\n" +
+"    border: 1px solid gray;\n" +
+"    padding: 0.4em 0.4em 0.4em 0.4em;\n" +
+"     border-radius: 6px 6px 6px 6px;\n" +
+"}\n" +
+".screenfade {\n" +
+"    z-index: 99; position: fixed;  display: none;\n" +
+"    opacity: 0.6;   background-color: gray;\n" +
+"    top: 0; left: 0; bottom: 0; right: 0;\n" +
+"}\n" +
+"@media print { BODY { font-size: 6pt; margin: 1em; } }\n" +
+"@media print { #menu {display: none; } }\n" +
+"@media print { #service {position: absolute; top: 0.5in; left: auto;} }\n" +
+"@media print { TABLE.data { border: solid thin;  page-break-inside: avoid;} }\n" +
+"@media print { TD.header { border: solid thin; } }\n" +
+"@media print { *.new { border: dotted thin; } }\n" +
+"@media print { *.alert { border: solid medium; border-color: #FF0000;} }\n" +
+"@media print { *.changed { border: double thin; } }\n" +
+"@media print { *.button { display: none; } }\n";
 					
-	public static final String DEFAULT_ALT_STYLESHEET = "/* New Gravity with horizontal menu */\n" +
-			"img.headerlogo { width: 60px; left: 2px; top: 25px; position: absolute;}\n" +
-			"a.headerlogo:hover { text-decoration: none; background-color: transparent;}\n" +
-			"body { font-family: verdana,sans-serif;\n" +
-			"       font-size: x-small; \n" +
-			"       color: white;\n" +
-			"       background-color: black; \n" +
-			" }\n" +
-			"#menu { position: fixed; left: 0px; top: 2px; right: 0px; height: 20px; z-index: 100;\n" +
-			"/*  background-repeat: repeat-y; border: 0;\n" +
-			"  background-image: url(../images/PSBlackMenu.jpg); */\n" +
-			"  padding-left: 5px; \n" +
-			"}\n" +
-			"a, a.menuitem, a.popuplink {color: lightgray;}\n" +
-			"a.menuitem:link { text-decoration: none; }\n" +
-			"a.menuitem:visited { text-decoration: none; }\n" +
-			"a:hover, a.menuitem:hover, a.popuplink:hover { text-decoration: none;   color: white;  \n" +
-			"         background: radial-gradient(ellipse, darkorange, black);\n" +
-			"/*         border-radius: 6px 6px 6px 6px;   border: 1px solid cyan;  */\n" +
-			"}\n" +
-			"#header { position: absolute; top: 0px; left: 0px; right: 0px; height: 60px;\n" +
-			"         background-image: url(/images/PSBlackHeader.jpg);   }\n" +
-			"#headertitle { font-size: 1em; position: absolute; top: 20px; left: 80px;  }\n" +
-			"#headerservice { font-size: 1.5em;    position: absolute; top: 35px; left: 80px; }\n" +
-			"#headertime { position: absolute; top: 15px; right: 5px; }\n" +
-			"#headeruser { position: absolute; top: 30px; right: 5px; }\n" +
-			"#service { position: absolute; top: 65px;  left: 5px; right: 5px; display: inline-block;}\n" +
-			".label { color: black; }\n" +
-			"td.label { text-align: right; vertical-align: middle; font-size: x-small; \n" +
-			"  color: white; font-weight: bold;\n" +
-			"  border-radius: 6px 6px 6px 6px;  \n" +
-			" background: linear-gradient(to right, black, #444444);\n" +
-			"        border: none;  padding: 0px 5px 0px 25px;}\n" +
-			"a { text-decoration: none; }\n" +
-			"a:hover { text-decoration: underline; }\n" +
-			"input, textarea, select {\n" +
-			"  background-color : #222222;\n" +
-			"  color: white; \n" +
-			"}\n" +
-			"input.number { text-align: right; }\n" +
-			"table.layout {  width: 100%; }\n" +
-			"td.layout { border-radius: 6px 6px 6px 6px;\n"+   
-            "    padding: 2px 2px 2px 2px;  background-color: #222222;\n"+
-            "}\n"+
-			"th { font-weight: bold; \n" +
-			"     border-radius: 8px 8px 0px 0px; \n" +
-			"/*    background-color: #339999;  */\n" +
-			"     background: radial-gradient(ellipse, #339999, black);\n" +
-			"    font-weight: bold; color: white;\n" +
-			"}\n" +
-			"tr.data, td.data { background-color: #222222; vertical-align: top; }\n" +
-			"tr.clickable { background-color: #222222; vertical-align: top; }\n" +
-			"tr.clickable:hover {         \n" +
-			"   background: radial-gradient(ellipse, darkorange, black);\n" +
-			"}\n" +
-			"tr.footer { font-weight: bold; }\n" +
-			"td { text-align: left;  }\n" +
-			"td.number { text-align: right; }\n" +
-			"td.total { text-align: right; font-weight:bolder; normal: solid thin black; }\n" +
-			"p.headline { color: #339999; font-size: large; font-weight: bold; \n" +
-			"            margin-bottom: 2px; }\n" +
-			"p.dateline { font-size: 6pt; line-height: 50%; \n" +
-			"            margin-bottom: 1px; margin-top: 1px; }\n" +
-			"p.article { font-size: 12pt; }\n" +
-			"p.menuheader {  color: white;  margin: 0.2em 0em 0em 0em; }\n" +
-			"P.banner { /* background-color: #336666; */\n" +
-			"     font-size: small; \n" +
-			"     font-weight: bold; \n" +
-			"     text-align:center; \n" +
-			"     color: white; \n" +
-			"     margin: 0.2em 0em 0em 0em; \n" +
-			"     page-break-after: avoid; \n" +
-			"     border-radius: 8px 8px 8px 8px; \n" +
-			"     background: radial-gradient(ellipse, #336666, black);\n" +
-			"}\n" +
-			"P.error { \n" +
-			"           font-size: small; font-weight: bold; text-align:center; \n" +
-			"           color: white; margin: 0.2em 0em 0em 0em; \n" +
-			"          border-radius: 6px 6px 6px 6px;\n" +
-			" background: radial-gradient(ellipse, rgb(117,0,0), black);\n" +
-			"}\n" +
-			"P.warning {\n" +
-			"    font-size: small; font-weight: bold; text-align:center; \n" +
-			"    color: white; margin: 0.2em 0em 0em 0em; \n" +
-			"    border-radius: 6px 6px 6px 6px;\n" +
-			"    background: radial-gradient(ellipse, #FFCC00, black);\n" +
-			"}\n" +
-			"P.success { background-color: #1d5e1f; \n" +
-			"          font-size: small; font-weight: bold; text-align:center; \n" +
-			"          color: white; margin: 0.2em 0em 0em 0em; \n" +
-			"          border-radius: 6px 6px 6px 6px;\n" +
-			"          background: radial-gradient(ellipse, #1d5e1f, black);\n" +
-			"}\n" +
-			"P.nochange { background-color: rgb(0,0,200); \n" +
-			"          font-size: small; font-weight: bold; text-align:center; \n" +
-			"          color: white; margin: 0.2em 0em 0em 0em; \n" +
-			"}\n" +
-			"*.alert { background-color: #FF6666; }\n" +
-			"*.new { background-color: #FFFF9C }\n" +
-			"*.changed { background-color: #DEBDDE }\n" +
-			"*.warning { background-color: #FF9900; }\n" +
-			"P.delete { text-align:right; }\n" +
-			"P.bannerleft { background-color: #303b43; \n" +
-			"       font-size: medium; font-weight: bold; text-align:left; \n" +
-			"       color: white; margin: 0.2em 0em 0em 0em; \n" +
-			"}\n" +
-			"/* Sortable tables */\n" +
-			"table.sortable thead {\n" +
-			"    background-color: #303b43;\n" +
-			"    color: white;\n" +
-			"    font-weight: bold;\n" +
-			"    cursor: default;\n" +
-			"}\n" +
-			"/* Thumbnail images that popup on hover */\n" +
-			".thumbnail{\n" +
-			"position: relative;\n" +
-			"z-index: 0; \n" +
-			"}\n" +
-			".thumbnail:hover{\n" +
-			"background-color: transparent;\n" +
-			"z-index: 200; \n" +
-			"}\n" +
-			".thumbnail span{    /*CSS for enlarged image*/\n" +
-			"position: absolute;\n" +
-			"background-color: lightyellow;\n" +
-			"padding: 5px;\n" +
-			"left: -1000px;\n" +
-			"border: 1px dashed gray;\n" +
-			"visibility: hidden;\n" +
-			"color: black;\n" +
-			"text-decoration: none;\n" +
-			"z-index: 300; \n" +
-			"}\n" +
-			".thumbnail span img{     /*CSS for enlarged image*/\n" +
-			"border-width: 0;\n" +
-			"padding: 2px;\n" +
-			"z-index: 350; \n" +
-			"}\n" +
-			".thumbnail:hover span{    /*CSS for enlarged image on hover*/\n" +
-			"visibility: visible;\n" +
-			"top: 0;\n" +
-			"left: 50px; /*position where enlarged image should offset horizontally */\n" +
-			"z-index: 400; \n" +
-			"}\n" +
-			".canpopup {\n" +
-			"    z-index: 100; position: absolute;  display: none;\n" +
-			" /*   opacity: 0.9; */  background-color: black;    \n" +
-			"    border: 1px solid gray;\n" +
-			"    padding: 0.4em 0.4em 0.4em 0.4em;\n" +
-			"     border-radius: 6px 6px 6px 6px; \n" +
-			"}\n" +
-			".screenfade {\n" +
-			"    z-index: 99; position: fixed;  display: none; \n" +
-			"    opacity: 0.7;   background-color: #000000;\n" +
-			"    top: 0; left: 0; bottom: 0; right: 0;\n" +
-			"}\n" +
-			"@media print { BODY { font-size: 6pt; margin: 1em; } }\n" +
-			"@media print { #menu {display: none; } }\n" +
-			"@media print { #service {position: absolute; top: 0.5in; left: auto;} }\n" +
-			"@media print { TABLE.data { border: solid thin;  page-break-inside: avoid;} }\n" +
-			"@media print { TD.header { border: solid thin; } }\n" +
-			"@media print { *.new { border: dotted thin; } }\n" +
-			"@media print { *.alert { border: solid medium; border-color: #FF0000;} }\n" +
-			"@media print { *.changed { border: double thin; } }\n" +
-			"@media print { *.button { display: none; } }\n";
+	public static final String DEFAULT_ALT_STYLESHEET = 
+"/* horizontal menu in Gravity style */\n" +
+"img.headerlogo { width: 90px; left: 2px; top: 25px; \n" +
+"    position: absolute; border: none; }\n" +
+"a.headerlogo:hover { text-decoration: none; background-color: transparent;}\n" +
+"body, html { font-family: verdana,sans-serif;\n" +
+"       color: white;\n" +
+"       background-color: black; }\n" +
+"#menu { position: fixed; left: 0px; top: 2px; right: 0px; height: 20px; z-index: 100;\n" +
+"/*  background-repeat: repeat-y; border: 0;\n" +
+"  background-image: url(../images/PSBlackMenu.jpg); */\n" +
+"  padding-left: 5px; \n" +
+"}\n" +
+"a, a.menuitem, a.popuplink {color: lightgray;}\n" +
+"a.menuitem:link { text-decoration: none; }\n" +
+"a.menuitem:visited { text-decoration: none; }\n" +
+"a:hover, a.menuitem:hover, a.popuplink:hover { text-decoration: none;   \n" +
+"    color: white;  \n" +
+"    background: radial-gradient(ellipse, darkorange, black);\n" +
+"/*         border-radius: 6px 6px 6px 6px;   border: 1px solid cyan;  */\n" +
+"}\n" +
+"#header { position: absolute; top: 0px; left: 0px; right: 0px; height: 80px;\n" +
+"         background-image: url(/images/PSBlackHeader.jpg);   }\n" +
+"#headertitle { font-size: 0.75em; position: absolute; top: 30px; left: 100px; }\n" +
+"#headerservice { font-size: 1em; position: absolute; top: 50px; left: 100px; }\n" +
+"#headertime { font-size: 0.75em; position: absolute; top: 20px; right: 5px; }\n" +
+"#headeruser { font-size: 0.75em; position: absolute; top: 40px; right: 5px; }\n" +
+"#service { position: absolute; top: 80px;  left: 5px; right: 5px; display: inline-block;}\n" +
+".label { color: black; }\n" +
+"td.label { text-align: right; vertical-align: middle; font-size: small; \n" +
+"  color: white; font-weight: bold;\n" +
+"  border-radius: 6px 6px 6px 6px;  \n" +
+" background: linear-gradient(to right, black, #444444);\n" +
+"        border: none;  padding: 0px 5px 0px 25px;}\n" +
+"a { text-decoration: none; }\n" +
+"a:hover { text-decoration: underline; }\n" +
+"input, textarea, select {\n" +
+"  background-color : #222222;\n" +
+"  color: white; \n" +
+"}\n" +
+"input.number { text-align: right; }\n" +
+"table.layout {  width: 100%; }\n" +
+"td.layout { border-radius: 6px 6px 6px 6px;\n" +
+"    padding: 2px 2px 2px 2px;  background-color: #222222;\n" +
+"}\n" +
+"th { font-weight: bold; \n" +
+"     border-radius: 8px 8px 0px 0px; \n" +
+"    background-color: #339999;  \n" +
+"     background: radial-gradient(ellipse, #339999, black);\n" +
+"    font-weight: bold; color: white;\n" +
+"}\n" +
+"tr.data, td.data { background-color: #222222; vertical-align: top; }\n" +
+"tr.clickable { background-color: #222222; vertical-align: top; }\n" +
+"tr.clickable:hover {         \n" +
+"   background: radial-gradient(ellipse, darkorange, black);\n" +
+"}\n" +
+"tr.footer { font-weight: bold; }\n" +
+"td { text-align: left;  }\n" +
+"td.number { text-align: right; }\n" +
+"td.total { text-align: right; font-weight:bolder; normal: solid thin black; }\n" +
+"p.headline { color: #339999; font-size: large; font-weight: bold; \n" +
+"            margin-bottom: 2px; }\n" +
+"p.dateline { font-size: 6pt; line-height: 50%; \n" +
+"            margin-bottom: 1px; margin-top: 1px; }\n" +
+"p.article { font-size: 12pt; }\n" +
+"p.menuheader {  color: white;  margin: 0.2em 0em 0em 0em; }\n" +
+"P.banner { background-color: #336666;\n" +
+"     font-weight: bold; \n" +
+"     text-align:center; \n" +
+"     color: white; \n" +
+"     margin: 0.2em 0em 0em 0em; \n" +
+"     page-break-after: avoid; \n" +
+"     border-radius: 8px 8px 8px 8px; \n" +
+"     background: radial-gradient(ellipse, #336666, black);\n" +
+"}\n" +
+"P.error { \n" +
+"           font-weight: bold; text-align:center; \n" +
+"           color: white; margin: 0.2em 0em 0em 0em; \n" +
+"          border-radius: 6px 6px 6px 6px;\n" +
+" background: radial-gradient(ellipse, rgb(117,0,0), black);\n" +
+"}\n" +
+"P.warning {\n" +
+"    font-weight: bold; text-align:center; \n" +
+"    color: white; margin: 0.2em 0em 0em 0em; \n" +
+"    border-radius: 6px 6px 6px 6px;\n" +
+"    background-color: #FFCC00;\n" +
+"    background: radial-gradient(ellipse, #FFCC00, black);\n" +
+"}\n" +
+"P.success { background-color: #1d5e1f; \n" +
+"          font-weight: bold; text-align:center; \n" +
+"          color: white; margin: 0.2em 0em 0em 0em; \n" +
+"          border-radius: 6px 6px 6px 6px;\n" +
+"          background: radial-gradient(ellipse, #1d5e1f, black);\n" +
+"}\n" +
+"P.nochange { background-color: rgb(0,0,200); \n" +
+"          font-weight: bold; text-align:center; \n" +
+"          color: white; margin: 0.2em 0em 0em 0em; \n" +
+"}\n" +
+"*.alert { background-color: #FF6666; }\n" +
+"*.new { background-color: #FFFF9C }\n" +
+"*.changed { background-color: #DEBDDE }\n" +
+"*.warning { background-color: #FF9900; }\n" +
+"P.delete { text-align:right; }\n" +
+"P.bannerleft { background-color: #303b43; \n" +
+"       font-weight: bold; text-align:left; \n" +
+"       color: white; margin: 0.2em 0em 0em 0em; \n" +
+"}\n" +
+"/* Sortable tables */\n" +
+"table.sortable thead {\n" +
+"    background-color: #303b43;\n" +
+"    color: white;\n" +
+"    font-weight: bold;\n" +
+"    cursor: default;\n" +
+"}\n" +
+".canpopup {\n" +
+"    z-index: 100; position: absolute;  display: none;\n" +
+" /*   opacity: 0.9; */  background-color: black;    \n" +
+"    border: 1px solid gray;\n" +
+"    padding: 0.4em 0.4em 0.4em 0.4em;\n" +
+"     border-radius: 6px 6px 6px 6px; \n" +
+"}\n" +
+".screenfade {\n" +
+"    z-index: 99; position: fixed;  display: none; \n" +
+"    opacity: 0.7;   background-color: #000000;\n" +
+"    top: 0; left: 0; bottom: 0; right: 0;\n" +
+"}\n" +
+"@media print { BODY { font-size: 6pt; margin: 1em; } }\n" +
+"@media print { #menu {display: none; } }\n" +
+"@media print { #service {position: absolute; top: 0.5in; left: auto;} }\n" +
+"@media print { TABLE.data { border: solid thin;  page-break-inside: avoid;} }\n" +
+"@media print { TD.header { border: solid thin; } }\n" +
+"@media print { *.new { border: dotted thin; } }\n" +
+"@media print { *.alert { border: solid medium; border-color: #FF0000;} }\n" +
+"@media print { *.changed { border: double thin; } }\n" +
+"@media print { *.button { display: none; } }\n";
 }

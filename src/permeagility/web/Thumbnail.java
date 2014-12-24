@@ -11,13 +11,14 @@ import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.util.Locale;
 
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 
 import permeagility.util.Database;
 import permeagility.util.DatabaseConnection;
-import permeagility.util.DatabaseSetup;
+import permeagility.util.Setup;
 import permeagility.util.QueryResult;
 
 import com.orientechnologies.orient.core.record.impl.ODocument;
@@ -38,12 +39,12 @@ public class Thumbnail {
 		database = d;
 	}
 
-	public static String getThumbnailLink(String tid, String description) {
+	public static String getThumbnailLink(Locale locale, String tid, String description) {
 		if (description.startsWith("image")) {
 			return "<IMG SRC=\"../thumbnail?SIZE=SMALL&ID=" + tid + "\" >\n"
-					+Weblet.popupForm("image", null, "View", null , "IMAGE_POPUP",
-						Weblet.paragraph("banner","View")+description
-						+"<button onClick=\"window.open('/thumbnail?SIZE=FULL&ID="+tid+"')\">Download full size</button><br>"
+					+Weblet.popupForm("image", null, Message.get(locale,"IMAGE_VIEW_LINK"), null , "IMAGE_POPUP",
+						Weblet.paragraph("banner",Message.get(locale,"IMAGE_VIEW_HEADER"))+description
+						+"<button onClick=\"window.open('/thumbnail?SIZE=FULL&ID="+tid+"')\">"+Message.get(locale,"DOWNLOAD_FULL_SIZE")+"</button><br>"
 						+ "<IMG SRC=\"../thumbnail?SIZE=MEDIUM&ID="+tid+"\"/>\n"
 					);
 		} else {
@@ -185,7 +186,7 @@ public class Thumbnail {
 		}
 		try {
 			// Delete any and all that may already exist
-			String query = "SELECT FROM "+DatabaseSetup.TABLE_THUMBNAIL+"\n"
+			String query = "SELECT FROM "+Setup.TABLE_THUMBNAIL+"\n"
 					+"WHERE table = '"+table+"'\n"
 					+"AND id = '"+doc.getIdentity().toString().substring(1)+"'\n"
 					+"AND column = '"+column+"'";
@@ -236,7 +237,7 @@ public class Thumbnail {
 				}
 			} 
 
-			ODocument thumbnail = con.create(DatabaseSetup.TABLE_THUMBNAIL);
+			ODocument thumbnail = con.create(Setup.TABLE_THUMBNAIL);
 
 			if (content != null) {
 				if (content_type.toString().equals("image/svg+xml")) {  // SVG scales to any size and doesn't take up much space
@@ -308,7 +309,7 @@ public class Thumbnail {
 		}
 		try {
 			// Delete any and all that may already exist for this row
-			String query = "SELECT FROM "+DatabaseSetup.TABLE_THUMBNAIL+"\n"
+			String query = "SELECT FROM "+Setup.TABLE_THUMBNAIL+"\n"
 					+"WHERE table = '"+table+"'\n"
 					+"AND id = '"+id+"'";
 			QueryResult qr = con.query(query);

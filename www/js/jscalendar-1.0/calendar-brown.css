@@ -1,6 +1,6 @@
 /* The main calendar widget.  DIV containing a table. */
 
-div.calendar { position: relative; }
+div.calendar { position: relative; z-index: 1000;}
 
 .calendar, .calendar table {
   border: 1px solid #655;
@@ -9,6 +9,7 @@ div.calendar { position: relative; }
   cursor: default;
   background: #ffd;
   font-family: tahoma,verdana,sans-serif;
+  z-index: 1000;
 }
 
 /* Header part -- contains navigation buttons and day names. */

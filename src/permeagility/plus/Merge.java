@@ -5,7 +5,7 @@ import java.util.HashMap;
 
 import permeagility.util.Database;
 import permeagility.util.DatabaseConnection;
-import permeagility.util.DatabaseSetup;
+import permeagility.util.Setup;
 import permeagility.util.QueryResult;
 import permeagility.web.Message;
 import permeagility.web.Server;
@@ -58,7 +58,7 @@ public class Merge extends Table {
 				if (updateRow(con, tableName, parms, errors)) {
 					submit = null;
 				} else {
-					return head("Could not update", getDateControlScript()+getColorControlScript())
+					return head("Could not update", getDateControlScript(con.getLocale())+getColorControlScript())
 							+ body(standardLayout(con, parms, getTableRowForm(con, tableName, parms) + errors.toString()));
 				}
 			} 
@@ -80,7 +80,7 @@ public class Merge extends Table {
 		// Show edit form if row selected for edit
 		if (editId != null && submit == null && connect == null) {
 			toTable = tableName;
-			return head("Edit", getDateControlScript()+getColorControlScript())
+			return head("Edit", getDateControlScript(con.getLocale())+getColorControlScript())
 					+ body(standardLayout(con, parms, getTableRowForm(con, toTable, parms)));
 		}
 		
@@ -443,17 +443,17 @@ public class Merge extends Table {
 		Database.checkCreateProperty(logTable, "toColumn", OType.STRING, errors);
 		Database.checkCreateProperty(logTable, "linkProperty", OType.STRING, errors);
 
-		ODocument mergeTableColumns = con.queryDocument("SELECT FROM "+DatabaseSetup.TABLE_COLUMNS+" WHERE name='"+MERGE_TABLE+"'");
+		ODocument mergeTableColumns = con.queryDocument("SELECT FROM "+Setup.TABLE_COLUMNS+" WHERE name='"+MERGE_TABLE+"'");
 		if (mergeTableColumns == null) {
-			mergeTableColumns = con.create(DatabaseSetup.TABLE_COLUMNS).field("name",MERGE_TABLE).field("columnList",MERGE_TABLE_COLUMNS).save();
+			mergeTableColumns = con.create(Setup.TABLE_COLUMNS).field("name",MERGE_TABLE).field("columnList",MERGE_TABLE_COLUMNS).save();
 		}
 		if (mergeTableColumns != null && !mergeTableColumns.field("columnList").equals(MERGE_TABLE_COLUMNS)) {
 			mergeTableColumns.field("columnList",MERGE_TABLE_COLUMNS).save();
 		}
 
-		ODocument attrTableColumns = con.queryDocument("SELECT FROM "+DatabaseSetup.TABLE_COLUMNS+" WHERE name='"+ATTR_TABLE+"'");
+		ODocument attrTableColumns = con.queryDocument("SELECT FROM "+Setup.TABLE_COLUMNS+" WHERE name='"+ATTR_TABLE+"'");
 		if (attrTableColumns == null) {
-			attrTableColumns = con.create(DatabaseSetup.TABLE_COLUMNS).field("name",ATTR_TABLE).field("columnList",ATTR_TABLE_COLUMNS).save();
+			attrTableColumns = con.create(Setup.TABLE_COLUMNS).field("name",ATTR_TABLE).field("columnList",ATTR_TABLE_COLUMNS).save();
 		}
 		if (attrTableColumns != null && !attrTableColumns.field("columnList").equals(ATTR_TABLE_COLUMNS)) {
 			attrTableColumns.field("columnList",ATTR_TABLE_COLUMNS).save();

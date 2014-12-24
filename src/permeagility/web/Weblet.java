@@ -26,7 +26,7 @@ import java.util.Stack;
 import java.util.Vector;
 
 import permeagility.util.DatabaseConnection;
-import permeagility.util.DatabaseSetup;
+import permeagility.util.Setup;
 import permeagility.util.QueryCache;
 import permeagility.util.QueryResult;
 
@@ -51,10 +51,12 @@ public abstract class Weblet {
 	public static String DECIMAL_FORMAT = "#,##0;(#,##0)";
 	public static String DATE_CONTROL_FORMAT = "%Y-%m-%d";
 	public static String TIME_CONTROL_FORMAT = "%k:%M:%S";
+	// Must be a valid JS Calendar style Working: blue2, brown, green, win2k-1, win2k-2, win2k-cold-1, win2k-cold-2   Not working: blue, system, tas
+	public static String DATE_CONTROL_STYLE = "blue2";  
 	public static String DEFAULT_STYLE = "default";
     public static String POPUP_SUFFIX = "..";
-    public static boolean JQUERY_MIN = false;
-    public static boolean ANGULAR_MIN = false;
+    public static boolean JQUERY_MIN = false;  // Set to true to reduce download time but sacrifice debug messages of any value
+    public static boolean ANGULAR_MIN = false;  // Set to true to reduce download time but sacrifice debug messages of any value
 
 	public static DateFormat sqlDateFormat = new SimpleDateFormat("yyyy-MM-dd");
 	public static DateFormat sqlDatetimeFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -638,11 +640,14 @@ public abstract class Weblet {
 		return "<input type=\"FILE\" " + (isReadOnly() ? "DISABLED" : "") + "  name=\"" + name + "\">";
 	}
 
-	public static String getDateControlScript() {
+	public static String getDateControlScript(Locale locale) {
+//		System.out.println("Getting date control script for locale "+locale.getLanguage());
+// TODO: May need more intelligence here to ensure the locale has a file for JS Calendar ( or just replace the whole thing)
 		return 
-		   "<link rel=\"stylesheet\" type=\"text/css\" media=\"all\" href=\"../js/jscalendar-1.0/calendar-win2k-cold-1.css\" title=\"win2k-cold-1\" />\n"
+//				   "<link rel=\"stylesheet\" type=\"text/css\" media=\"all\" href=\"../js/jscalendar-1.0/calendar-win2k-cold-1.css\" title=\"win2k-cold-1\" />\n"
+		   "<link rel=\"stylesheet\" type=\"text/css\" href=\"../js/jscalendar-1.0/calendar-"+DATE_CONTROL_STYLE+".css\" title=\"Date Control\" />\n"
 		  +"<script type=\"text/javascript\" src=\"../js/jscalendar-1.0/calendar.js\"></script>\n"
-		  +"<script type=\"text/javascript\" src=\"../js/jscalendar-1.0/lang/calendar-en.js\"></script>\n"
+		  +"<script type=\"text/javascript\" src=\"../js/jscalendar-1.0/lang/calendar-"+locale.getLanguage()+".js\"></script>\n"
 		  +"<script type=\"text/javascript\" src=\"../js/jscalendar-1.0/calendar-setup.js\"></script>\n";
 	}
 
@@ -663,9 +668,9 @@ public abstract class Weblet {
 	public String getDateControl(String formName, String controlName, String initialValue) {
 		dateControlCount++;
 		String varName = "dateControl" + dateControlCount;
-		return "<table><tr><td><input type=\"text\" name=\""+controlName+"\" id=\""+varName+"\" value=\""+initialValue+"\" /></td>\n"
-				+"<td><img src=\"/js/jscalendar-1.0/img.gif\" id=\""+varName+"_TRIG"+"\" style=\"cursor: pointer; border: 1px solid red;\" title=\"Date selector\"\n"
-		        +" onmouseover=\"this.style.background='red';\" onmouseout=\"this.style.background=''\" /></td></tr></table>\n"
+		return "<input type=\"text\" name=\""+controlName+"\" id=\""+varName+"\" value=\""+initialValue+"\" /></td>\n"
+				+"<td><img src=\"/js/jscalendar-1.0/img.gif\" id=\""+varName+"_TRIG"+"\" style=\"cursor: pointer; z-index: 1000;\" title=\"Date selector\"\n"
+		        +" onmouseover=\"this.style.background='red';\" onmouseout=\"this.style.background=''\" />\n"
 		        +"<script type=\"text/javascript\">\n"
 		        +"Calendar.setup({\n"
 		        +" inputField : \""+varName+"\",\n"
@@ -675,14 +680,27 @@ public abstract class Weblet {
 		        //+" singleClick : true\n"
 				+"});\n"
 				+"</script>\n";
+/*		return "<table><tr><td><input type=\"text\" name=\""+controlName+"\" id=\""+varName+"\" value=\""+initialValue+"\" /></td>\n"
+		+"<td><img src=\"/js/jscalendar-1.0/img.gif\" id=\""+varName+"_TRIG"+"\" style=\"cursor: pointer; border: solid red;\" title=\"Date selector\"\n"
+        +" onmouseover=\"this.style.background='red';\" onmouseout=\"this.style.background=''\" /></td></tr></table>\n"
+        +"<script type=\"text/javascript\">\n"
+        +"Calendar.setup({\n"
+        +" inputField : \""+varName+"\",\n"
+        +" ifFormat   : \""+DATE_CONTROL_FORMAT+"\",\n"
+        +" button     : \""+varName+"_TRIG"+"\",\n"
+        +(initialValue==null ? "" : " date : new Date(\""+initialValue+"\"),\n")
+        //+" singleClick : true\n"
+		+"});\n"
+		+"</script>\n";
+*/
 	}
 
 	public String getDateTimeControl(String formName, String controlName, String initialValue) {
 		dateControlCount++;
 		String varName = "dateControl" + dateControlCount;
-		return "<table><tr><td><input type=\"text\" name=\""+controlName+"\" id=\""+varName+"\" value=\""+initialValue+"\" /></td>\n"
-				+"<td><img src=\"/js/jscalendar-1.0/img.gif\" id=\""+varName+"_TRIG"+"\" style=\"cursor: pointer; border: 1px solid red;\" title=\"Date selector\"\n"
-		        +" onmouseover=\"this.style.background='red';\" onmouseout=\"this.style.background=''\" /></td></tr></table>\n"
+		return "<input type=\"text\" name=\""+controlName+"\" id=\""+varName+"\" value=\""+initialValue+"\" />\n"
+				+"<img src=\"/js/jscalendar-1.0/img.gif\" id=\""+varName+"_TRIG"+"\" style=\"cursor: pointer; z-index: 1000;\" title=\"Date selector\"\n"
+		        +" onmouseover=\"this.style.background='red';\" onmouseout=\"this.style.background=''\" />\n"
 		        +"<script type=\"text/javascript\">\n"
 		        +"Calendar.setup({\n"
 		        +" inputField : \""+varName+"\"\n"
@@ -693,6 +711,19 @@ public abstract class Weblet {
 		        +(initialValue==null ? "" : ", date : new Date(\""+initialValue+"\")\n")
 				+"});\n"
 				+"</script>\n";
+/*		return "<table><tr><td><input type=\"text\" name=\""+controlName+"\" id=\""+varName+"\" value=\""+initialValue+"\" /></td>\n"
+		+"<td><img src=\"/js/jscalendar-1.0/img.gif\" id=\""+varName+"_TRIG"+"\" style=\"cursor: pointer; border: 1px solid red;\" title=\"Date selector\"\n"
+        +" onmouseover=\"this.style.background='red';\" onmouseout=\"this.style.background=''\" /></td></tr></table>\n"
+        +"<script type=\"text/javascript\">\n"
+        +"Calendar.setup({\n"
+        +" inputField : \""+varName+"\"\n"
+        +" ,ifFormat   : \""+DATE_CONTROL_FORMAT+" "+TIME_CONTROL_FORMAT+"\"\n"
+        +" ,showsTime   : true\n"
+        +" ,button     : \""+varName+"_TRIG"+"\"\n"
+        //+" singleClick : true\n"
+        +(initialValue==null ? "" : ", date : new Date(\""+initialValue+"\")\n")
+		+"});\n"
+		+"</script>\n"; */
 	}
 
     public static String multiSelectList(String name, List<String> names, List<String> values, List<String> tooltips, Locale l) {
@@ -988,7 +1019,7 @@ public abstract class Weblet {
 		result.append("<INPUT CLASS=\"text\" NAME=\"map\" ng-model=\"v.map\" SIZE=20  VALUE=\"{{v.map}}\"/>&nbsp;");
 		result.append("{{v.name}}&nbsp;&nbsp;&nbsp;");
 		result.append("  <A title=\""+Message.get(l, "CLICK_TO_DELETE")+"\" ng-click=\"delete(v)\">&times;</A>\n");
-		result.append("  <A HREF=\"permeagility.web.Table?TABLENAME="+table+"&EDIT_ID={{v.rid}}\">G"+Message.get(l, "GOTO_ROW")+"</A>\n");
+		result.append("  <A HREF=\"permeagility.web.Table?TABLENAME="+table+"&EDIT_ID={{v.rid}}\">"+Message.get(l, "GOTO_ROW")+"</A>\n");
 		result.append("  </li>\n");
 		result.append(" </ol>\n");
 		result.append(Message.get(l, "ADD_ITEM")+"&nbsp;");
@@ -1051,7 +1082,7 @@ public abstract class Weblet {
 
 	public static String getQueryForTable(DatabaseConnection con, String table) {
 		String query = "SELECT FROM "+table;
-		QueryResult lists = getCache().getResult(con, "SELECT tablename, query FROM "+DatabaseSetup.TABLE_PICKLIST+" WHERE tablename='"+table+"'");
+		QueryResult lists = getCache().getResult(con, "SELECT tablename, query FROM "+Setup.TABLE_PICKLIST+" WHERE tablename='"+table+"'");
 		if (lists != null && lists.size()>0) {
 			return lists.getStringValue(0, "query");
 		}
@@ -1147,7 +1178,7 @@ public abstract class Weblet {
 		} else {
 			System.out.println("No database connection to use to retrieve stylesheets");
 		}
-		return DatabaseSetup.DEFAULT_STYLESHEET;
+		return Setup.DEFAULT_STYLESHEET;
 	}
 
 	public static boolean isNullOrBlank(String string) {
@@ -1308,6 +1339,9 @@ public abstract class Weblet {
 	 * Format a date based on locale and return the formatted date as a string
 	 */
 	public static String formatDate(Locale locale, Date dateToFormat, String format) {
+		if (dateToFormat == null) {
+			return "";
+		}
 		SimpleDateFormat dateTimeFormat = new SimpleDateFormat(format, locale);
 		return dateTimeFormat.format(dateToFormat);
 	}
@@ -1452,7 +1486,7 @@ public abstract class Weblet {
 			tokensList.add(b.toString());
 			itemCount++;
 		}
-		System.out.println("splitCSV turned "+input+" into "+tokensList);
+		//System.out.println("splitCSV turned "+input+" into "+tokensList);
 		String[] temp = new String[itemCount];
 		return tokensList.toArray(temp);
 	}

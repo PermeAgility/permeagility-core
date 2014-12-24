@@ -8,7 +8,7 @@ package permeagility.web;
 import java.util.HashMap;
 
 import permeagility.util.DatabaseConnection;
-import permeagility.util.DatabaseSetup;
+import permeagility.util.Setup;
 import permeagility.util.QueryResult;
 
 import com.orientechnologies.orient.core.record.impl.ODocument;
@@ -23,7 +23,7 @@ public class Settings extends Weblet {
 		StringBuffer errors = new StringBuffer();
 		
 		// Get current style
-		QueryResult currentStyleResult = con.query("SELECT FROM "+DatabaseSetup.TABLE_CONSTANT+" WHERE classname='permeagility.web.Context' AND field='DEFAULT_STYLE'");
+		QueryResult currentStyleResult = con.query("SELECT FROM "+Setup.TABLE_CONSTANT+" WHERE classname='permeagility.web.Context' AND field='DEFAULT_STYLE'");
 		ODocument styleConstant = null;
 		String currentStyleName = null;
 		if (currentStyleResult != null && currentStyleResult.size()>0) {
@@ -35,7 +35,7 @@ public class Settings extends Weblet {
 		}
 
 		// Get current table row limit
-		QueryResult currentRowCountResult = con.query("SELECT value FROM "+DatabaseSetup.TABLE_CONSTANT+" WHERE classname='permeagility.web.Table' AND field='ROW_COUNT_LIMIT'");
+		QueryResult currentRowCountResult = con.query("SELECT value FROM "+Setup.TABLE_CONSTANT+" WHERE classname='permeagility.web.Table' AND field='ROW_COUNT_LIMIT'");
 		String currentRowCount = "";
 		if (currentRowCountResult != null && currentRowCountResult.size()>0) {
 			currentRowCount = currentRowCountResult.getStringValue(0, "value");
@@ -78,7 +78,7 @@ public class Settings extends Weblet {
 				}
 				if (newRowCount > 0) {
 				try {
-					con.update("UPDATE "+DatabaseSetup.TABLE_CONSTANT+" SET value = '"+newRowCount+"' WHERE classname='permeagility.web.Table' AND field='ROW_COUNT_LIMIT'");
+					con.update("UPDATE "+Setup.TABLE_CONSTANT+" SET value = '"+newRowCount+"' WHERE classname='permeagility.web.Table' AND field='ROW_COUNT_LIMIT'");
 					currentRowCount = setRowCount;
 					Server.tableUpdated("constant");
 					errors.append(paragraph("success",Message.get(con.getLocale(),"ROW_COUNT_LIMIT_UPDATED",setRowCount)));
@@ -91,7 +91,7 @@ public class Settings extends Weblet {
 		}
 		
 		// Need to retrieve the style to get its RID to set the default for the pick list
-		QueryResult selectedStyle = con.query("SELECT from "+DatabaseSetup.TABLE_STYLE+" WHERE name='"+currentStyleName+"'");
+		QueryResult selectedStyle = con.query("SELECT from "+Setup.TABLE_STYLE+" WHERE name='"+currentStyleName+"'");
 		String selectedStyleID = (selectedStyle == null || selectedStyle.size() == 0 ? "" : selectedStyle.get(0).getIdentity().toString().substring(1));
 
 		return head(service)+
@@ -108,9 +108,9 @@ public class Settings extends Weblet {
 
     public boolean setCreateConstant(DatabaseConnection con, String classname, String field, String value) {
     	try {
-			ODocument currentSetting = con.queryDocument("SELECT FROM "+DatabaseSetup.TABLE_CONSTANT+" WHERE classname='"+classname+"' AND field='"+field+"'");
+			ODocument currentSetting = con.queryDocument("SELECT FROM "+Setup.TABLE_CONSTANT+" WHERE classname='"+classname+"' AND field='"+field+"'");
 			if (currentSetting == null) {
-				currentSetting = con.create(DatabaseSetup.TABLE_CONSTANT);
+				currentSetting = con.create(Setup.TABLE_CONSTANT);
 				currentSetting.field("classname",classname);
 				currentSetting.field("field",field);
 			}

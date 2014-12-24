@@ -121,7 +121,7 @@ public class Table extends Weblet {
 			if (DEBUG) System.out.println("update_id="+parms.get("UPDATE_ID"));
 			if (submit != null && submit.equals(Message.get(locale, "COPY"))) {
 					parms.put("EDIT_ID", parms.get("UPDATE_ID"));
-					return head(title,getDateControlScript()+getColorControlScript())
+					return head(title,getDateControlScript(con.getLocale())+getColorControlScript())
 							+ body(standardLayout(con, parms, errors.toString()
 								+form("NEWROW","#",
 										paragraph("banner",Message.get(locale, "COPY")+"&nbsp;"+prettyTable)
@@ -145,7 +145,7 @@ public class Table extends Weblet {
 					parms.remove("EDIT_ID");
 					parms.remove("UPDATE_ID");
 				} else {
-					return head(title, getDateControlScript()+getColorControlScript())
+					return head(title, getDateControlScript(con.getLocale())+getColorControlScript())
 							+ body(standardLayout(con, parms, errors.toString() + getTableRowForm(con, table, parms) ));
 				}
 			} else {
@@ -244,14 +244,14 @@ public class Table extends Weblet {
 		}
 
 		if (parms.containsKey("EDIT_ID") && (submit == null || !submit.equals(Message.get(locale, "CREATE_ROW")))) {
-			return head(title, getDateControlScript()+getColorControlScript())
+			return head(title, getDateControlScript(locale)+getColorControlScript())
 					+ body(standardLayout(con, parms, getTableRowForm(con, table, parms)));
 		}
 
 		parms.remove("EDIT_ID"); // Need to avoid confusing getTableRowForm
 		
 		// Make the result
-		return head(title, getDateControlScript()+getSortTableScript()+getColorControlScript())
+		return head(title, getDateControlScript(locale)+getSortTableScript()+getColorControlScript())
 				+ body(standardLayout(con, parms,  
 					link(this.getClass().getName(),"&lt;"+Message.get(locale,"ALL_TABLES"))
 					+"&nbsp;&nbsp;&nbsp;"
@@ -933,7 +933,7 @@ public class Table extends Weblet {
 				String nail = null;
 				String blobid = Thumbnail.getThumbnailId(initialValues.getClassName(), edit_id, name, desc);
 				if (blobid != null) {
-					nail = Thumbnail.getThumbnailLink(blobid, desc.toString());
+					nail = Thumbnail.getThumbnailLink(con.getLocale(),blobid, desc.toString());
 				} else {
 					nail = "<div title=\""+Message.get(con.getLocale(), "THUMBNAIL_NOT_FOUND",name, edit_id+"\">"+Message.get(con.getLocale(),"OPTION_NONE")+"</div>");					
 				} 
@@ -1328,7 +1328,7 @@ public class Table extends Weblet {
 			StringBuffer desc = new StringBuffer();
 			String blobid = Thumbnail.getThumbnailId(d.getClassName(), d.getIdentity().toString().substring(1), columnName, desc);
 			if (blobid != null) {
-				sb.append(column(Thumbnail.getThumbnailLink(blobid, desc.toString())));
+				sb.append(column(Thumbnail.getThumbnailLink(con.getLocale(),blobid, desc.toString())));
 			} else {
 				sb.append(column("<div title=\""+Message.get(con.getLocale(), "THUMBNAIL_NOT_FOUND",columnName, d.getIdentity().toString()+"\">"+Message.get(con.getLocale(),"OPTION_NONE")+"</div>")));					
 			} 
