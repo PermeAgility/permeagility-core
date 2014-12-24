@@ -1098,7 +1098,7 @@ public class Server extends Thread {
 			database.freeConnection(con);
 		}
 		if (table.equals("columns")) {
-			if (DEBUG) System.out.println("Server: tableUpdated("+table+") - messages refreshed and columns cache cleared");
+			if (DEBUG) System.out.println("Server: tableUpdated("+table+") - columns cache cleared");
 			Server.clearColumnsCache("ALL");  // Don't know which table or which row in columns table so clear all
 		}
 		if (table.equals("locale") || table.equals("message")) {
