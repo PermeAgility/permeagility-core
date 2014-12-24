@@ -654,7 +654,7 @@ public class Setup {
 "            margin-bottom: 1px; margin-top: 1px; }\n" +
 "p.article { font-size: 12pt; }\n" +
 "p.menuheader {  color: black;  margin: 0.2em 0em 0em 0em; }\n" +
-"P.banner { background-color: #303b43;\n" +
+"P.banner { background-color: #777777;\n" +
 "     font-size: medium;\n" +
 "     font-weight: bold;\n" +
 "     text-align:center;\n" +
