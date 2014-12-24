@@ -207,8 +207,8 @@ public class BackupRestore extends Weblet {
     		+paragraph("banner",Message.get(locale, "BACKUP_THE_DATABASE"))
     		+form(
 	    		table("layout",
-	    			row(columnRight(20,Message.get(locale, "BACKUP_FILENAME"))+column(40,input("BACKUP_FILENAME",backupFilename,40)))
-	    			+row(columnRight(20,"")+column(40,submitButton(Message.get(locale,"BACKUP_NOW"))))
+	    			row(column("label",Message.get(locale, "BACKUP_FILENAME"))+column(input("BACKUP_FILENAME",backupFilename,40)))
+	    			+row(column("")+column(submitButton(Message.get(locale,"BACKUP_NOW"))))
 	        	)
 	        )
 	    	+paragraph("banner",Message.get(locale, "RESTORE_THE_DATABASE"))

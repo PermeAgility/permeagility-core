@@ -54,7 +54,7 @@ public class Translate extends Table {
 				if (updateRow(con, tableName, parms, errors)) {
 					submit = null;
 				} else {
-					return head("Could not update", getDateControlScript()+getColorControlScript()+getPrettyPhotoScript())
+					return head("Could not update", getDateControlScript()+getColorControlScript())
 							+ body(standardLayout(con, parms, getTableRowForm(con, tableName, parms) + errors.toString()));
 				}
 			} 
@@ -75,7 +75,7 @@ public class Translate extends Table {
 		
 		// Show edit form if row selected for edit
 		if (editId != null && submit == null && connect == null) {
-			return head("Edit", getDateControlScript()+getColorControlScript()+getPrettyPhotoScript())
+			return head("Edit", getDateControlScript()+getColorControlScript())
 					+ body(standardLayout(con, parms, getTableRowForm(con, tableName, parms)));
 		}
 		
@@ -86,16 +86,16 @@ public class Translate extends Table {
 				sb.append(paragraph("banner","New locale messages to generate"));
 				sb.append(form(table("layout", hidden("RUN",run)
 						+row(column("")+column(credit))
-						+row(columnRight("To Locale/Language")+column(input("TO_LOCALE","")+" use standard two character ISO 639-1 language code"))
-						+row(columnRight("Description")+column(input("DESCRIPTION","")+" only used if new locale created"))
-						+row(columnRight("Replace if exists")+column(checkbox("REPLACE",false)+" Unchecked preserves existing items (much faster)"))
-						+row(columnRight("Translate messages")+column(checkbox("DO_MESSAGES",false)+" will include menus, tableGroups, tables, and columns if they exist"))
-						+row(columnRight("Translate menus")+column(checkbox("DO_MENUS",false)+" MENU_name, MENUITEM_name, MENUITEMDESC_name will be used as message names"))
-						+row(columnRight("Translate table group names")+column(checkbox("DO_TABLEGROUPS",false)+" will use TABLEGROUP_name as message name"))
-						+row(columnRight("Translate table names")+column(checkbox("DO_TABLES",false)+" will use TABLE_name as message name"))
-						+row(columnRight("Translate column names")+column(checkbox("DO_COLUMNS",false)+" will use COLUMN_name as message name"))
-						+row(columnRight("Translate news articles")+column(checkbox("DO_NEWS",false)+" will create new articles for the new locale"))
-						+row(columnRight("Email address")+column(input("EMAIL","")+" up to 10000/day if email given"))
+						+row(column("label","To Locale/Language")+column(input("TO_LOCALE","")+" use standard two character ISO 639-1 language code"))
+						+row(column("label","Description")+column(input("DESCRIPTION","")+" only used if new locale created"))
+						+row(column("label","Replace if exists")+column(checkbox("REPLACE",false)+" Unchecked preserves existing items (much faster)"))
+						+row(column("label","Translate messages")+column(checkbox("DO_MESSAGES",false)+" will include menus, tableGroups, tables, and columns if they exist"))
+						+row(column("label","Translate menus")+column(checkbox("DO_MENUS",false)+" MENU_name, MENUITEM_name, MENUITEMDESC_name will be used as message names"))
+						+row(column("label","Translate table group names")+column(checkbox("DO_TABLEGROUPS",false)+" will use TABLEGROUP_name as message name"))
+						+row(column("label","Translate table names")+column(checkbox("DO_TABLES",false)+" will use TABLE_name as message name"))
+						+row(column("label","Translate column names")+column(checkbox("DO_COLUMNS",false)+" will use COLUMN_name as message name"))
+						+row(column("label","Translate news articles")+column(checkbox("DO_NEWS",false)+" will create new articles for the new locale"))
+						+row(column("label","Email address")+column(input("EMAIL","")+" up to 10000/day if email given"))
 						+row(column("")+column(submitButton("GO", "Go")+" warning: can take a while"))
 				)));
 			} else {

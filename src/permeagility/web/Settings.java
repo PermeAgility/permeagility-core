@@ -24,12 +24,12 @@ public class Settings extends Weblet {
 		
 		// Get current style
 		QueryResult currentStyleResult = con.query("SELECT FROM "+DatabaseSetup.TABLE_CONSTANT+" WHERE classname='permeagility.web.Context' AND field='DEFAULT_STYLE'");
-		ODocument currentStyle = null;
+		ODocument styleConstant = null;
 		String currentStyleName = null;
 		if (currentStyleResult != null && currentStyleResult.size()>0) {
-			currentStyle = currentStyleResult.get(0);
-			currentStyleName = currentStyle.field("value");
-			if (DEBUG) System.out.println("Settings: CurrentStyle="+currentStyle.field("value"));
+			styleConstant = currentStyleResult.get(0);
+			currentStyleName = styleConstant.field("value");
+			if (DEBUG) System.out.println("Settings: CurrentStyle="+styleConstant.field("value"));
 		} else {
 			System.out.println("Settings: Could not determine current style setting");
 		}
@@ -46,25 +46,17 @@ public class Settings extends Weblet {
 			
 			// Update style if changed
 			String setStyle = parms.get("SET_STYLE");
-			if (setStyle != null && !setStyle.equals(currentStyle.getIdentity().toString())) {
+			if (setStyle != null && !setStyle.equals(styleConstant.getIdentity().toString())) {
 				try {
 					ODocument style = con.get(setStyle);
-					currentStyle.field("value", style.field("name"));
+					styleConstant.field("value", style.field("name"));
 					currentStyleName = style.field("name");
-					currentStyle.save();
+					styleConstant.save();
+					
 					Boolean horiz = style.field("horizontal");
-					ODocument currentMenuSetting = con.queryDocument("SELECT FROM "+DatabaseSetup.TABLE_CONSTANT+" WHERE classname='permeagility.web.Menu' AND field='HORIZONTAL_LAYOUT'");
-					if (currentMenuSetting == null) {
-						currentMenuSetting = con.create(DatabaseSetup.TABLE_CONSTANT);
-						currentMenuSetting.field("classname","permeagility.web.Menu");
-						currentMenuSetting.field("field","HORIZONTAL_LAYOUT");
-					}
-					if (horiz == null || horiz.booleanValue()==false) {
-						currentMenuSetting.field("value","false");
-					} else {
-						currentMenuSetting.field("value","true");						
-					}
-					currentMenuSetting.save();
+					if (horiz == null) horiz = new Boolean(false);
+					setCreateConstant(con,"permeagility.web.Menu","HORIZONTAL_LAYOUT",""+horiz);
+
 					setCreateConstant(con,"permeagility.web.Header","LOGO_FILE",(String)style.field("logo"));
 					Menu.clearCache();
 					Server.tableUpdated("constant");
@@ -106,9 +98,9 @@ public class Settings extends Weblet {
 	    standardLayout(con, parms,errors
 	    	+form(
 	    		table("layout",
-	    			row(columnRight(Message.get(con.getLocale(), "SET_STYLE"))+column(createListFromTable("SET_STYLE", selectedStyleID, con, "style", null, false, null, true)))
-	    			+row(columnRight(Message.get(con.getLocale(), "SET_ROWCOUNT"))+column(input("SET_ROWCOUNT", currentRowCount)))
-	    			+row(columnRight("")+column(submitButton(Message.get(con.getLocale(), "SUBMIT_BUTTON"))))
+	    			row(column("label",Message.get(con.getLocale(), "SET_STYLE"))+column(createListFromTable("SET_STYLE", selectedStyleID, con, "style", null, false, null, true)))
+	    			+row(column("label",Message.get(con.getLocale(), "SET_ROWCOUNT"))+column(input("SET_ROWCOUNT", currentRowCount)))
+	    			+row(column("")+column(submitButton(Message.get(con.getLocale(), "SUBMIT_BUTTON"))))
 	        	)
 	    	)
     	);
@@ -122,6 +114,7 @@ public class Settings extends Weblet {
 				currentSetting.field("classname",classname);
 				currentSetting.field("field",field);
 			}
+			currentSetting.field("description","assigned by "+this.getClass().getName());
 			currentSetting.field("value",value);
 			currentSetting.save();
     	} catch (Exception e) {

@@ -121,7 +121,7 @@ public class Table extends Weblet {
 			if (DEBUG) System.out.println("update_id="+parms.get("UPDATE_ID"));
 			if (submit != null && submit.equals(Message.get(locale, "COPY"))) {
 					parms.put("EDIT_ID", parms.get("UPDATE_ID"));
-					return head(title,getDateControlScript()+getColorControlScript()+getPrettyPhotoScript())
+					return head(title,getDateControlScript()+getColorControlScript())
 							+ body(standardLayout(con, parms, errors.toString()
 								+form("NEWROW","#",
 										paragraph("banner",Message.get(locale, "COPY")+"&nbsp;"+prettyTable)
@@ -145,7 +145,7 @@ public class Table extends Weblet {
 					parms.remove("EDIT_ID");
 					parms.remove("UPDATE_ID");
 				} else {
-					return head(title, getDateControlScript()+getColorControlScript()+getPrettyPhotoScript())
+					return head(title, getDateControlScript()+getColorControlScript())
 							+ body(standardLayout(con, parms, errors.toString() + getTableRowForm(con, table, parms) ));
 				}
 			} else {
@@ -244,14 +244,14 @@ public class Table extends Weblet {
 		}
 
 		if (parms.containsKey("EDIT_ID") && (submit == null || !submit.equals(Message.get(locale, "CREATE_ROW")))) {
-			return head(title, getDateControlScript()+getColorControlScript()+getPrettyPhotoScript())
+			return head(title, getDateControlScript()+getColorControlScript())
 					+ body(standardLayout(con, parms, getTableRowForm(con, table, parms)));
 		}
 
 		parms.remove("EDIT_ID"); // Need to avoid confusing getTableRowForm
 		
 		// Make the result
-		return head(title, getDateControlScript()+getSortTableScript()+getColorControlScript()+getPrettyPhotoScript())
+		return head(title, getDateControlScript()+getSortTableScript()+getColorControlScript())
 				+ body(standardLayout(con, parms,  
 					link(this.getClass().getName(),"&lt;"+Message.get(locale,"ALL_TABLES"))
 					+"&nbsp;&nbsp;&nbsp;"
@@ -865,7 +865,7 @@ public class Table extends Weblet {
 		if (!trName.equals("COLUMN_"+name)) {
 			prettyName = trName;
 		}
-		String label = column("label",span("label",prettyName));
+		String label = column("label",prettyName);
 		
 		if (DEBUG) System.out.println("Table.getColumnAsField() " + name + " is a " + type);
 

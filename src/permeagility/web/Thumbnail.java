@@ -40,14 +40,12 @@ public class Thumbnail {
 
 	public static String getThumbnailLink(String tid, String description) {
 		if (description.startsWith("image")) {
-			return "<A CLASS=\"thumbnail\" href=\"#thumb\">\n"
-				+"<IMG SRC=\"../thumbnail?ID=" + tid + "\" >\n"
-//				+"<IMG WIDTH=\""+THUMBNAIL_SMALL_WIDTH+"\" HEIGHT=\""+THUMBNAIL_SMALL_HEIGHT+"\" SRC=\"../thumbnail?ID=" + tid + "\" >\n"
-				+"<SPAN>"
-				+description
-				+"<button onClick=\"window.open('/thumbnail?SIZE=FULL&ID="+tid+"')\">Download full size</button><br>"
-				+ "<IMG SRC=\"../thumbnail?ID="+tid+"&SIZE=MEDIUM\"/>\n"
-				+"</SPAN></A>\n";
+			return "<IMG SRC=\"../thumbnail?SIZE=SMALL&ID=" + tid + "\" >\n"
+					+Weblet.popupForm("image", null, "View", null , "IMAGE_POPUP",
+						Weblet.paragraph("banner","View")+description
+						+"<button onClick=\"window.open('/thumbnail?SIZE=FULL&ID="+tid+"')\">Download full size</button><br>"
+						+ "<IMG SRC=\"../thumbnail?SIZE=MEDIUM&ID="+tid+"\"/>\n"
+					);
 		} else {
 			return "<A href=\"/thumbnail?SIZE=FULL&ID="+tid+"\" title=\""+description+"\">Download</A>";			
 		}

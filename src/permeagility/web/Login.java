@@ -64,7 +64,7 @@ public class Login extends Weblet {
 				+Message.getLocaleSelector(locale, parms)	
 				+br()
 				+ link("permeagility.web.UserRequest",Message.get(locale, "REQUEST_LOGIN"))+br() 
-				+paragraph(xxSmall("&copy;2014 <A HREF=http://www.permeagility.com>PermeAgility Incorporated</A>"))+"\n"
+				+paragraph("&copy;2014 <A HREF=http://www.permeagility.com>PermeAgility Incorporated</A>")+"\n"
 			,"self.focus(); document.LOGIN.USERNAME.focus();");
 	} 
 	

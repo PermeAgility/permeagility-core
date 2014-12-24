@@ -447,7 +447,7 @@ public class DatabaseSetup {
 				ODocument mi_password = con.create(TABLE_MENUITEM);
 				mi_password.field("name","Password");
 				mi_password.field("description","Change password");
-				mi_password.field("classname","permeagility.web.ChangePassword");
+				mi_password.field("classname","permeagility.web.Password");
 				mi_password.field("active",true);
 				mi_password.field("_allowRead", allRolesButGuest.toArray());
 				mi_password.save();
@@ -641,7 +641,7 @@ public class DatabaseSetup {
 			"tr.clickable { background-color: #DCDCDC; vertical-align: top; }\n" +
 			"tr.clickable:hover { background-color: #AAAADC; text-decoration: bold; }\n" +
 			"tr.footer { font-weight: bold; }\n" +
-			"td {  }\n" +
+			"td { text-align: left; }\n" +
 			"td.number { text-align: right; }\n" +
 			"td.total { text-align: right; font-weight:bolder; normal: solid thin black; }\n" +
 			"p.headline { color: #303b43; font-size: large; font-weight: bold;\n" +
@@ -803,7 +803,7 @@ public class DatabaseSetup {
 			"   background: radial-gradient(ellipse, darkorange, black);\n" +
 			"}\n" +
 			"tr.footer { font-weight: bold; }\n" +
-			"td {   }\n" +
+			"td { text-align: left;  }\n" +
 			"td.number { text-align: right; }\n" +
 			"td.total { text-align: right; font-weight:bolder; normal: solid thin black; }\n" +
 			"p.headline { color: #339999; font-size: large; font-weight: bold; \n" +

@@ -7,7 +7,7 @@ package permeagility.web;
 
 import permeagility.util.DatabaseConnection;
 
-public class ChangePassword extends Weblet {
+public class Password extends Weblet {
    
     public String getPage(DatabaseConnection con, java.util.HashMap<String,String> parms) {
 		return head(Message.get(con.getLocale(),"CHANGE_PASSWORD_FOR",con.getUser()))+
@@ -36,17 +36,12 @@ public class ChangePassword extends Weblet {
 			+form("PASSCHANGE",hidden("CHANGE","CHANGE")+
 			     table("CHGPASS",
 				   row(columnSpan(2,paragraph("banner",Message.get(con.getLocale(),"CHANGE_PASSWORD_FOR",con.getUser()))))+
-				   row(columnRight(10,Message.get(con.getLocale(),"CURRENT_PASSWORD"))+
-				       column(10,password("CURRENTPASS","")))+
-				   row(columnRight(10,Message.get(con.getLocale(),"NEW_PASSWORD"))+
-				       column(10,password("NEWPASS","")))+
-				   row(columnRight(10,Message.get(con.getLocale(),"CONFIRM_PASSWORD"))+
-				       column(10,password("CONFIRMPASS","")))+
-				   row(columnRight(10,submitButton("SUBMIT",Message.get(con.getLocale(),"SUBMIT_BUTTON")))+
-				       column(10,""))
+				   row(column("label",Message.get(con.getLocale(),"CURRENT_PASSWORD"))+column(password("CURRENTPASS","")))+
+				   row(column("label",Message.get(con.getLocale(),"NEW_PASSWORD"))+column(password("NEWPASS","")))+
+				   row(column("label",Message.get(con.getLocale(),"CONFIRM_PASSWORD"))+column(password("CONFIRMPASS","")))+
+				   row(column("")+column(submitButton("SUBMIT",Message.get(con.getLocale(),"SUBMIT_BUTTON"))))
 				  )
 			);
-
     }
     
     public static String password(String name, Object value) {

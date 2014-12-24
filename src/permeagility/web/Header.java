@@ -40,9 +40,9 @@ public class Header extends Weblet {
 				Message.get(con.getLocale(), "YOU_ARE_NOT_LOGGED_IN")+"&nbsp;"
 				+popupForm("login", null, Message.get(con.getLocale(),"LOGIN_BUTTON_TEXT"), null , "USERNAME",
 				  table("data",
-					row(columnRight(Message.get(con.getLocale(),"USER_LABEL"))+column(input("USERNAME","")))
-					+row(columnRight(Message.get(con.getLocale(),"PASSWORD_LABEL"))+column(password(null)))
-					+row(columnRight("")+column(submitButton(Message.get(con.getLocale(),"LOGIN_BUTTON_TEXT"))))
+					row(column("label",Message.get(con.getLocale(),"USER_LABEL"))+column(input("USERNAME","")))
+					+row(column("label",Message.get(con.getLocale(),"PASSWORD_LABEL"))+column(password(null)))
+					+row(column("")+column(submitButton(Message.get(con.getLocale(),"LOGIN_BUTTON_TEXT"))))
 					+row(columnSpan(2,link("permeagility.web.UserRequest",Message.get(con.getLocale(), "REQUEST_LOGIN"))))
 				))
 				+ (parms.get("USERNAME") == null ? "" : color("red",bold(Message.get(con.getLocale(), "INVALID_USER_OR_PASSWORD"))))
