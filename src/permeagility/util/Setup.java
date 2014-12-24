@@ -168,7 +168,7 @@ public class Setup {
 			mCount += checkCreateMessage(con, loc, "LOGIN_BUTTON_TEXT", "Login");
 			mCount += checkCreateMessage(con, loc, "USER_LABEL", "User");
 			mCount += checkCreateMessage(con, loc, "PASSWORD_LABEL", "Password");
-			mCount += checkCreateMessage(con, loc, "REQUEST_LOGIN", "Request login");
+			mCount += checkCreateMessage(con, loc, "REQUEST_LOGIN", "Sign up");
 			mCount += checkCreateMessage(con, loc, "PASSWORD_CHANGE_SUCCESS", "Password changed");
 			mCount += checkCreateMessage(con, loc, "CHANGE_PASSWORD_FOR", "Change {0} password");
 			mCount += checkCreateMessage(con, loc, "CURRENT_PASSWORD", "Current password");
@@ -456,7 +456,7 @@ public class Setup {
 				mi_password.save();
 
 				ODocument mi_userRequest = con.create(TABLE_MENUITEM);
-				mi_userRequest.field("name","UserRequest");
+				mi_userRequest.field("name","Sign up");
 				mi_userRequest.field("description","User Request");
 				mi_userRequest.field("classname","permeagility.web.UserRequest");
 				mi_userRequest.field("active",true);
@@ -556,8 +556,8 @@ public class Setup {
 				items.add(mi_password);
 				items.add(mi_backup);
 				items.add(mi_shutdown);
-				items.add(mi_translate);
-				items.add(mi_merge);
+				items.add(mi_translate); // Will be inactive
+				items.add(mi_merge);   // Will be inactive
 
 				// Add the menu items property to the menu
 				Database.checkCreateProperty(menuTable, "items", OType.LINKLIST, menuItemTable, installMessages);
@@ -655,10 +655,7 @@ public class Setup {
 "p.article { font-size: 12pt; }\n" +
 "p.menuheader {  color: black;  margin: 0.2em 0em 0em 0em; }\n" +
 "P.banner { background-color: #777777;\n" +
-"     font-size: medium;\n" +
-"     font-weight: bold;\n" +
-"     text-align:center;\n" +
-"     color: white;\n" +
+"     font-size: medium;  font-weight: bold; text-align:center; color: white;\n" +
 "     margin: 0.2em 0em 0em 0em;\n" +
 "     page-break-after: avoid;\n" +
 "     border-radius: 4px 4px 4px 4px;\n" +
@@ -787,9 +784,7 @@ public class Setup {
 "p.article { font-size: 12pt; }\n" +
 "p.menuheader {  color: white;  margin: 0.2em 0em 0em 0em; }\n" +
 "P.banner { background-color: #336666;\n" +
-"     font-weight: bold; \n" +
-"     text-align:center; \n" +
-"     color: white; \n" +
+"     font-weight: bold;  text-align:center;  color: white; \n" +
 "     margin: 0.2em 0em 0em 0em; \n" +
 "     page-break-after: avoid; \n" +
 "     border-radius: 8px 8px 8px 8px; \n" +
