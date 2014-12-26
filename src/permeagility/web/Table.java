@@ -111,18 +111,13 @@ public class Table extends Weblet {
 				|| (submit != null && submit.equals(Message.get(locale, "RIGHTS_OPTIONS")))) {
 			return rightsOptions(con, table, parms);
 		}
-		if (submit != null
-				&& (submit.equals(Message.get(locale, "CANCEL")) 
-				|| submit.equals(Message.get(locale, "NEW_COLUMN")))) {
-			parms.remove("EDIT_ID");
-			parms.remove("UPDATE_ID");
-		}
-		if (parms.containsKey("UPDATE_ID")) {
+		if (submit != null && (parms.containsKey("UPDATE_ID") || submit.equals(Message.get(locale, "CREATE_ROW")))) {
 			if (DEBUG) System.out.println("update_id="+parms.get("UPDATE_ID"));
 			if (submit != null && submit.equals(Message.get(locale, "COPY"))) {
 					parms.put("EDIT_ID", parms.get("UPDATE_ID"));
 					return head(title,getDateControlScript(con.getLocale())+getColorControlScript())
-							+ body(standardLayout(con, parms, errors.toString()
+							+ body(standardLayout(con, parms, 
+								errors.toString()
 								+form("NEWROW","#",
 										paragraph("banner",Message.get(locale, "COPY")+"&nbsp;"+prettyTable)
 										+getTableRowFields(con, table, parms)
@@ -130,7 +125,21 @@ public class Table extends Weblet {
 										+submitButton(Message.get(locale, "CANCEL"))
 								)
 							));
-			} else if (submit != null && submit.equals(Message.get(locale, "DELETE"))) {
+			} else if (submit!= null && submit.equals(Message.get(locale, "CREATE_ROW"))) {
+				if (DEBUG) System.out.println("************ Inserting row");
+				if (!insertRow(con,table,parms,errors)) {
+					return head(title,getDateControlScript(con.getLocale())+getColorControlScript())
+							+ body(standardLayout(con, parms, 
+								errors.toString()
+								+form("NEWROW","#",
+										paragraph("banner",Message.get(locale, "CREATE")+"&nbsp;"+prettyTable)
+										+getTableRowFields(con, table, parms)
+										+submitButton(Message.get(locale, "CREATE_ROW"))
+										+submitButton(Message.get(locale, "CANCEL"))
+								)
+							));					
+				}
+			}else if (submit != null && submit.equals(Message.get(locale, "DELETE"))) {
 					if (deleteRow(con, table, parms, errors)) {
 						parms.remove("EDIT_ID");
 						parms.remove("UPDATE_ID");
@@ -148,11 +157,50 @@ public class Table extends Weblet {
 					return head(title, getDateControlScript(con.getLocale())+getColorControlScript())
 							+ body(standardLayout(con, parms, errors.toString() + getTableRowForm(con, table, parms) ));
 				}
-			} else {
-				// Cancel is assumed
-				parms.remove("EDIT_ID");
-				parms.remove("UPDATE_ID");
 			}
+//			} else if (submit != null && submit.equals(Message.get(locale, "CANCEL")) 
+//			&& (sourceTable != null && !sourceTable.equals(""))) {  // Go to the source record if it is defined
+			if (sourceTable != null && !sourceTable.equals("")) {  // Go to the source record if it is defined
+				System.out.println("Table (Cancel) popping sourceTableName="+parms.get("SOURCETABLENAME")+" id="+parms.get("SOURCEEDIT_ID"));
+				int lastComma = sourceTable.lastIndexOf(',');
+				String sourceId = parms.get("SOURCEEDIT_ID");
+				int lastCommaId = sourceId.lastIndexOf(',');
+				String oldTable = (lastComma > 0 && lastComma < sourceTable.length() ? sourceTable.substring(lastComma+1) : sourceTable);
+				String oldId = (lastCommaId > 0 && lastCommaId < sourceId.length() ? sourceId.substring(lastCommaId+1) : sourceId);
+				String newSourceTable = sourceTable.substring(0,(lastComma > 0 ? lastComma : sourceTable.length()));
+				String newSourceId = sourceId.substring(0,(lastCommaId > 0 ? lastCommaId : sourceId.length()));
+				if (oldId.equals(parms.get("UPDATE_ID"))) { // popping onto itself - pop one more
+					System.out.println("Prevent popping onto itself, skipping");
+					lastComma = newSourceTable.lastIndexOf(',');
+					lastCommaId = newSourceId.lastIndexOf(',');
+					oldTable = (lastComma > 0 && lastComma < newSourceTable.length() ? newSourceTable.substring(lastComma+1) : newSourceTable);
+					oldId = (lastCommaId > 0 && lastCommaId < newSourceId.length() ? newSourceId.substring(lastCommaId+1) : newSourceId);					
+					newSourceTable = newSourceTable.substring(0,(lastComma > 0 ? lastComma : newSourceTable.length()));
+					newSourceId = newSourceId.substring(0,(lastCommaId > 0 ? lastCommaId : newSourceId.length()));
+					System.out.println("Popped to: "+oldTable+" "+oldId);
+					if (oldId.equals(newSourceId)) {
+						System.out.println("Removing old source information - at last record");
+						newSourceTable = "";
+						newSourceId = "";
+					}
+				}
+				return head(Message.get(locale, "REDIRECT"))
+						+ bodyOnLoad(Message.get(locale, "REDIRECT"), "window.location.href='permeagility.web.Table"
+								+ "?TABLENAME=" + oldTable 
+								+ "&EDIT_ID=" + oldId
+								+(!oldTable.equals(newSourceTable) && !oldId.equals(newSourceId)
+									? "&SOURCETABLENAME=" + newSourceTable + "&SOURCEEDIT_ID=" + newSourceId
+									: "")
+								+"';");
+			} else {
+				return head(Message.get(locale, "REDIRECT"))
+						+ bodyOnLoad(Message.get(locale, "REDIRECT"), "window.location.href='permeagility.web.Table" + "?TABLENAME=" + table +"';");				
+			}
+//			} else {
+//				System.out.println("Table (Cancel) tableName="+parms.get("TABLENAME")+" id="+parms.get("EDIT_ID")+" clearing row (view all)");				
+//				parms.remove("EDIT_ID");
+//				parms.remove("UPDATE_ID");
+//			}
 		}
 
 		if (submit != null) {
@@ -231,16 +279,7 @@ public class Table extends Weblet {
 					}
 
 				}
-			} else if (submit.equals(Message.get(locale, "CREATE_ROW"))) {
-				if (DEBUG) System.out.println("************ Inserting row");
-				insertRow(con,table,parms,errors);
-			}
-		}
-
-		if (sourceTable != null && parms.containsKey("SOURCEEDIT_ID")) {
-			table = sourceTable;
-			submit = null;
-			parms.put("EDIT_ID", parms.get("SOURCEEDIT_ID"));
+			} 
 		}
 
 		if (parms.containsKey("EDIT_ID") && (submit == null || !submit.equals(Message.get(locale, "CREATE_ROW")))) {
@@ -766,9 +805,14 @@ public class Table extends Weblet {
 	public String getTableRowForm(DatabaseConnection con, String table, HashMap<String, String> parms) {
 		String edit_id = parms.get("EDIT_ID");
 		
+		if (table == null) return paragraph("error","null passed to table row form");
+		
 		// Cannot view abstract class directly - redirect to the actual record's class
-		if (DEBUG) System.out.println("Table.getTableRowForm: table="+table+" class.isAbstract="+con.getSchema().getClass(table).isAbstract());
-		if (con.getSchema().getClass(table).isAbstract()) {
+		OClass tclass = con.getSchema().getClass(table);
+		if (tclass == null) return paragraph("error","cannot find class "+table);
+
+		if (DEBUG) System.out.println("Table.getTableRowForm: table="+table+" class.isAbstract="+tclass.isAbstract());
+		if (tclass.isAbstract()) {  // If table name is abstract, get the table name from the document itself
 			ODocument d = con.get(edit_id);
 			if (d != null) {
 				OClass c = d.getSchemaClass();
@@ -777,24 +821,22 @@ public class Table extends Weblet {
 			}
 		}
 
-		//String update_id = parms.get("UPDATE_ID");
 		String formName = (edit_id == null ? "NEWROW" : "UPDATEROW");
-		return paragraph("banner", (edit_id == null ? Message.get(con.getLocale(), "CREATE_ROW") 
-				: Message.get(con.getLocale(), "UPDATE") + "&nbsp;"
-			+ makeCamelCasePretty(table)))
-			+ (con.getUser().equals("guest") ? "" : link(this.getClass().getName()+"?TABLENAME="+table,Message.get(con.getLocale(), "ALL_ROWS_IN_TABLE",makeCamelCasePretty(table))))
-			+ "<FORM ACTION=\"#\" NAME=\""+formName+"\" METHOD=POST ENCTYPE=\"multipart/form-data\">" 
-			+ getTableRowFields(con, table, parms)
-			+ center((edit_id == null 
-					? ((Server.getTablePriv(con, table) & PRIV_CREATE) > 0 ? submitButton(Message.get(con.getLocale(), "CREATE_ROW")) : "")
-					: ((Server.getTablePriv(con, table) & PRIV_UPDATE) > 0 ? submitButton(Message.get(con.getLocale(), "UPDATE")) : "") 
+		return (con.getUser().equals("guest") ? "" : link(this.getClass().getName()+"?TABLENAME="+table,Message.get(con.getLocale(), "ALL_ROWS_IN_TABLE",makeCamelCasePretty(table))))
+			+ (parms.containsKey("SOURCETABLENAME") ? parms.get("SOURCETABLENAME") : "")
+			+ paragraph("banner", (edit_id == null ? Message.get(con.getLocale(), "CREATE_ROW") 
+					: Message.get(con.getLocale(), "UPDATE") + "&nbsp;" + makeCamelCasePretty(table)))
+			+ form(formName, 
+					getTableRowFields(con, table, parms)
+					+ center((edit_id == null 
+					  ? ((Server.getTablePriv(con, table) & PRIV_CREATE) > 0 ? submitButton(Message.get(con.getLocale(), "CREATE_ROW")) : "")
+					  : ((Server.getTablePriv(con, table) & PRIV_UPDATE) > 0 ? submitButton(Message.get(con.getLocale(), "UPDATE")) : "") 
 						+ "&nbsp;&nbsp;"
 						+ submitButton(Message.get(con.getLocale(), "CANCEL"))))
-			+paragraph("delete",
+					+paragraph("delete",
 					  (edit_id != null && (Server.getTablePriv(con, table) & PRIV_CREATE) > 0 ? submitButton(Message.get(con.getLocale(), "COPY")) : "") + "&nbsp;&nbsp;"
-					+ (edit_id != null && (Server.getTablePriv(con, table) & PRIV_DELETE) > 0 ? deleteButton(con.getLocale()) : "")
+					+ (edit_id != null && (Server.getTablePriv(con, table) & PRIV_DELETE) > 0 ? deleteButton(con.getLocale()) : ""))
 			)
-			+ "</FORM>"
 			+ getTableRowRelated(con,table,parms);
 	}
 
@@ -824,7 +866,7 @@ public class Table extends Weblet {
 		if (edit_id != null) {
 			hidden.append(hidden("UPDATE_ID", edit_id));
 		}
-		//fields.append(hidden("TABLENAME",table));
+
 		String formName = (edit_id == null ? "NEWROW" : "UPDATEROW");
 
 		QueryResult columns = Server.getColumns(table, columnOverride);
@@ -1075,6 +1117,27 @@ public class Table extends Weblet {
 				}
 			}
 		}
+
+		// Add to or start the bread crumb
+		String sourceTable = parms.get("SOURCETABLENAME");
+		String sourceId = parms.get("SOURCEEDIT_ID");
+		String newSourceTable = null;
+		String newSourceId = null;
+		// not sure this needs to be so complicated
+		if (sourceTable != null && !sourceTable.equals("") && sourceId != null && parms.get("SUBMIT") == null) {
+			String ids[] = sourceId.split(",");
+			String lastId = ids[ids.length-1];
+			if (!edit_id.equals(lastId)) {
+				newSourceTable = sourceTable+","+table;
+				newSourceId = sourceId+","+edit_id;
+			} 
+		} else {
+			newSourceTable = table;
+			newSourceId = edit_id;
+		}			
+		parms.put("SOURCEEDIT_ID", (newSourceId != null ? newSourceId : edit_id));
+		parms.put("SOURCETABLENAME", (newSourceTable != null ? newSourceTable : table));
+
 		if (DEBUG) System.out.println("getTableRowRelated "+tables.size());
 	    while (!tables.isEmpty()) {
 			String relTable = tables.pop();
@@ -1086,9 +1149,10 @@ public class Table extends Weblet {
 			
 			HashMap<String,String> fkParms = new HashMap<String,String>();
 			fkParms.put("FORCE_"+fkColumn, edit_id);
+			
 			String hiddenFields = hidden("TABLENAME", relTable)
-								+ hidden("SOURCEEDIT_ID",edit_id)
-								+ hidden("SOURCETABLENAME", table);
+								+ (newSourceId != null ? hidden("SOURCEEDIT_ID", newSourceId) : "")
+								+ (newSourceTable != null ? hidden("SOURCETABLENAME", newSourceTable) : "");
 			sb.append(
 				paragraph("banner",(table.equals(fkColumn) ?  makeCamelCasePretty(relTable) : makeCamelCasePretty(relTable) + " (" + makeCamelCasePretty(fkColumn) + ")"))
 				+ ((priv & PRIV_CREATE) > 0 ? popupForm("CREATE_NEW_ROW_"+relTable,"permeagility.web.Table",Message.get(con.getLocale(),"NEW_ROW"),null,"NAME",
@@ -1109,9 +1173,9 @@ public class Table extends Weblet {
 				+ br() 
 				+ ((Server.getTablePriv(con, relTable) & PRIV_READ) > 0 ?
 						(fkType == OType.LINKLIST || fkType == OType.LINKSET || fkType == OType.LINKMAP || fkType == OType.LINKBAG 
-							? (fkType == OType.LINKMAP ? getTableWhere(con,relTable,fkColumn,"containsvalue",edit_id,-1) 
-														:getTableWhere(con,relTable,fkColumn,"contains",edit_id,-1))
-							: getTableWhere(con,relTable,fkColumn,edit_id,-1)
+							? (fkType == OType.LINKMAP ? getTableWhere(con,parms,relTable,fkColumn,"containsvalue",edit_id,-1) 
+														:getTableWhere(con,parms,relTable,fkColumn,"contains",edit_id,-1))
+							: getTableWhere(con,parms,relTable,fkColumn,edit_id,-1)  // Need to pass parms so can add source to URL
 						)
 				: Message.get(con.getLocale(),"NO_ACCESS_TO_TABLE"))
 			);
@@ -1132,6 +1196,11 @@ public class Table extends Weblet {
 			+ submitButton(Message.get(l, "NEW_COLUMN"));
 	}
 	
+	public void addCrumb(HashMap<String,String> parms) {
+		
+	}
+
+	/** Get the EDIT_ID from the parms, get the document and populate the parms with the document's field data */
 	public HashMap<String, String> getTableRowParameters(DatabaseConnection con, String schema, String table, HashMap<String, String> parms) {
 		if (DEBUG) System.out.println("getTableRowParameters: Getting row and injecting into parameters");
 		String edit_id = parms.get("EDIT_ID");
@@ -1159,40 +1228,74 @@ public class Table extends Weblet {
 
 	public String getTable(DatabaseConnection con, String table) {
 		String query = "SELECT FROM " + table;
-		return getTable(con,table,query,null,0);
+		return getTable(con, null,table,query,null,0);
 	}
 
 	public String getTable(DatabaseConnection con, String table, long page) {
 		String query = "SELECT FROM " + table;
-		return getTable(con,table,query,null,page);
+		return getTable(con, null,table,query,null,page);
 	}
 
 	public String getTableWhere(DatabaseConnection con, String table, String column, String columnValue) {
 		String query = "SELECT FROM " + table + " WHERE "+column+" = #"+columnValue;
-		return getTable(con,table,query,column, 0);
+		return getTable(con, null,table,query,column, 0);
 	}
 
 	public String getTableWhere(DatabaseConnection con, String table, String column, String operator, String columnValue) {
 		String query = "SELECT FROM " + table + " WHERE "+column+" "+operator+" #"+columnValue;
-		return getTable(con,table,query,column, 0);
+		return getTable(con, null,table,query,column, 0);
 	}
 
 	public String getTableWhere(DatabaseConnection con, String table, String column, String columnValue, long page) {
 		String query = "SELECT FROM " + table + " WHERE "+column+"= #"+columnValue;
-		return getTable(con,table,query,column,page);
+		return getTable(con, null,table,query,column,page);
 	}
 
 	public String getTableWhere(DatabaseConnection con, String table, String column, String operator, String columnValue, long page) {
 		String query = "SELECT FROM " + table + " WHERE "+column+" "+operator+" #"+columnValue;
-		return getTable(con,table,query,column,page);
+		return getTable(con, null,table,query,column,page);
 	}
 
 	public String getTable(DatabaseConnection con, String table, String query, String hideColumn, long page) {
-		return getTable(con, table, query, hideColumn, page, null);
+		return getTable(con, null, table, query, hideColumn, page, null);
 	}
 
-	/** See example usages  Note: page=-1 will show all records, use where clause to limit data */
-	public String getTable(DatabaseConnection con, String table, String query, String hideColumn, long page, String columnOverride) {
+	public String getTable(DatabaseConnection con, HashMap<String,String> parms, String table) {
+		String query = "SELECT FROM " + table;
+		return getTable(con,table,query,null,0);
+	}
+
+	public String getTable(DatabaseConnection con, HashMap<String,String> parms, String table, long page) {
+		String query = "SELECT FROM " + table;
+		return getTable(con,table,query,null,page);
+	}
+
+	public String getTableWhere(DatabaseConnection con, HashMap<String,String> parms, String table, String column, String columnValue) {
+		String query = "SELECT FROM " + table + " WHERE "+column+" = #"+columnValue;
+		return getTable(con, parms,table,query,column, 0);
+	}
+
+	public String getTableWhere(DatabaseConnection con, HashMap<String,String> parms, String table, String column, String operator, String columnValue) {
+		String query = "SELECT FROM " + table + " WHERE "+column+" "+operator+" #"+columnValue;
+		return getTable(con, parms,table,query,column, 0);
+	}
+
+	public String getTableWhere(DatabaseConnection con, HashMap<String,String> parms, String table, String column, String columnValue, long page) {
+		String query = "SELECT FROM " + table + " WHERE "+column+"= #"+columnValue;
+		return getTable(con, parms,table,query,column,page);
+	}
+
+	public String getTableWhere(DatabaseConnection con, HashMap<String,String> parms, String table, String column, String operator, String columnValue, long page) {
+		String query = "SELECT FROM " + table + " WHERE "+column+" "+operator+" #"+columnValue;
+		return getTable(con, parms,table,query,column,page);
+	}
+
+	public String getTable(DatabaseConnection con, HashMap<String,String> parms, String table, String query, String hideColumn, long page) {
+		return getTable(con, parms, table, query, hideColumn, page, null);
+	}
+
+	/** Get a row-clickable table - See example usages  Note: page=-1 will show all records, use where clause to limit data */
+	public String getTable(DatabaseConnection con, HashMap<String,String> parms, String table, String query, String hideColumn, long page, String columnOverride) {
 		try {
 			StringBuffer sb = new StringBuffer();
 			int rowCount = 0;
@@ -1222,6 +1325,12 @@ public class Table extends Weblet {
 				}
 				query += skip + " LIMIT "+ROW_COUNT_LIMIT;
 			}
+			
+			String sourceTable = (parms != null ? parms.get("SOURCETABLENAME") : null);
+			String sourceId = (parms != null ? parms.get("SOURCEEDIT_ID") : null);
+			if (sourceTable != null) { sourceTable = "&SOURCETABLENAME="+sourceTable; } else { sourceTable = ""; }
+			if (sourceId != null) { sourceId = "&SOURCEEDIT_ID="+sourceId; } else { sourceId = ""; }
+			
 			if (DEBUG) System.out.println("permeagility.web.Table:query="+query);
 			QueryResult rs = con.query(query);
 			
@@ -1234,7 +1343,7 @@ public class Table extends Weblet {
 				for (ODocument row : rs.get()) {
 					//if (DEBUG) System.out.println("Print row...");
 					sb.append(rowOnClick("clickable", getRow(columns, row, con, hideColumn), "window.location.href='" + this.getClass().getName()
-							+ "?EDIT_ID=" + row.getIdentity().toString().substring(1) + "&TABLENAME=" + table + "';"));
+							+ "?EDIT_ID=" + row.getIdentity().toString().substring(1) + "&TABLENAME=" + table + sourceTable + sourceId +"';"));
 					rowCount++;
 					if (page > -1 && rowCount >= ROW_COUNT_LIMIT) break;
 				}

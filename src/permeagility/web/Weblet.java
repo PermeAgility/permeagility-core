@@ -538,14 +538,18 @@ public abstract class Weblet {
 	public String submitButton(String s) {
 		return submitButton("SUBMIT", s);
 	}
-
+	
 	public String submitButton(String n, String s) {
 		return "<input " + (isReadOnly() ? "DISABLED" : "") + " class=\"submit\" type=\"SUBMIT\" name=\"" + n + "\" value=\"" + s + "\">";
 	}
 
+	public String button(String name, String text) {
+		return button(name, name, text);
+	}
+
 	public String button(String name, String value, String text) {
-		return "<button " + (isReadOnly() ? "DISABLED" : "") + " class=\"submit\" name=\"" + name + "\" value=\"" + value + "\">"
-		+ text + "</button>";
+		return "<input  type=\"BUTTON\" " + (isReadOnly() ? "DISABLED" : "") + " class=\"submit\" name=\"" + name + "\" value=\"" + value + "\">";
+//		+ text + "</input>";
 	}
 
 	public String deleteButton() {
