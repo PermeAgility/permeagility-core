@@ -149,8 +149,7 @@ public class BackupRestore extends Weblet {
 				};
 				
 				restore_thread.start();
-				return head("Redirect")
-				+ bodyOnLoad("Redirecting...", "window.location.href='/';");
+				return redirect(con.getLocale(),"/");
 			}
 		}
 		

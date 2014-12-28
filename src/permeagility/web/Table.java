@@ -82,7 +82,7 @@ public class Table extends Weblet {
 		String pagest = parms.get("PAGE");
 		String sourceTable = parms.get("SOURCETABLENAME");
 		if (isNullOrBlank(table)) {
-			return head("Redirect") + bodyOnLoad(Message.get(locale,"REDIRECT_TO_SCHEMA"), "window.location.href='permeagility.web.Schema';");
+			return redirect(locale, "permeagility.web.Schema");
 		}
 
 		String prettyTable = Message.get(locale,"TABLE_"+table);
@@ -184,17 +184,10 @@ public class Table extends Weblet {
 						newSourceId = "";
 					}
 				}
-				return head(Message.get(locale, "REDIRECT"))
-						+ bodyOnLoad(Message.get(locale, "REDIRECT"), "window.location.href='permeagility.web.Table"
-								+ "?TABLENAME=" + oldTable 
-								+ "&EDIT_ID=" + oldId
-								+(!oldTable.equals(newSourceTable) && !oldId.equals(newSourceId)
-									? "&SOURCETABLENAME=" + newSourceTable + "&SOURCEEDIT_ID=" + newSourceId
-									: "")
-								+"';");
+				return redirect(locale, this, "TABLENAME=" + oldTable + "&EDIT_ID=" + oldId
+						+(!oldTable.equals(newSourceTable) && !oldId.equals(newSourceId) ? "&SOURCETABLENAME=" + newSourceTable + "&SOURCEEDIT_ID=" + newSourceId : ""));
 			} else {
-				return head(Message.get(locale, "REDIRECT"))
-						+ bodyOnLoad(Message.get(locale, "REDIRECT"), "window.location.href='permeagility.web.Table" + "?TABLENAME=" + table +"';");				
+			return redirect(locale, this, "TABLENAME=" + table);
 			}
 		}
 
@@ -1526,8 +1519,7 @@ public class Table extends Weblet {
 						con.update("UPDATE columns SET name='"+newtable+"' WHERE name='"+table+"'");
 						table = newtable;
 						Server.tableUpdated("metadata:schema");
-						return head(Message.get(locale, "REDIRECT"))
-								+ bodyOnLoad(Message.get(locale, "REDIRECT"), "window.location.href='permeagility.web.Table?TABLENAME=" + table + "';");
+						return redirect(locale, this, "TABLENAME=" + table);
 					} catch (Exception e) {
 						errors.append(paragraph("error", e.getMessage()));
 					}
@@ -1551,8 +1543,7 @@ public class Table extends Weblet {
 						}
 						Server.tableUpdated("metadata:schema");
 						Server.clearColumnsCache(table);
-						return head(Message.get(locale, "REDIRECT"))
-								+ bodyOnLoad(Message.get(locale, "REDIRECT"), "window.location.href='permeagility.web.Table?TABLENAME=" + table + "';");
+						return redirect(locale, this, "TABLENAME=" + table);
 					} catch (Exception e) {
 						errors.append(paragraph("error", e.getMessage()));
 					}
@@ -1567,8 +1558,7 @@ public class Table extends Weblet {
 						Database.removeColumnFromColumns(con, table, parms.get("COLUMN_TO_DROP"));
 						Server.tableUpdated("metadata:schema");
 						Server.clearColumnsCache(table);
-						return head(Message.get(locale, "REDIRECT"))
-								+ bodyOnLoad(Message.get(locale, "REDIRECT"), "window.location.href='permeagility.web.Table?TABLENAME=" + table + "';");
+						return redirect(locale, this, "TABLENAME=" + table);
 					} catch (Exception e) {
 						errors.append(paragraph("error", e.getMessage()));
 					}
@@ -1583,7 +1573,7 @@ public class Table extends Weblet {
 						d.save();
 					}
 					DatabaseConnection.rowCountChanged(table);
-					return head(Message.get(locale, "REDIRECT")) + bodyOnLoad(Message.get(locale, "REDIRECT"), "window.location.href='permeagility.web.Schema';");
+					return redirect(locale, this);
 				} catch (Exception e) {
 					errors.append(paragraph("error", e.getMessage()));
 				}
@@ -1641,8 +1631,8 @@ public class Table extends Weblet {
 				errors.append(e.getLocalizedMessage());
 				e.printStackTrace();
 			}
-			return head(Message.get(locale, "REDIRECT")) 
-					+ bodyOnLoad(Message.get(locale, "REDIRECT"), "window.location.href='permeagility.web.Table?TABLENAME="+table+"';");
+
+			return redirect(locale, this, "TABLENAME=" + table);
 		}
 		if (submit != null && submit.equals(Message.get(locale, "REVOKE_RIGHT"))) {
 			if (DEBUG) System.out.println("Revoking right ");
@@ -1658,8 +1648,7 @@ public class Table extends Weblet {
 				errors.append(e.getLocalizedMessage());
 				e.printStackTrace();
 			}
-			return head(Message.get(locale, "REDIRECT")) 
-					+ bodyOnLoad(Message.get(locale, "REDIRECT"), "window.location.href='permeagility.web.Table?TABLENAME="+table+"';");
+			return redirect(locale, this, "TABLENAME=" + table);
 		}
 
 		String title = table + " " + Message.get(locale, "ADVANCED_OPTIONS");

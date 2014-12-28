@@ -17,8 +17,9 @@ public class Shutdown extends Weblet {
 		StringBuffer errors = new StringBuffer();
 		
 		if (parms.get("SUBMIT") != null && parms.get("SUBMIT").equals(Message.get(con.getLocale(),"CANCEL"))) {
-			return head("Redirect")
-			+ bodyOnLoad("Redirecting...", "window.location.href='/';");
+			return redirect(con.getLocale(),"");
+//					head("Redirect")
+//			+ bodyOnLoad("Redirecting...", "window.location.href='/';");
     	}
     
 		if (parms.get("SUBMIT") == null || !parms.get("SUBMIT").equals(Message.get(con.getLocale(),"CONFIRM_SHUTDOWN"))) {
@@ -41,12 +42,12 @@ public class Shutdown extends Weblet {
 				int exitCode = parms.get("WITH_RESTART") != null ? 1 : 0;
 				System.out.println("Shutting down the server with exit status "+exitCode);
 				try {
-					return head("Redirect") + bodyOnLoad("Redirecting...", "window.location.href='/';");
+					return redirect(con.getLocale(),"");
 				} catch (Exception e) {
 				} finally {
 					System.exit(exitCode);
 				}
-				return head("Redirect") + bodyOnLoad("Redirecting...", "window.location.href='/';");
+				return redirect(con.getLocale(),"");
 		}
     }
 
