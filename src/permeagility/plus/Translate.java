@@ -95,7 +95,7 @@ public class Translate extends Table {
 						+row(column("label","Translate table names")+column(checkbox("DO_TABLES",false)+" will use TABLE_name as message name"))
 						+row(column("label","Translate column names")+column(checkbox("DO_COLUMNS",false)+" will use COLUMN_name as message name"))
 						+row(column("label","Translate news articles")+column(checkbox("DO_NEWS",false)+" will create new articles for the new locale"))
-						+row(column("label","Email address")+column(input("EMAIL","")+" up to 10000/day if email given"))
+						+row(column("label","Email address")+column(input("EMAIL","")+" up to 10000 words/day if email given"))
 						+row(column("")+column(submitButton("GO", "Go")+" warning: can take a while"))
 				)));
 			} else {

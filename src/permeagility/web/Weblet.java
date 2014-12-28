@@ -401,13 +401,13 @@ public abstract class Weblet {
 	 */
 	public static String form(String n, String action, String s) {
 		return "<form " + (n==null ? "" : "name=\""+n+"\"" ) + " action=\"" + (action==null ? "#" : action) + "\" "+
-				"method=\"POST\" enctype=\"application/x-www-form-urlencoded\">\n" + s + "</form>\n";
+				"method=\"POST\" enctype=\"multipart/form-data\">\n" + s + "</form>\n";
 	}
 	public static String form(String n, String s) { return form(n, null, s); }
 	public static String form(String s) { return form(null, null, s); }
 
     public static String formStart(String n, String action) {
-    	return "<form name=\""+n+"\" action=\""+(action==null ? "#" : action)+"\" method=\"POST\" enctype=\"application/x-www-form-urlencoded\">\n";
+    	return "<form name=\""+n+"\" action=\""+(action==null ? "#" : action)+"\" method=\"POST\" enctype=\"multipart/form-data\">\n";
     }
         
     public static String formEnd() { return "</form>\n"; }
@@ -424,7 +424,7 @@ public abstract class Weblet {
     public static String oldpopupForm(String formName, String action, String linkText, String linkClass, String focusField, String content) {
    		return "<a "+(linkClass!=null ? "class=\""+linkClass+"\"" : "")+" href=\"javascript:var%20f=document.getElementById('"+formName+"_DIV');%20f.style.display=(f.style.display=='block'?'none':'block');%20%20%20document.forms['"+formName+"']."+focusField+".focus();%20%20void%200;\">"+linkText+POPUP_SUFFIX+"</a>"
 		+"<div id=\""+formName+"_DIV\" class=\"popup\" style=\"position: absolute; margin-top: -0.4em;\">"
-		+"<form id=\""+formName+"\" name=\""+formName+"\" method=\"post\" ENCTYPE=\"multipart/form-data\" action=\""+(action!=null ? action : "#" )+"\" onsubmit=\"document.getElementById('"+formName+"_DIV').style.display='none'; return true;\" class=\"subtle small\" style=\"position: relative; left: 1em; top: 2px;\">"
+		+"<form id=\""+formName+"\" name=\""+formName+"\" method=\"post\" enc=\"multipart/form-data\" action=\""+(action!=null ? action : "#" )+"\" onsubmit=\"document.getElementById('"+formName+"_DIV').style.display='none'; return true;\" class=\"subtle small\" style=\"position: relative; left: 1em; top: 2px;\">"
 		+content
 		+"</form></div>";
     }
@@ -612,8 +612,16 @@ public abstract class Weblet {
 		return "<a href=\"" + ref + "\">" + desc + "</a>\n";
 	}
 
+	public static String linkNewWindow(String ref, String desc) {
+		return "<a target=\"_blank\" href=\"" + ref + "\">" + desc + "</a>\n";
+	}
+
 	public static String linkWithTip(String ref, String desc, String tooltip) {
 		return "<a href=\"" + ref + "\" title=\""+tooltip+"\">" + desc + "</a>\n";
+	}
+
+	public static String linkNewWindowWithTip(String ref, String desc, String tooltip) {
+		return "<a target=\"_blank\" href=\"" + ref + "\" title=\""+tooltip+"\">" + desc + "</a>\n";
 	}
 
 	public static String link(String ref, String desc, String target) {
@@ -769,7 +777,7 @@ public abstract class Weblet {
 	    		rid = row.getIdentity().toString().substring(1);
 	    	}
 	    	values.add(rid);
-	    	names.add((String)row.field("name") + "&nbsp;&nbsp;&nbsp;"+link("/permeagility.web.Table"
+	    	names.add((String)row.field("name") + "&nbsp;&nbsp;&nbsp;"+linkNewWindow("/permeagility.web.Table"
 					+"?TABLENAME="+table
 					+"&EDIT_ID="+rid, Message.get(l, "GOTO_ROW")));
 	    	tooltips.add((String)row.field("tooltip"));
@@ -781,13 +789,13 @@ public abstract class Weblet {
     public static String multiCheckboxList(String name, List<String> names, List<String> values, List<String> tooltips, List<String> checks, Locale l) { 
     	StringBuffer sb = new StringBuffer(1024);
     	for(int i=0; i < names.size();i++) {
-    	    sb.append("<INPUT TYPE=\"CHECKBOX\""
-    	    		+(checks.get(i)==null ? "" : " CHECKED=\"yes"+"\"")
-    	    		+" NAME=\""+name+"\""
-    	    		+" TITLE=\""+tooltips.get(i)+"\""
-    	    		+" VALUE=\""+(String)values.get(i)+"\">"
+    	    sb.append("<input type=\"CHECKBOX\""
+    	    		+(checks.get(i)==null ? "" : " chacked=\"yes"+"\"")
+    	    		+" name=\""+name+"\""
+    	    		+" title=\""+tooltips.get(i)+"\""
+    	    		+" value=\""+(String)values.get(i)+"\">"
     	    		+(String)names.get(i)
-    	    		+"</INPUT><BR>\n"
+    	    		+"</input><BR>\n"
     	    );
     	}
     	return sb.toString();
@@ -796,7 +804,7 @@ public abstract class Weblet {
     public static String multiCheckboxList(String name, List<String> names, List<String> values, List<String> tooltips, Locale l) {
     	StringBuffer sb = new StringBuffer(1024);
     	for(int i=0; i < names.size();i++) {
-    	    sb.append("<INPUT TYPE=\"CHECKBOX\" NAME=\""+name+"\" TITLE=\""+tooltips.get(i)+"\" VALUE=\""+(String)values.get(i)+"\">"+(String)names.get(i)+"</INPUT><BR>\n");
+    	    sb.append("<input type=\"CHECKBOX\" name=\""+name+"\" title=\""+tooltips.get(i)+"\" value=\""+(String)values.get(i)+"\">"+(String)names.get(i)+"</input><BR>\n");
     	}
     	return sb.toString();
     }
@@ -846,15 +854,15 @@ public abstract class Weblet {
 		result.append("<ul>\n");
 		result.append("  <li ng-tooltip=\""+Message.get(l, "USE_CONTROLS_TO_CHANGE")+"\" ng-repeat=\"v in values | filter: { active: true }\">\n");
 		result.append("    {{v.name}}&nbsp;&nbsp;&nbsp;\n");
-		result.append("    <A title=\""+Message.get(l, "CLICK_TO_DELETE")+"\" ng-click=\"toggleActive(v)\">&times;</A>\n");
-		result.append("    <A HREF=\"permeagility.web.Table?TABLENAME="+table+"&EDIT_ID={{v.rid}}\">"+Message.get(l, "GOTO_ROW")+"</A>\n");
+		result.append("    <a title=\""+Message.get(l, "CLICK_TO_DELETE")+"\" ng-click=\"toggleActive(v)\">&times;</a>\n");
+		result.append("    <a target=\"_blank\" HREF=\"permeagility.web.Table?TABLENAME="+table+"&EDIT_ID={{v.rid}}\">"+Message.get(l, "GOTO_ROW")+"</a>\n");
 		result.append("  </li>\n");
 		result.append("</ul>\n");
 		result.append(Message.get(l,"ADD_OR_REMOVE")+"&nbsp;");
 		result.append("  <select ng-model=\"selValue\" ng-options=\"v.name for v in values\" ng-change=\"toggleActive(selValue)\">\n");
 		result.append("    <option value=\"\">"+Message.get(l, "OPTION_NONE")+"</option>\n");
 		result.append("      </select>\n");
-		result.append("<INPUT CLASS=\"text\" TYPE=\"hidden\" NAME=\""+name+"\"  VALUE=\"{{resultList()}}\"/>\n");  // TYPE=\"hidden\"
+		result.append("<input class=\"text\" type=\"hidden\" name=\""+name+"\"  value=\"{{resultList()}}\"/>\n");  // TYPE=\"hidden\"
 		result.append("</div>\n");
   	return result.toString();
   }
@@ -930,18 +938,18 @@ public abstract class Weblet {
 		result.append("];\">\n");
 		result.append("<ol>\n");
 		result.append("  <li ng-tooltip=\""+Message.get(l, "USE_CONTROLS_TO_CHANGE")+"\" ng-repeat=\"v in listValues\">\n");
-		result.append("    <A title=\""+Message.get(l, "CLICK_TO_MOVE_UP")+"\" ng-click=\"up(v)\">&#x2191;</A>\n");
-		result.append("    <A title=\""+Message.get(l, "CLICK_TO_MOVE_DOWN")+"\" ng-click=\"down(v)\">&#x2193;</A>\n");
+		result.append("    <a title=\""+Message.get(l, "CLICK_TO_MOVE_UP")+"\" ng-click=\"up(v)\">&#x2191;</a>\n");
+		result.append("    <a title=\""+Message.get(l, "CLICK_TO_MOVE_DOWN")+"\" ng-click=\"down(v)\">&#x2193;</a>\n");
 		result.append("    {{v.name}}&nbsp;&nbsp;&nbsp;\n");
-		result.append("    <A title=\""+Message.get(l, "CLICK_TO_DELETE")+"\" ng-click=\"delete(v)\">&times;</A>\n");
-		result.append("    <A HREF=\"permeagility.web.Table?TABLENAME="+table+"&EDIT_ID={{v.rid}}\">"+Message.get(l, "GOTO_ROW")+"</A>\n");
+		result.append("    <a title=\""+Message.get(l, "CLICK_TO_DELETE")+"\" ng-click=\"delete(v)\">&times;</a>\n");
+		result.append("    <a target=\"_blank\" HREF=\"permeagility.web.Table?TABLENAME="+table+"&EDIT_ID={{v.rid}}\">"+Message.get(l, "GOTO_ROW")+"</a>\n");
 		result.append("  </li>\n");
 		result.append("</ol>\n");
 		result.append(Message.get(l, "ADD_ITEM")+"&nbsp;");
 		result.append("  <select ng-model=\"selValue\" ng-options=\"v.name for v in values\" ng-change=\"selected(selValue)\">\n");
 		result.append("    <option value=\"\">"+Message.get(l, "OPTION_NONE")+"</option>\n");
 		result.append("      </select>\n");
-		result.append("<INPUT CLASS=\"text\" TYPE=\"hidden\" NAME=\""+name+"\"  VALUE=\"{{resultList()}}\"/>\n");  // TYPE=\"hidden\"
+		result.append("<input class=\"text\" type=\"hidden\" name=\""+name+"\"  value=\"{{resultList()}}\"/>\n");  // TYPE=\"hidden\"
 //		result.append("<INPUT CLASS=\"text\" NAME=\""+name+"\"  VALUE=\"{{resultList()}}\"/>\n"); 
 		result.append("</div>\n");
 		return result.toString();
@@ -1018,19 +1026,19 @@ public abstract class Weblet {
 		result.append("];\">\n");
 		result.append(" <ol>\n");
 		result.append("  <li ng-tooltip=\""+Message.get(l, "USE_CONTROLS_TO_CHANGE")+"\" ng-repeat=\"v in listValues\">\n");
-		result.append("<A title=\""+Message.get(l, "CLICK_TO_MOVE_UP")+"\" ng-click=\"up(v)\">&#x2191;</A>&nbsp;");
-		result.append("<A title=\""+Message.get(l, "CLICK_TO_MOVE_DOWN")+"\" ng-click=\"down(v)\">&#x2193;</A>&nbsp;");
-		result.append("<INPUT CLASS=\"text\" NAME=\"map\" ng-model=\"v.map\" SIZE=20  VALUE=\"{{v.map}}\"/>&nbsp;");
+		result.append("<a title=\""+Message.get(l, "CLICK_TO_MOVE_UP")+"\" ng-click=\"up(v)\">&#x2191;</a>&nbsp;");
+		result.append("<a title=\""+Message.get(l, "CLICK_TO_MOVE_DOWN")+"\" ng-click=\"down(v)\">&#x2193;</a>&nbsp;");
+		result.append("<input class=\"text\" name=\"map\" ng-model=\"v.map\" SIZE=20  VALUE=\"{{v.map}}\"/>&nbsp;");
 		result.append("{{v.name}}&nbsp;&nbsp;&nbsp;");
-		result.append("  <A title=\""+Message.get(l, "CLICK_TO_DELETE")+"\" ng-click=\"delete(v)\">&times;</A>\n");
-		result.append("  <A HREF=\"permeagility.web.Table?TABLENAME="+table+"&EDIT_ID={{v.rid}}\">"+Message.get(l, "GOTO_ROW")+"</A>\n");
+		result.append("  <a title=\""+Message.get(l, "CLICK_TO_DELETE")+"\" ng-click=\"delete(v)\">&times;</a>\n");
+		result.append("  <a target=\"_blank\" HREF=\"permeagility.web.Table?TABLENAME="+table+"&EDIT_ID={{v.rid}}\">"+Message.get(l, "GOTO_ROW")+"</a>\n");
 		result.append("  </li>\n");
 		result.append(" </ol>\n");
 		result.append(Message.get(l, "ADD_ITEM")+"&nbsp;");
 		result.append("  <select ng-model=\"selValue\" ng-options=\"v.name for v in values\" ng-change=\"selected(selValue)\">\n");
 		result.append("    <option value=\"\">"+Message.get(l, "OPTION_NONE")+"</option>\n");
 		result.append("  </select>\n");
-		result.append("<INPUT CLASS=\"text\" TYPE=\"hidden\" NAME=\""+name+"\"  VALUE=\"{{resultList()}}\"/>\n");  // TYPE=\"hidden\"
+		result.append("<input class=\"text\" type=\"hidden\" name=\""+name+"\" value=\"{{resultList()}}\"/>\n");  // TYPE=\"hidden\"
 //		result.append("<INPUT CLASS=\"text\" NAME=\""+name+"\"  VALUE=\"{{resultList()}}\"/>\n"); 
 		result.append("</div>\n");
 		return result.toString();

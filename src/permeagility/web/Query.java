@@ -275,6 +275,8 @@ public class Query extends Weblet {
 	    	row(columnSpan(5,"<select ng-model=\"statement\" ng-change=\"add(statement+' ')\">\n"
   				      +"  <option value=\"SELECT FROM\">SELECT [field, *] FROM class|rid [LET $a=(query)] [WHERE condition] [GROUP BY field, *] [ORDER BY field, *] [SKIP n] [LIMIT n]</option>\n"
 				      +"  <option value=\"SELECT EXPAND( $c ) LET $a = ( SELECT FROM t1 ), $b = ( SELECT FROM t2 ), $c = UNIONALL( $a, $b )\">SELECT (2 Table union template - replace t1 and t2)</option>\n"
+				      +"  <option value=\"SELECT expand(classes) FROM metadata:schema\">SELECT expand(classes) FROM metadata:schema</option>\n"
+				      +"  <option value=\"SELECT FROM (SELECT expand(properties) FROM (SELECT expand(classes) FROM metadata:schema) WHERE name = '')\">SELECT FROM (SELECT expand(properties) FROM (SELECT expand(classes) FROM metadata:schema) WHERE name = '')</option>\n"
 				      +"  <option value=\"EXPLAIN SELECT FROM\">EXPLAIN query</option>\n"
 				      +"  <option value=\"INSERT INTO\">INSERT INTO class [SET field=value, *] [FROM query] [RETURN ret]</option>\n"
 				      +"  <option value=\"UPDATE\">UPDATE [SET field=val *] [UPSERT] [WHERE condition *] [LIMIT n] [RETURN ret]</option>\n"

@@ -34,13 +34,13 @@ public class Context extends Weblet {
 		}
 
 		String cc = parms.get("CLEAR_COLUMNS");
-		if (cc != null && !cc.equals("") && Server.isDBA(con)) {
+		if (cc != null && Server.isDBA(con)) {
 		    if (DEBUG) System.out.println("Context: Column Cache refresh="+cc);
-			Server.clearColumnsCache(cc);
+			Server.clearColumnsCache("ALL");
 		}
 	
 		String cm = parms.get("CLEAR_MENUS");
-		if (cm != null && cm.equals("ALL") && Server.isDBA(con)) {
+		if (cm != null && Server.isDBA(con)) {
 		    if (DEBUG) System.out.println("Context: Menu Cache refresh");
 			Menu.clearCache();
 		}
@@ -98,28 +98,25 @@ public class Context extends Weblet {
 		    		+br()+Message.get(locale, "SERVER_USER")+"&nbsp;"+Server.getDatabase().getUser()
 		    		+br()+Message.get(locale, "SERVER_VERSION")+Server.getDatabase().getClientVersion())
 		    +paragraph("banner",Message.get(locale, "SERVER_CACHE"))
-			+form(button("CLEAR_COLUMNS","ALL",Message.get(locale, "CACHE_CLEAR_COLUMNS"))
-					//+hidden("CLEAR_COLUMNS","ALL") 
-					+ "&nbsp;"
-					+Message.get(locale, "CACHE_COUNT",""+Server.columnsCacheSize()))
+			+form(submitButton("CLEAR_COLUMNS",Message.get(locale, "CACHE_CLEAR_COLUMNS"))
+					+ "&nbsp;" + Message.get(locale, "CACHE_COUNT",""+Server.columnsCacheSize()))
 			+br()
-			+form(button("CLEAR_MENUS","ALL",Message.get(locale, "CACHE_CLEAR_MENUS"))
-//					+hidden("CLEAR_MENUS","ALL") + "&nbsp;"
-					+Message.get(locale, "CACHE_COUNT",""+Menu.cacheSize()))
+			+form(submitButton("CLEAR_MENUS",Message.get(locale, "CACHE_CLEAR_MENUS"))
+					+ "&nbsp;" + Message.get(locale, "CACHE_COUNT",""+Menu.cacheSize()))
 		    +table("data",
 			  row(columnHeader(Message.get(locale, "CACHED_QUERY"))
 					  +columnHeader(Message.get(locale, "CACHE_SIZE"))
 					  +columnHeader(Message.get(locale, "CACHE_LASTREFRESH")))
 			  +cacheList.toString())
-			+form(button("REFRESH_CACHE_ALL","REFRESHCACHE",Message.get(locale, "CACHE_CLEAR_LISTS"))
+			+form(submitButton("REFRESH_CACHE_ALL",Message.get(locale, "CACHE_CLEAR_LISTS"))
 					+hidden("TABLE_NAME","ALL") + "&nbsp;"
 					+Message.get(locale, "CACHE_COUNT",""+getCache().size()))
 			+paragraph("banner",Message.get(locale, "SERVER_SECURITY"))
 			+sessionReport.toString()
-			+form(button("REFRESH_SECURITY_MODEL","REFRESHSEC",Message.get(locale, "REFRESH_SECURITY"))
+			+form(submitButton("REFRESH_SECURITY_MODEL",Message.get(locale, "REFRESH_SECURITY"))
 					+"&nbsp;"+Message.get(locale, "SECURITY_UPDATED")+"&nbsp;"+Server.getSecurityRefreshTime())
 		    +paragraph("banner",Message.get(locale,"SERVER_SETUP"))
-			+form(button("CHECK_INSTALLATION","CHECKINSTALLATION",Message.get(locale,"CHECK_INSTALLATION")))
+			+form(submitButton("CHECK_INSTALLATION",Message.get(locale,"CHECK_INSTALLATION")))
 			+(installMessages != null && !installMessages.equals("") ? installMessages : "");
     }
 

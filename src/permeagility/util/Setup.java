@@ -80,26 +80,39 @@ public class Setup {
 				guestUser = (ODocument)con.update("insert into OUser set name = 'guest', password = 'guest', status = 'ACTIVE', roles = (select from ORole where name = 'guest')");
 				installMessages.append(Weblet.paragraph("CheckInstallation: Created guest user"));
 			}
+
+			// columns must be first as it will receive the properties as they are created by checkCreateProperty
+			System.out.print(TABLE_COLUMNS+" ");  
+			OClass columnsTable = Database.checkCreateClass(oschema, TABLE_COLUMNS, installMessages);
+			// Need to create first two column manually then we can call the function that adds it to the new columns
+			if (columnsTable != null && !columnsTable.existsProperty("name")) {  
+				columnsTable.createProperty("name", OType.STRING);
+			}
+			if (columnsTable != null && !columnsTable.existsProperty("columnList")) {
+				columnsTable.createProperty("columnList", OType.STRING);
+			}
+			Database.checkCreateProperty(con, columnsTable, "name", OType.STRING, installMessages);
+			Database.checkCreateProperty(con, columnsTable, "columnList", OType.STRING, installMessages);
 			
 			System.out.print(TABLE_THUMBNAIL+" ");
 			OClass thumbnailTable = Database.checkCreateClass(oschema, TABLE_THUMBNAIL, installMessages);
-			Database.checkCreateProperty(thumbnailTable, "name", OType.STRING, installMessages);
-			Database.checkCreateProperty(thumbnailTable, "table", OType.STRING, installMessages);
-			Database.checkCreateProperty(thumbnailTable, "column", OType.STRING, installMessages);
-			Database.checkCreateProperty(thumbnailTable, "id", OType.STRING, installMessages);
-			Database.checkCreateProperty(thumbnailTable, "type", OType.STRING, installMessages);
-			Database.checkCreateProperty(thumbnailTable, "size", OType.INTEGER, installMessages);
-			Database.checkCreateProperty(thumbnailTable, "width", OType.INTEGER, installMessages);
-			Database.checkCreateProperty(thumbnailTable, "height", OType.INTEGER, installMessages);
-			Database.checkCreateProperty(thumbnailTable, "small", OType.CUSTOM, installMessages);
-			Database.checkCreateProperty(thumbnailTable, "medium", OType.CUSTOM, installMessages);
+			Database.checkCreateProperty(con, thumbnailTable, "name", OType.STRING, installMessages);
+			Database.checkCreateProperty(con, thumbnailTable, "table", OType.STRING, installMessages);
+			Database.checkCreateProperty(con, thumbnailTable, "column", OType.STRING, installMessages);
+			Database.checkCreateProperty(con, thumbnailTable, "id", OType.STRING, installMessages);
+			Database.checkCreateProperty(con, thumbnailTable, "type", OType.STRING, installMessages);
+			Database.checkCreateProperty(con, thumbnailTable, "size", OType.INTEGER, installMessages);
+			Database.checkCreateProperty(con, thumbnailTable, "width", OType.INTEGER, installMessages);
+			Database.checkCreateProperty(con, thumbnailTable, "height", OType.INTEGER, installMessages);
+			Database.checkCreateProperty(con, thumbnailTable, "small", OType.CUSTOM, installMessages);
+			Database.checkCreateProperty(con, thumbnailTable, "medium", OType.CUSTOM, installMessages);
 
 			System.out.print(TABLE_CONSTANT+" ");
 			OClass constantTable = Database.checkCreateClass(oschema, TABLE_CONSTANT, installMessages);
-			Database.checkCreateProperty(constantTable, "classname", OType.STRING, installMessages);
-			Database.checkCreateProperty(constantTable, "description", OType.STRING, installMessages);
-			Database.checkCreateProperty(constantTable, "field", OType.STRING, installMessages);
-			Database.checkCreateProperty(constantTable, "value", OType.STRING, installMessages);
+			Database.checkCreateProperty(con, constantTable, "classname", OType.STRING, installMessages);
+			Database.checkCreateProperty(con, constantTable, "description", OType.STRING, installMessages);
+			Database.checkCreateProperty(con, constantTable, "field", OType.STRING, installMessages);
+			Database.checkCreateProperty(con, constantTable, "value", OType.STRING, installMessages);
 			
 			if (constantTable.count() == 0) {
 				con.create(TABLE_CONSTANT).field("classname","permeagility.web.Server").field("description","Server debug flag").field("field","DEBUG").field("value","false").save();				
@@ -109,13 +122,14 @@ public class Setup {
 				con.create(TABLE_CONSTANT).field("classname","permeagility.web.Table").field("description","Show related tables even if no privilege").field("field","SHOW_ALL_RELATED_TABLES").field("value","true").save();				
 				con.create(TABLE_CONSTANT).field("classname","permeagility.web.Context").field("description","Style sheet").field("field","DEFAULT_STYLE").field("value","default").save();				
 				con.create(TABLE_CONSTANT).field("classname","permeagility.web.Header").field("description","Logo for header").field("field","LOGO_FILE").field("value","Logo-blk.svg").save();				
+				con.create(TABLE_CONSTANT).field("classname","permeagility.web.Schema").field("description","Number of columns in tables view").field("field","NUMBER_OF_COLUMNS").field("value","4").save();				
 			}
 
 			System.out.print(TABLE_LOCALE+" ");
 			OClass localeTable = Database.checkCreateClass(oschema, TABLE_LOCALE, installMessages);
-			Database.checkCreateProperty(localeTable, "name", OType.STRING, installMessages);
-			Database.checkCreateProperty(localeTable, "description", OType.STRING, installMessages);
-			Database.checkCreateProperty(localeTable, "active", OType.BOOLEAN, installMessages);
+			Database.checkCreateProperty(con, localeTable, "name", OType.STRING, installMessages);
+			Database.checkCreateProperty(con, localeTable, "description", OType.STRING, installMessages);
+			Database.checkCreateProperty(con, localeTable, "active", OType.BOOLEAN, installMessages);
 			
 			ODocument loc;  // Locale
 			if (localeTable.count() == 0) {
@@ -131,9 +145,9 @@ public class Setup {
 			
 			System.out.print(TABLE_MESSAGE+" ");
 			OClass messageTable = Database.checkCreateClass(oschema, TABLE_MESSAGE, installMessages);
-			Database.checkCreateProperty(messageTable, "name", OType.STRING, installMessages);
-			Database.checkCreateProperty(messageTable, "description", OType.STRING, installMessages);
-			Database.checkCreateProperty(messageTable, "locale", OType.LINK, localeTable, installMessages);
+			Database.checkCreateProperty(con, messageTable, "name", OType.STRING, installMessages);
+			Database.checkCreateProperty(con, messageTable, "description", OType.STRING, installMessages);
+			Database.checkCreateProperty(con, messageTable, "locale", OType.LINK, localeTable, installMessages);
 
 			Message.initialize(con);
 			
@@ -304,7 +318,7 @@ public class Setup {
 			mCount += checkCreateMessage(con, loc, "RESTORE_ACCESS", "You must be admin or a dba to backup and restore a database");
 			mCount += checkCreateMessage(con, loc, "RESTORE_PLOCAL", "You can only restore a plocal database using this tool");
 			mCount += checkCreateMessage(con, loc, "USERREQUEST_INSERTED", "Your request was inserted - you will receive an email to confirm your account");
-			mCount += checkCreateMessage(con, loc, "IMAGE_VIEW_LINK", "View");
+			mCount += checkCreateMessage(con, loc, "IMAGE_VIEW_LINK", ".");
 			mCount += checkCreateMessage(con, loc, "IMAGE_VIEW_HEADER", "View");
 			mCount += checkCreateMessage(con, loc, "DOWNLOAD_FULL_SIZE", "Download full size");
 			
@@ -316,16 +330,16 @@ public class Setup {
 			System.out.print(TABLE_NEWS+" ");
 			OClass newsTable = Database.checkCreateClass(oschema, TABLE_NEWS, installMessages);
 			Database.checkClassSuperclass(oschema, newsTable, "ORestricted", installMessages);
-			Database.checkCreateProperty(newsTable, "name", OType.STRING, installMessages);
-			Database.checkCreateProperty(newsTable, "description", OType.STRING, installMessages);
-			Database.checkCreateProperty(newsTable, "dateline", OType.DATETIME, installMessages);
-			Database.checkCreateProperty(newsTable, "locale", OType.LINK, localeTable, installMessages);
-			Database.checkCreateProperty(newsTable, "archive", OType.BOOLEAN, installMessages);			
+			Database.checkCreateProperty(con, newsTable, "name", OType.STRING, installMessages);
+			Database.checkCreateProperty(con, newsTable, "description", OType.STRING, installMessages);
+			Database.checkCreateProperty(con, newsTable, "dateline", OType.DATETIME, installMessages);
+			Database.checkCreateProperty(con, newsTable, "locale", OType.LINK, localeTable, installMessages);
+			Database.checkCreateProperty(con, newsTable, "archive", OType.BOOLEAN, installMessages);			
 
 			if (newsTable.count() == 0) {
 				ODocument n1 = con.create(TABLE_NEWS);
 				n1.field("name","Welcome to PermeAgility");
-				n1.field("description","The core template for big applications");
+				n1.field("description","The core template for big applications in a micro service<br><img src='images/Logo.svg'>");
 				n1.field("dateline",new Date());
 				n1.field("locale",loc);
 				n1.field("archive",false);
@@ -334,7 +348,14 @@ public class Setup {
 
 				ODocument n2 = con.create(TABLE_NEWS);
 				n2.field("name","Welcome admin or dba");
-				n2.field("description","With great power comes great responsibility. Proceed carefully.");
+				n2.field("description","Tips for administrators\n"
+						+ "<ul>\n"
+						+ "<li>Use the backup tool - you can deploy backup files as starter databases</li>\n"
+						+ "<li>Copy the main menu as a backup when making menu changes</li>\n"
+						+ "<li>Change the admin, reader, writer, and server passwords</li>\n"
+						+ "<li>If a system table is deleted or truncated, it will be restored to factory settings during startup</li>\n"
+						+ "<li>see <a target='_blank' href='http://www.permeagility.com'>www.permeagility.com</a> for more information</li>\n"
+						+ "</ul>\n");
 				n2.field("dateline",new Date());
 				n2.field("locale",loc);
 				n2.field("archive",false);
@@ -344,10 +365,10 @@ public class Setup {
 			
 			System.out.print(TABLE_STYLE+" ");
 			OClass styleTable = Database.checkCreateClass(oschema, TABLE_STYLE, installMessages);
-			Database.checkCreateProperty(styleTable, "name", OType.STRING, installMessages);
-			Database.checkCreateProperty(styleTable, "horizontal", OType.BOOLEAN, installMessages);
-			Database.checkCreateProperty(styleTable, "logo", OType.STRING, installMessages);
-			Database.checkCreateProperty(styleTable, "description", OType.STRING, installMessages);
+			Database.checkCreateProperty(con, styleTable, "name", OType.STRING, installMessages);
+			Database.checkCreateProperty(con, styleTable, "horizontal", OType.BOOLEAN, installMessages);
+			Database.checkCreateProperty(con, styleTable, "logo", OType.STRING, installMessages);
+			Database.checkCreateProperty(con, styleTable, "description", OType.STRING, installMessages);
 			
 			if (styleTable.count() == 0) {
 				ODocument style = con.create(TABLE_STYLE); 
@@ -367,9 +388,9 @@ public class Setup {
 			
 			System.out.print(TABLE_PICKLIST+" ");
 			OClass pickListTable = Database.checkCreateClass(oschema, TABLE_PICKLIST, installMessages);
-			Database.checkCreateProperty(pickListTable, "tablename", OType.STRING, installMessages);
-			Database.checkCreateProperty(pickListTable, "query", OType.STRING, installMessages);
-			Database.checkCreateProperty(pickListTable, "description", OType.STRING, installMessages);
+			Database.checkCreateProperty(con, pickListTable, "tablename", OType.STRING, installMessages);
+			Database.checkCreateProperty(con, pickListTable, "query", OType.STRING, installMessages);
+			Database.checkCreateProperty(con, pickListTable, "description", OType.STRING, installMessages);
 
 			if (pickListTable.count() == 0) {
 				con.create(TABLE_PICKLIST).field("tablename","OIdentity").field("query","select @rid.asString(), name from ORole").field("description","This will restrict row level table privileges to only selecting Roles, alter or remove this to allow user and role selection for _allow, _allowRead, etc... columns").save();				
@@ -378,19 +399,14 @@ public class Setup {
 			System.out.print(TABLE_TABLEGROUP+" ");
 			OClass tableGroupTable = Database.checkCreateClass(oschema, TABLE_TABLEGROUP, installMessages);
 			Database.checkClassSuperclass(oschema, tableGroupTable, "ORestricted", installMessages);
-			Database.checkCreateProperty(tableGroupTable, "name", OType.STRING, installMessages);
-			Database.checkCreateProperty(tableGroupTable, "tables", OType.STRING, installMessages);
+			Database.checkCreateProperty(con, tableGroupTable, "name", OType.STRING, installMessages);
+			Database.checkCreateProperty(con, tableGroupTable, "tables", OType.STRING, installMessages);
 
 			if (tableGroupTable.count() == 0) {
 				con.create(TABLE_TABLEGROUP).field("name","Application").field("tables","article, columns, constant, tableGroup, pickList, style, locale, message, menu, menuItem, userRequest, -thumbnail").field("_allowRead", adminRoles.toArray()).save();
 				con.create(TABLE_TABLEGROUP).field("name","System").field("tables","ORole, OUser, OFunction, OSchedule, -ORIDs, -E, -V, -_studio").field("_allowRead", adminRoles.toArray()).save();
 				con.create(TABLE_TABLEGROUP).field("name","News").field("tables","article").field("_allowRead", allRoles.toArray()).save();
 			}
-			
-			System.out.print(TABLE_COLUMNS+" ");
-			OClass columnsTable = Database.checkCreateClass(oschema, TABLE_COLUMNS, installMessages);
-			Database.checkCreateProperty(columnsTable, "name", OType.STRING, installMessages);
-			Database.checkCreateProperty(columnsTable, "columnList", OType.STRING, installMessages);
 			
 			if (columnsTable.count() == 0) {
 				con.create(TABLE_COLUMNS).field("name",TABLE_NEWS).field("columnList","name, dateline, locale, description, archive").save();				
@@ -407,10 +423,10 @@ public class Setup {
 
 			System.out.print(TABLE_MENU+" ");
 			OClass menuTable = Database.checkCreateClass(oschema, TABLE_MENU, installMessages);
-			Database.checkCreateProperty(menuTable, "name", OType.STRING, installMessages);
-			Database.checkCreateProperty(menuTable, "active", OType.BOOLEAN, installMessages);
-			Database.checkCreateProperty(menuTable, "description", OType.STRING, installMessages);
-			Database.checkCreateProperty(menuTable, "sortOrder", OType.INTEGER, installMessages);
+			Database.checkCreateProperty(con, menuTable, "name", OType.STRING, installMessages);
+			Database.checkCreateProperty(con, menuTable, "active", OType.BOOLEAN, installMessages);
+			Database.checkCreateProperty(con, menuTable, "description", OType.STRING, installMessages);
+			Database.checkCreateProperty(con, menuTable, "sortOrder", OType.INTEGER, installMessages);
 
 			if (menuTable.count() == 0) {
 				ODocument defaultMenu;
@@ -424,10 +440,10 @@ public class Setup {
 			
 			System.out.print(TABLE_MENUITEM+" ");
 			OClass menuItemTable = Database.checkCreateClass(oschema, TABLE_MENUITEM, installMessages);
-			Database.checkCreateProperty(menuItemTable, "name", OType.STRING, installMessages);
-			Database.checkCreateProperty(menuItemTable, "classname", OType.STRING, installMessages);
-			Database.checkCreateProperty(menuItemTable, "active", OType.BOOLEAN, installMessages);
-			Database.checkCreateProperty(menuItemTable, "description", OType.STRING, installMessages);
+			Database.checkCreateProperty(con, menuItemTable, "name", OType.STRING, installMessages);
+			Database.checkCreateProperty(con, menuItemTable, "classname", OType.STRING, installMessages);
+			Database.checkCreateProperty(con, menuItemTable, "active", OType.BOOLEAN, installMessages);
+			Database.checkCreateProperty(con, menuItemTable, "description", OType.STRING, installMessages);
 			Database.checkClassSuperclass(oschema, menuItemTable, "ORestricted", installMessages);
 			
 			if (menuItemTable.count() == 0) {
@@ -560,7 +576,7 @@ public class Setup {
 				items.add(mi_merge);   // Will be inactive
 
 				// Add the menu items property to the menu
-				Database.checkCreateProperty(menuTable, "items", OType.LINKLIST, menuItemTable, installMessages);
+				Database.checkCreateProperty(con, menuTable, "items", OType.LINKLIST, menuItemTable, installMessages);
 				ODocument menuDoc = con.queryDocument("SELECT FROM menu");
 				if (menuDoc != null && items.size() > 0) {
 					menuDoc.field("items",items.toArray());
@@ -572,9 +588,9 @@ public class Setup {
 			
 			System.out.print(TABLE_USERREQUEST+" ");
 			OClass urTable = Database.checkCreateClass(oschema, TABLE_USERREQUEST, installMessages);
-			Database.checkCreateProperty(urTable, "name", OType.STRING, installMessages);
-			Database.checkCreateProperty(urTable, "email", OType.STRING, installMessages);
-			Database.checkCreateProperty(urTable, "password", OType.STRING, installMessages);
+			Database.checkCreateProperty(con, urTable, "name", OType.STRING, installMessages);
+			Database.checkCreateProperty(con, urTable, "email", OType.STRING, installMessages);
+			Database.checkCreateProperty(con, urTable, "password", OType.STRING, installMessages);
 
 			con.flush();
 			

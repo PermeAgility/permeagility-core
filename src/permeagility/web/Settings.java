@@ -90,10 +90,15 @@ public class Settings extends Weblet {
 		
 		}
 		
-		// Need to retrieve the style to get its RID to set the default for the pick list
-		QueryResult selectedStyle = con.query("SELECT from "+Setup.TABLE_STYLE+" WHERE name='"+currentStyleName+"'");
-		String selectedStyleID = (selectedStyle == null || selectedStyle.size() == 0 ? "" : selectedStyle.get(0).getIdentity().toString().substring(1));
+		String selectedStyleID = "";
 
+		// Need to retrieve the style to get its RID to set the default for the pick list
+		try {
+			QueryResult selectedStyle = con.query("SELECT from "+Setup.TABLE_STYLE+" WHERE name='"+currentStyleName+"'");
+			selectedStyleID = (selectedStyle == null || selectedStyle.size() == 0 ? "" : selectedStyle.get(0).getIdentity().toString().substring(1));
+		} catch (Exception e) {
+			errors.append(paragraph("error","Selected style does not exist"));
+		}
 		return head(service)+
 	    standardLayout(con, parms,errors
 	    	+form(

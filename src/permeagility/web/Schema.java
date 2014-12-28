@@ -7,6 +7,7 @@ package permeagility.web;
 
 import java.util.ArrayList;
 
+import permeagility.util.Database;
 import permeagility.util.DatabaseConnection;
 import permeagility.util.Setup;
 import permeagility.util.QueryResult;
@@ -37,7 +38,8 @@ public class Schema extends Weblet {
 						if (newclass != null) {
 							errors.append(paragraph("success",Message.get(con.getLocale(),"NEW_TABLE_CREATED",camel,makeCamelCasePretty(camel))));
 							if (ADD_NAME_TO_NEW_TABLE) {
-								newclass.createProperty("name", OType.STRING).setNotNull(false).setMandatory(false);
+								Database.checkCreateProperty(con, newclass, "name", OType.STRING, errors);
+								//newclass.createProperty("name", OType.STRING).setNotNull(false).setMandatory(false);
 							}
 							Server.tableUpdated("metadata:schema");
 						} else {
@@ -90,8 +92,12 @@ public class Schema extends Weblet {
 					//System.out.println("Table privs for table "+tableName+" for user "+con.getUser()+" privs="+privs);
 					if (privs > 0) {
 						tableName = tableName.trim();
-						tablelist.append(link("permeagility.web.Table?TABLENAME="+tableName,pretty)+br());
-						groupHasTable = true;
+						if (con.getSchema().getClass(tableName) != null) {
+							tablelist.append(link("permeagility.web.Table?TABLENAME="+tableName,pretty)+br());
+							groupHasTable = true;
+						} else {
+							System.out.println("permeagility.web.Schema: Table "+tableName+" not found - will not be shown");
+						}
 					}
 				}
 			}

@@ -182,16 +182,18 @@ public class Merge extends Table {
 	    		sb.append("Error retrieving import patterns: "+e.getMessage());
 	    	}
 		}
-		return 	head("Merge")+body(standardLayout(con, parms, 
+		return 	head("Merge",getDateControlScript(con.getLocale())+getSortTableScript()+getColorControlScript())
+				+body(standardLayout(con, parms, 
 				errors.toString()
-				+sb.toString()
 				+((Server.getTablePriv(con, MERGE_TABLE) & PRIV_CREATE) > 0 && connect == null 
-					? popupForm("CREATE_NEW_ROW",null,Message.get(con.getLocale(),"NEW_PATH"),null,"NAME",
+					? popupForm("CREATE_NEW_ROW",null,Message.get(con.getLocale(),"NEW_PATH"),null,"name",
 						paragraph("banner",Message.get(con.getLocale(), "CREATE_ROW"))
 						+hidden("TABLENAME", MERGE_TABLE)
-						+getTableRowFields(con, MERGE_TABLE, parms)
-						+submitButton(Message.get(con.getLocale(), "CREATE_ROW"))) : "")
-				));
+						+getTableRowFields(con, MERGE_TABLE, parms, "name,fromTable,toTable,fromKey,toKey")
+						+submitButton(Message.get(con.getLocale(), "CREATE_ROW"))) 
+					: "")
+				+sb.toString()
+			));
 	}
 
 	public int insertDocument(DatabaseConnection con, ODocument doc, QueryResult columnMap, String toTable) {
@@ -416,10 +418,7 @@ public class Merge extends Table {
 
 	// Override these to change the names of the tables that will be created and used by this importer
 	public static String MERGE_TABLE = "mergePath";   // Local OrientDB table name to hold connection specs
-	public static String MERGE_TABLE_COLUMNS = "name, fromTable, fromKey, toTable, toKey, created, executed";
 	public static String ATTR_TABLE = "mergePathAttribute";   // Saved path from a Oracle schema.table to a PermeAgility class/table
-	public static String ATTR_TABLE_COLUMNS = "fromColumn, toColumn, linkProperty";
-	public static String SQLTABLE = "importedOracleSQL";   // Saved sql from a Oracle import to a PermeAgility class/table
     	
 	private void checkInstallation(DatabaseConnection con, StringBuffer errors) {
 		// Verify the installation of the Merge table structures
@@ -429,35 +428,19 @@ public class Merge extends Table {
 		OSchema oschema = con.getSchema();
 		
 		OClass table = Database.checkCreateClass(oschema, MERGE_TABLE, errors);
-		Database.checkCreateProperty(table, "name", OType.STRING, errors);
-		Database.checkCreateProperty(table, "fromTable", OType.STRING, errors);
-		Database.checkCreateProperty(table, "fromKey", OType.STRING, errors);
-		Database.checkCreateProperty(table, "toTable", OType.STRING, errors);
-		Database.checkCreateProperty(table, "toKey", OType.STRING, errors);
-		Database.checkCreateProperty(table, "created", OType.DATETIME, errors);
-		Database.checkCreateProperty(table, "executed", OType.DATETIME, errors);
+		Database.checkCreateProperty(con, table, "name", OType.STRING, errors);
+		Database.checkCreateProperty(con, table, "fromTable", OType.STRING, errors);
+		Database.checkCreateProperty(con, table, "fromKey", OType.STRING, errors);
+		Database.checkCreateProperty(con, table, "toTable", OType.STRING, errors);
+		Database.checkCreateProperty(con, table, "toKey", OType.STRING, errors);
+		Database.checkCreateProperty(con, table, "created", OType.DATETIME, errors);
+		Database.checkCreateProperty(con, table, "executed", OType.DATETIME, errors);
 		
 		OClass logTable = Database.checkCreateClass(oschema, ATTR_TABLE, errors);
-		Database.checkCreateProperty(logTable, "path", OType.LINK, table, errors);
-		Database.checkCreateProperty(logTable, "fromColumn", OType.STRING, errors);
-		Database.checkCreateProperty(logTable, "toColumn", OType.STRING, errors);
-		Database.checkCreateProperty(logTable, "linkProperty", OType.STRING, errors);
-
-		ODocument mergeTableColumns = con.queryDocument("SELECT FROM "+Setup.TABLE_COLUMNS+" WHERE name='"+MERGE_TABLE+"'");
-		if (mergeTableColumns == null) {
-			mergeTableColumns = con.create(Setup.TABLE_COLUMNS).field("name",MERGE_TABLE).field("columnList",MERGE_TABLE_COLUMNS).save();
-		}
-		if (mergeTableColumns != null && !mergeTableColumns.field("columnList").equals(MERGE_TABLE_COLUMNS)) {
-			mergeTableColumns.field("columnList",MERGE_TABLE_COLUMNS).save();
-		}
-
-		ODocument attrTableColumns = con.queryDocument("SELECT FROM "+Setup.TABLE_COLUMNS+" WHERE name='"+ATTR_TABLE+"'");
-		if (attrTableColumns == null) {
-			attrTableColumns = con.create(Setup.TABLE_COLUMNS).field("name",ATTR_TABLE).field("columnList",ATTR_TABLE_COLUMNS).save();
-		}
-		if (attrTableColumns != null && !attrTableColumns.field("columnList").equals(ATTR_TABLE_COLUMNS)) {
-			attrTableColumns.field("columnList",ATTR_TABLE_COLUMNS).save();
-		}
+		Database.checkCreateProperty(con, logTable, "path", OType.LINK, table, errors);
+		Database.checkCreateProperty(con, logTable, "fromColumn", OType.STRING, errors);
+		Database.checkCreateProperty(con, logTable, "toColumn", OType.STRING, errors);
+		Database.checkCreateProperty(con, logTable, "linkProperty", OType.STRING, errors);
 
 		INSTALLED = true;  //This will be checked every startup unless this flag is set true using a constant
 	}

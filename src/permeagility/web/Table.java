@@ -19,6 +19,7 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.concurrent.ConcurrentHashMap;
 
+import permeagility.util.Database;
 import permeagility.util.DatabaseConnection;
 import permeagility.util.QueryResult;
 
@@ -140,12 +141,13 @@ public class Table extends Weblet {
 							));					
 				}
 			}else if (submit != null && submit.equals(Message.get(locale, "DELETE"))) {
+				if (DEBUG) System.out.println("************ Deleting row");
 					if (deleteRow(con, table, parms, errors)) {
 						parms.remove("EDIT_ID");
 						parms.remove("UPDATE_ID");
 						submit = null;
 					} else {
-						return head(title)
+						return head(title, getDateControlScript(con.getLocale())+getColorControlScript())
 								+ body(standardLayout(con, parms, errors.toString() + getTableRowForm(con, table, parms) ));
 					}
 			} else if (submit != null && submit.equals(Message.get(locale, "UPDATE"))) {
@@ -158,8 +160,6 @@ public class Table extends Weblet {
 							+ body(standardLayout(con, parms, errors.toString() + getTableRowForm(con, table, parms) ));
 				}
 			}
-//			} else if (submit != null && submit.equals(Message.get(locale, "CANCEL")) 
-//			&& (sourceTable != null && !sourceTable.equals(""))) {  // Go to the source record if it is defined
 			if (sourceTable != null && !sourceTable.equals("")) {  // Go to the source record if it is defined
 				System.out.println("Table (Cancel) popping sourceTableName="+parms.get("SOURCETABLENAME")+" id="+parms.get("SOURCEEDIT_ID"));
 				int lastComma = sourceTable.lastIndexOf(',');
@@ -196,88 +196,80 @@ public class Table extends Weblet {
 				return head(Message.get(locale, "REDIRECT"))
 						+ bodyOnLoad(Message.get(locale, "REDIRECT"), "window.location.href='permeagility.web.Table" + "?TABLENAME=" + table +"';");				
 			}
-//			} else {
-//				System.out.println("Table (Cancel) tableName="+parms.get("TABLENAME")+" id="+parms.get("EDIT_ID")+" clearing row (view all)");				
-//				parms.remove("EDIT_ID");
-//				parms.remove("UPDATE_ID");
-//			}
 		}
 
-		if (submit != null) {
-			if (submit.equals(Message.get(locale, "NEW_COLUMN"))) {
-				String cn = parms.get("NEWCOLUMNNAME");
-				String dt = parms.get("NEWDATATYPE");
-				String tr = parms.get("NEWTABLEREF");
-				
-				OType type = null;
-				if (dt.equals(Message.get(locale, "DATATYPE_FLOAT"))) {
-					type = OType.DOUBLE;
-					tr = null;
-				} else if (dt.equals(Message.get(locale, "DATATYPE_INT"))) {
-					type = OType.LONG;
-					tr = null;
-				} else if (dt.equals(Message.get(locale, "DATATYPE_BOOLEAN"))) {
-					type = OType.BOOLEAN;
-					tr = null;
-				} else if (dt.equals(Message.get(locale, "DATATYPE_TEXT"))) {
-					type = OType.STRING;
-					tr = null;
-				} else if (dt.equals(Message.get(locale, "DATATYPE_DATETIME"))) {
-					type = OType.DATETIME;
-					tr = null;
-				} else if (dt.equals(Message.get(locale, "DATATYPE_DATE"))) {
-					type = OType.DATE;
-					tr = null;
-				} else if (dt.equals(Message.get(locale, "DATATYPE_BLOB"))) {
-					type = OType.CUSTOM;
-					tr = null;
-				} else if (dt.equals(Message.get(locale, "DATATYPE_DECIMAL"))) {
-					type = OType.DECIMAL;
-					tr = null;
-				} else if (dt.equals(Message.get(locale, "DATATYPE_LINK"))) {
-					type = OType.LINK;
-					if (isNullOrBlank(tr)) {
-						errors.append(paragraph("error", Message.get(locale, "LINK_TYPES_NEED_LINK_TABLE")));
-					}
-				} else if (dt.equals(Message.get(locale, "DATATYPE_LINKLIST"))) {
-					type = OType.LINKLIST;
-					if (isNullOrBlank(tr)) {
-						errors.append(paragraph("error", Message.get(locale, "LINK_TYPES_NEED_LINK_TABLE")));
-					}
-				} else if (dt.equals(Message.get(locale, "DATATYPE_LINKSET"))) {
-					type = OType.LINKSET;
-					if (isNullOrBlank(tr)) {
-						errors.append(paragraph("error", Message.get(locale, "LINK_TYPES_NEED_LINK_TABLE")));
-					}
-				} else if (dt.equals(Message.get(locale, "DATATYPE_LINKMAP"))) {
-					type = OType.LINKMAP;
-					if (isNullOrBlank(tr)) {
-						errors.append(paragraph("error", Message.get(locale, "LINK_TYPES_NEED_LINK_TABLE")));
-					}
+		if (submit != null && submit.equals(Message.get(locale, "NEW_COLUMN"))) {
+			String cn = parms.get("NEWCOLUMNNAME");
+			String dt = parms.get("NEWDATATYPE");
+			String tr = parms.get("NEWTABLEREF");
+			
+			OType type = null;
+			if (dt.equals(Message.get(locale, "DATATYPE_FLOAT"))) {
+				type = OType.DOUBLE;
+				tr = null;
+			} else if (dt.equals(Message.get(locale, "DATATYPE_INT"))) {
+				type = OType.LONG;
+				tr = null;
+			} else if (dt.equals(Message.get(locale, "DATATYPE_BOOLEAN"))) {
+				type = OType.BOOLEAN;
+				tr = null;
+			} else if (dt.equals(Message.get(locale, "DATATYPE_TEXT"))) {
+				type = OType.STRING;
+				tr = null;
+			} else if (dt.equals(Message.get(locale, "DATATYPE_DATETIME"))) {
+				type = OType.DATETIME;
+				tr = null;
+			} else if (dt.equals(Message.get(locale, "DATATYPE_DATE"))) {
+				type = OType.DATE;
+				tr = null;
+			} else if (dt.equals(Message.get(locale, "DATATYPE_BLOB"))) {
+				type = OType.CUSTOM;
+				tr = null;
+			} else if (dt.equals(Message.get(locale, "DATATYPE_DECIMAL"))) {
+				type = OType.DECIMAL;
+				tr = null;
+			} else if (dt.equals(Message.get(locale, "DATATYPE_LINK"))) {
+				type = OType.LINK;
+				if (isNullOrBlank(tr)) {
+					errors.append(paragraph("error", Message.get(locale, "LINK_TYPES_NEED_LINK_TABLE")));
 				}
-				if (type == null || isNullOrBlank(cn) || isNullOrBlank(dt)) {
-					errors.append(paragraph("error", Message.get(locale, "COLUMN_NAME_AND_TYPE_REQUIRED")));
-				} else {
-					try {
-						OClass c = con.getSchema().getClass(table);
-						if (c == null) {
-							errors.append(paragraph("error", Message.get(locale, "CANNOT_CREATE_COLUMN") + " Cannot find class to create column in table: " + table));							
+			} else if (dt.equals(Message.get(locale, "DATATYPE_LINKLIST"))) {
+				type = OType.LINKLIST;
+				if (isNullOrBlank(tr)) {
+					errors.append(paragraph("error", Message.get(locale, "LINK_TYPES_NEED_LINK_TABLE")));
+				}
+			} else if (dt.equals(Message.get(locale, "DATATYPE_LINKSET"))) {
+				type = OType.LINKSET;
+				if (isNullOrBlank(tr)) {
+					errors.append(paragraph("error", Message.get(locale, "LINK_TYPES_NEED_LINK_TABLE")));
+				}
+			} else if (dt.equals(Message.get(locale, "DATATYPE_LINKMAP"))) {
+				type = OType.LINKMAP;
+				if (isNullOrBlank(tr)) {
+					errors.append(paragraph("error", Message.get(locale, "LINK_TYPES_NEED_LINK_TABLE")));
+				}
+			}
+			if (type == null || isNullOrBlank(cn) || isNullOrBlank(dt)) {
+				errors.append(paragraph("error", Message.get(locale, "COLUMN_NAME_AND_TYPE_REQUIRED")));
+			} else {
+				try {
+					OClass c = con.getSchema().getClass(table);
+					if (c == null) {
+						errors.append(paragraph("error", Message.get(locale, "CANNOT_CREATE_COLUMN") + " Cannot find class to create column in table: " + table));							
+					} else {
+						String camel = makePrettyCamelCase(cn);						
+						if (tr != null) {
+							Database.checkCreateProperty(con, c, camel, type, con.getSchema().getClass(tr), errors);
 						} else {
-							String camel = makePrettyCamelCase(cn);
-							if (tr != null) {
-								c.createProperty(camel, type, con.getSchema().getClass(tr));
-							} else {
-								c.createProperty(camel, type);
-							}
-							errors.append(paragraph("success", Message.get(locale, "NEW_COLUMN_CREATED")+":&nbsp;"+camel));
-							Server.tableUpdated("metadata:schema");
-							Server.clearColumnsCache(table);
+							Database.checkCreateProperty(con, c, camel, type, errors);
 						}
-					} catch (Exception e) {
-						e.printStackTrace();
-						errors.append(paragraph("error", Message.get(locale, "CANNOT_CREATE_COLUMN") + e.getMessage()));
+						errors.append(paragraph("success", Message.get(locale, "NEW_COLUMN_CREATED")+":&nbsp;"+camel));
+						Server.tableUpdated("metadata:schema");
+						Server.clearColumnsCache(table);
 					}
-
+				} catch (Exception e) {
+					e.printStackTrace();
+					errors.append(paragraph("error", Message.get(locale, "CANNOT_CREATE_COLUMN") + e.getMessage()));
 				}
 			} 
 		}
@@ -1066,7 +1058,7 @@ public class Table extends Weblet {
 			return row(label + column(createListFromTable(PARM_PREFIX+name, (v == null ? "" : v), con, (String)column.field("linkedClass"), null, true, null, true)
 						+(initialValues == null || initialValue == null 
 							? "" 
-							: link(this.getClass().getName()+"?TABLENAME="+column.field("linkedClass")+"&EDIT_ID="+v,Message.get(con.getLocale(), "GOTO_ROW")))
+							: linkNewWindow(this.getClass().getName()+"?TABLENAME="+column.field("linkedClass")+"&EDIT_ID="+v,Message.get(con.getLocale(), "GOTO_ROW")))
 					));
 				
 		// Link list
@@ -1118,12 +1110,11 @@ public class Table extends Weblet {
 			}
 		}
 
-		// Add to or start the bread crumb
+		// Add to or start the bread crumb so we can find our way back from a submit
 		String sourceTable = parms.get("SOURCETABLENAME");
 		String sourceId = parms.get("SOURCEEDIT_ID");
 		String newSourceTable = null;
 		String newSourceId = null;
-		// not sure this needs to be so complicated
 		if (sourceTable != null && !sourceTable.equals("") && sourceId != null && parms.get("SUBMIT") == null) {
 			String ids[] = sourceId.split(",");
 			String lastId = ids[ids.length-1];
@@ -1529,8 +1520,10 @@ public class Table extends Weblet {
 				} else {
 					try {
 						String newtable = parms.get("RENAME_TABLE");
+						newtable = makePrettyCamelCase(newtable);
 						Server.clearColumnsCache(table);
 						con.update("ALTER CLASS "+table+" NAME "+newtable);
+						con.update("UPDATE columns SET name='"+newtable+"' WHERE name='"+table+"'");
 						table = newtable;
 						Server.tableUpdated("metadata:schema");
 						return head(Message.get(locale, "REDIRECT"))
@@ -1546,7 +1539,16 @@ public class Table extends Weblet {
 					try {
 						String oldcolumn = parms.get("COLUMN_TO_RENAME");
 						String newcolumn = parms.get("RENAME_COLUMN");
+						newcolumn = makePrettyCamelCase(newcolumn);
 						con.update("ALTER PROPERTY " + table + "."+ oldcolumn +" NAME " + newcolumn);
+						ODocument d = con.queryDocument("SELECT FROM columns WHERE name='"+table+"'");
+						if (d != null) {
+							String cl = d.field("columnList");
+							if (cl != null) {
+								d.field("columnList",cl.replace(oldcolumn, newcolumn));
+								d.save();
+							}								
+						}
 						Server.tableUpdated("metadata:schema");
 						Server.clearColumnsCache(table);
 						return head(Message.get(locale, "REDIRECT"))
@@ -1562,6 +1564,7 @@ public class Table extends Weblet {
 					try {
 						OClass c = con.getSchema().getClass(table);
 						c.dropProperty(parms.get("COLUMN_TO_DROP"));
+						Database.removeColumnFromColumns(con, table, parms.get("COLUMN_TO_DROP"));
 						Server.tableUpdated("metadata:schema");
 						Server.clearColumnsCache(table);
 						return head(Message.get(locale, "REDIRECT"))
@@ -1574,6 +1577,11 @@ public class Table extends Weblet {
 				try {
 					con.update("DROP class " + table);
 					Server.clearColumnsCache(table);
+					ODocument d = con.queryDocument("SELECT FROM columns WHERE name='"+table+"'");
+					if (d != null) {
+						d.delete();
+						d.save();
+					}
 					DatabaseConnection.rowCountChanged(table);
 					return head(Message.get(locale, "REDIRECT")) + bodyOnLoad(Message.get(locale, "REDIRECT"), "window.location.href='permeagility.web.Schema';");
 				} catch (Exception e) {
