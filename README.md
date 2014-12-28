@@ -26,9 +26,8 @@ Licensed under Eclipse Public License http://www.eclipse.org/legal/epl-v10.html
 Includes other components and copyrights: (Database and JavaScript Components)
 
 - OrientDB - http://www.orientechnologies.com/orientdb/
-- PrettyPhoto - Stephane Caron (http://www.no-margin-for-errors.com)
 - JQuery - http://jquery.org/license
-- JSColor - Jan Odvarko, http://odvarko.cz, http://jscolor.com
+- AngularJs - Google, Inc. http://angularjs.org  License: MIT
 - SortTable - Stuart Langridge, http://www.kryogenix.org/code/browser/sorttable/
 - JSCalendar - Mihai Bazon, http://www.dynarch.com/projects/calendar
-- AngularJs - Google, Inc. http://angularjs.org  License: MIT
+- JSColor - Jan Odvarko, http://odvarko.cz, http://jscolor.com
