@@ -808,7 +808,7 @@ public class Table extends Weblet {
 
 		String formName = (edit_id == null ? "NEWROW" : "UPDATEROW");
 		return (con.getUser().equals("guest") ? "" : link(this.getClass().getName()+"?TABLENAME="+table,Message.get(con.getLocale(), "ALL_ROWS_IN_TABLE",makeCamelCasePretty(table))))
-			+ (parms.containsKey("SOURCETABLENAME") ? parms.get("SOURCETABLENAME") : "")
+			+ getLinkTrail(con, parms.get("SOURCETABLENAME"),parms.get("SOURCEEDIT_ID")) 
 			+ paragraph("banner", (edit_id == null ? Message.get(con.getLocale(), "CREATE_ROW") 
 					: Message.get(con.getLocale(), "UPDATE") + "&nbsp;" + makeCamelCasePretty(table)))
 			+ form(formName, 
@@ -823,6 +823,21 @@ public class Table extends Weblet {
 					+ (edit_id != null && (Server.getTablePriv(con, table) & PRIV_DELETE) > 0 ? deleteButton(con.getLocale()) : ""))
 			)
 			+ getTableRowRelated(con,table,parms);
+	}
+
+	private String getLinkTrail(DatabaseConnection con, String tables, String ids) {
+		if (tables == null || tables.equals("")) return "";
+		if (ids == null || ids.equals("")) return "";
+		String tabs[] = tables.split(",");
+		String tabIds[] = ids.split(",");
+		StringBuilder ret = new StringBuilder();
+//		for (int i=tabs.length; i=>0; i--) {
+		for (int i=0; i<tabs.length; i++) {
+			String t = tabs[i];
+			String id = tabIds[i];
+			ret.append("<br>&nbsp;&nbsp;&nbsp;"+link(this.getClass().getName()+"?TABLENAME="+t+"&EDIT_ID="+id, makeCamelCasePretty(t)+" ("+getDescriptionFromTable(con, t, id)+")"));
+		}
+		return ret.toString();
 	}
 
 	public String getTableRowFields(DatabaseConnection con, String table, HashMap<String, String> parms) {

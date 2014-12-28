@@ -1137,13 +1137,14 @@ public abstract class Weblet {
 		//System.out.println("GetDescriptionFromTable table="+table+" id="+id);
 		if (id == null || id.equals("")) return "Null";
 		//System.out.println(getQueryForTable(con, table));
+		if (!id.startsWith("#")) id = "#"+id;
 		QueryResult qr = getCache().getResult(con, getQueryForTable(con, table));
 		if (qr != null) {
 			int r = qr.findFirstRow("rid", id);
 			if (r > -1) {
 				return qr.getStringValue(r, "name");
 			} else {
-				return "Not found";
+				return id+" not in "+table;
 			}
 		} else {
 			return "Null";
