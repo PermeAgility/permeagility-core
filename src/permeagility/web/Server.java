@@ -39,12 +39,13 @@ import permeagility.util.Browser;
 import permeagility.util.ConstantOverride;
 import permeagility.util.Database;
 import permeagility.util.DatabaseConnection;
-import permeagility.util.Setup;
 import permeagility.util.Dumper;
 import permeagility.util.PlusClassLoader;
 import permeagility.util.QueryResult;
+import permeagility.util.Setup;
 
 import com.orientechnologies.orient.core.OConstants;
+import com.orientechnologies.orient.core.OrientShutdownHook;
 import com.orientechnologies.orient.core.id.ORecordId;
 import com.orientechnologies.orient.core.metadata.security.ORole;
 import com.orientechnologies.orient.core.metadata.security.ORule;
@@ -183,20 +184,20 @@ public class Server extends Thread {
 			System.out.println("Opening HTTP_PORT "  + HTTP_PORT);
 			ss = new ServerSocket(HTTP_PORT);
 
-			if (initializeServer()) {   // StarterDB is the default startup (not needed for core)
+			if (initializeServer()) {   
 
 				// Add shutdown hook
-				Runtime.getRuntime().addShutdownHook(new Thread() {
-					public void run() {
-						System.out.println("Shutting down the server");
-						closeAllConnections();
-					}
-				});
+				//Runtime.getRuntime().addShutdownHook(new Thread() {
+				//	public void run() { exit(0); } 
+				//});
+				
 				if (SELF_TEST) {
 					System.out.println("self test - exiting...");
 				} else {
 					System.out.println("Accepting connections on HTTP_PORT "  + ss.getLocalPort());
 					viewPage("");  // Fire up the browser if Win or OS X
+					
+					// This is the main web server loop
 					while (true) {
 						Server s = new Server(ss.accept());
 						s.start();
@@ -205,16 +206,23 @@ public class Server extends Thread {
 			}
 		} catch (BindException b) {
 			System.err.println("***\n*** Exit condition: \n***"+b.getMessage());
-			viewPage("");  // Fire up the browser - server is probably already up		
+			viewPage("");  // Fire up the browser - server is probably already up
+			exit(-2);
 		} catch (Exception e) {
 			System.err.println("***\n*** Exit condition: \n***"+e.getClass().getName()+":"+e.getMessage());
-			System.exit(-1);
+			exit(-1);
 		} finally {
 			System.out.println("Server Stopped");
-			System.exit(0);
+			exit(0);
 		}
 	}
 		
+	public static void exit(int returnCode) {
+		System.out.println("Server exit with status "+returnCode);
+		closeAllConnections();
+		System.exit(returnCode);
+	}
+	
 	/** Each and every request goes through here in its own thread */
 	public void run() {
 		String method;  // GET and POST are treated the same
@@ -925,14 +933,14 @@ public class Server extends Thread {
 					for (ORule rule : m) {
 						ResourceGeneric rg = rule.getResourceGeneric();
 						if (rg != null) {
-							//if (DEBUG) System.out.println("ResourceGeneric="+rg.name()+" priv="+rule.getAccess());
-							newRules.put(rg.name(), rule.getAccess());
+							if (DEBUG) System.out.println("ResourceGeneric="+rg.getName()+" priv="+rule.getAccess());
+							newRules.put(rg.getName(), rule.getAccess());
 						}
 						Map<String,Byte> spec = rule.getSpecificResources();
 						for (String res : spec.keySet()) {
 							String resource = res;
 							Number newPriv = spec.get(res);
-							//if (DEBUG) System.out.println("Resource="+resource+" newPriv="+newPriv+" generic="+rule.getResourceGeneric());
+							if (DEBUG) System.out.println("Resource="+resource+" newPriv="+newPriv+" generic="+rule.getResourceGeneric());
 							newRules.put(resource, newPriv);
 						}
 					}
@@ -1024,21 +1032,22 @@ public class Server extends Thread {
 				return r.intValue();
 			}
 		}
+		
 		// Find the most specific privilege for the table from the user's rules
 		Number o;
-		o = newRules.get("BYPASS_RESTRICTED");  // Not sure this is exactly right
+		o = newRules.get(ResourceGeneric.BYPASS_RESTRICTED.getName()); 
 		if (o != null) {
-			//System.out.println("Found database.bypassrestricted="+o);
+			//if (DEBUG) System.out.println("Found "+ResourceGeneric.BYPASS_RESTRICTED.getName()+"="+o);
 			priv = o.intValue();
 		}
-		o = newRules.get("CLASS");
+		o = newRules.get(ResourceGeneric.CLASS.getName());
 		if (o != null) {
-			//System.out.println("Found database.class.*="+o);
+			//if (DEBUG) System.out.println("Found "+ResourceGeneric.CLASS.getName()+"="+o);
 			priv = o.intValue();
 		}
 		o = newRules.get(table.toLowerCase());
 		if (o != null) {
-			//System.out.println("Found database.class."+table.toLowerCase()+"="+o);
+			//if (DEBUG) System.out.println("Found database.class."+table.toLowerCase()+"="+o);
 			priv = o.intValue();
 		}
 		return priv;
@@ -1062,10 +1071,15 @@ public class Server extends Thread {
 			for (Set<ORule> rs : rules) {
 				for (ORule rule : rs) {
 					if (rule.containsSpecificResource(table.toLowerCase())) {
-						//System.out.println("getTablePrivs: specific "+rule.toString()+": "+rule.getAccess());
+						if (DEBUG) System.out.println("getTablePrivs: specific "+rule.toString()+": "+rule.getAccess());
 						map.put(roleName, rule.getAccess());
 					} else if (rule.getResourceGeneric() == ResourceGeneric.CLASS) {
-						//System.out.println("getTablePrivs: all classes: "+rule.getAccess());
+						if (DEBUG) System.out.println("getTablePrivs: all classes: "+rule.getAccess());
+						if (rule.getAccess() != null) {
+							map.put(roleName, rule.getAccess());
+						}
+					} else if (rule.getResourceGeneric() == ResourceGeneric.BYPASS_RESTRICTED) {
+						if (DEBUG) System.out.println("getTablePrivs: all classes: "+rule.getAccess());
 						if (rule.getAccess() != null) {
 							map.put(roleName, rule.getAccess());
 						}
@@ -1317,24 +1331,27 @@ public class Server extends Thread {
 					}
 				} else {
 					System.out.println("***\n*** Exit condition: couldn't connect to remote as server, please add server OUser with admin role - Exiting.\n***");
-					System.exit(-1);					
+					exit(-1);					
 				}
 			}
 			if (database.isConnected()) {
-				database.setPoolSize(SERVER_POOL_SIZE);
 				DatabaseConnection con = database.getConnection();
 				if (!Setup.checkInstallation(con)) {
-					System.out.println("---\n--- Warning condition: checkInstallation failed\n---");
+					System.out.println("---\n--- Warning condition: checkInstallation failed - check install messages in context\n---");
 				}
+//				database.freeConnection(con);
+//				database.close();  // Close all the connections after installation check
+				database.setPoolSize(SERVER_POOL_SIZE);
+//				con = database.getConnection();
 				System.out.println("Connected to database name="+DB_NAME+" version="+database.getClientVersion());
 				if (!ConstantOverride.apply(con)) {
 					System.out.println("***\n*** Exit condition: Could not apply constant overrides\n***");
-					System.exit(-1);
+					exit(-1);
 				}
 				plusClassLoader = PlusClassLoader.get();
 				if (plusClassLoader == null) {
 					System.out.println("***\n*** Exit condition: Could not initialize the PlusClassLoader\n***");
-					System.exit(-1);
+					exit(-1);
 				}
 				// Set the class loader for the currentThread (and all the Children so that plus's will work)
 				currentThread().setContextClassLoader(plusClassLoader);
@@ -1342,7 +1359,7 @@ public class Server extends Thread {
 				refreshSecurity();
 				if (keyRoles.size() < 1) {
 					System.out.println("***\n*** Exit condition: No key roles found for security - no functions to enable\n***");
-					System.exit(-1);
+					exit(-1);
 				}
 				
 				messages = new Message(con);

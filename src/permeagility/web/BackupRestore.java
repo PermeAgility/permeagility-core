@@ -115,7 +115,7 @@ public class BackupRestore extends Weblet {
 								dbSaved.delete();
 							} else {
 								System.out.println("Error deleting saved database before restore - exiting");
-								System.exit(-1);
+								Server.exit(-4);
 							}
 						}
 
@@ -127,11 +127,11 @@ public class BackupRestore extends Weblet {
 							} catch (Exception e) {
 								e.printStackTrace();
 								System.out.println("Error renaming old database - exiting");
-								System.exit(-1);
+								Server.exit(-5);
 							}
 						} else {
 							System.out.println("The data directory "+dbDirectory+" is not a directory - aborting restore - sorry");
-							System.exit(-1);
+							Server.exit(-6);
 						}
 
 						// Because the stuff below doesn't work we have to restart and use the settings file to pass the backup file name
@@ -139,7 +139,7 @@ public class BackupRestore extends Weblet {
 						Server.setLocalSetting("restore", Server.restore_file);
 
 						System.out.println("Exit with restart (1)");
-						System.exit(1);
+						Server.exit(1);
 						
 						// This doesn't work because the server keeps remembering the database even though the files are gone (well, directory renamed)
 /*						Server.initializeServer(Server.restore_file);

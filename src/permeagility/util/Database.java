@@ -12,6 +12,7 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
+import permeagility.web.Server;
 import permeagility.web.Weblet;
 
 import com.orientechnologies.orient.core.OConstants;
@@ -216,7 +217,7 @@ public class Database implements Serializable {
 				d = d.create();
 			} else {
 				System.out.println("***\n*** Exit condition: Cannot login or create database because it exists - maybe the server is already running?\n***");
-				System.exit(-1);
+				Server.exit(-3);
 			}
 			if (d.exists()) {
 				if (backupFile != null && new File(backupFile).isFile()) {

@@ -40,12 +40,11 @@ public class Shutdown extends Weblet {
 				System.out.println("Database and Server shutdown initiated by user "+con.getUser());
 				Server.restore_lockout = true;
 				int exitCode = parms.get("WITH_RESTART") != null ? 1 : 0;
-				System.out.println("Shutting down the server with exit status "+exitCode);
 				try {
 					return redirect(con.getLocale(),"");
 				} catch (Exception e) {
 				} finally {
-					System.exit(exitCode);
+					Server.exit(exitCode);
 				}
 				return redirect(con.getLocale(),"");
 		}

@@ -197,6 +197,7 @@ public class Setup {
 			mCount += checkCreateMessage(con, loc, "LANGUAGE", "Language");
 			mCount += checkCreateMessage(con, loc, "SELECT_LANGUAGE", "Select");
 			mCount += checkCreateMessage(con, loc, "NO_ACCESS_TO_TABLE", "Unsufficient privilege to access table");
+			mCount += checkCreateMessage(con, loc, "NO_PERMISSION_TO_VIEW", "Unsufficient privilege to view table");
 			mCount += checkCreateMessage(con, loc, "TABLE_NONGROUPED", "Ungrouped");
 			mCount += checkCreateMessage(con, loc, "ALL_ROWS_IN_TABLE", "All rows");
 			mCount += checkCreateMessage(con, loc, "NEW_ROW", "+Row");
