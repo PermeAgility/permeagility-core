@@ -275,7 +275,7 @@ public class Table extends Weblet {
 		parms.remove("EDIT_ID"); // Need to avoid confusing getTableRowForm
 		
 		// Make the result
-		return head(title, getDateControlScript(locale)+getSortTableScript()+getColorControlScript())
+		return head(title, getDateControlScript(locale)+getColorControlScript())
 				+ body(standardLayout(con, parms,  
 					link(this.getClass().getName(),"&lt;"+Message.get(locale,"ALL_TABLES"))
 					+"&nbsp;&nbsp;&nbsp;"

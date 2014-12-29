@@ -143,8 +143,9 @@ public abstract class Weblet {
 				+"      }\n"
 				+"    }) \n"
 				+"  });\n</script>\n"
-				+ script + "\n"; 
-//				+ "<style type=\"text/css\">\n" + getStyles() + "</style>\n" + "</head>\n";
+				+getSortTableScript()
+				+ script + "\n"
+				+ "</head>\n";
 	}
 
 	// Override this to add body attributes (but don't remove the one that's there unless you are doing your own controls)
@@ -561,13 +562,10 @@ public abstract class Weblet {
 		return "<input " + (isReadOnly() ? "DISABLED" : "") + " class=\"submit\" type=\"SUBMIT\" name=\"" + n + "\" value=\"" + s + "\">";
 	}
 
-	public String button(String name, String text) {
-		return button(name, name, text);
-	}
-
 	public String button(String name, String value, String text) {
-		return "<input  type=\"BUTTON\" " + (isReadOnly() ? "DISABLED" : "") + " class=\"submit\" name=\"" + name + "\" value=\"" + value + "\">";
-//		+ text + "</input>";
+		return "<BUTTON " + (isReadOnly() ? "DISABLED" : "") + "  CLASS=\"button\" NAME=\"" + name + "\" VALUE=\"" + value
+//		+ "\" ONCLICK='if (!this.submitted) { this.submitted = true; return true; } else return false;'>"
+		+ "\">" + text + "</BUTTON>";
 	}
 
 	public String deleteButton() {

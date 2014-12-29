@@ -188,6 +188,7 @@ public class Setup {
 			mCount += checkCreateMessage(con, loc, "CURRENT_PASSWORD", "Current password");
 			mCount += checkCreateMessage(con, loc, "NEW_PASSWORD", "New password");
 			mCount += checkCreateMessage(con, loc, "CONFIRM_PASSWORD", "Confirm password");
+			mCount += checkCreateMessage(con, loc, "CONFIRM_RESTORE", "Confirm database restore to {0}");
 			mCount += checkCreateMessage(con, loc, "SERVER_SETTINGS", "Server settings");
 			mCount += checkCreateMessage(con, loc, "SET_STYLE", "Stylesheet");
 			mCount += checkCreateMessage(con, loc, "SET_ROWCOUNT", "Table page size");

@@ -48,25 +48,37 @@ public class BackupRestore extends Weblet {
 				}
 			}
 		}
+		String submit = parms.get("SUBMIT");
 		
-		if (parms.get("RESTORE") != null && parms.get("RESTORE_CANCEL") == null) {
+		if (submit != null && submit.equals(Message.get(locale,"BACKUP_NOW"))) {
+			String backupName = parms.get("BACKUP_FILENAME");
+			System.out.println("Creating backup of database to file "+backupName);
+			if (backupName.equals("")) {
+				errors.append(paragraph("error",Message.get(locale,"BACKUP_FILENAME_NEEDED")));
+			} else {
+				try {
+					ODatabaseExport exp = new ODatabaseExport(con.getDb(), "backup/"+backupName, new OCommandOutputListener() {
+						public void onMessage(String iText) {
+							if (exportLog == null) exportLog = new StringBuffer();
+							exportLog.append(paragraph("Export message: "+iText));
+							System.out.println("Export Message: "+iText);
+						}});
+					exp.exportDatabase();
+					exp.close();
+					errors.append(paragraph("success",Message.get(locale,"BACKUP_SUCCESS")+backupName));
+				} catch (IOException e1) {
+					e1.printStackTrace();
+					errors.append(paragraph("error",Message.get(locale,"BACKUP_FAIL")+e1.getLocalizedMessage()));
+				}
+			}
+		}
+		
+		if (submit != null && submit.equals(Message.get(locale,"RESTORE_NOW"))) {
 			if (!Server.DB_NAME.startsWith("plocal")) {
 		    	return head(service)+standardLayout(con, parms,paragraph("error",Message.get(locale, "RESTORE_PLOCAL")));
 			}
 
-			if (parms.get("RESTORE_CONFIRM") == null || !parms.get("RESTORE_CONFIRM").equals("YES")) {
-		    	return head(service)+
-			    standardLayout(con, parms,
-			    	errors
-		    		+paragraph("banner",Message.get(locale, "CONFIRM_RESTORE"))
-		    		+form(
-		    			hidden("RESTORE",parms.get("RESTORE"))
-		    			+paragraph(Message.get(locale, "RESTORE_CONFIRM"))
-		    			+button("RESTORE_CONFIRM","YES",Message.get(locale,"RESTORE_NOW"))
-		    			+button("RESTORE_CANCEL","YES",Message.get(locale,"CANCEL"))
-			        )
-			    );
-			} else {
+			if (parms.get("CONFIRM") != null && parms.get("CONFIRM").equals("YES") && parms.get("RESTORE") != null) {
 				System.out.println("Restoring the database from file "+parms.get("RESTORE"));
 				Server.restore_lockout = true;
 				Server.restore_file = "backup/"+parms.get("RESTORE");
@@ -150,31 +162,24 @@ public class BackupRestore extends Weblet {
 				
 				restore_thread.start();
 				return redirect(con.getLocale(),"/");
+
+			} else {
+
+				return head(service)+
+			    standardLayout(con, parms,
+			    	errors
+		    		+paragraph("banner",Message.get(locale, "CONFIRM_RESTORE",parms.get("RESTORE")))
+		    		+form(
+		    			hidden("CONFIRM","YES")
+		    			+hidden("RESTORE",parms.get("RESTORE"))
+		    			+paragraph(Message.get(locale, "RESTORE_CONFIRM"))
+		    			+submitButton(Message.get(locale,"RESTORE_NOW"))
+		    			+submitButton(Message.get(locale,"CANCEL"))
+			        )
+			    );
 			}
 		}
 		
-		if (parms.get("SUBMIT") != null && parms.get("SUBMIT").equals(Message.get(locale,"BACKUP_NOW"))) {
-			String backupName = parms.get("BACKUP_FILENAME");
-			System.out.println("Creating backup of database to file "+backupName);
-			if (backupName.equals("")) {
-				errors.append(paragraph("error",Message.get(locale,"BACKUP_FILENAME_NEEDED")));
-			} else {
-				try {
-					ODatabaseExport exp = new ODatabaseExport(con.getDb(), "backup/"+backupName, new OCommandOutputListener() {
-						public void onMessage(String iText) {
-							if (exportLog == null) exportLog = new StringBuffer();
-							exportLog.append(paragraph("Export message: "+iText));
-							System.out.println("Export Message: "+iText);
-						}});
-					exp.exportDatabase();
-					exp.close();
-					errors.append(paragraph("success",Message.get(locale,"BACKUP_SUCCESS")+backupName));
-				} catch (IOException e1) {
-					e1.printStackTrace();
-					errors.append(paragraph("error",Message.get(locale,"BACKUP_FAIL")+e1.getLocalizedMessage()));
-				}
-			}
-		}
 		StringBuffer restorePoints = new StringBuffer();
 		File[] backupFiles = backupDir.listFiles();
 		if (backupFiles != null) {
@@ -194,7 +199,7 @@ public class BackupRestore extends Weblet {
 								column(backupFiles[i].getName())
 								+column(fileSizeString)
 								+column(""+(new Date(backupFiles[i].lastModified())))
-								+column(button("RESTORE",backupFiles[i].getName(),Message.get(locale, "RESTORE_NOW") ) )
+								+column(form(hidden("RESTORE",backupFiles[i].getName())+submitButton(Message.get(locale, "RESTORE_NOW") ) ) )
 					));
 				}
 			}
