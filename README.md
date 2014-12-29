@@ -17,9 +17,9 @@ where you want the server to run in and double click it or type:
     java -jar permeagility-_version_.jar
 
 An eclipse project is also configured, just import the project as a maven project using eclipse.  
-Main class is: permeagility.web.Server
+Main class is: <b>permeagility.web.Server</b>
 
-Server Arguments: [port] [db] [-selftest]
+Server Arguments: <b>[port] [db] [-selftest]</b>
 
 Argument | Description
 -------- | -----------
@@ -33,9 +33,10 @@ Once the server is running, open browser to http://localhost:1999
 A log directory will be created unless a log file exists, otherwise output to console.  
 
 Login to the server using admin/admin, writer/writer, or reader/reader
-
-
-Copyright 2014 PermeAgility
+<br>
+<br>
+<br>
+&copy; 2014 PermeAgility Incorporated
 
 Licensed under Eclipse Public License http://www.eclipse.org/legal/epl-v10.html
 
