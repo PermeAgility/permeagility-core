@@ -185,12 +185,10 @@ public class Server extends Thread {
 			ss = new ServerSocket(HTTP_PORT);
 
 			if (initializeServer()) {   
-
 				// Add shutdown hook
-				//Runtime.getRuntime().addShutdownHook(new Thread() {
-				//	public void run() { exit(0); } 
-				//});
-				
+				Runtime.getRuntime().addShutdownHook(new Thread() {
+					public void run() { closeAllConnections(); } 
+				});
 				if (SELF_TEST) {
 					System.out.println("self test - exiting...");
 				} else {
@@ -219,7 +217,6 @@ public class Server extends Thread {
 		
 	public static void exit(int returnCode) {
 		System.out.println("Server exit with status "+returnCode);
-		closeAllConnections();
 		System.exit(returnCode);
 	}
 	

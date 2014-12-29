@@ -1430,8 +1430,10 @@ public class Table extends Weblet {
 				if (stringvalue != null && stringvalue.length() > MAX_STRING_DISPLAY) {
 					stringvalue = stringvalue.substring(0, MAX_STRING_DISPLAY) + "...";
 				}
-				stringvalue = stringvalue.replace("<","&lt;"); // These can mess up the display
-				stringvalue = stringvalue.replace(">","&gt;");
+				if (stringvalue != null) {
+					stringvalue = stringvalue.replace("<","&lt;"); // These can mess up the display
+					stringvalue = stringvalue.replace(">","&gt;");
+				}
 				sb.append(column(stringvalue));
 			}
 		} else if (columnType == 20) {  // Binary (Using CUSTOM OType)

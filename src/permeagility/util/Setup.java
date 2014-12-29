@@ -358,7 +358,7 @@ public class Setup {
 				n1.save();
 
 				ODocument n2 = con.create(TABLE_NEWS);
-				n2.field("name","Welcome admin or dba");
+				n2.field("name","Welcome admin");
 				n2.field("description","Tips for administrators\n"
 						+ "<ul>\n"
 						+ "<li>Use the backup tool - you can deploy backup files as starter databases</li>\n"
