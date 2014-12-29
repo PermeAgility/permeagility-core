@@ -6,18 +6,23 @@ PermeAgility is a lightweight integrated data manager and web application framew
 Try out the live demo site hosted on Amazon's Cloud: http://demo.permeagility.com
 
 This is the source code. To build from source you must have Java 1.7+ and maven installed.
-Then type: mvn install
+Then type: 
+    mvn install
 
 Libraries will be downloaded, java files compiled, selftest will run, and a deployment jar 
 file will be created in the target directory.  Deploy the jar file to a directory 
-where you want the server to run in and double click it or type: java -jar permeagility-<version>.jar
+where you want the server to run in and double click it or type: 
+    java -jar permeagility-_version_.jar
 
 An eclipse project is also configured, just import the project using eclipse.  
 Main class is: permeagility.web.Server
 
-Server Arguments: [port] [db]
-port default is 1999
-db default is plocal:db   use remote:<host>/<db> for remote databases
+Server Arguments: [port] [db] [-selftest]
+Argument | Description
+-------- | -----------
+port | default is 1999
+db | default is plocal:db use remote:_host_/_db_ for non-embedded db
+-selftest | will create testdb, open it initialize the server, and exit
 
 Once the server is running, open browser to http://localhost:1999 
 (browser will open automatically on Windows or OSX)
