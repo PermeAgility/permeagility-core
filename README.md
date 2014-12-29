@@ -8,7 +8,16 @@ Try out the live demo site hosted on Amazon's Cloud: http://demo.permeagility.co
 This is the source code. To build from source you must have Java 1.7+ and maven installed.
 Then type: mvn install
 
-An eclipse project is also configured, just import the project using eclipse.
+Libraries will be downloaded, java files compiled, selftest will run, and a deployment jar 
+file will be created in the target directory.  Deploy the jar file to a directory 
+where you want the server to run in and double click it or type: java -jar permeagility-<version>.jar
+
+An eclipse project is also configured, just import the project using eclipse.  
+Main class is: permeagility.web.Server
+
+Server Arguments: [port] [db]
+port default is 1999
+db default is plocal:db   use remote:<host>/<db> for remote databases
 
 Once the server is running, open browser to http://localhost:1999 
 (browser will open automatically on Windows or OSX)
