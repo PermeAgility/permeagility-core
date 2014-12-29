@@ -15,7 +15,7 @@ Once the server is running, open browser to http://localhost:1999
 
 A log directory will be created unless a log file exists, otherwise output to console.  
 
-Login to the server using admin/admin
+Login to the server using admin/admin, writer/writer, or reader/reader
 
 
 Copyright 2014 PermeAgility
