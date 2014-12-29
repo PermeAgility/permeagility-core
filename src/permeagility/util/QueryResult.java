@@ -12,7 +12,6 @@ import java.util.Set;
 import com.orientechnologies.orient.core.id.ORID;
 import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.orientechnologies.orient.core.record.impl.ODocument;
-import com.orientechnologies.orient.core.type.tree.OMVRBTreeRIDSet;
 
 public class QueryResult {
 	
@@ -117,6 +116,7 @@ public class QueryResult {
 	public Object[] getLinkSetValue(int row, String column) {
 		Object o = getValue(row, column);
 		if (o != null && o instanceof Set) {
+			@SuppressWarnings("rawtypes")
 			Set set = (Set)o;
 			Object oset[] = set.toArray();
 			return oset;

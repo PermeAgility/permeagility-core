@@ -9,8 +9,8 @@ import java.util.ArrayList;
 
 import permeagility.util.Database;
 import permeagility.util.DatabaseConnection;
-import permeagility.util.Setup;
 import permeagility.util.QueryResult;
+import permeagility.util.Setup;
 
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OType;
@@ -23,7 +23,7 @@ public class Schema extends Weblet {
 	
 	public String getPage(DatabaseConnection con, java.util.HashMap<String,String> parms) {
 		parms.put("SERVICE", Message.get(con.getLocale(),"SCHEMA_EDITOR"));
-		StringBuffer errors = new StringBuffer();
+		StringBuilder errors = new StringBuilder();
 		
 		String submit = (String)parms.get("SUBMIT");
 		if (submit != null) {
@@ -55,14 +55,14 @@ public class Schema extends Weblet {
 		
 		// Prepare response
 		int cellCount = 0;
-		StringBuffer rows = new StringBuffer();
-		StringBuffer columns = new StringBuffer();
+		StringBuilder rows = new StringBuilder();
+		StringBuilder columns = new StringBuilder();
 		QueryResult schemas = con.query("SELECT from "+Setup.TABLE_TABLEGROUP+" WHERE _allowRead in ["+Server.getUserRolesList(con)+"] ORDER BY name");
 		QueryResult tables = con.query("SELECT name, superClass FROM (SELECT expand(classes) FROM metadata:schema) WHERE abstract=false ORDER BY name");
 		ArrayList<String> tablesInGroups = new ArrayList<String>(); 
 		for (ODocument schema : schemas.get()) {
 			String groupName = schema.field("name");
-			StringBuffer tablelist = new StringBuffer();
+			StringBuilder tablelist = new StringBuilder();
 			String tablesf = schema.field("tables");
 			String table[] = {};
 			if (tablelist != null) {
@@ -106,7 +106,7 @@ public class Schema extends Weblet {
 				cellCount++;
 				if (cellCount == NUMBER_OF_COLUMNS) {
 					rows.append(row(columns.toString()));
-					columns = new StringBuffer();
+					columns = new StringBuilder();
 					cellCount = 0;
 				}
 			}
@@ -114,7 +114,7 @@ public class Schema extends Weblet {
 		
 		// Add new/ungrouped - for DBA's only
 		if (Server.isDBA(con)) {
-			StringBuffer tablelist = new StringBuffer();
+			StringBuilder tablelist = new StringBuilder();
 			tablelist.append(paragraph("banner",Message.get(con.getLocale(), "TABLE_NONGROUPED")));
 			for (ODocument row : tables.get()) {
 				String tablename = row.field("name");

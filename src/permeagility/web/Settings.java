@@ -8,8 +8,8 @@ package permeagility.web;
 import java.util.HashMap;
 
 import permeagility.util.DatabaseConnection;
-import permeagility.util.Setup;
 import permeagility.util.QueryResult;
+import permeagility.util.Setup;
 
 import com.orientechnologies.orient.core.record.impl.ODocument;
 
@@ -20,7 +20,7 @@ public class Settings extends Weblet {
     public String getPage(DatabaseConnection con, HashMap<String,String> parms) {
 		String service = Message.get(con.getLocale(),"SERVER_SETTINGS");
 		parms.put("SERVICE",service);
-		StringBuffer errors = new StringBuffer();
+		StringBuilder errors = new StringBuilder();
 		
 		// Get current style
 		QueryResult currentStyleResult = con.query("SELECT FROM "+Setup.TABLE_CONSTANT+" WHERE classname='permeagility.web.Context' AND field='DEFAULT_STYLE'");

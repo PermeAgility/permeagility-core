@@ -14,7 +14,7 @@ public class Shutdown extends Weblet {
     public String getPage(DatabaseConnection con, HashMap<String,String> parms) {
 		String service = Message.get(con.getLocale(),"SHUTDOWN_SERVER");
 		parms.put("SERVICE",service);
-		StringBuffer errors = new StringBuffer();
+		StringBuilder errors = new StringBuilder();
 		
 		if (parms.get("SUBMIT") != null && parms.get("SUBMIT").equals(Message.get(con.getLocale(),"CANCEL"))) {
 			return redirect(con.getLocale(),"");

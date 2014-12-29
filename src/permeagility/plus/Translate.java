@@ -6,8 +6,8 @@ import java.util.List;
 import java.util.Map;
 
 import permeagility.util.DatabaseConnection;
-import permeagility.util.Setup;
 import permeagility.util.QueryResult;
+import permeagility.util.Setup;
 import permeagility.web.Message;
 import permeagility.web.Server;
 import permeagility.web.Table;
@@ -25,7 +25,7 @@ public class Translate extends Table {
 	public String getPage(DatabaseConnection con, HashMap<String, String> parms) {
 	
 		StringBuilder sb = new StringBuilder();
-		StringBuffer errors = new StringBuffer();
+		StringBuilder errors = new StringBuilder();
 
 		if (!INSTALLED) {
 			checkInstallation(con, errors);
@@ -82,7 +82,7 @@ public class Translate extends Table {
 		if (run != null) {
 			ODocument fromLocale = con.get(run);
 			String toLocale = parms.get("TO_LOCALE");
-			if (toLocale == null || fromLocale == null) {
+			if (toLocale == null || fromLocale == null || go == null) {
 				sb.append(paragraph("banner","New locale messages to generate"));
 				sb.append(form(table("layout", hidden("RUN",run)
 						+row(column("")+column(credit))
@@ -316,7 +316,7 @@ public class Translate extends Table {
 	}
 
 	public String translate(ODocument fromLocale, String toLocale, StringBuilder sb, String fromText, String email) {
-		fromText = fromText.trim().replace(" ", "%20");
+		fromText = fromText.trim().replace("\n"," ").replace("\r"," ").replace(" ", "%20");
 		String newText = null;
 		try {
 			URL tURL = new URL("http://api.mymemory.translated.net/get?q="+fromText+email+"&langpair="+fromLocale.field("name")+"|"+toLocale);
@@ -373,7 +373,7 @@ public class Translate extends Table {
 
 	public static final String WORK_TABLE = "locale";
 	
-	private void checkInstallation(DatabaseConnection con, StringBuffer errors) {
+	private void checkInstallation(DatabaseConnection con, StringBuilder errors) {
 		// Verify the installation of the Merge table structures
 		if (!Server.isDBA(con)) {
 			return;

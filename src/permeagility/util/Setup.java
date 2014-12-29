@@ -14,7 +14,7 @@ import com.orientechnologies.orient.core.record.impl.ODocument;
 
 public class Setup {
 
-	static StringBuffer installMessages = new StringBuffer();
+	static StringBuilder installMessages = new StringBuilder();
 	
 	public static final String TABLE_THUMBNAIL = "thumbnail";
 	public static final String TABLE_CONSTANT = "constant";
@@ -43,6 +43,7 @@ public class Setup {
 			ArrayList<ODocument> allRoles = new ArrayList<ODocument>();			
 			ArrayList<ODocument> allRolesButGuest = new ArrayList<ODocument>();			
 			ArrayList<ODocument> adminRoles = new ArrayList<ODocument>();			
+			ArrayList<ODocument> adminAndWriterRoles = new ArrayList<ODocument>();			
 			ArrayList<ODocument> readerRoles = new ArrayList<ODocument>();			
 			ArrayList<ODocument> writerRoles = new ArrayList<ODocument>();			
 			ArrayList<ODocument> guestRoles = new ArrayList<ODocument>();			
@@ -54,9 +55,10 @@ public class Setup {
 				if (role.field("name").equals("reader")) readerRoles.add(role);
 				if (role.field("name").equals("writer")) writerRoles.add(role);
 				if (role.field("name").equals("guest")) guestRoles.add(role);
+				if (role.field("name").equals("admin") || role.field("name").equals("writer")) adminAndWriterRoles.add(role);
 			}
 						
-			ODocument adminUser = con.queryDocument("SELECT FROM OUser WHERE name='admin'");
+			//ODocument adminUser = con.queryDocument("SELECT FROM OUser WHERE name='admin'");  // Not actually used
 			ODocument guestUser = con.queryDocument("SELECT FROM OUser WHERE name='guest'");
 
 			if (guestRoles.size() == 0) {
@@ -205,8 +207,8 @@ public class Setup {
 			mCount += checkCreateMessage(con, loc, "NO_PERMISSION_TO_VIEW", "Unsufficient privilege to view table");
 			mCount += checkCreateMessage(con, loc, "TABLE_NONGROUPED", "Ungrouped");
 			mCount += checkCreateMessage(con, loc, "ALL_ROWS_IN_TABLE", "All rows");
-			mCount += checkCreateMessage(con, loc, "NEW_ROW", "+Row");
-			mCount += checkCreateMessage(con, loc, "ADD_COLUMN", "+Column");
+			mCount += checkCreateMessage(con, loc, "NEW_ROW", "Add Row");
+			mCount += checkCreateMessage(con, loc, "ADD_COLUMN", "Add Column");
 			mCount += checkCreateMessage(con, loc, "TABLE_RIGHTS_OPTIONS", "Rights");
 			mCount += checkCreateMessage(con, loc, "ADVANCED_TABLE_OPTIONS", "Advanced");
 			mCount += checkCreateMessage(con, loc, "ALL_TABLES", "All tables");
@@ -274,7 +276,7 @@ public class Setup {
 			mCount += checkCreateMessage(con, loc, "CLICK_TO_DELETE", "click to delete");
 			mCount += checkCreateMessage(con, loc, "CLICK_TO_MOVE_UP", "click to move up");
 			mCount += checkCreateMessage(con, loc, "CLICK_TO_MOVE_DOWN", "click to move down");
-			mCount += checkCreateMessage(con, loc, "ADD_ITEM", "add item");
+			mCount += checkCreateMessage(con, loc, "ADD_ITEM", "add");
 			mCount += checkCreateMessage(con, loc, "USE_CONTROLS_TO_CHANGE", "use controls to change items");
 			mCount += checkCreateMessage(con, loc, "OPTION_NONE", "None");
 			mCount += checkCreateMessage(con, loc, "SUBMIT_BUTTON", "Submit");
@@ -375,8 +377,8 @@ public class Setup {
 
 				ODocument n3 = con.create(TABLE_NEWS);
 				n3.field("name","Welcome reader");
-				n3.field("description","This is a place where you can navigate data and connections, click away!<br><br>"
-						+ "Click <a href='permeagility.web.Schema'><b><i>Tables</i></b></a> to get started");
+				n3.field("description","This is a place where you can navigate data and connections, click away!<br><br>\n"
+						+ "Click <a href='permeagility.web.Schema'><b><i>Tables</i></b></a> to get started\n");
 				n3.field("dateline",new Date());
 				n3.field("locale",loc);
 				n3.field("archive",false);
@@ -385,8 +387,9 @@ public class Setup {
 
 				ODocument n4 = con.create(TABLE_NEWS);
 				n4.field("name","Welcome writer");
-				n4.field("description","PermeAgility lets you create and navigate data every way it is connected.<br><br>"
-						+ "Click <a href='permeagility.web.Schema'><b><i>Tables</i></b></a> to get started");
+				n4.field("description","PermeAgility lets you create and navigate data every way it is connected.<br><br>\n"
+						+ "Click <a href='permeagility.web.Schema'><b><i>Tables</i></b></a> to browse the data<br>\n"
+						+ "Use <a href='permeagility.web.Query'><b><i>Query</i></b></a> to run custom SQL-like queries\n");
 				n4.field("dateline",new Date());
 				n4.field("locale",loc);
 				n4.field("archive",false);
@@ -526,7 +529,7 @@ public class Setup {
 				mi_query.field("description","Query the database");
 				mi_query.field("classname","permeagility.web.Query");
 				mi_query.field("active",true);
-				mi_query.field("_allowRead", adminRoles.toArray());
+				mi_query.field("_allowRead", adminAndWriterRoles.toArray());
 				mi_query.save();
 
 				ODocument mi_schema = con.create(TABLE_MENUITEM);

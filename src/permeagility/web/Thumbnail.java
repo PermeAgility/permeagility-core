@@ -18,8 +18,8 @@ import javax.swing.ImageIcon;
 
 import permeagility.util.Database;
 import permeagility.util.DatabaseConnection;
-import permeagility.util.Setup;
 import permeagility.util.QueryResult;
+import permeagility.util.Setup;
 
 import com.orientechnologies.orient.core.record.impl.ODocument;
 import com.orientechnologies.orient.core.record.impl.ORecordBytes;
@@ -52,7 +52,7 @@ public class Thumbnail {
 		}
 	}
 
-	public static String getThumbnailId(String table, String rid, String column, StringBuffer desc) {
+	public static String getThumbnailId(String table, String rid, String column, StringBuilder desc) {
 		if (rid.startsWith("#")) {
 			rid = rid.substring(1);
 		}		
@@ -89,7 +89,7 @@ public class Thumbnail {
 		return null;
 	}
 
-	public static byte[] getThumbnail(String rid, String size, StringBuffer type, StringBuffer file) {
+	public static byte[] getThumbnail(String rid, String size, StringBuilder type, StringBuilder file) {
 		
 		DatabaseConnection con = database.getConnection();
 		if (con != null) {
@@ -123,7 +123,7 @@ public class Thumbnail {
 				if (bytes != null) {
 					ByteArrayInputStream bis = new ByteArrayInputStream(bytes.toStream());
 					if (size != null && size.equalsIgnoreCase("full")) {
-						StringBuffer content_type = new StringBuffer();
+						StringBuilder content_type = new StringBuilder();
 						if (bis.available() > 0) {
 							int binc = bis.read();
 							do {
@@ -131,7 +131,7 @@ public class Thumbnail {
 								binc = bis.read();
 							} while (binc != 0x00 && bis.available() > 0);
 						}
-						StringBuffer content_filename = new StringBuffer();
+						StringBuilder content_filename = new StringBuilder();
 						if (bis.available() > 0) {
 							int binc = bis.read();
 							do {
@@ -176,7 +176,7 @@ public class Thumbnail {
 		return null;
 	}
 
-	public static byte[] getContent(String rid, String column, StringBuffer type, StringBuffer file) {
+	public static byte[] getContent(String rid, String column, StringBuilder type, StringBuilder file) {
 		
 		DatabaseConnection con = database.getConnection();
 		if (con != null) {
@@ -193,7 +193,7 @@ public class Thumbnail {
 				ORecordBytes bytes = record.field(column);
 				if (bytes != null) {
 					ByteArrayInputStream bis = new ByteArrayInputStream(bytes.toStream());
-					StringBuffer content_type = new StringBuffer();
+					StringBuilder content_type = new StringBuilder();
 					if (bis.available() > 0) {
 						int binc = bis.read();
 						do {
@@ -201,7 +201,7 @@ public class Thumbnail {
 							binc = bis.read();
 						} while (binc != 0x00 && bis.available() > 0);
 					}
-					StringBuffer content_filename = new StringBuffer();
+					StringBuilder content_filename = new StringBuilder();
 					if (bis.available() > 0) {
 						int binc = bis.read();
 						do {
@@ -260,8 +260,8 @@ public class Thumbnail {
 			}
 			ORecordBytes image = (ORecordBytes)doc.field(column);
 			
-			StringBuffer content_type = new StringBuffer();
-			StringBuffer content_filename = new StringBuffer();
+			StringBuilder content_type = new StringBuilder();
+			StringBuilder content_filename = new StringBuilder();
 			
 			if (image == null) { 
 				if (DEBUG) System.out.println("Empty thumbnail for table="+table+" column="+column+" rid="+doc.getIdentity().toString());

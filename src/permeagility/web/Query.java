@@ -52,7 +52,7 @@ public class Query extends Weblet {
 		}
 		
 		try {
-			StringBuffer sb = new StringBuffer();
+			StringBuilder sb = new StringBuilder();
 			int rowCount = 0;
 			QueryResult rs = con.query(query);
 			ArrayList<String> columns = new ArrayList<String>();
@@ -93,7 +93,7 @@ public class Query extends Weblet {
 
 
 	public String getRowHeader(QueryResult rs, ArrayList<String> cols) {
-		StringBuffer sb = new StringBuffer();
+		StringBuilder sb = new StringBuilder();
 		String[] columns = rs.getColumns();
 		sb.append(columnHeader("rid"));		
 		if (columns != null) {
@@ -108,7 +108,7 @@ public class Query extends Weblet {
 	}
 	
 	public String getRow(DatabaseConnection con, QueryResult rs, int r, ArrayList<String> columns) {
-		StringBuffer sb = new StringBuffer();
+		StringBuilder sb = new StringBuilder();
 		ODocument row = rs.get(r);
 		if (row.getIdentity().toString().contains("-")) {
 			sb.append(column(paragraphRight(row.getIdentity().toString())));
@@ -128,7 +128,7 @@ public class Query extends Weblet {
 			} else if (o instanceof ORecordBytes) { // PermeAgility Image/Blob or other?
 				String out;
 				//ORecordBytes or = (ORecordBytes)o;
-				StringBuffer desc = new StringBuffer();
+				StringBuilder desc = new StringBuilder();
 				String blobid = Thumbnail.getThumbnailId(row.getClassName(), row.getIdentity().toString().substring(1), colName, desc);
 				if (blobid != null) {
 					out = column(Thumbnail.getThumbnailLink(con.getLocale(),blobid, desc.toString()));
@@ -139,7 +139,7 @@ public class Query extends Weblet {
 			} else if (o instanceof List) {  // LinkList
 				@SuppressWarnings("unchecked")
 				List<ODocument> l = (List<ODocument>)o;
-				StringBuffer ll = new StringBuffer();
+				StringBuilder ll = new StringBuilder();
 				if (l != null) {
 					for (Object od : l) {
 						if (od instanceof ODocument) {
@@ -154,7 +154,7 @@ public class Query extends Weblet {
 			} else if (o instanceof Set) {  // LinkSet
 				@SuppressWarnings("unchecked")
 				Set<ODocument> l = (Set<ODocument>)o;
-				StringBuffer ll = new StringBuffer();
+				StringBuilder ll = new StringBuilder();
 				if (l != null) {
 					for (Object od : l) {
 						if (od instanceof ODocument) {
@@ -169,7 +169,7 @@ public class Query extends Weblet {
 			} else if (o instanceof Map) {    // LinkMap
 				@SuppressWarnings("unchecked")
 				Map<String,ODocument> l = (Map<String,ODocument>)o;
-				StringBuffer ll = new StringBuffer();
+				StringBuilder ll = new StringBuilder();
 				if (l != null) {
 					for (String k : l.keySet()) {
 						Object d = l.get(k);
@@ -205,15 +205,15 @@ public class Query extends Weblet {
 	}
 	
 	String getSQLBuilder(DatabaseConnection con) {
-		StringBuffer tableInit = new StringBuffer(); // JSON list of tables and groups
-		StringBuffer columnInit = new StringBuffer();  // JSON list of tables and columns
+		StringBuilder tableInit = new StringBuilder(); // JSON list of tables and groups
+		StringBuilder columnInit = new StringBuilder();  // JSON list of tables and columns
 		
 		// Add tables in groups (similar code to Schema - should be combined in one place - need one more use
 		QueryResult schemas = con.query("SELECT from tableGroup");
 		QueryResult tables = con.query("SELECT name, superClass FROM (SELECT expand(classes) FROM metadata:schema) WHERE abstract=false ORDER BY name");
 		ArrayList<String> tablesInGroups = new ArrayList<String>(); 
 		for (ODocument schema : schemas.get()) {
-			StringBuffer tablelist = new StringBuffer();
+			StringBuilder tablelist = new StringBuilder();
 			String tablesf = schema.field("tables");
 			String table[] = {};
 			if (tablelist != null) {
@@ -244,7 +244,7 @@ public class Query extends Weblet {
 		}
 		
 		// Add the non grouped (new) tables
-		StringBuffer tablelist = new StringBuffer();
+		StringBuilder tablelist = new StringBuilder();
 		tablelist.append(paragraph("banner",Message.get(con.getLocale(), "TABLE_NONGROUPED")));
 		for (ODocument row : tables.get()) {
 			String tablename = row.field("name");
@@ -275,25 +275,28 @@ public class Query extends Weblet {
 	    	row(columnSpan(5,"<select ng-model=\"statement\" ng-change=\"add(statement+' ')\">\n"
   				      +"  <option value=\"SELECT FROM\">SELECT [field, *] FROM class|rid [LET $a=(query)] [WHERE condition] [GROUP BY field, *] [ORDER BY field, *] [SKIP n] [LIMIT n]</option>\n"
 				      +"  <option value=\"SELECT EXPAND( $c ) LET $a = ( SELECT FROM t1 ), $b = ( SELECT FROM t2 ), $c = UNIONALL( $a, $b )\">SELECT (2 Table union template - replace t1 and t2)</option>\n"
-				      +"  <option value=\"SELECT expand(classes) FROM metadata:schema\">SELECT expand(classes) FROM metadata:schema</option>\n"
-				      +"  <option value=\"SELECT FROM (SELECT expand(properties) FROM (SELECT expand(classes) FROM metadata:schema) WHERE name = '')\">SELECT FROM (SELECT expand(properties) FROM (SELECT expand(classes) FROM metadata:schema) WHERE name = '')</option>\n"
+				      +"  <option value=\"SELECT expand(classes) FROM metadata:schema\">SELECT (list of tables/classes)</option>\n"
+				      +"  <option value=\"SELECT FROM (SELECT expand(properties) FROM (SELECT expand(classes) FROM metadata:schema) WHERE name = 't')\">SELECT (column list for a table - replace t)</option>\n"
+				      +"  <option value=\"TRAVERSE\">TRAVERSE class.field|*|any()|all() FROM class|rid|query [LET var*] WHILE $depth&lt;n [LIMIT n] [STRATEGY s] </option>\n"
 				      +"  <option value=\"EXPLAIN SELECT FROM\">EXPLAIN query</option>\n"
 				      +"  <option value=\"INSERT INTO\">INSERT INTO class [SET field=value, *] [FROM query] [RETURN ret]</option>\n"
 				      +"  <option value=\"UPDATE\">UPDATE [SET field=val *] [UPSERT] [WHERE condition *] [LIMIT n] [RETURN ret]</option>\n"
 				      +"  <option value=\"DELETE FROM\">DELETE class [WHERE condition *] [LIMIT n] [RETURN ret]</option>\n"
-				      +"  <option value=\"CREATE CLASS\">CREATE CLASS class [EXTENDS super] [CLUSTER name, *]</option>\n"
-				      +"  <option value=\"CREATE CLUSTER\">CREATE CLUSTER name [POSITION position|APPEND] [CLUSTER name, *]</option>\n"
-				      +"  <option value=\"CREATE PROPERTY\">CREATE PROPERTY class.property type [linkedClass]</option>\n"
-				      +"  <option value=\"CREATE INDEX\">CREATE INDEX name|class.property [ON class (property, *)] UNIQUE|NOTUNIQUE|FULLTEXT</option>\n"
-				      +"  <option value=\"CREATE LINK\">CREATE LINK name TYPE LINK|LINKSET|LINKLIST FROM class.property TO class.property [INVERSE]</option>\n"
-				      +"  <option value=\"ALTER CLASS\">ALTER CLASS class NAME|SHORTNAME|SUPERCLASS|OVERSIZE|ADDCLUSTER|REMOVECLUSTER|STRICTMODE value</option>\n"
-				      +"  <option value=\"ALTER CLUSTER\">ALTER CLUSTER name|id NAME|DATASEGMENT|COMPRESSION|USE_WAL|RECORD_GROW_FACTOR|CONFLICTSTRATEGY value</option>\n"
-				      +"  <option value=\"ALTER PROPERTY\">ALTER PROPERTY class.property NAME|LINKEDCLASS|MIN|MAX|MANDATORY|NOTNULL|REGEXP|TYPE|COLLATE value</option>\n"
-				      +"  <option value=\"DROP\">DROP CLASS|CLUSTER|INDEX|PROPERTY value</option>\n"
-				      +"  <option value=\"TRUNCATE\">TRUNCATE CLASS|CLUSTER|RECORD name|rid</option>\n"
-				      +"  <option value=\"GRANT\">GRANT NONE|CREATE|READ|UPDATE|DELETE|ALL ON class|resource TO role</option>\n"
-				      +"  <option value=\"REVOKE\">REVOKE NONE|CREATE|READ|UPDATE|DELETE|ALL ON class|resource FROM role</option>\n"
-				      +"  <option value=\"TRAVERSE\">TRAVERSE class.field|*|any()|all() FROM class|rid|query [LET var*] WHILE $depth&lt;n [LIMIT n] [STRATEGY s] </option>\n"
+				      +(Server.isDBA(con)
+				      	? "  <option value=\"CREATE CLASS\">CREATE CLASS class [EXTENDS super] [CLUSTER name, *]</option>\n"
+					      +"  <option value=\"CREATE CLUSTER\">CREATE CLUSTER name [POSITION position|APPEND] [CLUSTER name, *]</option>\n"
+					      +"  <option value=\"CREATE PROPERTY\">CREATE PROPERTY class.property type [linkedClass]</option>\n"
+					      +"  <option value=\"CREATE INDEX\">CREATE INDEX name|class.property [ON class (property, *)] UNIQUE|NOTUNIQUE|FULLTEXT</option>\n"
+					      +"  <option value=\"CREATE LINK\">CREATE LINK name TYPE LINK|LINKSET|LINKLIST FROM class.property TO class.property [INVERSE]</option>\n"
+					      +"  <option value=\"ALTER CLASS\">ALTER CLASS class NAME|SHORTNAME|SUPERCLASS|OVERSIZE|ADDCLUSTER|REMOVECLUSTER|STRICTMODE value</option>\n"
+					      +"  <option value=\"ALTER CLUSTER\">ALTER CLUSTER name|id NAME|DATASEGMENT|COMPRESSION|USE_WAL|RECORD_GROW_FACTOR|CONFLICTSTRATEGY value</option>\n"
+					      +"  <option value=\"ALTER PROPERTY\">ALTER PROPERTY class.property NAME|LINKEDCLASS|MIN|MAX|MANDATORY|NOTNULL|REGEXP|TYPE|COLLATE value</option>\n"
+					      +"  <option value=\"DROP\">DROP CLASS|CLUSTER|INDEX|PROPERTY value</option>\n"
+					      +"  <option value=\"TRUNCATE\">TRUNCATE CLASS|CLUSTER|RECORD name|rid</option>\n"
+					      +"  <option value=\"GRANT\">GRANT NONE|CREATE|READ|UPDATE|DELETE|ALL ON class|resource TO role</option>\n"
+					      +"  <option value=\"REVOKE\">REVOKE NONE|CREATE|READ|UPDATE|DELETE|ALL ON class|resource FROM role</option>\n"
+					      +"  <option value=\"TRAVERSE\">TRAVERSE class.field|*|any()|all() FROM class|rid|query [LET var*] WHILE $depth&lt;n [LIMIT n] [STRATEGY s] </option>\n"
+					    : "")
 				      +"  <option value=\"\">None</option>\n"
 				      +"</select>\n"))
 	    	+row(column("")

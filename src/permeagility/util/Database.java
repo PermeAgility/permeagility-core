@@ -319,7 +319,7 @@ public class Database implements Serializable {
 
 	
 	/** Check for the existence of a class property or add it This assumes you want a link type, otherwise the linkClass may have adverse effects */
-	public static OProperty checkCreateProperty(DatabaseConnection con, OClass theClass, String propertyName, OType propertyType, OClass linkClass, StringBuffer errors) {
+	public static OProperty checkCreateProperty(DatabaseConnection con, OClass theClass, String propertyName, OType propertyType, OClass linkClass, StringBuilder errors) {
 		OProperty p = theClass.getProperty(propertyName);
 		if (p == null) {
 			p = theClass.createProperty(propertyName, propertyType, linkClass);
@@ -330,7 +330,7 @@ public class Database implements Serializable {
 	}
 
 	/** Check for the existence of a class property or add it */
-	public static OProperty checkCreateProperty(DatabaseConnection con, OClass theClass, String propertyName, OType propertyType, StringBuffer errors) {
+	public static OProperty checkCreateProperty(DatabaseConnection con, OClass theClass, String propertyName, OType propertyType, StringBuilder errors) {
 		OProperty p = theClass.getProperty(propertyName);
 		if (p == null) {
 			p = theClass.createProperty(propertyName, propertyType);
@@ -352,7 +352,7 @@ public class Database implements Serializable {
 	}
 
 	/** Check for the existence of a class or add it */
-	public static OClass checkCreateClass(OSchema oschema, String className, StringBuffer errors) {
+	public static OClass checkCreateClass(OSchema oschema, String className, StringBuilder errors) {
 		OClass c = oschema.getClass(className);
 		if (c == null) {
 			c = oschema.createClass(className);
@@ -371,7 +371,7 @@ public class Database implements Serializable {
 	}
 
 	/** Check for the existence of a class's superclass or set it */
-	public static void checkClassSuperclass(OSchema oschema, OClass oclass, String superClassName, StringBuffer errors) {
+	public static void checkClassSuperclass(OSchema oschema, OClass oclass, String superClassName, StringBuilder errors) {
 		OClass s = oschema.getClass(superClassName);
 		if (s == null) {
 			errors.append(Weblet.paragraph("error","Schema update: Cannot find superclass "+superClassName+" to assign to class "+oclass.getName()));

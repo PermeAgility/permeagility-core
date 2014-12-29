@@ -101,7 +101,7 @@ public class Table extends Weblet {
 			}
 		}
 
-		StringBuffer errors = new StringBuffer();
+		StringBuilder errors = new StringBuilder();
 
 		if (parms.get("ADVANCED_OPTIONS") != null
 				|| (submit != null && submit.equals(Message.get(locale, "ADVANCED_OPTIONS")))) {
@@ -161,7 +161,7 @@ public class Table extends Weblet {
 				}
 			}
 			if (sourceTable != null && !sourceTable.equals("")) {  // Go to the source record if it is defined
-				System.out.println("Table (Cancel) popping sourceTableName="+parms.get("SOURCETABLENAME")+" id="+parms.get("SOURCEEDIT_ID"));
+				if (DEBUG) System.out.println("Table (Cancel) popping sourceTableName="+parms.get("SOURCETABLENAME")+" id="+parms.get("SOURCEEDIT_ID"));
 				int lastComma = sourceTable.lastIndexOf(',');
 				String sourceId = parms.get("SOURCEEDIT_ID");
 				int lastCommaId = sourceId.lastIndexOf(',');
@@ -170,16 +170,16 @@ public class Table extends Weblet {
 				String newSourceTable = sourceTable.substring(0,(lastComma > 0 ? lastComma : sourceTable.length()));
 				String newSourceId = sourceId.substring(0,(lastCommaId > 0 ? lastCommaId : sourceId.length()));
 				if (oldId.equals(parms.get("UPDATE_ID"))) { // popping onto itself - pop one more
-					System.out.println("Prevent popping onto itself, skipping");
+					if (DEBUG) System.out.println("Prevent popping onto itself, skipping");
 					lastComma = newSourceTable.lastIndexOf(',');
 					lastCommaId = newSourceId.lastIndexOf(',');
 					oldTable = (lastComma > 0 && lastComma < newSourceTable.length() ? newSourceTable.substring(lastComma+1) : newSourceTable);
 					oldId = (lastCommaId > 0 && lastCommaId < newSourceId.length() ? newSourceId.substring(lastCommaId+1) : newSourceId);					
 					newSourceTable = newSourceTable.substring(0,(lastComma > 0 ? lastComma : newSourceTable.length()));
 					newSourceId = newSourceId.substring(0,(lastCommaId > 0 ? lastCommaId : newSourceId.length()));
-					System.out.println("Popped to: "+oldTable+" "+oldId);
+					if (DEBUG) System.out.println("Popped to: "+oldTable+" "+oldId);
 					if (oldId.equals(newSourceId)) {
-						System.out.println("Removing old source information - at last record");
+						if (DEBUG) System.out.println("Removing old source information - at last record");
 						newSourceTable = "";
 						newSourceId = "";
 					}
@@ -303,8 +303,8 @@ public class Table extends Weblet {
 		dataTypeNames.clear();
 	}
 	
-	public boolean insertRow(DatabaseConnection con, String table, HashMap<String, String> parms, StringBuffer errors) {
-		StringBuffer ins = new StringBuffer("INSERT INTO "+table+" SET ");
+	public boolean insertRow(DatabaseConnection con, String table, HashMap<String, String> parms, StringBuilder errors) {
+		StringBuilder ins = new StringBuilder("INSERT INTO "+table+" SET ");
 		int colCount = 0;
 		ArrayList<String> blobList = new ArrayList<String>();
 		String comma = "";
@@ -361,7 +361,7 @@ public class Table extends Weblet {
 				} else if (type == 14) { // LinkList
 					String[] newValues = {};
 					if (value != null) {  newValues = value.split(","); }
-					StringBuffer vs = new StringBuffer();
+					StringBuilder vs = new StringBuilder();
 					for (String nv : newValues) {
 						if (vs.length() > 0) vs.append(", ");
 						vs.append("#"+nv);
@@ -372,7 +372,7 @@ public class Table extends Weblet {
 				} else if (type == 15) { // Linkset
 					String[] newValues = {};
 					if (value != null) {  newValues = value.split(","); }
-					StringBuffer vs = new StringBuffer();
+					StringBuilder vs = new StringBuilder();
 					for (String nv : newValues) {
 						if (vs.length() > 0) vs.append(", ");
 						vs.append("#"+nv);
@@ -383,7 +383,7 @@ public class Table extends Weblet {
 				} else if (type == 16) { // LinkMap
 					String[] newValues = {};
 					if (value != null) {  newValues = splitCSV(value); }
-					StringBuffer vs = new StringBuffer();
+					StringBuilder vs = new StringBuilder();
 					for (String nv : newValues) {
 						if (vs.length() > 0) vs.append(", ");
 						String[] v = nv.split(":",2);
@@ -427,7 +427,7 @@ public class Table extends Weblet {
 		}
 	}
 	
-	public boolean updateBlobs(ODocument doc, String table, ArrayList<String> blobList, HashMap<String, String> parms, StringBuffer errors) {
+	public boolean updateBlobs(ODocument doc, String table, ArrayList<String> blobList, HashMap<String, String> parms, StringBuilder errors) {
 		if (doc != null) {
 			for (String blob_name : blobList) {
 				String blob_temp_file = parms.get(PARM_PREFIX+blob_name);
@@ -453,9 +453,9 @@ public class Table extends Weblet {
 		return true;
 	}
 	
-	public boolean updateRow(DatabaseConnection con, String table, HashMap<String, String> parms, StringBuffer errors) {
+	public boolean updateRow(DatabaseConnection con, String table, HashMap<String, String> parms, StringBuilder errors) {
 		if (DEBUG) System.out.println("In updateRow of table "+table);
-		StringBuffer setString = new StringBuffer();
+		StringBuilder setString = new StringBuilder();
 		ArrayList<String> extras  = new ArrayList<String>();
 		String update_id = parms.get("UPDATE_ID");
 		ArrayList<String> blobs = new ArrayList<String>();
@@ -751,7 +751,7 @@ public class Table extends Weblet {
 		return false;
 	}
 
-	public boolean deleteRow(DatabaseConnection con, String table, HashMap<String, String> parms, StringBuffer errors) {
+	public boolean deleteRow(DatabaseConnection con, String table, HashMap<String, String> parms, StringBuilder errors) {
 		String update_id = parms.get("UPDATE_ID");
 		if (update_id != null) {
 			QueryResult initrows = con.query("SELECT FROM #" + update_id);
@@ -861,7 +861,7 @@ public class Table extends Weblet {
 		} else {
 			if (DEBUG) System.out.println("getTableRowFields: No EDIT_ID specified");
 		}
-		StringBuffer fields = new StringBuffer();
+		StringBuilder fields = new StringBuilder();
 		StringBuilder hidden = new StringBuilder();
 		if (edit_id != null) {
 			hidden.append(hidden("UPDATE_ID", edit_id));
@@ -970,7 +970,7 @@ public class Table extends Weblet {
 
 		// Binary
 		} else if (type == 20) { // 8 = binary, 20 = custom 
-			StringBuffer desc = new StringBuffer();
+			StringBuilder desc = new StringBuilder();
 			if (edit_id != null) {
 				String nail = null;
 				String blobid = Thumbnail.getThumbnailId(initialValues.getClassName(), edit_id, name, desc);
@@ -994,7 +994,7 @@ public class Table extends Weblet {
 			String val = (initialValue == null ? "" : initialValue.toString());
 			// convert val to JSON format for editing directly
 			if (initialValue != null) {
-				StringBuffer sb = new StringBuffer();
+				StringBuilder sb = new StringBuilder();
 				sb.append("[\n");
 				if (initialValue instanceof List) {
 					@SuppressWarnings("unchecked")
@@ -1019,7 +1019,7 @@ public class Table extends Weblet {
 			String val = (initialValue == null ? "" : initialValue.toString());
 			// convert val to JSON format for editing directly
 			if (initialValue != null) {
-				StringBuffer sb = new StringBuffer();
+				StringBuilder sb = new StringBuilder();
 				sb.append("[\n");
 				@SuppressWarnings("unchecked")
 				Set<Object> l = (Set<Object>)initialValue;
@@ -1042,7 +1042,7 @@ public class Table extends Weblet {
 			String val = (initialValue == null ? "" : initialValue.toString());
 			// convert val to JSON format for editing directly
 			if (initialValue != null) {
-				StringBuffer sb = new StringBuffer();
+				StringBuilder sb = new StringBuilder();
 				sb.append("{\n");
 				@SuppressWarnings("unchecked")
 				Map<String,Object> m = (Map<String,Object>)initialValue;
@@ -1099,7 +1099,7 @@ public class Table extends Weblet {
 	}
 
 	public String getTableRowRelated(DatabaseConnection con, String table, HashMap<String, String> parms) {
-		StringBuffer sb = new StringBuffer();
+		StringBuilder sb = new StringBuilder();
 		Stack<String> tables = new Stack<String>();
 		Stack<String> columns = new Stack<String>();
 		Stack<OType> types = new Stack<OType>();
@@ -1296,7 +1296,7 @@ public class Table extends Weblet {
 	/** Get a row-clickable table - See example usages  Note: page=-1 will show all records, use where clause to limit data */
 	public String getTable(DatabaseConnection con, HashMap<String,String> parms, String table, String query, String hideColumn, long page, String columnOverride) {
 		try {
-			StringBuffer sb = new StringBuffer();
+			StringBuilder sb = new StringBuilder();
 			int rowCount = 0;
 			long totalRows = con.getRowCount(table);
 			// Handle Paging
@@ -1359,7 +1359,7 @@ public class Table extends Weblet {
 	}
 
 	public String getRowHeader(DatabaseConnection con, String table, QueryResult columns, String hideColumn) throws SQLException {
-		StringBuffer sb = new StringBuffer();
+		StringBuilder sb = new StringBuilder();
 		for (ODocument column : columns.get()) {
 			String columnName = column.field("name");
 			String colNameI18N;
@@ -1375,7 +1375,7 @@ public class Table extends Weblet {
 					&& (hideColumn == null || !columnName.equals(hideColumn)) ) {
 				if (columnName.startsWith("button(") && columnName.length() > 8 && columnName.indexOf(':',7) > 7) {
 					int cp = columnName.indexOf(':',7);
-					String n = columnName.substring(7,cp);
+					//String n = columnName.substring(7,cp);  // Not used
 					String l = columnName.substring(cp+1,columnName.length()-1);
 					sb.append(columnHeader(center(l)));
 				} else {
@@ -1387,7 +1387,7 @@ public class Table extends Weblet {
 	}
 
 	public String getRow(QueryResult columns, ODocument d, DatabaseConnection con, String hideColumn) throws SQLException {
-		StringBuffer sb = new StringBuffer();
+		StringBuilder sb = new StringBuilder();
 //		if (DEBUG) System.out.println("Table.getRow colCount="+columns.size());
 		for (ODocument column : columns.get()) {
 			String fieldName = column.field("name");
@@ -1409,7 +1409,7 @@ public class Table extends Weblet {
 	}
 
 	private String getColumnAsCell(ODocument column, ODocument d, DatabaseConnection con) {
-		StringBuffer sb = new StringBuffer();
+		StringBuilder sb = new StringBuilder();
 		String columnName = column.field("name");
 		Integer columnType = column.field("type"); 
 //		if (DEBUG) System.out.println("permeagility.web.Table:Column name = "+columnName+" type = "+(columnType==null ? "null" : columnType));
@@ -1437,7 +1437,7 @@ public class Table extends Weblet {
 				sb.append(column(stringvalue));
 			}
 		} else if (columnType == 20) {  // Binary (Using CUSTOM OType)
-			StringBuffer desc = new StringBuffer();
+			StringBuilder desc = new StringBuilder();
 			String blobid = Thumbnail.getThumbnailId(d.getClassName(), d.getIdentity().toString().substring(1), columnName, desc);
 			if (blobid != null) {
 				sb.append(column(Thumbnail.getThumbnailLink(con.getLocale(),blobid, desc.toString())));
@@ -1463,7 +1463,7 @@ public class Table extends Weblet {
 			sb.append(column(desc == null ? "null" : desc));
 		} else if (columnType == 14) {  // LinkList
 			List<ODocument> l = d.field(columnName);
-			StringBuffer ll = new StringBuffer();
+			StringBuilder ll = new StringBuilder();
 			if (l != null) {
 				if (DEBUG) System.out.println("linkList size="+l.size()+(l.size()>0 ? " type="+l.get(0).getClass().getName() : ""));
 				for (ODocument o : l) {
@@ -1475,7 +1475,7 @@ public class Table extends Weblet {
 			sb.append(column(ll.toString()));
 		} else if (columnType == 15) {  // LinkSet
 			Set<ODocument> l = d.field(columnName);
-			StringBuffer ll = new StringBuffer();
+			StringBuilder ll = new StringBuilder();
 			if (l != null) {
 				for (Object o : l) {
 					if (o != null) {
@@ -1491,7 +1491,7 @@ public class Table extends Weblet {
 			sb.append(column(ll.toString()));
 		} else if (columnType == 16) {    // LinkMap
 			Map<String,ODocument> l = d.field(columnName);
-			StringBuffer ll = new StringBuffer();
+			StringBuilder ll = new StringBuilder();
 			if (l != null) {
 				for (String k : l.keySet()) {
 					ODocument o = l.get(k);
@@ -1523,7 +1523,7 @@ public class Table extends Weblet {
 
 	public String advancedOptions(DatabaseConnection con, String table, HashMap<String, String> parms) {
 		Locale locale = con.getLocale();
-		StringBuffer errors = new StringBuffer();
+		StringBuilder errors = new StringBuilder();
 		String submit = parms.get("SUBMIT");
 		if (submit != null) {
 			if (submit.equals(Message.get(locale, "RENAME_TABLE_BUTTON"))) {
@@ -1632,7 +1632,7 @@ public class Table extends Weblet {
 
 	public String rightsOptions(DatabaseConnection con, String table, HashMap<String, String> parms) {
 		Locale locale = con.getLocale();
-		StringBuffer errors = new StringBuffer();
+		StringBuilder errors = new StringBuilder();
 		String submit = (parms != null ? parms.get("SUBMIT") : null);
 		String right = (parms != null ? parms.get("RIGHT") : null);
 		String role = (parms != null ? parms.get("ROLESELECT") : null);
@@ -1681,14 +1681,14 @@ public class Table extends Weblet {
 	}
 
 	public String rightsOptionsForm(DatabaseConnection con, String table, HashMap<String, String> parms,String errors) {
-		StringBuffer currentRights = new StringBuffer();
+		StringBuilder currentRights = new StringBuilder();
 		List<String> rightsNames = new ArrayList<String>();
 		HashMap<String,Number> privs = Server.getTablePrivs(table);
 
 		for (String role : privs.keySet()) {
 			Number b = privs.get(role);
 			if (b != null) {
-				StringBuffer sb = new StringBuffer();
+				StringBuilder sb = new StringBuilder();
 				if (b.intValue() == 0) {
 					sb.append(Message.get(con.getLocale(), "PRIV_NONE"));
 				} else if (b.intValue() == PRIV_ALL) {

@@ -8,8 +8,8 @@ package permeagility.web;
 import java.util.HashMap;
 
 import permeagility.util.DatabaseConnection;
-import permeagility.util.Setup;
 import permeagility.util.QueryResult;
+import permeagility.util.Setup;
 
 public class Home extends Weblet {
 	
@@ -21,7 +21,7 @@ public class Home extends Weblet {
     }
 
     public String getHTML(DatabaseConnection con, HashMap<String,String> parms) {
-    	StringBuffer sb = new StringBuffer();
+    	StringBuilder sb = new StringBuilder();
     	try {
 	    	QueryResult qr = con.query("SELECT dateline, name, description FROM "+Setup.TABLE_NEWS
 	    							+" WHERE (archive IS NULL or archive=false) and (locale IS NULL or locale.name='"+con.getLocale().getLanguage()+"') "

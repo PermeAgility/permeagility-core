@@ -16,7 +16,7 @@ public class UserRequest extends Table {
     }
         
     public String getHTML(DatabaseConnection con, java.util.HashMap<String,String> parms) {
-    	StringBuffer errors = new StringBuffer();
+    	StringBuilder errors = new StringBuilder();
     	if (parms.get("SUBMIT") != null) {
     		if (insertRow(con, Setup.TABLE_USERREQUEST, parms, errors)) {
     			return paragraph("success",Message.get(con.getLocale(), "USERREQUEST_INSERTED"))+link("/",Message.get(con.getLocale(), "HEADER_LOGO_DESC"));

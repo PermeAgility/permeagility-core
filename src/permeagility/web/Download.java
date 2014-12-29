@@ -9,6 +9,7 @@ import java.util.HashMap;
 
 import permeagility.util.DatabaseConnection;
 
+/** Extend and implement the abstract methods to allow download of something dynamic to the user (like a chart) */
 public abstract class Download {
 
    public byte[] doPage(DatabaseConnection con, HashMap<String,String> parms) {

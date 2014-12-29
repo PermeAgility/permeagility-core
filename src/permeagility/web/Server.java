@@ -45,7 +45,6 @@ import permeagility.util.QueryResult;
 import permeagility.util.Setup;
 
 import com.orientechnologies.orient.core.OConstants;
-import com.orientechnologies.orient.core.OrientShutdownHook;
 import com.orientechnologies.orient.core.id.ORecordId;
 import com.orientechnologies.orient.core.metadata.security.ORole;
 import com.orientechnologies.orient.core.metadata.security.ORule;
@@ -303,7 +302,7 @@ public class Server extends Thread {
 				
 				if (method.equals("POST") && boundaryValue == null ) {
 					if (DEBUG) System.out.println("Reading post stuff");
-					StringBuffer formstuff = new StringBuffer();
+					StringBuilder formstuff = new StringBuilder();
 					char firstchar = (char)is.read();
 					while (is.available() > 0) {
 						formstuff.append((char)is.read());
@@ -544,8 +543,8 @@ public class Server extends Thread {
 						String tsize = parms.get("SIZE");
 						String tid = parms.get("ID");
 						if (DEBUG) System.out.println("Retrieving thumbnail "+tid);
-						StringBuffer ttypeb = new StringBuffer();
-						StringBuffer tfileb = new StringBuffer();
+						StringBuilder ttypeb = new StringBuilder();
+						StringBuilder tfileb = new StringBuilder();
 						theData = Thumbnail.getThumbnail(tid, tsize, ttypeb, tfileb);
 						String ttype = ttypeb.toString();
 						String tfile = tfileb.toString();
@@ -681,7 +680,7 @@ public class Server extends Thread {
 
 	/** Read a line from the input stream into a string buffer */
 	private String readLine(InputStream is) throws IOException {
-		StringBuffer sb = new StringBuffer();
+		StringBuilder sb = new StringBuilder();
 		int c = is.read();
 			do {
 				if (c != 0x0A && c != 0x0D) sb.append((char)c);
@@ -995,7 +994,7 @@ public class Server extends Thread {
 	public static String getUserRolesList(DatabaseConnection con) {
 		Object[] roles = userRoles.get(con.getUser());
 		if (roles != null) {
-			StringBuffer rb = new StringBuffer();
+			StringBuilder rb = new StringBuilder();
 			for(Object r : roles) {
 				if (r != roles[0]) { rb.append(", "); }
 				if (r instanceof ORecordId) {  // Sometimes, these are returned

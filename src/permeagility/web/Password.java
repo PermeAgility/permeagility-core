@@ -15,7 +15,7 @@ public class Password extends Weblet {
     }
 
     public String getHTML(DatabaseConnection con, java.util.HashMap<String,String> parms) {
-	    StringBuffer errors = new StringBuffer();
+	    StringBuilder errors = new StringBuilder();
 		
 		if(parms.get("SUBMIT") != null && parms.get("CHANGE") != null && (parms.get("CHANGE")).equals("CHANGE")) {
 			String currentPass= (String)parms.get("CURRENTPASS");

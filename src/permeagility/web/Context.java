@@ -9,8 +9,8 @@ import java.util.Locale;
 
 import permeagility.util.Database;
 import permeagility.util.DatabaseConnection;
-import permeagility.util.Setup;
 import permeagility.util.QueryResult;
+import permeagility.util.Setup;
 
 public class Context extends Weblet {
 
@@ -58,7 +58,7 @@ public class Context extends Weblet {
 		}
     	
 		// Prepare cached query list
-		StringBuffer cacheList = new StringBuffer();
+		StringBuilder cacheList = new StringBuilder();
 		Object[] keys = getCache().keySet().toArray();
 		for (Object key : keys) {
 			QueryResult qr = getCache().get(key);
@@ -68,7 +68,7 @@ public class Context extends Weblet {
 		}
 	
 		// Prepare session report
-		StringBuffer sessionReport = new StringBuffer();
+		StringBuilder sessionReport = new StringBuilder();
 		sessionReport.append("<p>"+Message.get(locale,"SERVER_SESSIONS")+"<br>");
 		for (String usr : Server.sessionsDB.keySet()) {
 			if (usr != null) {

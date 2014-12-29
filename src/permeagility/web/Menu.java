@@ -12,8 +12,8 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import permeagility.util.DatabaseConnection;
-import permeagility.util.Setup;
 import permeagility.util.QueryResult;
+import permeagility.util.Setup;
 
 import com.orientechnologies.orient.core.record.impl.ODocument;
 
@@ -48,7 +48,7 @@ public class Menu extends Weblet {
 		}
 		
 		if (DEBUG) System.out.println("Menu: Getting menu for "+con.getUser());
-		StringBuffer menu = new StringBuffer();
+		StringBuilder menu = new StringBuilder();
 		DatabaseConnection dbcon = null;
 		try {
 			// Only the server and admin need to see the menu table
@@ -58,7 +58,7 @@ public class Menu extends Weblet {
 			// Assemble menu based on the users roles and the menuItem's _allowRead
 			QueryResult qr = dbcon.query("SELECT FROM "+Setup.TABLE_MENU+" WHERE active=TRUE ORDER BY sortOrder");
 			for (ODocument m : qr.get()) {
-				StringBuffer itemMenu = new StringBuffer();
+				StringBuilder itemMenu = new StringBuilder();
                 List<ODocument> items = m.field("items");
                 if (items != null) {
 	                for (ODocument i : items) {

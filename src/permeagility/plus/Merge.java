@@ -5,7 +5,6 @@ import java.util.HashMap;
 
 import permeagility.util.Database;
 import permeagility.util.DatabaseConnection;
-import permeagility.util.Setup;
 import permeagility.util.QueryResult;
 import permeagility.web.Message;
 import permeagility.web.Server;
@@ -26,7 +25,7 @@ public class Merge extends Table {
 	public String getPage(DatabaseConnection con, HashMap<String, String> parms) {
 	
 		StringBuilder sb = new StringBuilder();
-		StringBuffer errors = new StringBuffer();
+		StringBuilder errors = new StringBuilder();
 
 		if (!INSTALLED) {
 			checkInstallation(con, errors);
@@ -301,15 +300,15 @@ public class Merge extends Table {
 	}
 	
 	String getPathBuilder(DatabaseConnection con, ODocument d) {
-		StringBuffer tableInit = new StringBuffer(); // JSON list of tables and groups
-		StringBuffer columnInit = new StringBuffer();  // JSON list of tables and columns
+		StringBuilder tableInit = new StringBuilder(); // JSON list of tables and groups
+		StringBuilder columnInit = new StringBuilder();  // JSON list of tables and columns
 		
 		// Add tables in groups (similar code to Schema - should be combined in one place - need one more use
 		QueryResult schemas = con.query("SELECT from tableGroup");
 		QueryResult tables = con.query("SELECT name, superClass FROM (SELECT expand(classes) FROM metadata:schema) WHERE abstract=false ORDER BY name");
 		ArrayList<String> tablesInGroups = new ArrayList<String>(); 
 		for (ODocument schema : schemas.get()) {
-			StringBuffer tablelist = new StringBuffer();
+			StringBuilder tablelist = new StringBuilder();
 			String tablesf = schema.field("tables");
 			String table[] = {};
 			if (tablelist != null) {
@@ -340,7 +339,7 @@ public class Merge extends Table {
 		}
 		
 		// Add the non grouped (new) tables
-		StringBuffer tablelist = new StringBuffer();
+		StringBuilder tablelist = new StringBuilder();
 		tablelist.append(paragraph("banner",Message.get(con.getLocale(), "TABLE_NONGROUPED")));
 		for (ODocument row : tables.get()) {
 			String tablename = row.field("name");
@@ -420,7 +419,7 @@ public class Merge extends Table {
 	public static String MERGE_TABLE = "mergePath";   // Local OrientDB table name to hold connection specs
 	public static String ATTR_TABLE = "mergePathAttribute";   // Saved path from a Oracle schema.table to a PermeAgility class/table
     	
-	private void checkInstallation(DatabaseConnection con, StringBuffer errors) {
+	private void checkInstallation(DatabaseConnection con, StringBuilder errors) {
 		// Verify the installation of the Merge table structures
 		if (!Server.isDBA(con)) {
 			return;

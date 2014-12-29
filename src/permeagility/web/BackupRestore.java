@@ -12,23 +12,21 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Locale;
 
-import permeagility.util.Database;
 import permeagility.util.DatabaseConnection;
 
 import com.orientechnologies.orient.core.command.OCommandOutputListener;
-import com.orientechnologies.orient.core.db.ODatabaseRecordThreadLocal;
 import com.orientechnologies.orient.core.db.tool.ODatabaseExport;
 
 public class BackupRestore extends Weblet {
 
-	StringBuffer exportLog = new StringBuffer();
+	StringBuilder exportLog = new StringBuilder();
 
     public String getPage(DatabaseConnection con, HashMap<String,String> parms) {
     	
     	Locale locale = con.getLocale();
 		String service = Message.get(locale,"BACKUP_AND_RESTORE");
 		parms.put("SERVICE",service);
-		StringBuffer errors = new StringBuffer();
+		StringBuilder errors = new StringBuilder();
 
 		if (!Server.isDBA(con)) {
 	    	return head(service)+standardLayout(con, parms,paragraph("error",Message.get(locale, "RESTORE_ACCESS")));
@@ -59,7 +57,7 @@ public class BackupRestore extends Weblet {
 				try {
 					ODatabaseExport exp = new ODatabaseExport(con.getDb(), "backup/"+backupName, new OCommandOutputListener() {
 						public void onMessage(String iText) {
-							if (exportLog == null) exportLog = new StringBuffer();
+							if (exportLog == null) exportLog = new StringBuilder();
 							exportLog.append(paragraph("Export message: "+iText));
 							System.out.println("Export Message: "+iText);
 						}});
@@ -180,7 +178,7 @@ public class BackupRestore extends Weblet {
 			}
 		}
 		
-		StringBuffer restorePoints = new StringBuffer();
+		StringBuilder restorePoints = new StringBuilder();
 		File[] backupFiles = backupDir.listFiles();
 		if (backupFiles != null) {
 			for (int i=0; i<backupFiles.length; i++) {

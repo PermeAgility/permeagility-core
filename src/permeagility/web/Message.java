@@ -14,8 +14,8 @@ import java.util.StringTokenizer;
 import java.util.TreeMap;
 
 import permeagility.util.DatabaseConnection;
-import permeagility.util.Setup;
 import permeagility.util.QueryResult;
+import permeagility.util.Setup;
 
 import com.orientechnologies.orient.core.record.impl.ODocument;
 
@@ -127,7 +127,7 @@ public class Message {
 		// Convert \r\n to \n string. Browser likes to add \r which we want to remove
 		s = s.replaceAll("<", "&lt;"); // These characters cause problems with the HTML encoding
 		s = s.replaceAll(">", "&gt;");
-		StringBuffer sb = new StringBuffer(s.length());
+		StringBuilder sb = new StringBuilder(s.length());
 		StringTokenizer st = new StringTokenizer(s,"\r\n",false);
 		while (st.hasMoreTokens()) {
 			String part = st.nextToken();
@@ -138,7 +138,7 @@ public class Message {
 	}
 
 	public String createMessageStringForBrowser(String s) {
-		StringBuffer sb = new StringBuffer(s.length());
+		StringBuilder sb = new StringBuilder(s.length());
 		StringTokenizer st = new StringTokenizer(s,"\n",false);
 		while (st.hasMoreTokens()) {
 			String part = st.nextToken();
@@ -152,7 +152,7 @@ public class Message {
 		if (locale == null) {
 		    locale = defaultLocale;
 		}
-		StringBuffer localeList = new StringBuffer();
+		StringBuilder localeList = new StringBuilder();
 		for (Locale l : getLocales()) {
 		    if (!l.getLanguage().equals(locale.getLanguage())) {
 			    localeList.append("<a class=\"menuitem\" href=\""+parms.get("REQUESTED_CLASS_NAME")+"?LOCALE="+l.getLanguage()+"\">"+l.getDisplayLanguage(l)+" "+l.getDisplayCountry(l)+" "+l.getDisplayVariant(l)+"</a><br>\n");

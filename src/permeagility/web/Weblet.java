@@ -26,9 +26,9 @@ import java.util.Stack;
 import java.util.Vector;
 
 import permeagility.util.DatabaseConnection;
-import permeagility.util.Setup;
 import permeagility.util.QueryCache;
 import permeagility.util.QueryResult;
+import permeagility.util.Setup;
 
 import com.orientechnologies.orient.core.id.ORID;
 import com.orientechnologies.orient.core.id.ORecordId;
@@ -73,7 +73,7 @@ public abstract class Weblet {
 
 	protected byte[] doPage(DatabaseConnection con, HashMap<String, String> parms) {
 		internal_con = con; // For style retrieval
-		StringBuffer response = new StringBuffer();
+		StringBuilder response = new StringBuilder();
 		response.append("<!DOCTYPE html>\n<html>\n");
 		response.append(getPage(con, parms));
 		response.append("</html>\n");
@@ -755,7 +755,7 @@ public abstract class Weblet {
 	}
 
     public static String multiSelectList(String name, List<String> names, List<String> values, List<String> tooltips, Locale l) {
-    	StringBuffer sb = new StringBuffer(1024);
+    	StringBuilder sb = new StringBuilder(1024);
     	sb.append("<SELECT NAME=\""+name+"\" SIZE=\""+names.size()+"\" MULTIPLE>\n");
     	for(int i=0; i < names.size();i++) {
     	    sb.append("<OPTION TITLE=\"" + tooltips.get(i) + "\" VALUE=\""+(String)values.get(i)+"\">"+(String)names.get(i)+"</OPTION>\n");
@@ -803,7 +803,7 @@ public abstract class Weblet {
     }
 
     public static String multiCheckboxList(String name, List<String> names, List<String> values, List<String> tooltips, List<String> checks, Locale l) { 
-    	StringBuffer sb = new StringBuffer(1024);
+    	StringBuilder sb = new StringBuilder(1024);
     	for(int i=0; i < names.size();i++) {
     	    sb.append("<input type=\"CHECKBOX\""
     	    		+(checks.get(i)==null ? "" : " chacked=\"yes"+"\"")
@@ -818,7 +818,7 @@ public abstract class Weblet {
     }
 
     public static String multiCheckboxList(String name, List<String> names, List<String> values, List<String> tooltips, Locale l) {
-    	StringBuffer sb = new StringBuffer(1024);
+    	StringBuilder sb = new StringBuilder(1024);
     	for(int i=0; i < names.size();i++) {
     	    sb.append("<input type=\"CHECKBOX\" name=\""+name+"\" title=\""+tooltips.get(i)+"\" value=\""+(String)values.get(i)+"\">"+(String)names.get(i)+"</input><BR>\n");
     	}
@@ -860,7 +860,7 @@ public abstract class Weblet {
     }
     
 	  public String getLinkSet(String name, String table, List<String> names, List<String> values, List<String> tooltips, List<String> checks, Locale l) {   
-		StringBuffer result = new StringBuffer();
+		StringBuilder result = new StringBuilder();
 		result.append("<div ng-controller=\"LinkSetControl\" ng-init=\"values=[\n");
 		for (int i=0; i<names.size(); i++) {
 			if (i > 0) { result.append(","); }
@@ -940,7 +940,7 @@ public abstract class Weblet {
 	}
 
 	public String getLinkList(String name, String table, List<String> names, List<String> values, List<String> tooltips, List<String> checks, List<String> listnames, List<String> listvalues, List<String> listtooltips, List<String> listchecks, Locale l) {   
-		StringBuffer result = new StringBuffer();
+		StringBuilder result = new StringBuilder();
 		result.append("<div ng-controller=\"LinkListControl\" ng-init=\"values=[\n");
 		for (int i=0; i<names.size(); i++) {
 			if (i > 0) { result.append(","); }
@@ -1028,7 +1028,7 @@ public abstract class Weblet {
 	}
 
 	public String getLinkMap(String name, String table, List<String> names, List<String> values, List<String> tooltips, List<String> checks, List<String> listmaps, List<String> listnames, List<String> listvalues, List<String> listtooltips, List<String> listchecks, Locale l) {   
-		StringBuffer result = new StringBuffer();
+		StringBuilder result = new StringBuilder();
 		result.append("<div ng-controller=\"LinkMapControl\" ng-init=\"values=[\n");
 		for (int i=0; i<names.size(); i++) {
 			if (i > 0) { result.append(","); }
@@ -1067,7 +1067,7 @@ public abstract class Weblet {
 	public static String createListFromCache(String name, String initial, DatabaseConnection con, String query
 			, String attributes, boolean allowNull, String classname, boolean enabled) {
 		QueryResult qr = queryCache.getResult(con, query);
-		StringBuffer sb = new StringBuffer(1024);
+		StringBuilder sb = new StringBuilder(1024);
 		sb.append("<SELECT " + (enabled ? "" : "DISABLED") + (classname != null ? " CLASS=\"" + classname + "\"" : "") + " NAME=\""
 				+ name + "\" " + (attributes != null ? attributes : "") + ">\n");
 		if (initial == null && allowNull) {
@@ -1155,7 +1155,7 @@ public abstract class Weblet {
 
 	public static String createList(Locale locale, String name, String initial, List<String> names, String attributes, boolean allowNull,
 			String classname, boolean enabled) {
-		StringBuffer sb = new StringBuffer(1024);
+		StringBuilder sb = new StringBuilder(1024);
 		sb.append("<SELECT " 
 				+ (enabled ? "" : "DISABLED") 
 				+ (classname != null ? " CLASS=\"" + classname + "\"" : "") 
@@ -1184,7 +1184,7 @@ public abstract class Weblet {
 		if (selected == null) {
 			selected = new Vector<String>();
 		}
-		StringBuffer sb = new StringBuffer(1024);
+		StringBuilder sb = new StringBuilder(1024);
 		sb.append("<SELECT NAME=\"" + name + "\" CLASS=\"" + Class + "\" SIZE=\"" + size + "\" MULTIPLE>\n");
 		for (int i = 0; i < names.size(); i++) {
 			if (selected.indexOf((String) names.get(i)) == -1) {
@@ -1530,7 +1530,7 @@ public abstract class Weblet {
 
 	/** Turn a "camelCase" into "Camel Case" */
 	public static String makeCamelCasePretty(String input) {
-		StringBuffer cn = new StringBuffer();
+		StringBuilder cn = new StringBuilder();
 		if (input.startsWith("_")) input = input.substring(1);  // Remove possible leading underscore (_allowREAD)
 		char[] chars = input.toCharArray();
 		for (int i=0; i<chars.length; i++) {
@@ -1558,7 +1558,7 @@ public abstract class Weblet {
 	 * "USER_ID" becomes "userId" (Note: if all caps, will be turned to all lowercase)
 	 * "543-device-reading" becomes "n543DeviceReading"  */
 	public static String makePrettyCamelCase(String input) {
-		StringBuffer cn = new StringBuffer();
+		StringBuilder cn = new StringBuilder();
 		input = input.trim();
 		if (input.startsWith("_")) input = input.substring(1);  // Remove possible leading underscore (_allowREAD)
 		char[] chars = input.toCharArray();

@@ -5,16 +5,16 @@ public class Dumper {
 	public static String hexDump(byte[] data, int position, int length){
 		int lineCounter = 0;
 		String lineCounterS = Integer.toHexString(lineCounter).toUpperCase();
-		StringBuffer result = new StringBuffer();
+		StringBuilder result = new StringBuilder();
 		result.append("Length: ");
 		result.append(length);
 		result.append("\n0x00");
 		result.append(lineCounterS);
 		result.append(")");
-		StringBuffer printable = new StringBuffer();
+		StringBuilder printable = new StringBuilder();
 		for(int i = 0; i < length; i++){
 			if( i%16 == 0 && i!=0 ){
-				printable = new StringBuffer();
+				printable = new StringBuilder();
 				result.append("\n");
 				lineCounter+= 16;
 				lineCounterS = Integer.toHexString(lineCounter).toUpperCase(); 
