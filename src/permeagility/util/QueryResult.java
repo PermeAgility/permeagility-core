@@ -170,7 +170,12 @@ public class QueryResult {
 			result.add(o);
 		}
 	}
- 
+
+	/** Add another document to this queryResult - like a Union */
+	public void append(ODocument doc) {
+		result.add(doc);
+	}
+	
 }
 
 

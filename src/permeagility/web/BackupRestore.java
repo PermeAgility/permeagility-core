@@ -209,21 +209,18 @@ public class BackupRestore extends Weblet {
 	    standardLayout(con, parms,
 	    	errors
     		+paragraph("banner",Message.get(locale, "BACKUP_THE_DATABASE"))
-    		+form(
-	    		table("layout",
+    		+form(table("layout",
 	    			row(column("label",Message.get(locale, "BACKUP_FILENAME"))+column(input("BACKUP_FILENAME",backupFilename,40)))
 	    			+row(column("")+column(submitButton(Message.get(locale,"BACKUP_NOW"))))
-	        	)
-	        )
+	        ))
 	    	+paragraph("banner",Message.get(locale, "RESTORE_THE_DATABASE"))
-	    	+form(
-	    		table("sortable", 
+	    	+form(table("sortable", 
 	    			row(columnHeader(Message.get(locale, "BACKUP_FILENAME"))
     					+columnHeader(Message.get(locale, "BACKUP_SIZE"))
     					+columnHeader(Message.get(locale, "BACKUP_DATE"))
     					+columnHeader(Message.get(locale, "RESTORE_NOW")))
-	    			+restorePoints.toString())
-	    	)
+	    			+restorePoints.toString()
+	    	))
 	    	+(exportLog != null ? exportLog.toString() : "")
     	);
     }

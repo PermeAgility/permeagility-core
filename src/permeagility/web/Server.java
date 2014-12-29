@@ -1185,7 +1185,12 @@ public class Server extends Thread {
 			QueryResult tableInfo = Server.getTableInfo(table);
 			String superClass = tableInfo.getStringValue(0, "superClass");
 			if (superClass != null) {
-				result.append(Server.getColumns(superClass));
+				QueryResult superColumns = Server.getColumns(superClass);
+				for (ODocument sc : superColumns.get()) {
+					if (result.findFirstRow("name", (String)sc.field("name")) == -1) {
+						result.append(sc);  // Only add if not already there (latest version brings the superclass columns)
+					}
+				}
 			}
 			
 			// List of columns to override natural alphabetical order
