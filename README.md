@@ -3,7 +3,7 @@ permeagility-core
 
 PermeAgility is a lightweight integrated data manager and web application framework
 
-Try out the live demo site hosted on Amazon's EC2 Cloud: http://ec2-54-200-152-146.us-west-2.compute.amazonaws.com/
+Try out the live demo site hosted on Amazon's Cloud: http://demo.permeagility.com
 
 This is the source code. To build from source you must have Java 1.7+ and maven installed.
 Then type: mvn install
