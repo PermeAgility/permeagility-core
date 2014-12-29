@@ -24,8 +24,8 @@ Server Arguments: [port] [db] [-selftest]
 Argument | Description
 -------- | -----------
 port | default is 1999
-db | default is plocal:db use remote:_host_/_db_ for non-embedded db
--selftest | will create testdb, open it initialize the server, and exit
+db | default is <b>plocal:db</b> use <b>remote:_host_/_db_</b> for non-embedded db
+-selftest | this will create a testdb, open it, set it up, initialize the server, and exit
 
 Once the server is running, open browser to http://localhost:1999 
 (browser will open automatically on Windows or OSX)
