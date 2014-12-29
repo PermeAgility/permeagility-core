@@ -40,12 +40,12 @@ public class Login extends Weblet {
 		return
 			head(Message.get(locale, "LOGIN_TITLE"))+
 			bodyOnLoad(
-				image(Header.LOGO_FILE)+br()
+				link(Server.HOME_CLASS,image(Header.LOGO_FILE))+br()
 				+form("LOGIN",destinationClass,
 				    hidden("LOCALE",locale.toString())
 				    +(error != null ? paragraph("error",error) : "")
 					+table("data",
-						row("header",columnSpan(2,center(xLarge(Message.get(locale, "LOGIN_TITLE")+br()))))+
+						row("header",columnSpan(2,center(Message.get(locale, "LOGIN_TITLE")+br())))+
 						row("data",
 							columnRight(40,Message.get(locale,"USER_LABEL")) 
 							+column(60,input(0,"USERNAME",null))

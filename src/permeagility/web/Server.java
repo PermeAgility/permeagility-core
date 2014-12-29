@@ -465,6 +465,7 @@ public class Server extends Thread {
 								}
 							}
 							db = null;
+							className = HOME_CLASS;
 					}
 					
 					// If username specified in parms and we do not have a connection we must be logging in
@@ -492,6 +493,7 @@ public class Server extends Thread {
 							}
 						}
 
+						// Set a cookie value
 						if (db != null && parmUserName != null) {
 							if (DEBUG) System.out.println("Calculating new cookie for: "+parmUserName);
 							newCookieValue = parmUserName + (Math.random() * 100000000);
@@ -502,6 +504,7 @@ public class Server extends Thread {
 							if (DEBUG) System.out.println("User "+db.getUser()+" logged in");
 						}		
 
+						// Get database connection (guest) for non users
 						if (db == null) {
 							try {
 								if (DEBUG) System.out.println("Using guest connection");
@@ -539,7 +542,7 @@ public class Server extends Thread {
 						}
 					}
 
-					// Thumbnails should be for users only
+					// Thumbnails
 					if (db != null && file.startsWith("/thumbnail")) {
 						String tsize = parms.get("SIZE");
 						String tid = parms.get("ID");

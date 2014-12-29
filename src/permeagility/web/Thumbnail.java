@@ -48,7 +48,7 @@ public class Thumbnail {
 						+ "<IMG SRC=\"../thumbnail?SIZE=MEDIUM&ID="+tid+"\"/>\n"
 					);
 		} else {
-			return "<A href=\"/thumbnail?SIZE=FULL&ID="+tid+"\" title=\""+description+"\">Download</A>";			
+			return "<A href=\"/thumbnail?SIZE=FULL&ID="+tid+"\" title=\""+description+"\">"+Message.get(locale,"DOWNLOAD_FILE")+"</A>";			
 		}
 	}
 
@@ -149,6 +149,68 @@ public class Thumbnail {
 						type.append(t);
 						file.append(thumbnail.field("name"));
 					}
+					ByteArrayOutputStream content = new ByteArrayOutputStream();
+					if (DEBUG) System.out.print("Reading blob content: available="+bis.available());
+					int avail;
+					int binc;
+					while ((binc = bis.read()) != -1 && (avail = bis.available()) > 0) {
+						content.write(binc);
+						byte[] buf = new byte[avail];
+						int br = bis.read(buf);
+						if (br > 0) {
+							content.write(buf,0,br);
+						}
+					}
+					if (content.size() > 0) {
+						return content.toByteArray();
+					}
+				} else {
+					System.out.println("Thumbnail: Image is empty");
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				database.freeConnection(con);
+			}
+		}
+		return null;
+	}
+
+	public static byte[] getContent(String rid, String column, StringBuffer type, StringBuffer file) {
+		
+		DatabaseConnection con = database.getConnection();
+		if (con != null) {
+			try {
+				ODocument record = null;
+				QueryResult qr = con.query("SELECT FROM #"+rid);
+				if (qr != null && qr.size() > 0) {
+					record = qr.get(0);
+				}
+				if (record == null) {
+					return null;
+				}
+				if (DEBUG) System.out.println("Thumbnail: reading from column "+column);
+				ORecordBytes bytes = record.field(column);
+				if (bytes != null) {
+					ByteArrayInputStream bis = new ByteArrayInputStream(bytes.toStream());
+					StringBuffer content_type = new StringBuffer();
+					if (bis.available() > 0) {
+						int binc = bis.read();
+						do {
+							content_type.append((char)binc);
+							binc = bis.read();
+						} while (binc != 0x00 && bis.available() > 0);
+					}
+					StringBuffer content_filename = new StringBuffer();
+					if (bis.available() > 0) {
+						int binc = bis.read();
+						do {
+							content_filename.append((char)binc);
+							binc = bis.read();
+						} while (binc != 0x00 && bis.available() > 0);
+					}
+					type.append(content_type);
+					file.append(content_filename);
 					ByteArrayOutputStream content = new ByteArrayOutputStream();
 					if (DEBUG) System.out.print("Reading blob content: available="+bis.available());
 					int avail;

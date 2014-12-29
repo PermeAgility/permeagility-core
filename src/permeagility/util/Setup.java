@@ -43,12 +43,16 @@ public class Setup {
 			ArrayList<ODocument> allRoles = new ArrayList<ODocument>();			
 			ArrayList<ODocument> allRolesButGuest = new ArrayList<ODocument>();			
 			ArrayList<ODocument> adminRoles = new ArrayList<ODocument>();			
+			ArrayList<ODocument> readerRoles = new ArrayList<ODocument>();			
+			ArrayList<ODocument> writerRoles = new ArrayList<ODocument>();			
 			ArrayList<ODocument> guestRoles = new ArrayList<ODocument>();			
 			QueryResult qr = con.query("SELECT FROM ORole");
 			for (ODocument role : qr.get()) {
 				allRoles.add(role);
 				if (!role.field("name").equals("guest")) allRolesButGuest.add(role);
 				if (role.field("name").equals("admin")) adminRoles.add(role);
+				if (role.field("name").equals("reader")) readerRoles.add(role);
+				if (role.field("name").equals("writer")) writerRoles.add(role);
 				if (role.field("name").equals("guest")) guestRoles.add(role);
 			}
 						
@@ -323,6 +327,7 @@ public class Setup {
 			mCount += checkCreateMessage(con, loc, "IMAGE_VIEW_LINK", ".");
 			mCount += checkCreateMessage(con, loc, "IMAGE_VIEW_HEADER", "View");
 			mCount += checkCreateMessage(con, loc, "DOWNLOAD_FULL_SIZE", "Download full size");
+			mCount += checkCreateMessage(con, loc, "DOWNLOAD_FILE", "Download file");
 			
 			if (mCount > 0) {
 				installMessages.append(Weblet.paragraph("CheckInstallation: Created "+mCount+" messages"));
@@ -341,7 +346,11 @@ public class Setup {
 			if (newsTable.count() == 0) {
 				ODocument n1 = con.create(TABLE_NEWS);
 				n1.field("name","Welcome to PermeAgility");
-				n1.field("description","The core template for big applications in a micro service<br><img src='images/Logo.svg'>");
+				n1.field("description","The core template for big data applications in a micro service.  Default logins are:\n"
+						+ "<ul><li><a href='permeagility.web.Home?USERNAME=admin&PASSWORD=admin'>admin/admin</a></li>\n"
+						+ "<li><a href='permeagility.web.Home?USERNAME=writer&PASSWORD=writer'>writer/writer</a></li>\n"
+						+ "<li><a href='permeagility.web.Home?USERNAME=reader&PASSWORD=reader'>reader/reader</a></li></ul>\n"
+						+ "<br><img src='images/Logo.svg'>");
 				n1.field("dateline",new Date());
 				n1.field("locale",loc);
 				n1.field("archive",false);
@@ -363,6 +372,26 @@ public class Setup {
 				n2.field("archive",false);
 				n2.field("_allowRead", adminRoles.toArray());
 				n2.save();				
+
+				ODocument n3 = con.create(TABLE_NEWS);
+				n3.field("name","Welcome reader");
+				n3.field("description","This is a place where you can navigate data and connections, click away!<br><br>"
+						+ "Click <a href='permeagility.web.Schema'><b><i>Tables</i></b></a> to get started");
+				n3.field("dateline",new Date());
+				n3.field("locale",loc);
+				n3.field("archive",false);
+				n3.field("_allowRead", readerRoles.toArray());
+				n3.save();
+
+				ODocument n4 = con.create(TABLE_NEWS);
+				n4.field("name","Welcome writer");
+				n4.field("description","PermeAgility lets you create and navigate data every way it is connected.<br><br>"
+						+ "Click <a href='permeagility.web.Schema'><b><i>Tables</i></b></a> to get started");
+				n4.field("dateline",new Date());
+				n4.field("locale",loc);
+				n4.field("archive",false);
+				n4.field("_allowRead", writerRoles.toArray());
+				n4.save();
 			}
 			
 			System.out.print(TABLE_STYLE+" ");
@@ -410,19 +439,6 @@ public class Setup {
 				con.create(TABLE_TABLEGROUP).field("name","News").field("tables","article").field("_allowRead", allRoles.toArray()).save();
 			}
 			
-			if (columnsTable.count() == 0) {
-				con.create(TABLE_COLUMNS).field("name",TABLE_NEWS).field("columnList","name, dateline, locale, description, archive").save();				
-				con.create(TABLE_COLUMNS).field("name",TABLE_COLUMNS).field("columnList","name, columnList").save();	
-				con.create(TABLE_COLUMNS).field("name",TABLE_LOCALE).field("columnList","name, description, active").save();				
-				con.create(TABLE_COLUMNS).field("name",TABLE_MENU).field("columnList","name, active, description").save();				
-				con.create(TABLE_COLUMNS).field("name",TABLE_MENUITEM).field("columnList","name, classname, active, description, _allowRead").save();				
-				con.create(TABLE_COLUMNS).field("name",TABLE_MESSAGE).field("columnList","name, description, locale").save();				
-				con.create(TABLE_COLUMNS).field("name",TABLE_STYLE).field("columnList","name, horizontal, logo, description").save();
-				con.create(TABLE_COLUMNS).field("name",TABLE_THUMBNAIL).field("columnList","name, table, id, column, size, small, medium, width, height").save();
-				con.create(TABLE_COLUMNS).field("name",TABLE_PICKLIST).field("columnList","tablename, query, description").save();
-				con.create(TABLE_COLUMNS).field("name",TABLE_USERREQUEST).field("columnList","name, email").save();
-			}
-
 			System.out.print(TABLE_MENU+" ");
 			OClass menuTable = Database.checkCreateClass(oschema, TABLE_MENU, installMessages);
 			Database.checkCreateProperty(con, menuTable, "name", OType.STRING, installMessages);
@@ -469,7 +485,7 @@ public class Setup {
 				mi_password.field("name","Password");
 				mi_password.field("description","Change password");
 				mi_password.field("classname","permeagility.web.Password");
-				mi_password.field("active",true);
+				mi_password.field("active",false);
 				mi_password.field("_allowRead", allRolesButGuest.toArray());
 				mi_password.save();
 

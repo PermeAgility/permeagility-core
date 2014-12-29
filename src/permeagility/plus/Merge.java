@@ -182,7 +182,7 @@ public class Merge extends Table {
 	    		sb.append("Error retrieving import patterns: "+e.getMessage());
 	    	}
 		}
-		return 	head("Merge",getDateControlScript(con.getLocale())+getSortTableScript()+getColorControlScript())
+		return 	head("Merge",getDateControlScript(con.getLocale())+getColorControlScript())
 				+body(standardLayout(con, parms, 
 				errors.toString()
 				+((Server.getTablePriv(con, MERGE_TABLE) & PRIV_CREATE) > 0 && connect == null 
@@ -442,6 +442,9 @@ public class Merge extends Table {
 		Database.checkCreateProperty(con, logTable, "toColumn", OType.STRING, errors);
 		Database.checkCreateProperty(con, logTable, "linkProperty", OType.STRING, errors);
 
+		Server.clearColumnsCache(MERGE_TABLE);
+		Server.clearColumnsCache(ATTR_TABLE);
+		
 		INSTALLED = true;  //This will be checked every startup unless this flag is set true using a constant
 	}
 

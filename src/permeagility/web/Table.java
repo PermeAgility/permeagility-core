@@ -343,7 +343,7 @@ public class Table extends Weblet {
 					colCount++;	
 					
 				} else if (type == 7) {  // String 
-					ins.append(comma+name+" = '"+value+"'");
+					ins.append(comma+name+" = "+wrapWithQuotes(value));
 					colCount++;	
 	
 				} else if (type == 20) {  // Binary/image (8 = binary, 20 = custom)
@@ -492,7 +492,7 @@ public class Table extends Weblet {
 							if (setString.length() > 0) {
 								setString.append(", ");
 							}
-							setString.append(columnName + "=" + newbool);
+							setString.append(columnName + " = " + newbool);
 						}
 					} else if (type == 1 || type == 2 || type == 3) { // Whole number
 						Number originalValue = updateRow.field(columnName);
@@ -508,7 +508,7 @@ public class Table extends Weblet {
 							if (setString.length() > 0) {
 								setString.append(", ");
 							}
-							setString.append(columnName + "=" + (newVal == null ? "null" : newValue));
+							setString.append(columnName + " = " + (newVal == null ? "null" : newValue));
 						}
 					} else if (type == 4 || type == 5) { // float, double
 						Double originalValue = updateRow.field(columnName);
@@ -524,7 +524,7 @@ public class Table extends Weblet {
 							if (setString.length() > 0) {
 								setString.append(", ");
 							}
-							setString.append(columnName + "=" + (newVal == null ? "null" : newValue));
+							setString.append(columnName + " = " + (newVal == null ? "null" : newValue));
 						}
 					} else if (type == 21) { // decimal
 						BigDecimal originalValue = updateRow.field(columnName);
@@ -540,7 +540,7 @@ public class Table extends Weblet {
 							if (setString.length() > 0) {
 								setString.append(", ");
 							}
-							setString.append(columnName + "=" + (newVal == null ? "null" : newValue));
+							setString.append(columnName + " = " + (newVal == null ? "null" : newValue));
 						}
 					} else if (type == 6) {  // Datetime
 						Date originalValue = updateRow.field(columnName);
@@ -571,7 +571,7 @@ public class Table extends Weblet {
 								if (setString.length() > 0) {
 									setString.append(", ");
 								}
-								setString.append(columnName + "=" + wrapWithQuotes(newValue));
+								setString.append(columnName + " = " + wrapWithQuotes(newValue));
 							}
 						}
 						
@@ -591,7 +591,7 @@ public class Table extends Weblet {
 							if (setString.length() > 0) {
 								setString.append(", ");
 							}
-							setString.append(columnName + "=" + newValue);
+							setString.append(columnName + " = " + newValue);
 						}
 						
 					} else if (type == 13) { // Link
@@ -709,7 +709,7 @@ public class Table extends Weblet {
 							if (setString.length() > 0) {
 								setString.append(", ");
 							}
-							setString.append(columnName + "=" + (newVal == null ? "null" : newValue));
+							setString.append(columnName + " = " + (newVal == null ? "null" : newValue));
 						}
 					}
 				}
@@ -1430,6 +1430,8 @@ public class Table extends Weblet {
 				if (stringvalue != null && stringvalue.length() > MAX_STRING_DISPLAY) {
 					stringvalue = stringvalue.substring(0, MAX_STRING_DISPLAY) + "...";
 				}
+				stringvalue = stringvalue.replace("<","&lt;"); // These can mess up the display
+				stringvalue = stringvalue.replace(">","&gt;");
 				sb.append(column(stringvalue));
 			}
 		} else if (columnType == 20) {  // Binary (Using CUSTOM OType)
