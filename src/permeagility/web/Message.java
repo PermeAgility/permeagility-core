@@ -170,14 +170,7 @@ public class Message {
 		return defaultLocale;
 	}		
 
-   public static String getHeaderKey(String name) {
-		name = name.trim();
-		name = name.replace(' ','_');
-		name = name.toUpperCase();
-		return name;
-    }
-	
-	public static String get(Locale locale, String template) {
+ 	public static String get(Locale locale, String template) {
 		return getString(locale,template);
 	}
 
