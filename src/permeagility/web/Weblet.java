@@ -241,10 +241,10 @@ public abstract class Weblet {
 	/*
 	 *      Table
 	 */
-	public static String table(String s) { return table(1, s); }  // Default table has border 1
+	public static String table(String s) { return table(0, s); }  // Default table has no border
 
 	public static String table(int border, String s) {
-		return "<table border=\"" + border + "\" >\n" + s + "</table>\n";
+		return "<table"+(border>0 ? " border=\"" + border + "\"" : "")+">\n" + s + "</table>\n";
 	}
 
 	public static String table(String c, String s) {
@@ -252,7 +252,7 @@ public abstract class Weblet {
 	}
 
 	public static String tableStart(int border) {
-		return "<table border=\"" + border + "\">\n";
+		return "<table"+(border>0 ? " border=\"" + border + "\"" : "")+">\n";
 	}
 
 	public static String tableStart(String c) {

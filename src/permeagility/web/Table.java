@@ -19,9 +19,9 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.concurrent.ConcurrentHashMap;
 
-import permeagility.util.Database;
 import permeagility.util.DatabaseConnection;
 import permeagility.util.QueryResult;
+import permeagility.util.Setup;
 
 import com.orientechnologies.orient.core.id.ORecordId;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
@@ -252,9 +252,9 @@ public class Table extends Weblet {
 					} else {
 						String camel = makePrettyCamelCase(cn);						
 						if (tr != null) {
-							Database.checkCreateProperty(con, c, camel, type, con.getSchema().getClass(tr), errors);
+							Setup.checkCreateProperty(con, c, camel, type, con.getSchema().getClass(tr), errors);
 						} else {
-							Database.checkCreateProperty(con, c, camel, type, errors);
+							Setup.checkCreateProperty(con, c, camel, type, errors);
 						}
 						errors.append(paragraph("success", Message.get(locale, "NEW_COLUMN_CREATED")+":&nbsp;"+camel));
 						Server.tableUpdated("metadata:schema");
@@ -1574,7 +1574,7 @@ public class Table extends Weblet {
 					try {
 						OClass c = con.getSchema().getClass(table);
 						c.dropProperty(parms.get("COLUMN_TO_DROP"));
-						Database.removeColumnFromColumns(con, table, parms.get("COLUMN_TO_DROP"));
+						Setup.removeColumnFromColumns(con, table, parms.get("COLUMN_TO_DROP"));
 						Server.tableUpdated("metadata:schema");
 						Server.clearColumnsCache(table);
 						return redirect(locale, this, "TABLENAME=" + table);

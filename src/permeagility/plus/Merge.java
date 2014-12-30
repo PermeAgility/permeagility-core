@@ -3,9 +3,9 @@ package permeagility.plus;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import permeagility.util.Database;
 import permeagility.util.DatabaseConnection;
 import permeagility.util.QueryResult;
+import permeagility.util.Setup;
 import permeagility.web.Message;
 import permeagility.web.Server;
 import permeagility.web.Table;
@@ -426,20 +426,20 @@ public class Merge extends Table {
 		}
 		OSchema oschema = con.getSchema();
 		
-		OClass table = Database.checkCreateClass(oschema, MERGE_TABLE, errors);
-		Database.checkCreateProperty(con, table, "name", OType.STRING, errors);
-		Database.checkCreateProperty(con, table, "fromTable", OType.STRING, errors);
-		Database.checkCreateProperty(con, table, "fromKey", OType.STRING, errors);
-		Database.checkCreateProperty(con, table, "toTable", OType.STRING, errors);
-		Database.checkCreateProperty(con, table, "toKey", OType.STRING, errors);
-		Database.checkCreateProperty(con, table, "created", OType.DATETIME, errors);
-		Database.checkCreateProperty(con, table, "executed", OType.DATETIME, errors);
+		OClass table = Setup.checkCreateClass(oschema, MERGE_TABLE, errors);
+		Setup.checkCreateProperty(con, table, "name", OType.STRING, errors);
+		Setup.checkCreateProperty(con, table, "fromTable", OType.STRING, errors);
+		Setup.checkCreateProperty(con, table, "fromKey", OType.STRING, errors);
+		Setup.checkCreateProperty(con, table, "toTable", OType.STRING, errors);
+		Setup.checkCreateProperty(con, table, "toKey", OType.STRING, errors);
+		Setup.checkCreateProperty(con, table, "created", OType.DATETIME, errors);
+		Setup.checkCreateProperty(con, table, "executed", OType.DATETIME, errors);
 		
-		OClass logTable = Database.checkCreateClass(oschema, ATTR_TABLE, errors);
-		Database.checkCreateProperty(con, logTable, "path", OType.LINK, table, errors);
-		Database.checkCreateProperty(con, logTable, "fromColumn", OType.STRING, errors);
-		Database.checkCreateProperty(con, logTable, "toColumn", OType.STRING, errors);
-		Database.checkCreateProperty(con, logTable, "linkProperty", OType.STRING, errors);
+		OClass logTable = Setup.checkCreateClass(oschema, ATTR_TABLE, errors);
+		Setup.checkCreateProperty(con, logTable, "path", OType.LINK, table, errors);
+		Setup.checkCreateProperty(con, logTable, "fromColumn", OType.STRING, errors);
+		Setup.checkCreateProperty(con, logTable, "toColumn", OType.STRING, errors);
+		Setup.checkCreateProperty(con, logTable, "linkProperty", OType.STRING, errors);
 
 		Server.clearColumnsCache(MERGE_TABLE);
 		Server.clearColumnsCache(ATTR_TABLE);

@@ -13,7 +13,6 @@ import java.util.Locale;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
 import permeagility.web.Server;
-import permeagility.web.Weblet;
 
 import com.orientechnologies.orient.core.OConstants;
 import com.orientechnologies.orient.core.command.OCommandOutputListener;
@@ -21,13 +20,8 @@ import com.orientechnologies.orient.core.db.ODatabase.STATUS;
 import com.orientechnologies.orient.core.db.ODatabaseRecordThreadLocal;
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
 import com.orientechnologies.orient.core.db.tool.ODatabaseImport;
-import com.orientechnologies.orient.core.metadata.schema.OClass;
-import com.orientechnologies.orient.core.metadata.schema.OProperty;
-import com.orientechnologies.orient.core.metadata.schema.OSchema;
-import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.orientechnologies.orient.core.metadata.security.OSecurity;
 import com.orientechnologies.orient.core.metadata.security.OUser;
-import com.orientechnologies.orient.core.record.impl.ODocument;
 
 public class Database implements Serializable {
 
@@ -263,132 +257,6 @@ public class Database implements Serializable {
 		} else {
 			System.out.println("Error creating database - can only create plocal databases");			
 		}
-	}
-
-	// The following methods are meant to only be invoked by admin/dba during a module installation :-)  they will likely fail for everyone else
-
-	/** Add the column to the columns table to preserve initial order (always append only if not already there)  */
-	public static void addColumnToColumns(DatabaseConnection con, String theClass, String propertyName) {
-		ODocument d = con.queryDocument("SELECT FROM "+Setup.TABLE_COLUMNS+" WHERE name='"+theClass+"'");
-		if (d == null) {
-			d = con.create(Setup.TABLE_COLUMNS);
-			d.field("name",theClass);
-		}
-		String cl = d.field("columnList");
-		if (cl == null || cl.equals("")) {
-			d.field("columnList",propertyName);
-		} else {
-			String clc[] = cl.split(",");
-			for (String cln : clc) {
-				if (cln.trim().equals(propertyName) || cln.trim().equals("-"+propertyName)) {
-					return;  // Its already here
-				}
-			}
-			if (!cl.contains(propertyName))
-			d.field("columnList",d.field("columnList")+","+propertyName);			
-		}		
-		d.save();
-		return;
-	}
-	
-	// The following methods are meant to only be invoked by admin/dba during a module installation :-)  they will likely fail for everyone else
-	// Add the column to the columns table to preserve initial order (always append)
-	public static void removeColumnFromColumns(DatabaseConnection con, String theClass, String propertyName) {
-		ODocument d = con.queryDocument("SELECT FROM "+Setup.TABLE_COLUMNS+" WHERE name='"+theClass+"'");
-		if (d == null) {
-			return;
-		}
-		String cl = d.field("columnList");
-		if (cl == null || cl.equals("")) {
-			return;
-		} else {
-			String cols[] = cl.split(",");
-			StringBuilder newCols = new StringBuilder();
-			for (String c : cols) {  // Build a new list
-				if (!c.equals(propertyName)) {  // Without the property in the list
-					if (newCols.length()>0) newCols.append(",");
-					newCols.append(c);
-				}
-			}
-			d.field("columnList",newCols);			
-		}		
-		d.save();
-		return;
-	}
-	
-
-	
-	/** Check for the existence of a class property or add it This assumes you want a link type, otherwise the linkClass may have adverse effects */
-	public static OProperty checkCreateProperty(DatabaseConnection con, OClass theClass, String propertyName, OType propertyType, OClass linkClass, StringBuilder errors) {
-		OProperty p = theClass.getProperty(propertyName);
-		if (p == null) {
-			p = theClass.createProperty(propertyName, propertyType, linkClass);
-			errors.append(Weblet.paragraph("Schema update: Created property "+theClass.getName()+"."+propertyName+" of type "+propertyType.name()+" linked to "+linkClass.getName()));
-		}
-		addColumnToColumns(con, theClass.getName(),propertyName);
-		return p;
-	}
-
-	/** Check for the existence of a class property or add it */
-	public static OProperty checkCreateProperty(DatabaseConnection con, OClass theClass, String propertyName, OType propertyType, StringBuilder errors) {
-		OProperty p = theClass.getProperty(propertyName);
-		if (p == null) {
-			p = theClass.createProperty(propertyName, propertyType);
-			errors.append(Weblet.paragraph("Schema update: Created property "+theClass.getName()+"."+propertyName+" of type "+propertyType.name()));
-			
-		}
-		if (p != null) {
-			if (p.isMandatory()) {
-				p.setMandatory(false);
-				errors.append(Weblet.paragraph("Schema update: setting non-mandatory on "+theClass.getName()+"."+propertyName+" of type "+propertyType.name()));
-			}
-			if (p.isNotNull()) {
-				p.setNotNull(false);
-				errors.append(Weblet.paragraph("Schema update: setting nullable on "+theClass.getName()+"."+propertyName+" of type "+propertyType.name()));
-			}
-		}
-		addColumnToColumns(con, theClass.getName(),propertyName);
-		return p;
-	}
-
-	/** Check for the existence of a class or add it */
-	public static OClass checkCreateClass(OSchema oschema, String className, StringBuilder errors) {
-		OClass c = oschema.getClass(className);
-		if (c == null) {
-			c = oschema.createClass(className);
-			errors.append(Weblet.paragraph("Schema update: Created "+className+" class/table"));
-		}
-		if (c == null) {
-			errors.append(Weblet.paragraph("error","Schema update: Error creating "+className+" class/table"));
-		}
-		if (c != null) {
-			if (c.isStrictMode()) {
-				c.setStrictMode(false);
-				errors.append(Weblet.paragraph("Schema update: Set non-strict "+className+" class/table"));
-			}
-		}
-		return c;
-	}
-
-	/** Check for the existence of a class's superclass or set it */
-	public static void checkClassSuperclass(OSchema oschema, OClass oclass, String superClassName, StringBuilder errors) {
-		OClass s = oschema.getClass(superClassName);
-		if (s == null) {
-			errors.append(Weblet.paragraph("error","Schema update: Cannot find superclass "+superClassName+" to assign to class "+oclass.getName()));
-			return;
-		}
-		OClass sc = oclass.getSuperClass();
-		if (sc == null) {
-			oclass.setSuperClass(s);
-			errors.append(Weblet.paragraph("Schema update: Assigned superclass "+superClassName+" to class "+oclass.getName()));
-			return;
-		} else {
-			if (!sc.getName().equals(superClassName)) {
-				errors.append(Weblet.paragraph("error","Schema update: Trying to assign superclass "+superClassName+" to class "+oclass.getName()+" but it already has "+sc.getName()+" as a superclass"));	
-				return;
-			}
-		}
-		return;
 	}
 
 }
