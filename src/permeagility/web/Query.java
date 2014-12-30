@@ -28,7 +28,7 @@ public class Query extends Weblet {
 			body( standardLayout(con, parms,  
 				getSQLBuilder(con)
 				+form("QUERY","#",
-					"<textarea spellcheck=\"false\" name=\"SQL\" rows=6 cols=80 text-build>"+(query==null ? "" : query)+"</textarea>"
+					"<textarea spellcheck=\"false\" name=\"SQL\" rows=6 cols=100 text-build>"+(query==null ? "" : query)+"</textarea>"
 					+br()
 					+submitButton(Message.get(con.getLocale(), "EXECUTE_QUERY"))
 				) 
@@ -47,7 +47,9 @@ public class Query extends Weblet {
 		if (query == null || query.equals("")) {
 			return paragraph(Message.get(con.getLocale(), "NO_QUERY_GIVEN"));
 		}
-		if (!query.trim().toUpperCase().startsWith("SELECT")) {  // If not a select, then update
+		if (!(query.trim().toUpperCase().startsWith("SELECT")
+				|| query.trim().toUpperCase().startsWith("TRAVERSE")
+			)) {  // If not a select, then update
 			return getUpdate(con,query);			
 		}
 		
@@ -271,8 +273,8 @@ public class Query extends Weblet {
 		
 	    return "<div ng-controller=\"TextBuildControl\""
 	           +" ng-init=\"tables=["+tableInit+"]; columns=["+columnInit+"];\">\n"
-	    +table(0,
-	    	row(columnSpan(5,"<select ng-model=\"statement\" ng-change=\"add(statement+' ')\">\n"
+	    +table(
+	    	row(columnSpan(4,"<select ng-model=\"statement\" ng-change=\"add(statement+' ')\">\n"
   				      +"  <option value=\"SELECT FROM\">SELECT [field, *] FROM class|rid [LET $a=(query)] [WHERE condition] [GROUP BY field, *] [ORDER BY field, *] [SKIP n] [LIMIT n]</option>\n"
 				      +"  <option value=\"SELECT EXPAND( $c ) LET $a = ( SELECT FROM t1 ), $b = ( SELECT FROM t2 ), $c = UNIONALL( $a, $b )\">SELECT (2 Table union template - replace t1 and t2)</option>\n"
 				      +"  <option value=\"SELECT expand(classes) FROM metadata:schema\">SELECT (list of tables/classes)</option>\n"
@@ -295,49 +297,105 @@ public class Query extends Weblet {
 					      +"  <option value=\"TRUNCATE\">TRUNCATE CLASS|CLUSTER|RECORD name|rid</option>\n"
 					      +"  <option value=\"GRANT\">GRANT NONE|CREATE|READ|UPDATE|DELETE|ALL ON class|resource TO role</option>\n"
 					      +"  <option value=\"REVOKE\">REVOKE NONE|CREATE|READ|UPDATE|DELETE|ALL ON class|resource FROM role</option>\n"
-					      +"  <option value=\"TRAVERSE\">TRAVERSE class.field|*|any()|all() FROM class|rid|query [LET var*] WHILE $depth&lt;n [LIMIT n] [STRATEGY s] </option>\n"
 					    : "")
-				      +"  <option value=\"\">None</option>\n"
+				      +"  <option value=\"\">OrientDB SQL Command Templates</option>\n"
 				      +"</select>\n"))
 	    	+row(column("")
 	    		+column(
 			    	"<select ng-model=\"selGroup\"\n"
 			    	+"  ng-options=\"v.group for v in tables | unique:'group'\" >\n"
-			    	+"  <option value=\"\">None</option>\n"
+			    	+"  <option value=\"\">Table Group</option>\n"
 			    	+"</select>\n")
 			    +column("")
 			    +column(
 			      "<select ng-model=\"selTable\"\n"
 			      +"      ng-options=\"v.table for v in tables | orderBy:'table'\" >\n"
-			      +"  <option value=\"\">None</option>\n"
+			      +"  <option value=\"\">Table</option>\n"
 			      +"</select>\n")
-			     +column("")
 		     )
-		     +row(column("<button ng-click=\"add('SELECT FROM ')\">SELECT FROM</button>\n")
+		     +row(column("label","<button ng-click=\"add('SELECT FROM ')\">SELECT FROM</button>\n")
 		    	+column("<select ng-model=\"selTable\"\n" 
 		    			+"  ng-change=\"add(selTable.table+' ')\"\n"
 		    			+"  ng-options=\"v.table for v in tables | filter:{group:selGroup.group} | orderBy:'table'\">\n"
-		    			+"  <option value=\"\">None</option>\n"
+		    			+"  <option value=\"\">Table</option>\n"
 		    			+"</select>\n")
-		    	+column("<button ng-click=\"add('WHERE ')\">WHERE</button>\n")
+		    	+column("label","<button ng-click=\"add('WHERE ')\">WHERE</button>\n")
 		    	+column("<select ng-model=\"selColumn\"\n" 
 		    			+"  ng-options=\"v.column+' -'+v.type for v in columns | filter:{table:selTable.table}\"\n" 
 		    			+"  ng-change=\"add(selColumn.column+' ')\">\n"
-		    			+"  <option value=\"\">None</option>\n"
+		    			+"  <option value=\"\">Column</option>\n"
 		    			+"</select>\n")
-		    	+column("<select ng-model=\"selOperator\" ng-change=\"add(selOperator+' ')\">\n"
-		    			+"  <option value=\"=\">=</option>\n"
-		    			+"  <option value=\"!=\">!=</option>\n"
-		    			+"  <option value=\"<\">&lt;</option>\n"
-		    			+"  <option value=\">\">&gt;</option>\n"
-		    			+"  <option value=\"LIKE\">LIKE</option>\n"
-		    			+"  <option value=\"CONTAINS\">CONTAINS</option>\n"
-		    			+"  <option value=\"CONTAINSKEY\">CONTAINSKEY</option>\n"
-		    			+"  <option value=\"CONTAINSVALUE\">CONTAINSVALUE</option>\n"
-		    			+"  <option value=\"\">None</option>\n"
-		    			+"</select>\n")
-		    	)
+		    )
+		    +row(columnSpan(2,"<select ng-model=\"selFunction\" ng-change=\"add(selFunction)\">\n"
+		    		+"  <option value=\"eval( )\">eval(formula) - can use property names in formula</option>\n"
+		    		+"  <option value=\"format( , )\">format('%s %d',str,int) see: java.util.Formatter</option>\n"
+		    		+"  <option value=\"coalesce( )\">coalesce(p1, p2, p3...) return the first not null</option>\n"
+		    		+"  <option value=\"distinct( )\">distinct(property) return only unique items</option>\n"
+		    		+"  <option value=\"if( , , )\">if(expression, ifTrue, ifFalse)</option>\n"
+		    		+"  <option value=\"ifnull( , )\">ifnull(property, valueIfNull)</option>\n"
+		    		+"  <option value=\"expand( )\">expand(property) extract a collection as a result</option>\n"
+		    		+"  <option value=\"union( , )\">union(p1, p2) aggregate collections as a result</option>\n"
+		    		+"  <option value=\"intersect( )\">intersect(p1, p2, p3...) returns intersection of lists</option>\n"
+		    		+"  <option value=\"difference( )\">difference(p1, p2, p3...) returns difference between lists</option>\n"
+		    		+"  <option value=\"first( )\">first(property) return the first in a list property</option>\n"
+		    		+"  <option value=\"last( )\">last(property) return the last in a list property</option>\n"
+		    		+"  <option value=\"count( )\">count(property) return the count of items in a list property</option>\n"
+		    		+"  <option value=\"min( )\">min(p1, p2, p3...) return the minimum value</option>\n"
+		    		+"  <option value=\"max( )\">max(p1, p2, p3...) return the maximum value</option>\n"
+		    		+"  <option value=\"avg( )\">avg(property) return the average</option>\n"
+		    		+"  <option value=\"stddev( )\">stddev(property) return the standard deviation</option>\n"
+		    		+"  <option value=\"median( )\">median(property) return the middle value</option>\n"
+		    		+"  <option value=\"percentile( )\">percentile(property, quantile...) return the nth percentiles</option>\n"
+		    		+"  <option value=\"mode( )\">mode(property) return the most frequent value</option>\n"
+		    		+"  <option value=\"variance( )\">variance(property) return the middle variance</option>\n"
+		    		+"  <option value=\"date( , )\">date(string,format[,timezone]) return the string as date</option>\n"
+		    		+"  <option value=\"sysdate()\">sysdate([format] [, timezone]) return the system date</option>\n"
+		    		+"  <option value=\"distance( , , , )\">distance(x1, y1, x2, y2) coordinated must be degrees</option>\n"
+		    		+"  <option value=\"set( )\">set(property) returns a set created from a property</option>\n"
+		    		+"  <option value=\"list( )\">list(property) returns a list created from a property</option>\n"
+		    		+"  <option value=\"map( , )\">map(key,value) returns a map created from a key/value</option>\n"
+		    		+"  <option value=\"uuid()\">uuid() returns a generated 128-bit value</option>\n"
+		    	    +"  <option value=\"\">Function</option>\n"
+		    		+"</select>\n")
+		    +columnSpan(2,"<select ng-model=\"selOperator\" ng-change=\"add(selOperator+' ')\">\n"
+		    		+"  <option value=\"=\">= equals</option>\n"
+		    		+"  <option value=\"<>\">&lt;&gt; not equal</option>\n"
+		    		+"  <option value=\"<\">&lt; less than</option>\n"
+		    		+"  <option value=\"<=\">&lt;= less than or equal</option>\n"
+		    		+"  <option value=\">\">&gt; greater than</option>\n"
+		    		+"  <option value=\">=\">&gt;= greater than or equal</option>\n"
+		    		+"  <option value=\"[ ]\">property[element] [name='x']|[0-3]</option>\n"
+		    		+"  <option value=\"AND\">condition AND condition</option>\n"
+		    		+"  <option value=\"OR\">condition OR condition</option>\n"
+		    		+"  <option value=\"BETWEEN\">field BETWEEN value1 AND value2</option>\n"
+		    		+"  <option value=\"CONTAINS\">list CONTAINS item|items</option>\n"
+		    		+"  <option value=\"CONTAINSALL\">list CONTAINSALL (field=value)</option>\n"
+		    		+"  <option value=\"CONTAINSKEY\">map CONTAINSKEY key</option>\n"
+		    		+"  <option value=\"CONTAINSVALUE\">map CONTAINSVALUE value</option>\n"
+		    		+"  <option value=\"CONTAINSTEXT\">string CONTAINSTEXT value</option>\n"
+		    		+"  <option value=\"IN\">field|list IN list</option>\n"
+		    		+"  <option value=\"INSTANCEOF\">@class INSTANCEOF classname</option>\n"
+		    		+"  <option value=\"IS NULL\">field IS NULL|NOT NULL</option>\n"
+		    		+"  <option value=\"LIKE\">string LIKE value (%=wildcard)</option>\n"
+		    		+"  <option value=\"MATCHES\">string MATCHES regexp</option>\n"
+		    		+"  <option value=\"any()\">any() matches any field</option>\n"
+		    		+"  <option value=\"all()\">all() matches all fields</option>\n"
+		    		+"  <option value=\"@class\">@class returns the class name</option>\n"
+		    		+"  <option value=\"@rid\">@class returns the rid</option>\n"
+		    		+"  <option value=\"@version\">@version returns the record version</option>\n"
+		    		+"  <option value=\"@size\">@class returns the record size in bytes</option>\n"
+		    		+"  <option value=\"@type\">@type returns the class type</option>\n"
+		    		+"  <option value=\"$parent\">$parent context from subquery</option>\n"
+		    		+"  <option value=\"$current\">$current record ($parent.$current)</option>\n"
+		    		+"  <option value=\"$depth\">$depth current depth of nesting in traversal</option>\n"
+		    		+"  <option value=\"$path\">$path representation of the current path</option>\n"
+		    		+"  <option value=\"$stack\">$stack history of the traversal</option>\n"
+		    		+"  <option value=\"$history\">$history all records traversed as a set<ORID></option>\n"
+		    		+"  <option value=\"\">Operator/Attribute</option>\n"
+		    		+"</select>\n"))
 		    )
 	    +"</div>\n";
 	}
 }
+
+
