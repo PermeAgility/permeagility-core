@@ -267,40 +267,14 @@ public class Query extends Weblet {
 				Integer cType = col.field("type");
 				String cClass = col.field("linkedClass");
 				if (columnInit.length()>0) columnInit.append(", ");
-				columnInit.append("{ table:'"+tName+"', column:'"+cName+"', type:'"+Table.getTypeName(con.getLocale(),cType)+(cClass == null ? "" : " to "+cClass)+"'}");
+				columnInit.append("{ table:'"+tName+"', column:'"+cName+"', type:'"+(cType == null ? "" : Table.getTypeName(con.getLocale(),cType))+(cClass == null ? "" : " to "+cClass)+"'}");
 			}
 		}
 		
 	    return "<div ng-controller=\"TextBuildControl\""
 	           +" ng-init=\"tables=["+tableInit+"]; columns=["+columnInit+"];\">\n"
 	    +table(
-	    	row(columnSpan(4,"<select ng-model=\"statement\" ng-change=\"add(statement+' ')\">\n"
-  				      +"  <option value=\"SELECT FROM\">SELECT [field, *] FROM class|rid [LET $a=(query)] [WHERE condition] [GROUP BY field, *] [ORDER BY field, *] [SKIP n] [LIMIT n]</option>\n"
-				      +"  <option value=\"SELECT EXPAND( $c ) LET $a = ( SELECT FROM t1 ), $b = ( SELECT FROM t2 ), $c = UNIONALL( $a, $b )\">SELECT (2 Table union template - replace t1 and t2)</option>\n"
-				      +"  <option value=\"SELECT expand(classes) FROM metadata:schema\">SELECT (list of tables/classes)</option>\n"
-				      +"  <option value=\"SELECT FROM (SELECT expand(properties) FROM (SELECT expand(classes) FROM metadata:schema) WHERE name = 't')\">SELECT (column list for a table - replace t)</option>\n"
-				      +"  <option value=\"TRAVERSE\">TRAVERSE class.field|*|any()|all() FROM class|rid|query [LET var*] WHILE $depth&lt;n [LIMIT n] [STRATEGY s] </option>\n"
-				      +"  <option value=\"EXPLAIN SELECT FROM\">EXPLAIN query</option>\n"
-				      +"  <option value=\"INSERT INTO\">INSERT INTO class [SET field=value, *] [FROM query] [RETURN ret]</option>\n"
-				      +"  <option value=\"UPDATE\">UPDATE [SET field=val *] [UPSERT] [WHERE condition *] [LIMIT n] [RETURN ret]</option>\n"
-				      +"  <option value=\"DELETE FROM\">DELETE class [WHERE condition *] [LIMIT n] [RETURN ret]</option>\n"
-				      +(Server.isDBA(con)
-				      	? "  <option value=\"CREATE CLASS\">CREATE CLASS class [EXTENDS super] [CLUSTER name, *]</option>\n"
-					      +"  <option value=\"CREATE CLUSTER\">CREATE CLUSTER name [POSITION position|APPEND] [CLUSTER name, *]</option>\n"
-					      +"  <option value=\"CREATE PROPERTY\">CREATE PROPERTY class.property type [linkedClass]</option>\n"
-					      +"  <option value=\"CREATE INDEX\">CREATE INDEX name|class.property [ON class (property, *)] UNIQUE|NOTUNIQUE|FULLTEXT</option>\n"
-					      +"  <option value=\"CREATE LINK\">CREATE LINK name TYPE LINK|LINKSET|LINKLIST FROM class.property TO class.property [INVERSE]</option>\n"
-					      +"  <option value=\"ALTER CLASS\">ALTER CLASS class NAME|SHORTNAME|SUPERCLASS|OVERSIZE|ADDCLUSTER|REMOVECLUSTER|STRICTMODE value</option>\n"
-					      +"  <option value=\"ALTER CLUSTER\">ALTER CLUSTER name|id NAME|DATASEGMENT|COMPRESSION|USE_WAL|RECORD_GROW_FACTOR|CONFLICTSTRATEGY value</option>\n"
-					      +"  <option value=\"ALTER PROPERTY\">ALTER PROPERTY class.property NAME|LINKEDCLASS|MIN|MAX|MANDATORY|NOTNULL|REGEXP|TYPE|COLLATE value</option>\n"
-					      +"  <option value=\"DROP\">DROP CLASS|CLUSTER|INDEX|PROPERTY value</option>\n"
-					      +"  <option value=\"TRUNCATE\">TRUNCATE CLASS|CLUSTER|RECORD name|rid</option>\n"
-					      +"  <option value=\"GRANT\">GRANT NONE|CREATE|READ|UPDATE|DELETE|ALL ON class|resource TO role</option>\n"
-					      +"  <option value=\"REVOKE\">REVOKE NONE|CREATE|READ|UPDATE|DELETE|ALL ON class|resource FROM role</option>\n"
-					    : "")
-				      +"  <option value=\"\">OrientDB SQL Command Templates</option>\n"
-				      +"</select>\n"))
-	    	+row(column("")
+	    	row(column("")
 	    		+column(
 			    	"<select ng-model=\"selGroup\"\n"
 			    	+"  ng-options=\"v.group for v in tables | unique:'group'\" >\n"
@@ -326,8 +300,35 @@ public class Query extends Weblet {
 		    			+"  <option value=\"\">Column</option>\n"
 		    			+"</select>\n")
 		    )
+    	+row(columnSpan(4,"<select ng-model=\"statement\" ng-change=\"add(statement+' ')\">\n"
+			      +"  <option value=\"SELECT FROM\">SELECT [field, *] FROM class|rid [LET $a=(query)] [WHERE condition] [GROUP BY field, *] [ORDER BY field, *] [SKIP n] [LIMIT n]</option>\n"
+			      +"  <option value=\"SELECT EXPAND( $c ) LET $a = ( SELECT FROM t1 ), $b = ( SELECT FROM t2 ), $c = UNIONALL( $a, $b )\">SELECT (2 Table union template - replace t1 and t2)</option>\n"
+			      +"  <option value=\"SELECT expand(classes) FROM metadata:schema\">SELECT (list of tables/classes)</option>\n"
+			      +"  <option value=\"SELECT FROM (SELECT expand(properties) FROM (SELECT expand(classes) FROM metadata:schema) WHERE name = 't')\">SELECT (column list for a table - replace t)</option>\n"
+			      +"  <option value=\"TRAVERSE\">TRAVERSE class.field|*|any()|all() FROM class|rid|query [LET var*] WHILE $depth&lt;n [LIMIT n] [STRATEGY s] </option>\n"
+			      +"  <option value=\"EXPLAIN SELECT FROM\">EXPLAIN query</option>\n"
+			      +"  <option value=\"INSERT INTO\">INSERT INTO class [SET field=value, *] [FROM query] [RETURN ret]</option>\n"
+			      +"  <option value=\"UPDATE\">UPDATE [SET field=val *] [UPSERT] [WHERE condition *] [LIMIT n] [RETURN ret]</option>\n"
+			      +"  <option value=\"DELETE FROM\">DELETE class [WHERE condition *] [LIMIT n] [RETURN ret]</option>\n"
+			      +(Server.isDBA(con)
+			      	? "  <option value=\"CREATE CLASS\">CREATE CLASS class [EXTENDS super] [CLUSTER name, *]</option>\n"
+				      +"  <option value=\"CREATE CLUSTER\">CREATE CLUSTER name [POSITION position|APPEND] [CLUSTER name, *]</option>\n"
+				      +"  <option value=\"CREATE PROPERTY\">CREATE PROPERTY class.property type [linkedClass]</option>\n"
+				      +"  <option value=\"CREATE INDEX\">CREATE INDEX name|class.property [ON class (property, *)] UNIQUE|NOTUNIQUE|FULLTEXT</option>\n"
+				      +"  <option value=\"CREATE LINK\">CREATE LINK name [TYPE LINK|LINKSET|LINKLIST] FROM class.property TO class.property [INVERSE]</option>\n"
+				      +"  <option value=\"ALTER CLASS\">ALTER CLASS class NAME|SHORTNAME|SUPERCLASS|OVERSIZE|ADDCLUSTER|REMOVECLUSTER|STRICTMODE value</option>\n"
+				      +"  <option value=\"ALTER CLUSTER\">ALTER CLUSTER name|id NAME|DATASEGMENT|COMPRESSION|USE_WAL|RECORD_GROW_FACTOR|CONFLICTSTRATEGY value</option>\n"
+				      +"  <option value=\"ALTER PROPERTY\">ALTER PROPERTY class.property NAME|LINKEDCLASS|MIN|MAX|MANDATORY|NOTNULL|REGEXP|TYPE|COLLATE value</option>\n"
+				      +"  <option value=\"DROP\">DROP CLASS|CLUSTER|INDEX|PROPERTY value</option>\n"
+				      +"  <option value=\"TRUNCATE\">TRUNCATE CLASS|CLUSTER|RECORD name|rid</option>\n"
+				      +"  <option value=\"GRANT\">GRANT NONE|CREATE|READ|UPDATE|DELETE|ALL ON class|resource TO role</option>\n"
+				      +"  <option value=\"REVOKE\">REVOKE NONE|CREATE|READ|UPDATE|DELETE|ALL ON class|resource FROM role</option>\n"
+				    : "")
+			      +"  <option value=\"\">Query/Command Templates</option>\n"
+			      +"</select>\n"))
 		    +row(columnSpan(2,"<select ng-model=\"selFunction\" ng-change=\"add(selFunction)\">\n"
-		    		+"  <option value=\"eval( )\">eval(formula) - can use property names in formula</option>\n"
+		    	    +"  <option value=\"\">Function</option>\n"
+		    		+"  <option value=\"eval( )\">eval(formula) - can use property names and math operators in formula</option>\n"
 		    		+"  <option value=\"format( , )\">format('%s %d',str,int) see: java.util.Formatter</option>\n"
 		    		+"  <option value=\"coalesce( )\">coalesce(p1, p2, p3...) return the first not null</option>\n"
 		    		+"  <option value=\"distinct( )\">distinct(property) return only unique items</option>\n"
@@ -355,9 +356,10 @@ public class Query extends Weblet {
 		    		+"  <option value=\"list( )\">list(property) returns a list created from a property</option>\n"
 		    		+"  <option value=\"map( , )\">map(key,value) returns a map created from a key/value</option>\n"
 		    		+"  <option value=\"uuid()\">uuid() returns a generated 128-bit value</option>\n"
-		    	    +"  <option value=\"\">Function</option>\n"
 		    		+"</select>\n")
 		    +columnSpan(2,"<select ng-model=\"selOperator\" ng-change=\"add(selOperator+' ')\">\n"
+		    		// Operators
+		    	    +"  <option value=\"\">Operator</option>\n"
 		    		+"  <option value=\"=\">= equals</option>\n"
 		    		+"  <option value=\"<>\">&lt;&gt; not equal</option>\n"
 		    		+"  <option value=\"<\">&lt; less than</option>\n"
@@ -380,6 +382,10 @@ public class Query extends Weblet {
 		    		+"  <option value=\"MATCHES\">string MATCHES regexp</option>\n"
 		    		+"  <option value=\"any()\">any() matches any field</option>\n"
 		    		+"  <option value=\"all()\">all() matches all fields</option>\n"
+		    		+"</select>\n"))
+		    +row(columnSpan(2,"<select ng-model=\"selAttribute\" ng-change=\"add(selAttribute+' ')\">\n"
+		    		// Attributes
+		    	    +"  <option value=\"\">Attribute</option>\n"
 		    		+"  <option value=\"@class\">@class returns the class name</option>\n"
 		    		+"  <option value=\"@rid\">@class returns the rid</option>\n"
 		    		+"  <option value=\"@version\">@version returns the record version</option>\n"
@@ -391,7 +397,47 @@ public class Query extends Weblet {
 		    		+"  <option value=\"$path\">$path representation of the current path</option>\n"
 		    		+"  <option value=\"$stack\">$stack history of the traversal</option>\n"
 		    		+"  <option value=\"$history\">$history all records traversed as a set<ORID></option>\n"
-		    		+"  <option value=\"\">Operator/Attribute</option>\n"
+		    		+"</select>\n")
+		    +columnSpan(2,"<select ng-model=\"selMethod\" ng-change=\"add(selMethod+' ')\">\n"
+		    		// Methods
+		    		+"  <option value=\"\">Method</option>\n"
+		    		+"  <option value=\".append( )\">.append(string) appends a string to another</option>\n"
+		    		+"  <option value=\".asBoolean()\">.asBoolean() convert to boolean (true/false, 1/0)</option>\n"
+		    		+"  <option value=\".asDate()\">.asDate() convert to date</option>\n"
+		    		+"  <option value=\".asDateTime()\">.asDateTime() convert to datetime</option>\n"
+		    		+"  <option value=\".asDecimal()\">.asDecimal() convert to decimal</option>\n"
+		    		+"  <option value=\".asFloat()\">.asFloat() convert to float</option>\n"
+		    		+"  <option value=\".asInteger()\">.asInteger() convert to integer</option>\n"
+		    		+"  <option value=\".asList()\">.asList() convert to list</option>\n"
+		    		+"  <option value=\".asLong()\">.asLong() convert to long</option>\n"
+		    		+"  <option value=\".asMap()\">.asMap() convert to map</option>\n"
+		    		+"  <option value=\".asSet()\">.asSet() convert to set</option>\n"
+		    		+"  <option value=\".asString()\">.asString() convert to string</option>\n"
+		    		+"  <option value=\".charAt( )\">.charAt(position) get char at position</option>\n"
+		    		+"  <option value=\".convert( )\">.convert(type) convert to type</option>\n"
+		    		+"  <option value=\".exclude( )\">.exclude(prop) exclude property from doc</option>\n"
+		    		+"  <option value=\".format( )\">.format() formats the value see: java.util.Formatter</option>\n"
+		    		+"  <option value=\".hash( )\">.hash(alg) returns the hash of the field</option>\n"
+		    		+"  <option value=\".include( , )\">.include(prop,...) includes only the properties</option>\n"
+		    		+"  <option value=\".indexOf( , )\">.indexOf(string[,pos]) index of string in field</option>\n"
+		    		+"  <option value=\".javaType()\">.javaType() returns the java type of the field</option>\n"
+		    		+"  <option value=\".keys()\">.keys() returns a map field's keys</option>\n"
+		    		+"  <option value=\".left()\">.left(len) returns the left len chars of the field</option>\n"
+		    		+"  <option value=\".length()\">.length() returns the length of the field</option>\n"
+		    		+"  <option value=\".normalize( )\">.normalize(form[,pattern]) returns the normalized field</option>\n"
+		    		+"  <option value=\".prefix( )\">.prefix(string) returns the field with the string in front</option>\n"
+		    		+"  <option value=\".remove( )\">.remove(item,...) remove the first occurrence of the item(s)</option>\n"
+		    		+"  <option value=\".removeAll( )\">.removeAll(item,...) remove all occurrences of the item(s)</option>\n"
+		    		+"  <option value=\".replace( ,)\">.replace(this,with) returns the first of the item(s)</option>\n"
+		    		+"  <option value=\".right()\">.right(len) returns the right len chars of the field</option>\n"
+		    		+"  <option value=\".size()\">.size() returns the size of the collection</option>\n"
+		    		+"  <option value=\".substring()\">.substring(start[,len]) returns the portion of the string</option>\n"
+		    		+"  <option value=\".trim()\">.trim() returns the field without leading/trailing spaces</option>\n"
+		    		+"  <option value=\".toJSON()\">.toJSON([format]) returns record in JSON format</option>\n"
+		    		+"  <option value=\".toLowerCase()\">.toLowerCase() returns string in lower case</option>\n"
+		    		+"  <option value=\".toUpperCase()\">.toUpperCase() returns string in upper case</option>\n"
+		    		+"  <option value=\".type()\">.type() returns the field type</option>\n"
+		    		+"  <option value=\".values()\">.values() returns the map's values</option>\n"
 		    		+"</select>\n"))
 		    )
 	    +"</div>\n";

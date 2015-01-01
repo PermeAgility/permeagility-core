@@ -11,7 +11,7 @@ import permeagility.util.Setup;
 public class UserRequest extends Table {
 
     public String getPage(DatabaseConnection con, java.util.HashMap<String,String> parms) {
-	return head(Message.get(con.getLocale(),"REQUEST_ACCOUNT"))+
+	return head(Message.get(con.getLocale(),"REQUEST_ACCOUNT"),getDateControlScript(con.getLocale())+getColorControlScript())+
 	    body(getHTML(con,parms));
     }
         

@@ -708,19 +708,6 @@ public abstract class Weblet {
 		        //+" singleClick : true\n"
 				+"});\n"
 				+"</script>\n";
-/*		return "<table><tr><td><input type=\"text\" name=\""+controlName+"\" id=\""+varName+"\" value=\""+initialValue+"\" /></td>\n"
-		+"<td><img src=\"/js/jscalendar-1.0/img.gif\" id=\""+varName+"_TRIG"+"\" style=\"cursor: pointer; border: solid red;\" title=\"Date selector\"\n"
-        +" onmouseover=\"this.style.background='red';\" onmouseout=\"this.style.background=''\" /></td></tr></table>\n"
-        +"<script type=\"text/javascript\">\n"
-        +"Calendar.setup({\n"
-        +" inputField : \""+varName+"\",\n"
-        +" ifFormat   : \""+DATE_CONTROL_FORMAT+"\",\n"
-        +" button     : \""+varName+"_TRIG"+"\",\n"
-        +(initialValue==null ? "" : " date : new Date(\""+initialValue+"\"),\n")
-        //+" singleClick : true\n"
-		+"});\n"
-		+"</script>\n";
-*/
 	}
 
 	public String getDateTimeControl(String formName, String controlName, String initialValue) {
@@ -739,19 +726,6 @@ public abstract class Weblet {
 		        +(initialValue==null ? "" : ", date : new Date(\""+initialValue+"\")\n")
 				+"});\n"
 				+"</script>\n";
-/*		return "<table><tr><td><input type=\"text\" name=\""+controlName+"\" id=\""+varName+"\" value=\""+initialValue+"\" /></td>\n"
-		+"<td><img src=\"/js/jscalendar-1.0/img.gif\" id=\""+varName+"_TRIG"+"\" style=\"cursor: pointer; border: 1px solid red;\" title=\"Date selector\"\n"
-        +" onmouseover=\"this.style.background='red';\" onmouseout=\"this.style.background=''\" /></td></tr></table>\n"
-        +"<script type=\"text/javascript\">\n"
-        +"Calendar.setup({\n"
-        +" inputField : \""+varName+"\"\n"
-        +" ,ifFormat   : \""+DATE_CONTROL_FORMAT+" "+TIME_CONTROL_FORMAT+"\"\n"
-        +" ,showsTime   : true\n"
-        +" ,button     : \""+varName+"_TRIG"+"\"\n"
-        //+" singleClick : true\n"
-        +(initialValue==null ? "" : ", date : new Date(\""+initialValue+"\")\n")
-		+"});\n"
-		+"</script>\n"; */
 	}
 
     public static String multiSelectList(String name, List<String> names, List<String> values, List<String> tooltips, Locale l) {
@@ -1261,19 +1235,12 @@ public abstract class Weblet {
 	 * Format a number based on locale and return the formatted number as a
 	 * string
 	 */
-	public static String formatNumber(Object locale, Number n, String format) {
-		if (n == null) {
-			return "";
-		}
-		Locale l = null;
-		if (locale != null && locale instanceof Locale) {
-			l = (Locale) locale;
+	public static String formatNumber(Locale locale, Number n, String format) {
+		if (locale == null || n == null) {
+			return "!"+n;
 		}
 		DecimalFormat numberFormat = new DecimalFormat(format);
-		if (l != null) {
-			numberFormat.setDecimalFormatSymbols(new DecimalFormatSymbols(l));
-		}
-
+		numberFormat.setDecimalFormatSymbols(new DecimalFormatSymbols(locale));
 		numberFormat.applyPattern(format);
 		return numberFormat.format(n);
 	}
@@ -1282,50 +1249,36 @@ public abstract class Weblet {
 	 * Format a number based on locale and return the formatted number as a
 	 * string
 	 */
-	public static String formatNumber(Object locale, Number n, String format, int precision) {
-		if (n == null) {
-			return "";
-		}
-		Locale l = null;
-		if (locale != null && locale instanceof Locale) {
-			l = (Locale) locale;
+	public static String formatNumber(Locale locale, Number n, String format, int precision) {
+		if (locale == null || n == null) {
+			return "!"+n;
 		}
 		DecimalFormat numberFormat = new DecimalFormat(format);
-		if (l != null) {
-			numberFormat.setDecimalFormatSymbols(new DecimalFormatSymbols(l));
-		}
-
+		numberFormat.setDecimalFormatSymbols(new DecimalFormatSymbols(locale));
 		numberFormat.applyPattern(format);
-		return ((n.doubleValue() == 0.0 ? numberFormat.format(new Double(0.0)) : numberFormat.format(roundDouble(n.doubleValue(),
-				precision))));
+		return ((n.doubleValue() == 0.0 ? numberFormat.format(new Double(0.0)) : numberFormat.format(roundDouble(n.doubleValue(),precision))));
 	}
 
 	/**
 	 * Format a number based on locale and return the formatted number as a
 	 * string
 	 */
-	public static String formatNumber(Object locale, double n, String format) {
-		Locale l = null;
-		if (locale != null && locale instanceof Locale) {
-			l = (Locale) locale;
+	public static String formatNumber(Locale locale, double n, String format) {
+		if (locale == null) {
+			return "!"+n;
 		}
 		DecimalFormat numberFormat = new DecimalFormat(format);
-		if (l != null) {
-			numberFormat.setDecimalFormatSymbols(new DecimalFormatSymbols(l));
-		}
+		numberFormat.setDecimalFormatSymbols(new DecimalFormatSymbols(locale));
 		numberFormat.applyPattern(format);
 		return numberFormat.format(n);
 	}
 
-	public static String formatNumber(Object locale, double n, String format, int precision) {
-		Locale l = null;
-		if (locale != null && locale instanceof Locale) {
-			l = (Locale) locale;
+	public static String formatNumber(Locale locale, double n, String format, int precision) {
+		if (locale == null) {
+			return "!"+n;
 		}
 		DecimalFormat numberFormat = new DecimalFormat(format);
-		if (l != null) {
-			numberFormat.setDecimalFormatSymbols(new DecimalFormatSymbols(l));
-		}
+		numberFormat.setDecimalFormatSymbols(new DecimalFormatSymbols(locale));
 		numberFormat.applyPattern(format);
 		return numberFormat.format(roundDouble(n, precision));
 
@@ -1334,14 +1287,10 @@ public abstract class Weblet {
 	/**
 	 * Parse a string number based on locale and return the number
 	 */
-	public static Number parseNumber(Object locale, String s) {
-		Locale l = null;
-		if (locale != null && locale instanceof Locale) {
-			l = (Locale) locale;
-		}
+	public static Number parseNumber(Locale locale, String s) {
 		DecimalFormat numberFormat = new DecimalFormat();
-		if (l != null) {
-			numberFormat.setDecimalFormatSymbols(new DecimalFormatSymbols(l));
+		if (locale != null) {
+			numberFormat.setDecimalFormatSymbols(new DecimalFormatSymbols(locale));
 		}
 		Number n = null;
 		if (s != null) {
@@ -1413,8 +1362,7 @@ public abstract class Weblet {
 	}
 
 	/**
-	 * Parse a string end date based on locale and return the date in seconds
-	 * since the epoch
+	 * Parse a string end date based on locale 
 	 * If INCLUSIVE_END_DAY is set, one day is added to the parsed
 	 * date
 	 */
@@ -1431,8 +1379,7 @@ public abstract class Weblet {
 	}
 
 	/**
-	 * Parse a string end date based on locale and return the date in seconds
-	 * since the epoch
+	 * Parse a string end date based on locale 
 	 * If INCLUSIVE_END_DAY is set, one day is added to the parsed
 	 * date
 	 */
@@ -1551,7 +1498,7 @@ public abstract class Weblet {
 		return cn.toString();
 	}
 
-	/** Turn text into a camelCase valid identifier 
+	/** Turn pretty and not so pretty text into a camelCase valid identifier 
 	 * ie. "Camel Case" becomes "camelCase" 
 	 * "first name" becomes "firstName" 
 	 * "User ID" becomes "userId" 

@@ -117,8 +117,8 @@ public class Setup {
 			Setup.checkCreateProperty(con, tableGroupTable, "tables", OType.STRING, installMessages);
 
 			if (tableGroupTable.count() == 0) {
-				con.create(TABLE_TABLEGROUP).field("name","Application").field("tables","columns, locale, pickList, menu, menuItem, message, style, tableGroup, userRequest, -thumbnail").field("_allowRead", adminRoles.toArray()).save();
-				con.create(TABLE_TABLEGROUP).field("name","System").field("tables","ORole, OUser, OFunction, OSchedule, -ORIDs, -E, -V, -_studio").field("_allowRead", adminRoles.toArray()).save();
+				con.create(TABLE_TABLEGROUP).field("name","Application").field("tables","columns,constant,locale,pickList,menu,menuItem,message,style,tableGroup,userRequest,-thumbnail").field("_allowRead", adminRoles.toArray()).save();
+				con.create(TABLE_TABLEGROUP).field("name","System").field("tables","ORole,OUser,OFunction,OSchedule,-ORIDs,-E,-V,-_studio").field("_allowRead", adminRoles.toArray()).save();
 				con.create(TABLE_TABLEGROUP).field("name","News").field("tables","article").field("_allowRead", allRoles.toArray()).save();
 			}
 			
@@ -961,7 +961,7 @@ public class Setup {
 "a.headerlogo:hover { text-decoration: none; background-color: transparent;}\n" +
 "body, html { font-family: verdana,sans-serif;\n" +
 "       color: white;\n" +
-"       background-color: black; }\n" +
+"        background: linear-gradient(to right, black, #444444); }\n" +
 "#menu { position: fixed; left: 0px; top: 2px; right: 0px; height: 20px; z-index: 100;\n" +
 "/*  background-repeat: repeat-y; border: 0;\n" +
 "  background-image: url(../images/PSBlackMenu.jpg); */\n" +
