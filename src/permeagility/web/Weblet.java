@@ -103,7 +103,7 @@ public abstract class Weblet {
 				// Add AngularJs
 				+ (ANGULAR_MIN ? "<script type=\"text/javascript\" src=\"/js/angular.min.js\"></script>\n"
 						: "<script type=\"text/javascript\" src=\"/js/angular.js\"></script>\n")
-				// and the AngularJS functions to support PermeAgility
+				// and the AngularJS functions to support PermeAgility controls
 				+"<script type=\"text/javascript\" src=\"/js/angular-permeagility.js\"></script>\n"
 				
 				// Add functions for popup forms (will fade screen and popup form when popuplink clicked)
@@ -112,11 +112,11 @@ public abstract class Weblet {
 				+"  $(document).ready(function () {\n"
 				+ "   $('.screenwait').fadeOut(0); \n"
 				+"    $('.submit').click(function(e) {\n"  // submit is clicked
+				+"      e.preventDefault();\n"
 				+"      e.stopPropagation();\n"	
 				+ "     $('.screenfade').fadeIn('fast'); \n"
 //				+ "     $('.screenwait').fadeIn('fast'); \n"  // no wait animation yet
 				+ "     $('.canpopup').slideUp('fast');\n"
-				+"      e.preventDefault();\n"
 			    +"      $(this).fadeOut(330, function() { $(this).unbind('click').click(); });"
 				+"	  });\n"
 				+"    $('a:not(.popuplink),tr.clickable').click(function (e) {\n"      // When an anchor is clicked
@@ -131,10 +131,11 @@ public abstract class Weblet {
 			    +"          }\n"
 				+"    });\n"
 				+"    $('.popuplink').click(function (e) {\n"      // When the popuplink is clicked
+				+"        e.preventDefault();\n"
+				+"        e.stopPropagation();\n"
 				+"        $(\".screenfade\").fadeIn(\"slow\");\n"  // Pull up screen fade
 				+"        $(e.target).next(\".canpopup\").slideDown(\"fast\");\n"  // Slide down the popup
-				+"        e.stopPropagation();\n"
-				+"        $('form :input:text:visible:not(input[class*=filter]):first').focus();\n"  // Set focus on the first input
+				+"        $('.canpopup :input[type!=hidden]:text:visible:first').focus();\n"  // Set focus on the first input
 				+"    });\n"
 				+"    $('.screenfade').click(function (e) {\n"   // When click on the screen fade (outside the popup)
 				+"        $(\".screenfade\").fadeOut(\"slow\");\n"  // Fade out the screen fade
@@ -142,6 +143,7 @@ public abstract class Weblet {
 				+"    });\n"
 				+"    $(document).on('mousedown', '.canpopup', function(e) {\n"
 	            +"      if ($(e.target).hasClass(\"banner\")) {\n"   // if mousedown on a banner
+				+"        e.preventDefault(); \n"
 				+"        $(this).addClass('draggable').parents().on('mousemove', function(e) {\n"  // Set it draggable and handle the event
 				+"        	            $('.draggable').offset({ \n"
 				+"                top: e.pageY,\n"
@@ -150,7 +152,6 @@ public abstract class Weblet {
 				+"                $(this).removeClass('draggable'); \n "
 				+"            }); \n "
 				+"        }); \n "
-				+"        e.preventDefault(); \n"
 				+"      }\n"
 				+"    }) \n"
 				+"  });\n</script>\n"
