@@ -1341,8 +1341,10 @@ public class Table extends Weblet {
 				sb.append(getRowHeader(con, table, columns, hideColumn));
 				for (ODocument row : rs.get()) {
 					//if (DEBUG) System.out.println("Print row...");
-					sb.append(rowOnClick("clickable", getRow(columns, row, con, hideColumn), "window.location.href='" + this.getClass().getName()
-							+ "?EDIT_ID=" + row.getIdentity().toString().substring(1) + "&TABLENAME=" + table + sourceTable + sourceId +"';"));
+//					sb.append(rowOnClick("clickable", getRow(columns, row, con, hideColumn), "window.location.href='" + this.getClass().getName()
+//							+ "?EDIT_ID=" + row.getIdentity().toString().substring(1) + "&TABLENAME=" + table + sourceTable + sourceId +"';"));
+					sb.append(rowOnClick("clickable", getRow(columns, row, con, hideColumn), this.getClass().getName()
+							+ "?EDIT_ID=" + row.getIdentity().toString().substring(1) + "&TABLENAME=" + table + sourceTable + sourceId ));
 					rowCount++;
 					if (page > -1 && rowCount >= ROW_COUNT_LIMIT) break;
 				}
