@@ -210,7 +210,7 @@ public class Query extends Weblet {
 		StringBuilder tableInit = new StringBuilder(); // JSON list of tables and groups
 		StringBuilder columnInit = new StringBuilder();  // JSON list of tables and columns
 		
-		// Add tables in groups (similar code to Schema - should be combined in one place - need one more use
+		// Add tables in groups (similar code to Schema - should be combined in one place - need one more use)
 		QueryResult schemas = con.query("SELECT from tableGroup");
 		QueryResult tables = con.query("SELECT name, superClass FROM (SELECT expand(classes) FROM metadata:schema) WHERE abstract=false ORDER BY name");
 		ArrayList<String> tablesInGroups = new ArrayList<String>(); 

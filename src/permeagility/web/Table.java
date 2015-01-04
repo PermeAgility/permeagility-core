@@ -37,7 +37,7 @@ public class Table extends Weblet {
 	public static int TEXT_AREA_THRESHOLD = 40;  // When showing a column as a cell, only show this many characters
 	public static int TEXT_AREA_WIDTH = 80;      // When the data is larger than this size, the input will be a text area
 	public static long ROW_COUNT_LIMIT = 500;    // All text areas will be this width
-	public static long DOT_INTERVAL = 5;         // Probably should derive this to be more dynamic
+	public static long DOT_INTERVAL = 5;         // Interval for dot when numerous pages - probably should derive this to be more dynamic
 	public static long PAGE_WINDOW = 3;          // Always show this many pages around the current page when there are many dots
 	public static String PARM_PREFIX = "PARM_";  // Use this prefix in front of all column names as form field names (parameter names) 
 	public static boolean SHOW_ALL_RELATED_TABLES = true;   // Will show that relationships exist even if no access to the table
@@ -1195,10 +1195,6 @@ public class Table extends Weblet {
 			+ submitButton(Message.get(l, "NEW_COLUMN"));
 	}
 	
-	public void addCrumb(HashMap<String,String> parms) {
-		
-	}
-
 	/** Get the EDIT_ID from the parms, get the document and populate the parms with the document's field data */
 	public HashMap<String, String> getTableRowParameters(DatabaseConnection con, String schema, String table, HashMap<String, String> parms) {
 		if (DEBUG) System.out.println("getTableRowParameters: Getting row and injecting into parameters");
@@ -1379,7 +1375,7 @@ public class Table extends Weblet {
 					int cp = columnName.indexOf(':',7);
 					//String n = columnName.substring(7,cp);  // Not used
 					String l = columnName.substring(cp+1,columnName.length()-1);
-					sb.append(columnHeader(center(l)));
+					sb.append(columnHeaderNoSort(center(l)));
 				} else {
 					sb.append(columnHeader(center(colNameI18N)));
 				}
@@ -1401,7 +1397,8 @@ public class Table extends Weblet {
 					String n = fieldName.substring(7,cp);  
 					String l = fieldName.substring(cp+1,fieldName.length()-1);
 //					sb.append(column("<div style=\"z-index: 1000;\">"+form(hidden(n,d.getIdentity().toString().substring(1))+submitButton(l))+"</div>"));
-					sb.append(column(form(hidden(n,d.getIdentity().toString().substring(1))+submitButton(l))));
+//					sb.append(column(form(hidden(n,d.getIdentity().toString().substring(1))+submitButton(l))));
+					sb.append(column(form(button(n,d.getIdentity().toString().substring(1),l))));
 				} else {
 					sb.append(getColumnAsCell(column, d, con));					
 				}

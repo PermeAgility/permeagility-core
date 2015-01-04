@@ -111,7 +111,7 @@ public abstract class Weblet {
 				+ "<script type=\"text/javascript\" charset=\"utf-8\">\n"
 				+"  $(document).ready(function () {\n"
 				+ "   $('.screenwait').fadeOut(0); \n"
-				+"    $('.submit').click(function(e) {\n"  // submit is clicked
+				+"    $('.submit,button').click(function(e) {\n"  // submit is clicked
 				+"      e.preventDefault();\n"
 				+"      e.stopPropagation();\n"	
 				+ "     $('.screenfade').fadeIn('fast'); \n"
@@ -120,14 +120,17 @@ public abstract class Weblet {
 			    +"      $(this).fadeOut(330, function() { $(this).unbind('click').click(); });"
 				+"	  });\n"
 				+"    $('a:not(.popuplink),tr.clickable').click(function (e) {\n"      // When an anchor is clicked
-				+"          e.preventDefault();\n"
-				+"          var goTo = this.getAttribute(\"href\");\n"
-				+"          var goToTarget = this.getAttribute(\"target\");\n"
-			    +"          if (goToTarget) {\n"
-			    +"             window.open(goTo); \n"
-			    +"          } else { \n"
-				+"             $(\".screenfade\").fadeIn(200);\n"  // Pull up screen fade
-			    +"             setTimeout(function() { window.location = goTo; } , 200); \n"
+				+"          var isButton = $(e.target).is(\":button\");\n"
+				+"          if (!isButton) {\n"
+				+"            e.preventDefault();\n"
+				+"            var goTo = this.getAttribute(\"href\");\n"
+				+"            var goToTarget = this.getAttribute(\"target\");\n"
+			    +"            if (goToTarget) {\n"
+			    +"               window.open(goTo); \n"
+			    +"            } else { \n"
+				+"               $(\".screenfade\").fadeIn(200);\n"  // Pull up screen fade
+			    +"               setTimeout(function() { window.location = goTo; } , 200); \n"
+			    +"            }\n"
 			    +"          }\n"
 				+"    });\n"
 				+"    $('.popuplink').click(function (e) {\n"      // When the popuplink is clicked
@@ -335,6 +338,10 @@ public abstract class Weblet {
 
 	public static String columnHeader(String s) {
 		return "<th>\n" + s + "</th>\n";
+	}
+
+	public static String columnHeaderNoSort(String s) {
+		return "<th class=\"sorttable_nosort\">\n" + s + "</th>\n";
 	}
 
 	/*
