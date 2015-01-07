@@ -1156,15 +1156,15 @@ public class Server extends Thread {
 		}
 	}
 	
+	public static QueryResult getColumns(String table) {
+		return getColumns(table, null);
+	}
+
 	/**
 	 * Returns column names and column details including type, and linked class
 	 * overrides column order based on value in columnList in columns table and add inherited columns as well
 	 * (There must be a cleaner way to code this but hey, it works and it is fairly simple)
 	 */
-	public static QueryResult getColumns(String table) {
-		return getColumns(table, null);
-	}
-
 	public static QueryResult getColumns(String table, String columnOverride) {
 		
 		if (columnOverride == null) {

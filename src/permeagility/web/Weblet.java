@@ -57,7 +57,8 @@ public abstract class Weblet {
     public static String POPUP_SUFFIX = "..";
     public static boolean JQUERY_MIN = false;  // Set to true to reduce download time but sacrifice debug messages of any value
     public static boolean ANGULAR_MIN = false;  // Set to true to reduce download time but sacrifice debug messages of any value
-
+    public static String NONE_STRING = "null";  // this is what a null reference will convert to on description lookups (when something is deleted)
+    
 	public static DateFormat sqlDateFormat = new SimpleDateFormat("yyyy-MM-dd");
 	public static DateFormat sqlDatetimeFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 	
@@ -121,7 +122,8 @@ public abstract class Weblet {
 				+"	  });\n"
 				+"    $('a:not(.popuplink),tr.clickable').click(function (e) {\n"      // When an anchor is clicked
 				+"          var isButton = $(e.target).is(\":button\");\n"
-				+"          if (!isButton) {\n"
+				+"          var isngClick = $(e.target).attr('ng-click') !== undefined;\n"
+				+"          if (!isButton && !isngClick) {\n"
 				+"            e.preventDefault();\n"
 				+"            var goTo = this.getAttribute(\"href\");\n"
 				+"            var goToTarget = this.getAttribute(\"target\");\n"
@@ -832,8 +834,8 @@ public abstract class Weblet {
 	    	if (rid.startsWith("#")) rid = rid.substring(1);
 	    	//System.out.println("adding rid "+rid);
 	    	values.add(rid);
-	    	names.add((String)row.field("name"));
-	    	tooltips.add((String)row.field("tooltip"));
+	    	names.add(toJSONString(getDescriptionFromDocument(con, row)));
+	    	tooltips.add(toJSONString((String)row.field("tooltip")));
 	    	boolean pick = false;
 	    	if (picked != null) { // Find in the list of picked, hope it isn't long
 	    		for (Object p : picked) {
@@ -899,8 +901,8 @@ public abstract class Weblet {
 			    	}
 			    	if (rid.startsWith("#")) rid = rid.substring(1);
 			    	listvalues.add(rid);
-			    	listnames.add(getDescriptionFromDocument(con, pick));
-			    	listtooltips.add((String)pick.field("tooltip"));
+			    	listnames.add(toJSONString(getDescriptionFromDocument(con, pick)));
+			    	listtooltips.add(toJSONString((String)pick.field("tooltip")));
 			    	Integer active = listMap.get(rid);
 			    	if (active == null) {
 			    		active = new Integer(1);
@@ -920,8 +922,8 @@ public abstract class Weblet {
 	    	}
 	    	if (rid.startsWith("#")) rid = rid.substring(1);
 	    	values.add(rid);
-	    	names.add((String)row.field("name"));
-	    	tooltips.add((String)row.field("tooltip"));
+	    	names.add(toJSONString((String)row.field("name")));
+	    	tooltips.add(toJSONString((String)row.field("tooltip")));
 	    	Integer active = listMap.get(rid);
 	    	if (active == null) {
 	    		active = new Integer(0);
@@ -987,8 +989,8 @@ public abstract class Weblet {
 			    	if (rid.startsWith("#")) rid = rid.substring(1);
 	    			listmaps.add(key);
 	    			listvalues.add(rid);
-			    	listnames.add(getDescriptionFromDocument(con, pick));
-			    	listtooltips.add((String)pick.field("tooltip"));
+			    	listnames.add(toJSONString(getDescriptionFromDocument(con, pick)));
+			    	listtooltips.add(toJSONString((String)pick.field("tooltip")));
 			    	Integer active = listMap.get(rid);
 			    	if (active == null) {
 			    		active = new Integer(1);
@@ -1008,8 +1010,8 @@ public abstract class Weblet {
 	    	}
 	    	if (rid.startsWith("#")) rid = rid.substring(1);
 	    	values.add(rid);
-	    	names.add((String)row.field("name"));
-	    	tooltips.add((String)row.field("tooltip"));
+	    	names.add(toJSONString((String)row.field("name")));
+	    	tooltips.add(toJSONString((String)row.field("tooltip")));
 	    	Integer active = listMap.get(rid);
 	    	if (active == null) {
 	    		active = new Integer(0);
@@ -1116,18 +1118,23 @@ public abstract class Weblet {
 		return createListFromCache(name, initial, con, getQueryForTable(con,table),onChange, allowNull, classname, enabled);
 	}
 
+	/** Prepare a string value for insertion into a JSON document (convert \ to \\ and ' to \') */
+	public static String toJSONString(String text) {
+		return text==null ? "" : text.replace("\\","\\\\").replace("'","\\'");
+	}
+	
 	public static String getDescriptionFromDocument(DatabaseConnection con, ODocument document) {
 		if (document == null) {
-			return "Null";
+			return NONE_STRING;
 		} else {
 			//System.out.println("document="+document.getIdentity()+" class="+document.getClassName());
 			return getDescriptionFromTable(con, document.getClassName(), document.getIdentity().toString());
 		}
 	}
-	
+
 	public static String getDescriptionFromTable(DatabaseConnection con, String table, String id) {
 		//System.out.println("GetDescriptionFromTable table="+table+" id="+id);
-		if (id == null || id.equals("")) return "Null";
+		if (id == null || id.equals("")) return NONE_STRING;
 		//System.out.println(getQueryForTable(con, table));
 		if (!id.startsWith("#")) id = "#"+id;
 		QueryResult qr = getCache().getResult(con, getQueryForTable(con, table));
@@ -1139,7 +1146,7 @@ public abstract class Weblet {
 				return id+" not in "+table;
 			}
 		} else {
-			return "Null";
+			return NONE_STRING;
 		}
 	}
 	
