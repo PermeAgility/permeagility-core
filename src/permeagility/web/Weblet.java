@@ -113,12 +113,15 @@ public abstract class Weblet {
 				+"  $(document).ready(function () {\n"
 				+ "   $('.screenwait').fadeOut(0); \n"
 				+"    $('.submit,button').click(function(e) {\n"  // submit is clicked
+				+"      var isngClick = $(e.target).attr('ng-click') !== undefined;\n"
+				+"      if (!isngClick) {\n"
 				+"      e.preventDefault();\n"
 				+"      e.stopPropagation();\n"	
 				+ "     $('.screenfade').fadeIn('fast'); \n"
 //				+ "     $('.screenwait').fadeIn('fast'); \n"  // no wait animation yet
 				+ "     $('.canpopup').slideUp('fast');\n"
-			    +"      $(this).fadeOut(330, function() { $(this).unbind('click').click(); });"
+			    +"      $(this).fadeOut(330, function() { $(this).unbind('click').click(); });\n"
+			    +"      }\n"
 				+"	  });\n"
 				+"    $('a:not(.popuplink),tr.clickable').click(function (e) {\n"      // When an anchor is clicked
 				+"          var isButton = $(e.target).is(\":button\");\n"
@@ -1126,6 +1129,13 @@ public abstract class Weblet {
 	public static String getDescriptionFromDocument(DatabaseConnection con, ODocument document) {
 		if (document == null) {
 			return NONE_STRING;
+		} else if (document.getClassName() == null) {
+			String name = document.field("name");
+			if (name != null) {
+				return name;
+			} else {
+				return NONE_STRING;
+			}
 		} else {
 			//System.out.println("document="+document.getIdentity()+" class="+document.getClassName());
 			return getDescriptionFromTable(con, document.getClassName(), document.getIdentity().toString());

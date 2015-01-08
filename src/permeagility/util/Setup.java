@@ -17,6 +17,8 @@ public class Setup {
 
 	static StringBuilder installMessages = new StringBuilder();
 	
+	public static boolean RESTRICTED_BY_ROLE = true;
+	
 	public static final String TABLE_THUMBNAIL = "thumbnail";
 	public static final String TABLE_CONSTANT = "constant";
 	public static final String TABLE_LOCALE = "locale";
@@ -151,6 +153,7 @@ public class Setup {
 				con.create(TABLE_CONSTANT).field("classname","permeagility.web.Context").field("description","Style sheet").field("field","DEFAULT_STYLE").field("value","default").save();				
 				con.create(TABLE_CONSTANT).field("classname","permeagility.web.Header").field("description","Logo for header").field("field","LOGO_FILE").field("value","Logo-blk.svg").save();				
 				con.create(TABLE_CONSTANT).field("classname","permeagility.web.Schema").field("description","Number of columns in tables view").field("field","NUMBER_OF_COLUMNS").field("value","4").save();				
+				con.create(TABLE_CONSTANT).field("classname","permeagility.util.Setup").field("description","When true, ORestricted tables will be by role (Delete OIdentity pickList if setting to false)").field("field","RESTRICTED_BY_ROLE").field("value","true").save();				
 			}
 
 			System.out.print(TABLE_LOCALE+" ");
@@ -831,6 +834,9 @@ public class Setup {
 		if (sc == null) {
 			oclass.setSuperClass(s);
 			errors.append(Weblet.paragraph("Schema update: Assigned superclass "+superClassName+" to class "+oclass.getName()));
+			if (superClassName.equals("ORestricted") && RESTRICTED_BY_ROLE) {
+				oclass.setCustom("onCreate.identityType", "role");   //alter class x custom onCreate.identityType=role
+			}
 			return;
 		} else {
 			if (!sc.getName().equals(superClassName)) {

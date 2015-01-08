@@ -34,6 +34,7 @@ public class QueryCache extends ConcurrentHashMap<String,QueryResult> {
 			return qr;
 		} catch (Exception e) {
 			System.out.println("Cannot produce query result: "+query+" for user "+user+"\nmessage="+e.getMessage());
+			e.printStackTrace();
 			return null;
 		}
 	}

@@ -122,8 +122,8 @@ public class Table extends Weblet {
 								+form("NEWROW","#",
 										paragraph("banner",Message.get(locale, "COPY")+"&nbsp;"+prettyTable)
 										+getTableRowFields(con, table, parms)
-										+submitButton(Message.get(locale, "CREATE_ROW"))
-										+submitButton(Message.get(locale, "CANCEL"))
+										+center(submitButton(Message.get(locale, "CREATE_ROW"))
+										+submitButton(Message.get(locale, "CANCEL")))
 								)
 							));
 			} else if (submit!= null && submit.equals(Message.get(locale, "CREATE_ROW"))) {
@@ -135,8 +135,8 @@ public class Table extends Weblet {
 								+form("NEWROW","#",
 										paragraph("banner",Message.get(locale, "CREATE")+"&nbsp;"+prettyTable)
 										+getTableRowFields(con, table, parms)
-										+submitButton(Message.get(locale, "CREATE_ROW"))
-										+submitButton(Message.get(locale, "CANCEL"))
+										+center(submitButton(Message.get(locale, "CREATE_ROW"))
+										+submitButton(Message.get(locale, "CANCEL")))
 								)
 							));					
 				}
@@ -282,7 +282,7 @@ public class Table extends Weblet {
 					+((Server.getTablePriv(con, table) & PRIV_CREATE) > 0 ? popupForm("CREATE_NEW_ROW",null,Message.get(locale,"NEW_ROW"),null,"NAME",
 							paragraph("banner",Message.get(locale, "CREATE_ROW"))
 							+getTableRowFields(con, table, parms)
-							+submitButton(Message.get(locale, "CREATE_ROW"))) : "")
+							+center(submitButton(Message.get(locale, "CREATE_ROW")))) : "")
 					+"&nbsp;&nbsp;&nbsp;"
 					+(Server.isDBA(con) ?
 						popupForm("NEWCOLUMN", null, Message.get(locale, "ADD_COLUMN"),null,"NEWCOLUMNNAME", newColumnForm(con))
@@ -1082,7 +1082,7 @@ public class Table extends Weblet {
 			try {  l = initialValues.field(name);  } catch (NullPointerException e) { }  // It will do this if it doesn't exist
 			//System.out.println("linkset size="+l.size());			
 			String linkedClass = column.field("linkedClass");
-			return row(label + columnNoWrap(linkSetControl(con, PARM_PREFIX+name, linkedClass, con.query(getQueryForTable(con, linkedClass)), con.getLocale(), l)));
+			return row(label + columnNoWrap(linkSetControl(con, PARM_PREFIX+name, linkedClass, getCache().getResult(con,getQueryForTable(con, linkedClass)), con.getLocale(), l)));
 
 		// Link map
 		} else if (type == 16) {
@@ -1090,7 +1090,7 @@ public class Table extends Weblet {
 			try {  l = initialValues.field(name);  } catch (NullPointerException e) { }  // It will do this if it doesn't exist
 			if (l != null && DEBUG) System.out.println("linkmap size="+l.size());			
 			String linkedClass = column.field("linkedClass");
-			return row(label + columnNoWrap(linkMapControl(con,PARM_PREFIX+name, linkedClass, con.query(getQueryForTable(con, linkedClass)), con.getLocale(), l)));
+			return row(label + columnNoWrap(linkMapControl(con,PARM_PREFIX+name, linkedClass, getCache().getResult(con,getQueryForTable(con, linkedClass)), con.getLocale(), l)));
 			
 		} else {
 			System.out.println("Table.GetColumnAsField: Unrecognized type: "+type);
@@ -1158,7 +1158,7 @@ public class Table extends Weblet {
 						paragraph("banner",Message.get(con.getLocale(), "CREATE_ROW"))
 						+hiddenFields
 						+getTableRowFields(con, relTable, fkParms)  // send fkcolumn data in parms
-						+submitButton(Message.get(con.getLocale(), "CREATE_ROW"))) : "")
+						+center(submitButton(Message.get(con.getLocale(), "CREATE_ROW")))) : "")
 				+ "&nbsp;&nbsp;&nbsp;"
 				+ (Server.isDBA(con) 
 				  ? popupForm("NEWCOLUMN_"+relTable, null, Message.get(con.getLocale(), "ADD_COLUMN"),null,"NEWCOLUMNNAME",
@@ -1192,7 +1192,7 @@ public class Table extends Weblet {
 			+ br()
 			+ input("NEWCOLUMNNAME", "")
 			+ br()
-			+ submitButton(Message.get(l, "NEW_COLUMN"));
+			+ center(submitButton(Message.get(l, "NEW_COLUMN")));
 	}
 	
 	/** Get the EDIT_ID from the parms, get the document and populate the parms with the document's field data */
@@ -1532,7 +1532,8 @@ public class Table extends Weblet {
 					try {
 						String newtable = parms.get("RENAME_TABLE");
 						newtable = makePrettyCamelCase(newtable);
-						Server.clearColumnsCache(table);
+						Server.tableUpdated(table);
+						Server.clearColumnsCache("ALL");
 						con.update("ALTER CLASS "+table+" NAME "+newtable);
 						con.update("UPDATE columns SET name='"+newtable+"' WHERE name='"+table+"'");
 						table = newtable;

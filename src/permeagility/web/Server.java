@@ -1220,6 +1220,7 @@ public class Server extends Thread {
 									newList.add(bd);
 								} else {
 									System.out.println("Could not find column "+name+" in the columns for table "+table+" even though this column was explicitly mentioned in the columns table - huh!");
+									clearColumnsCache(table);  // Maybe this will help
 								}
 							}
 						}
