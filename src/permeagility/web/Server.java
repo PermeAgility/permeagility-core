@@ -1110,9 +1110,13 @@ public class Server extends Thread {
 			ConstantOverride.apply(con);
 			database.freeConnection(con);
 		}
-		if (table.equals("columns")) {
+		if (table.equals("columns") ) {
 			if (DEBUG) System.out.println("Server: tableUpdated("+table+") - columns cache cleared");
 			Server.clearColumnsCache("ALL");  // Don't know which table or which row in columns table so clear all
+		}
+		if (table.equals("pickList") ) {
+			if (DEBUG) System.out.println("Server: tableUpdated("+table+") - query caches cleared");
+			Weblet.queryCache.clear();
 		}
 		if (table.equals("locale") || table.equals("message")) {
 			if (DEBUG) System.out.println("Server: tableUpdated("+table+") - messages refreshed and menus cleared");
