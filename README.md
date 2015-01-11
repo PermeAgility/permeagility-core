@@ -36,7 +36,7 @@ Login to the server using admin/admin, writer/writer, or reader/reader
 <br>
 <br>
 <br>
-&copy; 2014 PermeAgility Incorporated
+&copy; 2015 PermeAgility Incorporated
 
 Licensed under Eclipse Public License http://www.eclipse.org/legal/epl-v10.html
 
