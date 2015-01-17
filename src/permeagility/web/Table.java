@@ -1571,10 +1571,13 @@ public class Table extends Weblet {
 				if (isNullOrBlank(parms.get("COLUMN_TO_DROP"))) {
 					errors.append(paragraph("error", Message.get(locale, "SPECIFY_COLUMN_NAME")));
 				} else {
+					String colToDrop = parms.get("COLUMN_TO_DROP");
 					try {
 						OClass c = con.getSchema().getClass(table);
-						c.dropProperty(parms.get("COLUMN_TO_DROP"));
-						Setup.removeColumnFromColumns(con, table, parms.get("COLUMN_TO_DROP"));
+						c.dropProperty(colToDrop);
+						Object ret = con.update("UPDATE "+table+" REMOVE "+colToDrop);  // Otherwise, column actually remains in the data
+						errors.append(paragraph("success", "Data for column removed:"+ret));						
+						Setup.removeColumnFromColumns(con, table, colToDrop);
 						Server.tableUpdated("metadata:schema");
 						Server.clearColumnsCache(table);
 						return redirect(locale, this, "TABLENAME=" + table);
