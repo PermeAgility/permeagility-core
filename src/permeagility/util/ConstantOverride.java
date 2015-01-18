@@ -28,7 +28,7 @@ public class ConstantOverride {
 				field = (String)row.field("field");
 				value = (String)row.field("value");
 				try {
-				    Class<?> c = Class.forName( className );
+				    Class<?> c = Class.forName( className, true, PlusClassLoader.get() );
 					Object o = c.newInstance();
 					try {
 						Field f = c.getField(field);

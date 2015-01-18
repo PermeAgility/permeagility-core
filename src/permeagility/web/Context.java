@@ -5,10 +5,13 @@ at the URL "http://www.eclipse.org/legal/epl-v10.html".
 */
 package permeagility.web;
 
+import java.util.List;
 import java.util.Locale;
 
+import permeagility.plus.PlusSetup;
 import permeagility.util.Database;
 import permeagility.util.DatabaseConnection;
+import permeagility.util.PlusClassLoader;
 import permeagility.util.QueryResult;
 import permeagility.util.Setup;
 
@@ -66,7 +69,57 @@ public class Context extends Weblet {
 				cacheList.append(row("data",column(30,link("permeagility.web.Context?TABLE_NAME="+key,(String)key))+column(10,""+(qr.size()))+column(20,qr.getTime().toString())));
 			}
 		}
-	
+
+		// Prepare plus modules list and install/un-install plus modules as well
+		String submit = parms.get("SUBMIT");
+		String module = parms.get("MODULE");
+		StringBuilder plusList = new StringBuilder();
+		List<String> modules = PlusClassLoader.getModules();
+		for (String m : modules) {
+				String setupClassName = "permeagility.plus."+m.substring(5)+".PlusSetup";
+				try {
+					Class<?> classOf = Class.forName( setupClassName, true, PlusClassLoader.get() );
+				    Object classInstance = classOf.newInstance();
+				    if (classInstance instanceof PlusSetup) {
+						StringBuilder errors = new StringBuilder();
+				    	PlusSetup plusSetup = (PlusSetup)classInstance;
+				    	boolean installed = plusSetup.isInstalled();
+				    	if (submit != null && module != null && module.equals(m)) {
+				    		if (installed) {
+				    			if (submit.equals("Remove")) {
+				    				System.out.println("Removing "+m);
+				    				installed = !plusSetup.remove(con, parms, errors);
+				    			} else if (submit.equals("Upgrade")) { 
+				    				System.out.println("Upgrading "+m);				    				
+				    				installed = plusSetup.upgrade(con, parms, errors);				    				
+				    			}
+				    		} else if (submit != null && submit.equals("Install")){
+				    			System.out.println("Installing "+m);
+				    			installed = plusSetup.install(con, parms, errors);
+				    		}
+				    	}
+				    	String inVersion = plusSetup.getInstalledVersion(con, plusSetup.getClass().getName());
+				    	String plusVersion = plusSetup.getVersion();
+				    	String act = (installed ? (plusVersion.compareTo(inVersion)>0 ? "Upgrade" : "Remove") : "Install");
+						plusList.append(row("data",
+								column(m)
+								+column(inVersion)
+								+column(plusVersion)
+								+column(popupForm("INSTALL-"+m,null,act,null,null
+										,paragraph("banner",act+" "+m)
+										+hidden("MODULE",m)
+										+(installed ? (act.equals("Remove") ? plusSetup.getRemoveForm(con) : plusSetup.getUpgradeForm(con)) : plusSetup.getAddForm(con))
+										+br()+center(submitButton(act))
+								))
+								+column(plusSetup.getInfo())
+								+(errors.length() > 0 ? row(columnSpan(3,errors.toString())) : "")
+						));
+				    }
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+		}
+
 		// Prepare session report
 		StringBuilder sessionReport = new StringBuilder();
 		sessionReport.append("<p>"+Message.get(locale,"SERVER_SESSIONS")+"<br>");
@@ -111,6 +164,14 @@ public class Context extends Weblet {
 			+form(submitButton("REFRESH_CACHE_ALL",Message.get(locale, "CACHE_CLEAR_LISTS"))
 					+hidden("TABLE_NAME","ALL") + "&nbsp;"
 					+Message.get(locale, "CACHE_COUNT",""+getCache().size()))
+			+paragraph("banner",Message.get(locale, "PLUS_MODULES"))
+		    +table("data",
+			  row(columnHeader(Message.get(locale, "NAME"))
+					  +columnHeader(Message.get(locale, "DB_VERSION"))
+					  +columnHeader(Message.get(locale, "PLUS_VERSION"))
+					  +columnHeader(Message.get(locale, "SETUP"))
+					  +columnHeader(Message.get(locale, "DESCRIPTION")))
+			  +plusList.toString())
 			+paragraph("banner",Message.get(locale, "SERVER_SECURITY"))
 			+sessionReport.toString()
 			+form(submitButton("REFRESH_SECURITY_MODEL",Message.get(locale, "REFRESH_SECURITY"))

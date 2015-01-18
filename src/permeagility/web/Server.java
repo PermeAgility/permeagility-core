@@ -65,7 +65,7 @@ public class Server extends Thread {
 
 	/* Overrideable constants */
 	public static boolean DEBUG = true;
-	public static int SOCKET_TIMEOUT = 60000;  // One minute timeout
+	public static int SOCKET_TIMEOUT = 180000;  // Three minute timeout
 	public static boolean ALLOW_KEEP_ALIVE = true;
 	public static boolean KEEP_ALIVE = true;  // Keep sockets alive by default, don't wait for browser to ask
 	public static int KEEP_ALIVE_PAUSE_MS = 0;  // If keep_alive, pause after sending response
@@ -1324,6 +1324,7 @@ public class Server extends Thread {
 			String p = getLocalSetting(DB_NAME+HTTP_PORT, "");
 			//System.out.println("Localsetting for password is "+p);
 			database = new Database(DB_NAME, "server", (p == null || p.equals("") ? "server" : p));
+//			database = new Database(DB_NAME, "admin", (p == null || p.equals("") ? "admin" : p));
 			if (!database.isConnected()) {    
 				System.out.println("Panic: Cannot login with server user, maybe this is first time so will try admin/admin");
 				database = new Database(DB_NAME, "admin", "admin");
@@ -1353,10 +1354,6 @@ public class Server extends Thread {
 				database.setPoolSize(SERVER_POOL_SIZE);
 //				con = database.getConnection();
 				System.out.println("Connected to database name="+DB_NAME+" version="+database.getClientVersion());
-				if (!ConstantOverride.apply(con)) {
-					System.out.println("***\n*** Exit condition: Could not apply constant overrides\n***");
-					exit(-1);
-				}
 				plusClassLoader = PlusClassLoader.get();
 				if (plusClassLoader == null) {
 					System.out.println("***\n*** Exit condition: Could not initialize the PlusClassLoader\n***");
@@ -1364,7 +1361,13 @@ public class Server extends Thread {
 				}
 				// Set the class loader for the currentThread (and all the Children so that plus's will work)
 				currentThread().setContextClassLoader(plusClassLoader);
-				
+
+				// Do this after plus modules loaded so we can set their constants
+				if (!ConstantOverride.apply(con)) {
+					System.out.println("***\n*** Exit condition: Could not apply constant overrides\n***");
+					exit(-1);
+				}
+
 				refreshSecurity();
 				if (keyRoles.size() < 1) {
 					System.out.println("***\n*** Exit condition: No key roles found for security - no functions to enable\n***");

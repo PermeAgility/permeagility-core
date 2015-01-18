@@ -2,6 +2,7 @@ package permeagility.util;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 import permeagility.web.Message;
 import permeagility.web.Server;
@@ -638,6 +639,44 @@ public class Setup {
 		return true;
 	}
 
+
+	public static void createMenuItem(DatabaseConnection con, String name, String description, String classname, String addTo, String roles) {
+		// Create menuitem
+		roles = (roles != null ? "#"+roles.replace(" ", "").replace(",",",#") : "");
+		Object menuItem = con.update("INSERT INTO "+Setup.TABLE_MENUITEM+" SET name='"+name+"', active=true"
+				+ ", description='"+description+"', classname='"+classname+"', _allowRead=["+roles+"]");
+
+		// Add to the specified menu
+		if (addTo != null && !addTo.equals("") && menuItem instanceof ODocument) {
+			Object ret = con.update("UPDATE #"+addTo+" ADD items = "+((ODocument)menuItem).getIdentity().toString());
+		}
+		Server.tableUpdated("menu");
+	}
+
+	public static boolean removeMenuItem(DatabaseConnection con, String classname, StringBuilder errors) {
+		try {
+			// Get the menu items for this class
+			QueryResult menuItems = con.query("SELECT FROM menuItem WHERE classname = '"+classname+"'");
+			for (ODocument mi : menuItems.get()) {
+				// Find the menus it is in and remove it from them
+				QueryResult menus = con.query("SELECT FROM menu WHERE items CONTAINS "+mi.getIdentity().toString());
+				for (ODocument m : menus.get()) {
+					Object ret = con.update("UPDATE "+m.getIdentity().toString()+" REMOVE items = "+mi.getIdentity().toString());
+					errors.append(Weblet.paragraph("error","Removed from menu "+m.field("name")+": "+ret));				
+				}
+			}
+			
+			// Delete menu item(s)
+			Object ret = con.update("DELETE FROM "+Setup.TABLE_MENUITEM+" WHERE classname='"+classname+"'");
+			errors.append(Weblet.paragraph("error","Deleted menu items: "+ret));
+			Server.tableUpdated("menu");
+			return true;
+		} catch (Exception e) {
+			e.printStackTrace();
+			return false;
+		}
+	}
+	
 	/** Create message if it doesn't already exist */
 	public static int checkCreateMessage(DatabaseConnection con, ODocument loc, String name, String description) {
 		if (Message.get(con.getLocale(), name).equals(name)) {
@@ -707,6 +746,7 @@ public class Setup {
 		if (d == null) {
 			d = con.create(TABLE_TABLEGROUP);
 			d.field("name",tableGroup);
+			d.field("_allowRead",Server.getUserRoles(con));
 		}
 		String tableList = d.field("tables");
 		if (tableList == null || tableList.equals("")) {
@@ -723,9 +763,11 @@ public class Setup {
 			}
 		}		
 		d.save();
+		Server.tableUpdated("tableGroup");
 		return;
 	}
 
+	/** Should be called when removing a table to ensure the table in out of table group and columns */
 	public static void removeTableFromAllTableGroups(DatabaseConnection con, String theClass) {
 		QueryResult q = con.query("SELECT FROM "+TABLE_TABLEGROUP+" WHERE tables CONTAINSTEXT '"+theClass+"'");
 		if (q == null || q.size()==0) {
@@ -748,7 +790,19 @@ public class Setup {
 			}		
 			d.save();
 		}
+		// Also remove the columns
+		con.update("DELETE FROM "+TABLE_COLUMNS+" WHERE name='"+theClass+"'");
 		return;
+	}
+	
+	/** Create or update a constant - note this does not call Server.tableUpdated("constant") to avoid repeated constant updates */
+	public static void checkCreateConstant(DatabaseConnection con, String classname, String description, String field, String value) {
+		QueryResult qr = con.query("SELECT FROM "+TABLE_CONSTANT+" WHERE classname='"+classname+"' AND field='"+field+"'");
+		if (qr != null && qr.size()>0) {
+			con.update("UPDATE CONSTANT SET value='"+value+"' WHERE classname='"+classname+"' AND field='"+field+"'");
+		} else {
+			con.create(Setup.TABLE_CONSTANT).field("classname",classname).field("description",description).field("field",field).field("value",value).save();							
+		}
 	}
 
 	/** Check for the existence of a class property or add it This assumes you want a link type, otherwise the linkClass may have adverse effects */
@@ -819,7 +873,7 @@ public class Setup {
 				errors.append(Weblet.paragraph("Schema update: Set non-strict "+className+" class/table"));
 			}
 		}
-		addTableToTableGroup(con, className,tableGroup);
+		if (tableGroup != null) addTableToTableGroup(con, className,tableGroup);
 		return c;
 	}
 

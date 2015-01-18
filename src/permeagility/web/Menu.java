@@ -80,7 +80,7 @@ public class Menu extends Weblet {
 			            		} else if (menuDesc == null) {
 			            			prettyDesc = "";
 			            		}
-			                	if (Server.isRoleMatch(Server.getUserRoles(con),readRoles.toArray())) {
+			                	if (readRoles != null && Server.isRoleMatch(Server.getUserRoles(con),readRoles.toArray())) {
 		                        	if (i.field("classname") == null || ((String)i.field("classname")).equals("")) {
 		                                itemMenu.append((HORIZONTAL_LAYOUT ? "&nbsp;" : "<br>") +"\n");                	                	
 		                        	} else {

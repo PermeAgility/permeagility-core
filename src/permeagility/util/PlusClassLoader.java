@@ -5,6 +5,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * This class extends the URLClassLoader to load jars named 'plus-*' from the plus directory
@@ -17,6 +18,8 @@ public class PlusClassLoader extends URLClassLoader {
 	public static final String PLUS_PREFIX = "plus-";
 	
 	private static ClassLoader instance = null;  // There can only be one and it can only be loaded once
+	
+	private static ArrayList<String> modules = new ArrayList<String>();
 	
 	public PlusClassLoader(URL[] urls) {
 		super(urls);
@@ -33,10 +36,11 @@ public class PlusClassLoader extends URLClassLoader {
 		}
 		if (d.isDirectory()) {
 			for (File f : d.listFiles()) {
-				if (f.getName().startsWith(PLUS_PREFIX)) {
+				if (f.getName().startsWith(PLUS_PREFIX) && f.getName().endsWith(".jar")) {
 					System.out.println("Loading plus module "+f.getName());
 					try {
 						urls.add(f.toURI().toURL());
+						modules.add(f.getName().substring(0, f.getName().length()-4));
 					} catch (MalformedURLException e) {
 						System.out.println("Cannot make URL plus module "+f.getName()+": "+e.getMessage());
 					}
@@ -55,4 +59,8 @@ public class PlusClassLoader extends URLClassLoader {
 		return instance;
 	}
 
+	public static List<String> getModules() {
+		return modules;
+	}
+	
 }
