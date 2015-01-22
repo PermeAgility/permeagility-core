@@ -722,7 +722,6 @@ public class Setup {
 	}
 
 	public static void addTableToTableGroup(DatabaseConnection con, String theClass, String tableGroup) {
-		System.out.println("Adding "+theClass+" to tableGroup "+tableGroup);
 		ODocument d = con.queryDocument("SELECT FROM "+TABLE_TABLEGROUP+" WHERE name='"+tableGroup+"'");
 		if (d == null) {
 			d = con.create(TABLE_TABLEGROUP);
