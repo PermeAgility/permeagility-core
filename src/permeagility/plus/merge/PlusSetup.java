@@ -17,7 +17,7 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 	
 	// Override these to change the names of the tables that will be created and used by this module
 	public static String MERGE_TABLE = "mergePath";   // Table name to hold merge source/dest
-	public static String ATTR_TABLE = "mergePathAttribute";   // Defines property mapping for a merge
+	public static String ATTR_TABLE = "mergePathColumn";   // Defines property mapping for a merge
 	
 	public static String MENU_CLASS = "permeagility.plus.merge.Merge";
 	
@@ -36,7 +36,7 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 			return false;
 		}
 		
-		OClass table = Setup.checkCreateTable(oschema, MERGE_TABLE, errors);
+		OClass table = Setup.checkCreateTable(con, oschema, MERGE_TABLE, errors, newTableGroup);
 		Setup.checkCreateColumn(con, table, "name", OType.STRING, errors);
 		Setup.checkCreateColumn(con, table, "fromTable", OType.STRING, errors);
 		Setup.checkCreateColumn(con, table, "fromKey", OType.STRING, errors);
@@ -45,7 +45,7 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 		Setup.checkCreateColumn(con, table, "created", OType.DATETIME, errors);
 		Setup.checkCreateColumn(con, table, "executed", OType.DATETIME, errors);
 		
-		OClass logTable = Setup.checkCreateTable(oschema, ATTR_TABLE, errors);
+		OClass logTable = Setup.checkCreateTable(con, oschema, ATTR_TABLE, errors, newTableGroup);
 		Setup.checkCreateColumn(con, logTable, "path", OType.LINK, table, errors);
 		Setup.checkCreateColumn(con, logTable, "fromColumn", OType.STRING, errors);
 		Setup.checkCreateColumn(con, logTable, "toColumn", OType.STRING, errors);
@@ -70,9 +70,9 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 		String remTab = parms.get("REMOVE_TABLES");
 		if (remTab != null && remTab.equals("on")) {
 			Setup.dropTable(con, MERGE_TABLE);
-			errors.append(paragraph("error","Table dropped: "+MERGE_TABLE));
+			errors.append(paragraph("success","Table dropped: "+MERGE_TABLE));
 			Setup.dropTable(con, ATTR_TABLE);
-			errors.append(paragraph("error","Table dropped: "+ATTR_TABLE));
+			errors.append(paragraph("success","Table dropped: "+ATTR_TABLE));
 		}
 
 		setPlusUninstalled(con, this.getClass().getName());

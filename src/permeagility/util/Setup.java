@@ -642,13 +642,13 @@ public class Setup {
 				QueryResult menus = con.query("SELECT FROM menu WHERE items CONTAINS "+mi.getIdentity().toString());
 				for (ODocument m : menus.get()) {
 					Object ret = con.update("UPDATE "+m.getIdentity().toString()+" REMOVE items = "+mi.getIdentity().toString());
-					errors.append(Weblet.paragraph("error","Removed from menu "+m.field("name")+": "+ret));				
+					errors.append(Weblet.paragraph("success","Removed from menu "+m.field("name")+": "+ret));				
 				}
 			}
 			
 			// Delete menu item(s)
 			Object ret = con.update("DELETE FROM "+Setup.TABLE_MENUITEM+" WHERE classname='"+classname+"'");
-			errors.append(Weblet.paragraph("error","Deleted menu items: "+ret));
+			errors.append(Weblet.paragraph("success","Deleted menu items: "+ret));
 			Server.tableUpdated("menu");
 			return true;
 		} catch (Exception e) {
@@ -722,6 +722,7 @@ public class Setup {
 	}
 
 	public static void addTableToTableGroup(DatabaseConnection con, String theClass, String tableGroup) {
+		System.out.println("Adding "+theClass+" to tableGroup "+tableGroup);
 		ODocument d = con.queryDocument("SELECT FROM "+TABLE_TABLEGROUP+" WHERE name='"+tableGroup+"'");
 		if (d == null) {
 			d = con.create(TABLE_TABLEGROUP);
