@@ -252,9 +252,9 @@ public class Table extends Weblet {
 					} else {
 						String camel = makePrettyCamelCase(cn);						
 						if (tr != null) {
-							Setup.checkCreateProperty(con, c, camel, type, con.getSchema().getClass(tr), errors);
+							Setup.checkCreateColumn(con, c, camel, type, con.getSchema().getClass(tr), errors);
 						} else {
-							Setup.checkCreateProperty(con, c, camel, type, errors);
+							Setup.checkCreateColumn(con, c, camel, type, errors);
 						}
 						errors.append(paragraph("success", Message.get(locale, "NEW_COLUMN_CREATED")+":&nbsp;"+camel));
 						Server.tableUpdated("metadata:schema");

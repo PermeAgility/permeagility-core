@@ -37,7 +37,7 @@ public class Schema extends Weblet {
 						if (newclass != null) {
 							errors.append(paragraph("success",Message.get(con.getLocale(),"NEW_TABLE_CREATED",camel,makeCamelCasePretty(camel))));
 							if (ADD_NAME_TO_NEW_TABLE) {
-								Setup.checkCreateProperty(con, newclass, "name", OType.STRING, errors);
+								Setup.checkCreateColumn(con, newclass, "name", OType.STRING, errors);
 								//newclass.createProperty("name", OType.STRING).setNotNull(false).setMandatory(false);
 							}
 							Server.tableUpdated("metadata:schema");

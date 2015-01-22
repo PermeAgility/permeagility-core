@@ -1,4 +1,4 @@
-package permeagility.plus;
+package permeagility.plus.translate;
 
 import java.net.URL;
 import java.util.HashMap;
@@ -27,9 +27,6 @@ public class Translate extends Table {
 		StringBuilder sb = new StringBuilder();
 		StringBuilder errors = new StringBuilder();
 
-		if (!INSTALLED) {
-			checkInstallation(con, errors);
-		}
 		String submit = parms.get("SUBMIT");
 		String connect = parms.get("CONNECT");
 		String editId = parms.get("EDIT_ID");
@@ -373,13 +370,4 @@ public class Translate extends Table {
 
 	public static final String WORK_TABLE = "locale";
 	
-	private void checkInstallation(DatabaseConnection con, StringBuilder errors) {
-		// Verify the installation of the Merge table structures
-		if (!Server.isDBA(con)) {
-			return;
-		}
-
-		INSTALLED = true;  //This will be checked every startup unless this flag is set true using a constant
-	}
-
 }

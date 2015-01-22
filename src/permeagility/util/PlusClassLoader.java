@@ -20,6 +20,7 @@ public class PlusClassLoader extends URLClassLoader {
 	private static ClassLoader instance = null;  // There can only be one and it can only be loaded once
 	
 	private static ArrayList<String> modules = new ArrayList<String>();
+	private static String builtins[] = {"plus-translate", "plus-merge"};
 	
 	public PlusClassLoader(URL[] urls) {
 		super(urls);
@@ -28,6 +29,9 @@ public class PlusClassLoader extends URLClassLoader {
 	public static ClassLoader get() {
 		if (instance != null) {
 			return instance;
+		}
+		for (String m : builtins) {
+			modules.add(m);			
 		}
 		ArrayList<URL> urls = new ArrayList<URL>();
 		File d = new File(PLUS_DIRECTORY);

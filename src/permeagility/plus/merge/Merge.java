@@ -1,4 +1,4 @@
-package permeagility.plus;
+package permeagility.plus.merge;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -27,9 +27,6 @@ public class Merge extends Table {
 		StringBuilder sb = new StringBuilder();
 		StringBuilder errors = new StringBuilder();
 
-		if (!INSTALLED) {
-			checkInstallation(con, errors);
-		}
 		String submit = parms.get("SUBMIT");
 		String connect = parms.get("CONNECT");
 		String fromTable = parms.get("fromTable");
@@ -116,7 +113,7 @@ public class Merge extends Table {
 				sb.append(paragraph("success","Merging from count "+fromResult.size()+" to count "+toResult.size()));
 				QueryResult columnMap = null;
 				try {
-					columnMap = con.query("SELECT FROM "+ATTR_TABLE+" WHERE path=#"+run);
+					columnMap = con.query("SELECT FROM "+PlusSetup.ATTR_TABLE+" WHERE path=#"+run);
 				} catch (Exception e) {
 					Throwable cause = e.getCause();
 					sb.append(paragraph("error","AttributeTable: "+cause==null ? e.getMessage() : cause.getMessage()));				
@@ -175,7 +172,7 @@ public class Merge extends Table {
 	    	try {
 	    		parms.put("SERVICE", "Merge: Setup/Select merge path");
 				sb.append(paragraph("banner","Select merge path"));
-				sb.append(getTable(con,parms,MERGE_TABLE,"SELECT FROM "+MERGE_TABLE, null,0, "button(RUN:Run), name, fromTable, toTable, created, executed"));
+				sb.append(getTable(con,parms,PlusSetup.MERGE_TABLE,"SELECT FROM "+PlusSetup.MERGE_TABLE, null,0, "button(RUN:Run), name, fromTable, toTable, created, executed"));
 	    	} catch (Exception e) {  
 	    		e.printStackTrace();
 	    		sb.append("Error retrieving import patterns: "+e.getMessage());
@@ -184,11 +181,11 @@ public class Merge extends Table {
 		return 	head("Merge",getDateControlScript(con.getLocale())+getColorControlScript())
 				+body(standardLayout(con, parms, 
 				errors.toString()
-				+((Server.getTablePriv(con, MERGE_TABLE) & PRIV_CREATE) > 0 && connect == null 
+				+((Server.getTablePriv(con, PlusSetup.MERGE_TABLE) & PRIV_CREATE) > 0 && connect == null 
 					? popupForm("CREATE_NEW_ROW",null,Message.get(con.getLocale(),"NEW_PATH"),null,"name",
 						paragraph("banner",Message.get(con.getLocale(), "CREATE_ROW"))
-						+hidden("TABLENAME", MERGE_TABLE)
-						+getTableRowFields(con, MERGE_TABLE, parms, "name,fromTable,toTable,fromKey,toKey")
+						+hidden("TABLENAME", PlusSetup.MERGE_TABLE)
+						+getTableRowFields(con, PlusSetup.MERGE_TABLE, parms, "name,fromTable,toTable,fromKey,toKey")
 						+submitButton(Message.get(con.getLocale(), "CREATE_ROW"))) 
 					: "")
 				+sb.toString()
@@ -414,37 +411,5 @@ public class Merge extends Table {
 		   )
 	    +"</div>\n";
 	}
-
-	// Override these to change the names of the tables that will be created and used by this importer
-	public static String MERGE_TABLE = "mergePath";   // Local OrientDB table name to hold connection specs
-	public static String ATTR_TABLE = "mergePathAttribute";   // Saved path from a Oracle schema.table to a PermeAgility class/table
     	
-	private void checkInstallation(DatabaseConnection con, StringBuilder errors) {
-		// Verify the installation of the Merge table structures
-		if (!Server.isDBA(con)) {
-			return;
-		}
-		OSchema oschema = con.getSchema();
-		
-		OClass table = Setup.checkCreateClass(oschema, MERGE_TABLE, errors);
-		Setup.checkCreateProperty(con, table, "name", OType.STRING, errors);
-		Setup.checkCreateProperty(con, table, "fromTable", OType.STRING, errors);
-		Setup.checkCreateProperty(con, table, "fromKey", OType.STRING, errors);
-		Setup.checkCreateProperty(con, table, "toTable", OType.STRING, errors);
-		Setup.checkCreateProperty(con, table, "toKey", OType.STRING, errors);
-		Setup.checkCreateProperty(con, table, "created", OType.DATETIME, errors);
-		Setup.checkCreateProperty(con, table, "executed", OType.DATETIME, errors);
-		
-		OClass logTable = Setup.checkCreateClass(oschema, ATTR_TABLE, errors);
-		Setup.checkCreateProperty(con, logTable, "path", OType.LINK, table, errors);
-		Setup.checkCreateProperty(con, logTable, "fromColumn", OType.STRING, errors);
-		Setup.checkCreateProperty(con, logTable, "toColumn", OType.STRING, errors);
-		Setup.checkCreateProperty(con, logTable, "linkProperty", OType.STRING, errors);
-
-		Server.clearColumnsCache(MERGE_TABLE);
-		Server.clearColumnsCache(ATTR_TABLE);
-		
-		INSTALLED = true;  //This will be checked every startup unless this flag is set true using a constant
-	}
-
 }

@@ -93,7 +93,7 @@ public class Setup {
 
 			// columns must be first as it will receive the properties as they are created by checkCreateProperty
 			System.out.print(TABLE_COLUMNS+" ");  
-			OClass columnsTable = Setup.checkCreateClass(oschema, TABLE_COLUMNS, installMessages);
+			OClass columnsTable = Setup.checkCreateTable(oschema, TABLE_COLUMNS, installMessages);
 			// Need to create first two column manually then we can call the function that adds it to the new columns
 			if (columnsTable != null && !columnsTable.existsProperty("name")) {  
 				columnsTable.createProperty("name", OType.STRING);
@@ -109,15 +109,15 @@ public class Setup {
 			}
 
 			// This will ensure they are added to columns table in proper order
-			Setup.checkCreateProperty(con, columnsTable, "name", OType.STRING, installMessages);
-			Setup.checkCreateProperty(con, columnsTable, "columnList", OType.STRING, installMessages);
+			Setup.checkCreateColumn(con, columnsTable, "name", OType.STRING, installMessages);
+			Setup.checkCreateColumn(con, columnsTable, "columnList", OType.STRING, installMessages);
 
 			// Create early so we can automatically add tables to them
 			System.out.print(TABLE_TABLEGROUP+" ");
-			OClass tableGroupTable = Setup.checkCreateClass(oschema, TABLE_TABLEGROUP, installMessages);
-			Setup.checkClassSuperclass(oschema, tableGroupTable, "ORestricted", installMessages);
-			Setup.checkCreateProperty(con, tableGroupTable, "name", OType.STRING, installMessages);
-			Setup.checkCreateProperty(con, tableGroupTable, "tables", OType.STRING, installMessages);
+			OClass tableGroupTable = Setup.checkCreateTable(oschema, TABLE_TABLEGROUP, installMessages);
+			Setup.checkTableSuperclass(oschema, tableGroupTable, "ORestricted", installMessages);
+			Setup.checkCreateColumn(con, tableGroupTable, "name", OType.STRING, installMessages);
+			Setup.checkCreateColumn(con, tableGroupTable, "tables", OType.STRING, installMessages);
 
 			if (tableGroupTable.count() == 0) {
 				con.create(TABLE_TABLEGROUP).field("name","Application").field("tables","columns,constant,locale,pickList,menu,menuItem,message,style,tableGroup,userRequest,-thumbnail").field("_allowRead", adminRoles.toArray()).save();
@@ -126,24 +126,24 @@ public class Setup {
 			}
 			
 			System.out.print(TABLE_THUMBNAIL+" ");
-			OClass thumbnailTable = Setup.checkCreateClass(oschema, TABLE_THUMBNAIL, installMessages);
-			Setup.checkCreateProperty(con, thumbnailTable, "name", OType.STRING, installMessages);
-			Setup.checkCreateProperty(con, thumbnailTable, "table", OType.STRING, installMessages);
-			Setup.checkCreateProperty(con, thumbnailTable, "column", OType.STRING, installMessages);
-			Setup.checkCreateProperty(con, thumbnailTable, "id", OType.STRING, installMessages);
-			Setup.checkCreateProperty(con, thumbnailTable, "type", OType.STRING, installMessages);
-			Setup.checkCreateProperty(con, thumbnailTable, "size", OType.INTEGER, installMessages);
-			Setup.checkCreateProperty(con, thumbnailTable, "width", OType.INTEGER, installMessages);
-			Setup.checkCreateProperty(con, thumbnailTable, "height", OType.INTEGER, installMessages);
-			Setup.checkCreateProperty(con, thumbnailTable, "small", OType.CUSTOM, installMessages);
-			Setup.checkCreateProperty(con, thumbnailTable, "medium", OType.CUSTOM, installMessages);
+			OClass thumbnailTable = Setup.checkCreateTable(oschema, TABLE_THUMBNAIL, installMessages);
+			Setup.checkCreateColumn(con, thumbnailTable, "name", OType.STRING, installMessages);
+			Setup.checkCreateColumn(con, thumbnailTable, "table", OType.STRING, installMessages);
+			Setup.checkCreateColumn(con, thumbnailTable, "column", OType.STRING, installMessages);
+			Setup.checkCreateColumn(con, thumbnailTable, "id", OType.STRING, installMessages);
+			Setup.checkCreateColumn(con, thumbnailTable, "type", OType.STRING, installMessages);
+			Setup.checkCreateColumn(con, thumbnailTable, "size", OType.INTEGER, installMessages);
+			Setup.checkCreateColumn(con, thumbnailTable, "width", OType.INTEGER, installMessages);
+			Setup.checkCreateColumn(con, thumbnailTable, "height", OType.INTEGER, installMessages);
+			Setup.checkCreateColumn(con, thumbnailTable, "small", OType.CUSTOM, installMessages);
+			Setup.checkCreateColumn(con, thumbnailTable, "medium", OType.CUSTOM, installMessages);
 
 			System.out.print(TABLE_CONSTANT+" ");
-			OClass constantTable = Setup.checkCreateClass(oschema, TABLE_CONSTANT, installMessages);
-			Setup.checkCreateProperty(con, constantTable, "classname", OType.STRING, installMessages);
-			Setup.checkCreateProperty(con, constantTable, "description", OType.STRING, installMessages);
-			Setup.checkCreateProperty(con, constantTable, "field", OType.STRING, installMessages);
-			Setup.checkCreateProperty(con, constantTable, "value", OType.STRING, installMessages);
+			OClass constantTable = Setup.checkCreateTable(oschema, TABLE_CONSTANT, installMessages);
+			Setup.checkCreateColumn(con, constantTable, "classname", OType.STRING, installMessages);
+			Setup.checkCreateColumn(con, constantTable, "description", OType.STRING, installMessages);
+			Setup.checkCreateColumn(con, constantTable, "field", OType.STRING, installMessages);
+			Setup.checkCreateColumn(con, constantTable, "value", OType.STRING, installMessages);
 			
 			if (constantTable.count() == 0) {
 				con.create(TABLE_CONSTANT).field("classname","permeagility.web.Server").field("description","Server debug flag").field("field","DEBUG").field("value","false").save();				
@@ -158,10 +158,10 @@ public class Setup {
 			}
 
 			System.out.print(TABLE_LOCALE+" ");
-			OClass localeTable = Setup.checkCreateClass(oschema, TABLE_LOCALE, installMessages);
-			Setup.checkCreateProperty(con, localeTable, "name", OType.STRING, installMessages);
-			Setup.checkCreateProperty(con, localeTable, "description", OType.STRING, installMessages);
-			Setup.checkCreateProperty(con, localeTable, "active", OType.BOOLEAN, installMessages);
+			OClass localeTable = Setup.checkCreateTable(oschema, TABLE_LOCALE, installMessages);
+			Setup.checkCreateColumn(con, localeTable, "name", OType.STRING, installMessages);
+			Setup.checkCreateColumn(con, localeTable, "description", OType.STRING, installMessages);
+			Setup.checkCreateColumn(con, localeTable, "active", OType.BOOLEAN, installMessages);
 			
 			ODocument loc;  // Locale
 			if (localeTable.count() == 0) {
@@ -176,10 +176,10 @@ public class Setup {
 			}
 			
 			System.out.print(TABLE_MESSAGE+" ");
-			OClass messageTable = Setup.checkCreateClass(oschema, TABLE_MESSAGE, installMessages);
-			Setup.checkCreateProperty(con, messageTable, "name", OType.STRING, installMessages);
-			Setup.checkCreateProperty(con, messageTable, "description", OType.STRING, installMessages);
-			Setup.checkCreateProperty(con, messageTable, "locale", OType.LINK, localeTable, installMessages);
+			OClass messageTable = Setup.checkCreateTable(oschema, TABLE_MESSAGE, installMessages);
+			Setup.checkCreateColumn(con, messageTable, "name", OType.STRING, installMessages);
+			Setup.checkCreateColumn(con, messageTable, "description", OType.STRING, installMessages);
+			Setup.checkCreateColumn(con, messageTable, "locale", OType.LINK, localeTable, installMessages);
 
 			Message.initialize(con);
 			
@@ -363,13 +363,13 @@ public class Setup {
 			}
 			
 			System.out.print(TABLE_NEWS+" ");
-			OClass newsTable = Setup.checkCreateClass(oschema, TABLE_NEWS, installMessages);
-			Setup.checkClassSuperclass(oschema, newsTable, "ORestricted", installMessages);
-			Setup.checkCreateProperty(con, newsTable, "name", OType.STRING, installMessages);
-			Setup.checkCreateProperty(con, newsTable, "description", OType.STRING, installMessages);
-			Setup.checkCreateProperty(con, newsTable, "dateline", OType.DATETIME, installMessages);
-			Setup.checkCreateProperty(con, newsTable, "locale", OType.LINK, localeTable, installMessages);
-			Setup.checkCreateProperty(con, newsTable, "archive", OType.BOOLEAN, installMessages);			
+			OClass newsTable = Setup.checkCreateTable(oschema, TABLE_NEWS, installMessages);
+			Setup.checkTableSuperclass(oschema, newsTable, "ORestricted", installMessages);
+			Setup.checkCreateColumn(con, newsTable, "name", OType.STRING, installMessages);
+			Setup.checkCreateColumn(con, newsTable, "description", OType.STRING, installMessages);
+			Setup.checkCreateColumn(con, newsTable, "dateline", OType.DATETIME, installMessages);
+			Setup.checkCreateColumn(con, newsTable, "locale", OType.LINK, localeTable, installMessages);
+			Setup.checkCreateColumn(con, newsTable, "archive", OType.BOOLEAN, installMessages);			
 
 			if (newsTable.count() == 0) {
 				ODocument n1 = con.create(TABLE_NEWS);
@@ -424,11 +424,11 @@ public class Setup {
 			}
 			
 			System.out.print(TABLE_STYLE+" ");
-			OClass styleTable = Setup.checkCreateClass(oschema, TABLE_STYLE, installMessages);
-			Setup.checkCreateProperty(con, styleTable, "name", OType.STRING, installMessages);
-			Setup.checkCreateProperty(con, styleTable, "horizontal", OType.BOOLEAN, installMessages);
-			Setup.checkCreateProperty(con, styleTable, "logo", OType.STRING, installMessages);
-			Setup.checkCreateProperty(con, styleTable, "description", OType.STRING, installMessages);
+			OClass styleTable = Setup.checkCreateTable(oschema, TABLE_STYLE, installMessages);
+			Setup.checkCreateColumn(con, styleTable, "name", OType.STRING, installMessages);
+			Setup.checkCreateColumn(con, styleTable, "horizontal", OType.BOOLEAN, installMessages);
+			Setup.checkCreateColumn(con, styleTable, "logo", OType.STRING, installMessages);
+			Setup.checkCreateColumn(con, styleTable, "description", OType.STRING, installMessages);
 			
 			if (styleTable.count() == 0) {
 				ODocument style = con.create(TABLE_STYLE); 
@@ -447,21 +447,21 @@ public class Setup {
 			}
 			
 			System.out.print(TABLE_PICKLIST+" ");
-			OClass pickListTable = Setup.checkCreateClass(oschema, TABLE_PICKLIST, installMessages);
-			Setup.checkCreateProperty(con, pickListTable, "tablename", OType.STRING, installMessages);
-			Setup.checkCreateProperty(con, pickListTable, "query", OType.STRING, installMessages);
-			Setup.checkCreateProperty(con, pickListTable, "description", OType.STRING, installMessages);
+			OClass pickListTable = Setup.checkCreateTable(oschema, TABLE_PICKLIST, installMessages);
+			Setup.checkCreateColumn(con, pickListTable, "tablename", OType.STRING, installMessages);
+			Setup.checkCreateColumn(con, pickListTable, "query", OType.STRING, installMessages);
+			Setup.checkCreateColumn(con, pickListTable, "description", OType.STRING, installMessages);
 
 			if (pickListTable.count() == 0) {
 				con.create(TABLE_PICKLIST).field("tablename","OIdentity").field("query","select @rid.asString(), name from ORole").field("description","This will restrict row level table privileges to only selecting Roles, alter or remove this to allow user and role selection for _allow, _allowRead, etc... columns").save();				
 			}
 			
 			System.out.print(TABLE_MENU+" ");
-			OClass menuTable = Setup.checkCreateClass(oschema, TABLE_MENU, installMessages);
-			Setup.checkCreateProperty(con, menuTable, "name", OType.STRING, installMessages);
-			Setup.checkCreateProperty(con, menuTable, "active", OType.BOOLEAN, installMessages);
-			Setup.checkCreateProperty(con, menuTable, "description", OType.STRING, installMessages);
-			Setup.checkCreateProperty(con, menuTable, "sortOrder", OType.INTEGER, installMessages);
+			OClass menuTable = Setup.checkCreateTable(oschema, TABLE_MENU, installMessages);
+			Setup.checkCreateColumn(con, menuTable, "name", OType.STRING, installMessages);
+			Setup.checkCreateColumn(con, menuTable, "active", OType.BOOLEAN, installMessages);
+			Setup.checkCreateColumn(con, menuTable, "description", OType.STRING, installMessages);
+			Setup.checkCreateColumn(con, menuTable, "sortOrder", OType.INTEGER, installMessages);
 
 			if (menuTable.count() == 0) {
 				ODocument defaultMenu;
@@ -474,12 +474,12 @@ public class Setup {
 			}
 			
 			System.out.print(TABLE_MENUITEM+" ");
-			OClass menuItemTable = Setup.checkCreateClass(oschema, TABLE_MENUITEM, installMessages);
-			Setup.checkCreateProperty(con, menuItemTable, "name", OType.STRING, installMessages);
-			Setup.checkCreateProperty(con, menuItemTable, "classname", OType.STRING, installMessages);
-			Setup.checkCreateProperty(con, menuItemTable, "active", OType.BOOLEAN, installMessages);
-			Setup.checkCreateProperty(con, menuItemTable, "description", OType.STRING, installMessages);
-			Setup.checkClassSuperclass(oschema, menuItemTable, "ORestricted", installMessages);
+			OClass menuItemTable = Setup.checkCreateTable(oschema, TABLE_MENUITEM, installMessages);
+			Setup.checkCreateColumn(con, menuItemTable, "name", OType.STRING, installMessages);
+			Setup.checkCreateColumn(con, menuItemTable, "classname", OType.STRING, installMessages);
+			Setup.checkCreateColumn(con, menuItemTable, "active", OType.BOOLEAN, installMessages);
+			Setup.checkCreateColumn(con, menuItemTable, "description", OType.STRING, installMessages);
+			Setup.checkTableSuperclass(oschema, menuItemTable, "ORestricted", installMessages);
 			
 			if (menuItemTable.count() == 0) {
 				ODocument mi_login = con.create(TABLE_MENUITEM);
@@ -611,7 +611,7 @@ public class Setup {
 				items.add(mi_merge);   // Will be inactive
 
 				// Add the menu items property to the menu
-				Setup.checkCreateProperty(con, menuTable, "items", OType.LINKLIST, menuItemTable, installMessages);
+				Setup.checkCreateColumn(con, menuTable, "items", OType.LINKLIST, menuItemTable, installMessages);
 				ODocument menuDoc = con.queryDocument("SELECT FROM menu");
 				if (menuDoc != null && items.size() > 0) {
 					menuDoc.field("items",items.toArray());
@@ -622,10 +622,10 @@ public class Setup {
 			}			
 			
 			System.out.print(TABLE_USERREQUEST+" ");
-			OClass urTable = Setup.checkCreateClass(oschema, TABLE_USERREQUEST, installMessages);
-			Setup.checkCreateProperty(con, urTable, "name", OType.STRING, installMessages);
-			Setup.checkCreateProperty(con, urTable, "email", OType.STRING, installMessages);
-			Setup.checkCreateProperty(con, urTable, "password", OType.STRING, installMessages);
+			OClass urTable = Setup.checkCreateTable(oschema, TABLE_USERREQUEST, installMessages);
+			Setup.checkCreateColumn(con, urTable, "name", OType.STRING, installMessages);
+			Setup.checkCreateColumn(con, urTable, "email", OType.STRING, installMessages);
+			Setup.checkCreateColumn(con, urTable, "password", OType.STRING, installMessages);
 
 			con.flush();
 			
@@ -806,7 +806,7 @@ public class Setup {
 	}
 
 	/** Check for the existence of a class property or add it This assumes you want a link type, otherwise the linkClass may have adverse effects */
-	public static OProperty checkCreateProperty(DatabaseConnection con, OClass theClass, String propertyName, OType propertyType, OClass linkClass, StringBuilder errors) {
+	public static OProperty checkCreateColumn(DatabaseConnection con, OClass theClass, String propertyName, OType propertyType, OClass linkClass, StringBuilder errors) {
 		OProperty p = theClass.getProperty(propertyName);
 		if (p == null) {
 			p = theClass.createProperty(propertyName, propertyType, linkClass);
@@ -817,7 +817,7 @@ public class Setup {
 	}
 
 	/** Check for the existence of a class property or add it and add to columns */
-	public static OProperty checkCreateProperty(DatabaseConnection con, OClass theClass, String propertyName, OType propertyType, StringBuilder errors) {
+	public static OProperty checkCreateColumn(DatabaseConnection con, OClass theClass, String propertyName, OType propertyType, StringBuilder errors) {
 		OProperty p = theClass.getProperty(propertyName);
 		if (p == null) {
 			p = theClass.createProperty(propertyName, propertyType);
@@ -839,7 +839,7 @@ public class Setup {
 	}
 
 	/** Check for the existence of a class or add it */
-	public static OClass checkCreateClass(OSchema oschema, String className, StringBuilder errors) {
+	public static OClass checkCreateTable(OSchema oschema, String className, StringBuilder errors) {
 		OClass c = oschema.getClass(className);
 		if (c == null) {
 			c = oschema.createClass(className);
@@ -858,7 +858,7 @@ public class Setup {
 	}
 
 	/** Check for the existence of a class or add it */
-	public static OClass checkCreateClass(DatabaseConnection con, OSchema oschema, String className, StringBuilder errors, String tableGroup) {
+	public static OClass checkCreateTable(DatabaseConnection con, OSchema oschema, String className, StringBuilder errors, String tableGroup) {
 		OClass c = oschema.getClass(className);
 		if (c == null) {
 			c = oschema.createClass(className);
@@ -878,7 +878,7 @@ public class Setup {
 	}
 
 	/** Check for the existence of a class's superclass or set it */
-	public static void checkClassSuperclass(OSchema oschema, OClass oclass, String superClassName, StringBuilder errors) {
+	public static void checkTableSuperclass(OSchema oschema, OClass oclass, String superClassName, StringBuilder errors) {
 		OClass s = oschema.getClass(superClassName);
 		if (s == null) {
 			errors.append(Weblet.paragraph("error","Schema update: Cannot find superclass "+superClassName+" to assign to class "+oclass.getName()));
@@ -899,6 +899,15 @@ public class Setup {
 			}
 		}
 		return;
+	}
+	
+	/** Drop a table */
+	public static void dropTable(DatabaseConnection con, String classname) {
+		OSchema schema = con.getSchema();
+		schema.dropClass(classname);
+		Setup.removeTableFromAllTableGroups(con, classname);
+		Server.clearColumnsCache(classname);
+		DatabaseConnection.rowCountChanged(classname);
 	}
 
 	public static final String DEFAULT_STYLESHEET = 
