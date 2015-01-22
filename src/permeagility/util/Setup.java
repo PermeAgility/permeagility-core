@@ -578,24 +578,6 @@ public class Setup {
 				mi_blank.field("_allowRead",allRoles);
 				mi_blank.save();
 
-				ODocument mi_translate = con.create(TABLE_MENUITEM);
-				mi_translate.field("name","Translate");
-				mi_translate.field("active",false);
-				mi_translate.field("description","Translate messages (plus)");
-				mi_translate.field("classname","permeagility.plus.Translate");
-				mi_translate.field("_allow",adminRoles);
-				mi_translate.field("_allowRead",adminRoles);
-				mi_translate.save();
-
-				ODocument mi_merge = con.create(TABLE_MENUITEM);
-				mi_merge.field("name","Merge");
-				mi_merge.field("active",false);
-				mi_merge.field("description","Merge data (plus)");
-				mi_merge.field("classname","permeagility.plus.Merge");
-				mi_merge.field("_allow",adminRoles);
-				mi_merge.field("_allowRead",adminRoles);
-				mi_merge.save();
-
 				// Build default menu
 				ArrayList<ODocument> items = new ArrayList<ODocument>();
 				items.add(mi_userRequest);
@@ -607,8 +589,6 @@ public class Setup {
 				items.add(mi_password);
 				items.add(mi_backup);
 				items.add(mi_shutdown);
-				items.add(mi_translate); // Will be inactive
-				items.add(mi_merge);   // Will be inactive
 
 				// Add the menu items property to the menu
 				Setup.checkCreateColumn(con, menuTable, "items", OType.LINKLIST, menuItemTable, installMessages);
