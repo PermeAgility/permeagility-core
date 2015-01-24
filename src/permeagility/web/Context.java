@@ -147,9 +147,10 @@ public class Context extends Weblet {
 		return
 		    paragraph(Message.get(locale, "SERVER_ON_PORT")+"&nbsp;"+Server.HTTP_PORT
 		    		+br()+Message.get(locale, "SERVER_RUNNING")+"&nbsp;"+Server.getServerInitTime()
+		    		+br()+Message.get(locale, "SERVER_JAR")+"&nbsp;"+Server.getCodeSource()
 		    		+br()+Message.get(locale, "SERVER_CONNECT")+"&nbsp;"+Server.DB_NAME
 		    		+br()+Message.get(locale, "SERVER_USER")+"&nbsp;"+Server.getDatabase().getUser()
-		    		+br()+Message.get(locale, "SERVER_VERSION")+Server.getDatabase().getClientVersion())
+		    		+br()+Message.get(locale, "SERVER_VERSION")+"&nbsp;"+Server.getDatabase().getClientVersion())
 		    +paragraph("banner",Message.get(locale, "SERVER_CACHE"))
 			+form(submitButton("CLEAR_COLUMNS",Message.get(locale, "CACHE_CLEAR_COLUMNS"))
 					+ "&nbsp;" + Message.get(locale, "CACHE_COUNT",""+Server.columnsCacheSize()))
@@ -166,11 +167,11 @@ public class Context extends Weblet {
 					+Message.get(locale, "CACHE_COUNT",""+getCache().size()))
 			+paragraph("banner",Message.get(locale, "PLUS_MODULES"))
 		    +table("data",
-			  row(columnHeader(Message.get(locale, "NAME"))
-					  +columnHeader(Message.get(locale, "DB_VERSION"))
+			  row(columnHeader(Message.get(locale, "PLUS_NAME"))
+					  +columnHeader(Message.get(locale, "PLUS_DB_VERSION"))
 					  +columnHeader(Message.get(locale, "PLUS_VERSION"))
-					  +columnHeader(Message.get(locale, "SETUP"))
-					  +columnHeader(Message.get(locale, "DESCRIPTION")))
+					  +columnHeader(Message.get(locale, "PLUS_SETUP"))
+					  +columnHeader(Message.get(locale, "PLUS_DESCRIPTION")))
 			  +plusList.toString())
 			+paragraph("banner",Message.get(locale, "SERVER_SECURITY"))
 			+sessionReport.toString()

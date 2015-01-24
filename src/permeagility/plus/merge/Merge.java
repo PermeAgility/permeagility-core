@@ -171,7 +171,7 @@ public class Merge extends Table {
 		if (sb.length() == 0) {
 	    	try {
 	    		parms.put("SERVICE", "Merge: Setup/Select merge path");
-				sb.append(paragraph("banner","Select merge path"));
+				sb.append(paragraph("banner","Merge paths"));
 				sb.append(getTable(con,parms,PlusSetup.MERGE_TABLE,"SELECT FROM "+PlusSetup.MERGE_TABLE, null,0, "button(RUN:Run), name, fromTable, toTable, created, executed"));
 	    	} catch (Exception e) {  
 	    		e.printStackTrace();
@@ -182,8 +182,8 @@ public class Merge extends Table {
 				+body(standardLayout(con, parms, 
 				errors.toString()
 				+((Server.getTablePriv(con, PlusSetup.MERGE_TABLE) & PRIV_CREATE) > 0 && connect == null 
-					? popupForm("CREATE_NEW_ROW",null,Message.get(con.getLocale(),"NEW_PATH"),null,"name",
-						paragraph("banner",Message.get(con.getLocale(), "CREATE_ROW"))
+					? popupForm("CREATE_NEW_ROW", null, "New merge path", null, "name",
+						paragraph("banner", Message.get(con.getLocale(), "CREATE_ROW"))
 						+hidden("TABLENAME", PlusSetup.MERGE_TABLE)
 						+getTableRowFields(con, PlusSetup.MERGE_TABLE, parms, "name,fromTable,toTable,fromKey,toKey")
 						+submitButton(Message.get(con.getLocale(), "CREATE_ROW"))) 

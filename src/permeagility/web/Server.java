@@ -83,6 +83,7 @@ public class Server extends Thread {
 	public static boolean LOGOUT_KILLS_USER = false; // Set this to true to kill all sessions for a user when a user logs out (more secure)
 	public static String LOCKOUT_MESSAGE = "<p>The system is unavailable because a system restore is being performed. Please try again later.</p><a href='/'>Try it now</a>";
 	
+	private static String codeSource;  // The file this class is in, for version reporting
 	static Database database;  // Server database connection
 	static Database dbNone = null;  // Used for login and account request
 
@@ -132,8 +133,11 @@ public class Server extends Thread {
 		}
 	}  
 
-	public static void main(String[] args) {		
-		ServerSocket ss;
+	public static void main(String[] args) {	
+
+		try { codeSource = new java.io.File(Server.class.getProtectionDomain().getCodeSource().getLocation().getPath()).getName();
+		} catch (Exception e) { e.printStackTrace(); }
+		
 		try {
 			HTTP_PORT = Integer.parseInt(args[0]);
 			if (HTTP_PORT < 0 || HTTP_PORT > 65535) HTTP_PORT = 1999;
@@ -181,8 +185,7 @@ public class Server extends Thread {
 		
 		try {
 			System.out.println("Opening HTTP_PORT "  + HTTP_PORT);
-			ss = new ServerSocket(HTTP_PORT);
-
+			ServerSocket ss = new ServerSocket(HTTP_PORT);  // Do this before init in case already bound
 			if (initializeServer()) {   
 				// Add shutdown hook
 				Runtime.getRuntime().addShutdownHook(new Thread() {
@@ -511,7 +514,7 @@ public class Server extends Thread {
 						}
 					}
 										
-					// Set locale if specified (TODO: need to be by sessions)
+					// Set locale if specified (TODO: need to be by sessions not sure if multiple guests in multiple languages)
 					if (parms.containsKey("LOCALE") && db != null) {
 						Locale l = Message.getLocale(parms.get("LOCALE"));
 						db.setLocale(l);
@@ -1420,4 +1423,5 @@ public class Server extends Thread {
 	
 	public static Date getServerInitTime() {   return serverInitTime;  }
 	public static Date getSecurityRefreshTime() {   return securityRefreshTime;  }
+	public static String getCodeSource() { return codeSource; }
 }

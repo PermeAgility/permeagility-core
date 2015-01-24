@@ -326,6 +326,7 @@ public class Setup {
 			mCount += checkCreateMessage(con, loc, "SERVER_ON_PORT", "HTTP/Web server on port");
 			mCount += checkCreateMessage(con, loc, "SERVER_RUNNING", "running since");
 			mCount += checkCreateMessage(con, loc, "SERVER_CONNECT", "connected to");
+			mCount += checkCreateMessage(con, loc, "SERVER_JAR", "using jar");
 			mCount += checkCreateMessage(con, loc, "SERVER_USER", "with user");
 			mCount += checkCreateMessage(con, loc, "SERVER_VERSION", "OrientDB version is");
 			mCount += checkCreateMessage(con, loc, "SERVER_CACHE", "Cached lists");
@@ -356,7 +357,13 @@ public class Setup {
 			mCount += checkCreateMessage(con, loc, "IMAGE_VIEW_HEADER", "View");
 			mCount += checkCreateMessage(con, loc, "DOWNLOAD_FULL_SIZE", "Download full size");
 			mCount += checkCreateMessage(con, loc, "DOWNLOAD_FILE", "Download file");
-			
+			mCount += checkCreateMessage(con, loc, "PLUS_MODULES", "Plus modules");
+			mCount += checkCreateMessage(con, loc, "PLUS_NAME", "Name");
+			mCount += checkCreateMessage(con, loc, "PLUS_DB_VERSION", "DB Version");
+			mCount += checkCreateMessage(con, loc, "PLUS_VERSION", "Plus Version");
+			mCount += checkCreateMessage(con, loc, "PLUS_SETUP", "Setup");
+			mCount += checkCreateMessage(con, loc, "PLUS_DESCRIPTION", "Description");
+						
 			if (mCount > 0) {
 				installMessages.append(Weblet.paragraph("CheckInstallation: Created "+mCount+" messages"));
 				Server.tableUpdated("message");
