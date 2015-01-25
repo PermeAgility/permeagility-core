@@ -210,6 +210,7 @@ public class Database implements Serializable {
 			if (!d.exists()) {
 				d = d.create();
 			} else {
+				d.close();
 				System.out.println("***\n*** Exit condition: Cannot login or create database because it exists - maybe the server is already running?\n***");
 				Server.exit(-3);
 			}
@@ -251,6 +252,7 @@ public class Database implements Serializable {
 					u.setPassword(password);
 					u.save();
 				}
+				d.close();
 			} else {
 				System.out.println("Error creating database - does not exist (create must have failed)");
 			}

@@ -23,6 +23,7 @@ public class Menu extends Weblet {
 	public static boolean HORIZONTAL_LAYOUT = false;
 	
 	private static ConcurrentHashMap<String,String> menuCache = new ConcurrentHashMap<String,String>();
+	private static Locale guestLocale = Locale.getDefault();  // Saves the locale of the guest menu cache
 
 	public String getPage(DatabaseConnection con, HashMap<String,String> parms) {
 		return head("Menu")+body("menu",getHTML(con, parms));
@@ -44,7 +45,9 @@ public class Menu extends Weblet {
 		// Return value from cache if it is there
 		String cmenu = menuCache.get(con.getUser());
 		if (cmenu != null && cmenu.length()>0) {
-			return cmenu + localeSelector;
+			if (con.getUser().equals("guest") && locale == guestLocale) {  // Guest could have many locales
+				return cmenu + localeSelector;
+			}
 		}
 		
 		if (DEBUG) System.out.println("Menu: Getting menu for "+con.getUser());
@@ -117,6 +120,9 @@ public class Menu extends Weblet {
 		if (DEBUG) System.out.println("Menu: Adding menu for "+con.getUser()+" to menuCache");
 		String newMenu = menu.toString();
 		menuCache.put(con.getUser(), newMenu);
+		if (con.getUser().equals("guest")) {
+			guestLocale = locale;
+		}
 		return newMenu + localeSelector;
 	}		
 

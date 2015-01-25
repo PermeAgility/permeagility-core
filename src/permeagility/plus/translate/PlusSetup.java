@@ -4,11 +4,6 @@ import java.util.HashMap;
 
 import permeagility.util.DatabaseConnection;
 import permeagility.util.Setup;
-import permeagility.web.Server;
-
-import com.orientechnologies.orient.core.metadata.schema.OClass;
-import com.orientechnologies.orient.core.metadata.schema.OSchema;
-import com.orientechnologies.orient.core.metadata.schema.OType;
 
 public class PlusSetup extends permeagility.plus.PlusSetup {
 

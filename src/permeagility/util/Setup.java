@@ -2,7 +2,6 @@ package permeagility.util;
 
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 
 import permeagility.web.Message;
 import permeagility.web.Server;
@@ -635,7 +634,7 @@ public class Setup {
 
 		// Add to the specified menu
 		if (addTo != null && !addTo.equals("") && menuItem instanceof ODocument) {
-			Object ret = con.update("UPDATE #"+addTo+" ADD items = "+((ODocument)menuItem).getIdentity().toString());
+			con.update("UPDATE #"+addTo+" ADD items = "+((ODocument)menuItem).getIdentity().toString());
 		}
 		Server.tableUpdated("menu");
 	}

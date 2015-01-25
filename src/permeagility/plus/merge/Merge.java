@@ -5,14 +5,12 @@ import java.util.HashMap;
 
 import permeagility.util.DatabaseConnection;
 import permeagility.util.QueryResult;
-import permeagility.util.Setup;
 import permeagility.web.Message;
 import permeagility.web.Server;
 import permeagility.web.Table;
 
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OProperty;
-import com.orientechnologies.orient.core.metadata.schema.OSchema;
 import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 

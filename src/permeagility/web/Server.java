@@ -96,6 +96,7 @@ public class Server extends Thread {
 	static Message messages = null;
 	
 	static ConcurrentHashMap<String,String> sessions = new ConcurrentHashMap<String,String>(); // Cookie (user+random) -> username
+	static ConcurrentHashMap<String,Locale> sessionsLocale = new ConcurrentHashMap<String,Locale>(); // Cookie (user+random) -> locale
 	static ConcurrentHashMap<String,Database> sessionsDB = new ConcurrentHashMap<String,Database>();  // username -> Database pool
 	
 	private static Date securityRefreshTime = new Date();
@@ -204,6 +205,7 @@ public class Server extends Thread {
 					}
 				}
 			}
+			ss.close();
 		} catch (BindException b) {
 			System.err.println("***\n*** Exit condition: \n***"+b.getMessage());
 			viewPage("");  // Fire up the browser - server is probably already up
@@ -230,6 +232,8 @@ public class Server extends Thread {
 		String version = "";
 		String cookieValue = null;
 		String newCookieValue = null;
+		Locale requestLocale = null;
+		
 		boolean keep_alive = KEEP_ALIVE;  // Get the dynamic default
 
 		OutputStream os = null;
@@ -291,6 +295,10 @@ public class Server extends Thread {
 							cookieValue = cookiet.nextToken();
 							if (DEBUG) System.out.println("GOT COOKIE "+cookieValue);
 						}
+					} else if (get.startsWith("Accept-Language:")) {
+						String language = get.substring(16).trim().substring(0,2);
+						System.out.println("Requested language="+language);
+						requestLocale = new Locale(language);
 					} else if (ALLOW_KEEP_ALIVE && get.equalsIgnoreCase("Connection: keep-alive")) {
 						keep_alive = true;
 					} else if (get.startsWith("Content-Type: multipart")) {
@@ -459,6 +467,7 @@ public class Server extends Thread {
 									for (String c : cookiesToRemove) {
 										System.out.println("Alternate session found ("+c+") and will be killed");
 										sessions.remove(c);
+										sessionsLocale.remove(c);
 									}
 									sessionsDB.remove(u).close();
 								}
@@ -508,19 +517,41 @@ public class Server extends Thread {
 							try {
 								if (DEBUG) System.out.println("Using guest connection");
 								db = getNonUserDatabase();
+								newCookieValue = db.getUser() + (Math.random() * 100000000);
+								sessions.put(newCookieValue, "guest");
+								if (!sessionsDB.containsKey("guest")) {
+									sessionsDB.put("guest", db);
+								}
+								if (requestLocale != null && parms.get("LOCALE") == null) { // Since new connect, use the requested language
+									parms.put("LOCALE",requestLocale.getLanguage());
+								}
 							} catch (Exception e) {
 								System.out.println("Error logging in with guest "+e);
 							}									
 						}
 					}
 										
-					// Set locale if specified (TODO: need to be by sessions not sure if multiple guests in multiple languages)
-					if (parms.containsKey("LOCALE") && db != null) {
-						Locale l = Message.getLocale(parms.get("LOCALE"));
-						db.setLocale(l);
-				  		Menu.clearMenu(db.getUser());  // Menu cache for this user needs to be cleared
+					// Set locale if specified
+					if (db != null) {
+						if (parms.containsKey("LOCALE") && db != null) {
+							if (DEBUG) System.out.println("Setting locale to "+parms.get("LOCALE"));
+							Locale l = Message.getLocale(parms.get("LOCALE"));
+							if (l != null) {
+								db.setLocale(l);
+								sessionsLocale.put((cookieValue != null ? cookieValue : newCookieValue), l);
+								Menu.clearMenu(db.getUser());  // clear Menu cache for this user
+							}
+						} else {
+							if (cookieValue != null) {
+								Locale l = sessionsLocale.get(cookieValue);
+								if (l != null && l != db.getLocale()) {
+									db.setLocale(l);
+									Menu.clearMenu(db.getUser());  // clear Menu cache for this user
+								}
+							}
+						}
 					}
-
+					
 					// Pull log text files from the log directory (only for Admin)
 					if (db != null && file.startsWith("/log/") && db.getUser().equals("admin")) {
 						if (DEBUG) System.out.println("Looking for log "+file);
@@ -593,11 +624,6 @@ public class Server extends Thread {
 									theData = "<BODY><P>Server is busy, please try again</P></BODY>".getBytes();
 									System.out.println("!"+db.getUser());
 								} else {
-									if (parms.containsKey("LOCALE") && db != null) {
-										if (DEBUG) System.out.println("Setting locale to "+parms.get("LOCALE"));
-										Locale l = Message.getLocale(parms.get("LOCALE"));
-										db.setLocale(l); // have to maintain this by cookie
-									}
 									theData = weblet.doPage(con, parms);
 								}
 							}

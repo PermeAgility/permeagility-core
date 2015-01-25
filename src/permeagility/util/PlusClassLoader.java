@@ -20,7 +20,7 @@ public class PlusClassLoader extends URLClassLoader {
 	private static ClassLoader instance = null;  // There can only be one and it can only be loaded once
 	
 	private static ArrayList<String> modules = new ArrayList<String>();
-	private static String builtins[] = {"plus-translate", "plus-merge"};
+	private static String builtins[] = { "plus-translate", "plus-merge" };  // , "plus-visuility"
 	
 	public PlusClassLoader(URL[] urls) {
 		super(urls);
@@ -30,7 +30,7 @@ public class PlusClassLoader extends URLClassLoader {
 		if (instance != null) {
 			return instance;
 		}
-		for (String m : builtins) {
+		for (String m : builtins) {  // add builtins to the module list
 			modules.add(m);			
 		}
 		ArrayList<URL> urls = new ArrayList<URL>();

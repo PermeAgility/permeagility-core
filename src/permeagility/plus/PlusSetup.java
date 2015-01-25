@@ -2,7 +2,6 @@ package permeagility.plus;
 
 import java.util.HashMap;
 
-import permeagility.util.ConstantOverride;
 import permeagility.util.DatabaseConnection;
 import permeagility.util.Setup;
 import permeagility.web.Weblet;
