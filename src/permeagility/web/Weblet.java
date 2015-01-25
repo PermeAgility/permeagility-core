@@ -712,6 +712,10 @@ public abstract class Weblet {
 		return "<script src=\"../js/sorttable.js\"></script>\n";
 	}
 
+	public static String getScript(String name) {
+		return "<script src=\"../js/"+name+"\"></script>\n";
+	}
+
 	public String getColorControl(String formName, String controlName, String initialValue) {
 		return "<input name='"+controlName+"' class='color' value='"+initialValue+"'>";
 	}

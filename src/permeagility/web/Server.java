@@ -297,7 +297,7 @@ public class Server extends Thread {
 						}
 					} else if (get.startsWith("Accept-Language:")) {
 						String language = get.substring(16).trim().substring(0,2);
-						System.out.println("Requested language="+language);
+						if (DEBUG) System.out.println("Requested language="+language);
 						requestLocale = new Locale(language);
 					} else if (ALLOW_KEEP_ALIVE && get.equalsIgnoreCase("Connection: keep-alive")) {
 						keep_alive = true;
