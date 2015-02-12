@@ -16,9 +16,6 @@ import com.orientechnologies.orient.core.record.impl.ODocument;
 
 public class Translate extends Table {
 
-	// Override this with a constant to true after installation to avoid installation check
-	public static boolean INSTALLED = false;  // Will check for existence of config tables and create - can turn off in constant
-
 	private static String credit = " translation provided by <a href='http://mymemory.translated.net'>http://mymemory.translated.net</a>";
 	
 	@Override

@@ -198,8 +198,8 @@ public class Merge extends Table {
 			System.out.println("Could not create new document of type "+toTable);
 			return 0;
 		}
-		
-		for (ODocument cm : columnMap.get()) {
+		return 1+mergeDocument(con, doc, newdoc, columnMap);
+/*		for (ODocument cm : columnMap.get()) {
 			String fromCol = cm.field("fromColumn");
 			String toCol = cm.field("toColumn");
 			String linkProp = cm.field("linkProperty");
@@ -223,6 +223,7 @@ public class Merge extends Table {
 		}
 		newdoc.save();
 		return 1;
+	*/
 	}
 	
 	public int mergeDocument(DatabaseConnection con, ODocument fromDoc, ODocument toDoc, QueryResult columnMap) {
@@ -234,45 +235,57 @@ public class Merge extends Table {
 		int mergeCount = 0;
 		OClass tableClass = toDoc.getSchemaClass();
 		for (ODocument cm : columnMap.get()) {
-			String fromCol = cm.field("fromColumn");
-			String toCol = cm.field("toColumn");
-			String linkProp = cm.field("linkProperty");
-			OProperty toProp = tableClass.getProperty(toCol);
-			if (fromCol == null || fromCol.equals("")) {
-				System.out.println("fromColumn is null");
-			} else if (toCol == null || toCol.equals("")) {
-				System.out.println("toColumn is null");
-			} else if (toProp == null){
-				System.out.println("toColumn property can not be found in the target class");
-			} else {
-				OClass linkedClass = toProp.getLinkedClass();
-				Object data = fromDoc.field(fromCol);
-				Object toData = toDoc.field(toCol);
-				if (data != null) {
-					if (linkedClass != null) {
-						if ( linkProp != null && toProp.getType() == OType.LINK) {
-							String q = "SELECT FROM "+linkedClass.getName()+" WHERE "+linkProp+" = "+data.toString();
-							//System.out.println("query="+q);
-							QueryResult refs = con.query(q);
-							if (refs != null && refs.size()>0) {
-								ODocument linkDoc = refs.get(0);
-								if (toData == null || !((ODocument)toData).getIdentity().equals(linkDoc.getIdentity())) {
-									toDoc.field(toCol, linkDoc);
-									mergeCount++;
+			try {
+				String fromCol = cm.field("fromColumn");
+				String toCol = cm.field("toColumn");
+				String linkProp = cm.field("linkProperty");
+				OProperty toProp = tableClass.getProperty(toCol);
+				if (fromCol == null || fromCol.equals("")) {
+					System.out.println("fromColumn is null");
+				} else if (toCol == null || toCol.equals("")) {
+					System.out.println("toColumn is null");
+				} else if (toProp == null){
+					System.out.println("toColumn property can not be found in the target class");
+				} else {
+					OClass linkedClass = toProp.getLinkedClass();
+					Object data = fromDoc.field(fromCol);
+					Object toData = toDoc.field(toCol);
+					if (data != null) {
+						if (linkedClass != null) {
+							if ( linkProp != null && toProp.getType() == OType.LINK) {
+								String q = "SELECT FROM "+linkedClass.getName()+" WHERE "+linkProp+" = "+(data instanceof String ? "'"+data+"'" : data.toString());
+								//System.out.println("query="+q);
+								QueryResult refs = con.query(q);
+								if (refs != null && refs.size()>0) {
+									ODocument linkDoc = refs.get(0);
+									if (toData == null || !((ODocument)toData).getIdentity().equals(linkDoc.getIdentity())) {
+										toDoc.field(toCol, linkDoc);
+										mergeCount++;
+									}
+								} else {
+									System.out.println("Could not find document for link to "+linkedClass.getName()+" where "+linkProp+"="+data);
 								}
 							} else {
-								System.out.println("Could not find document for link to "+linkedClass.getName()+" where "+linkProp+"="+data);
+								System.out.println("Linked class found but linkProperty not defined or link is multiple type");
 							}
-						} else {
-							System.out.println("Linked class found but linkProperty not defined or link is multiple type");
+						} else if (toData == null || !data.toString().equals(toData.toString())) {
+							if (toProp.getType() == OType.BOOLEAN) {
+								String first = data.toString().substring(0, 1).toUpperCase();
+								if (first.equals("T") || first.equals("Y")) {
+									toDoc.field(toCol,true);
+								} else {
+									toDoc.field(toCol,false);								
+								}
+							} else {
+								toDoc.field(toCol, data);
+							}
+							mergeCount++;
 						}
-					} else if (toData == null || !data.toString().equals(toData.toString())) {
-						toDoc.field(toCol, data);
-						mergeCount++;
 					}
 				}
+			} catch (Exception e) {
+				
 			}
-			
 		}
 		if (mergeCount > 0) {
 			toDoc.save();

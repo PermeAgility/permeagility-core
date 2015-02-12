@@ -1415,9 +1415,9 @@ public class Table extends Weblet {
 		if (columnType == 0) {
 			sb.append(column(checkboxDisabled(columnName, (d.field(columnName) == null ? false : (Boolean)d.field(columnName)))));
 		} else if (columnType == 1 || columnType == 2 || columnType == 3) {   // OrientDB int, short, long type
-			sb.append(column("number", ""+formatNumber(con.getLocale(),(Number)d.field(columnName),INT_FORMAT)));
+			sb.append(column("number", ""+(d.field(columnName) == null ? "" : formatNumber(con.getLocale(),(Number)d.field(columnName),INT_FORMAT))));
 		} else if (columnType == 4 || columnType == 5) {   // OrientDB float, double
-			sb.append(column("number", ""+formatNumber(con.getLocale(),(Number)d.field(columnName),FLOAT_FORMAT)));
+			sb.append(column("number", ""+(d.field(columnName) == null ? "" : formatNumber(con.getLocale(),(Number)d.field(columnName),FLOAT_FORMAT))));
 		} else if (columnType == 6) {  // OrientDB Datetime
 			sb.append(column(""+(d.field(columnName) == null ? "" : formatDate(con.getLocale(),(Date)d.field(columnName),Message.get(con.getLocale(), "DATE_FORMAT")+' '+Message.get(con.getLocale(), "TIME_FORMAT")))));
 		} else if (columnType == 7) {  // String

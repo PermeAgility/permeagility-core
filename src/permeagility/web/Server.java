@@ -424,6 +424,7 @@ public class Server extends Thread {
 							}
 							if (DEBUG) System.out.println("Returning "+databuf.size()+" bytes for "+file);
 							iis.close();
+//							content_type = getContentType(file);
 							os.write(getImageHeader(content_type, databuf.size(), keep_alive).getBytes());
 							databuf.writeTo(os);
 							os.flush();
@@ -895,6 +896,7 @@ public class Server extends Thread {
 	public String getContentType(String name) {
 		if (name.endsWith(".html") || name.endsWith(".htm")) return "text/html";
 		else if (name.endsWith(".txt") || name.endsWith(".log")) return "text/plain";
+		else if (name.endsWith(".json") ) return "application/json";
 		else if (name.endsWith(".js") ) return "text/javascript";
 		else if (name.endsWith(".css")) return "text/css";
 		else if (name.endsWith(".pdf")) return "application/pdf";

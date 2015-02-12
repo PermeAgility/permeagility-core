@@ -1564,14 +1564,15 @@ public abstract class Weblet {
 		}
 		
 		for (int i=0; i<chars.length; i++) {
-			if (i == 0) {
-				if (chars[i] >= '0' && chars[i] <= '9') {
-					cn.append('n');					
-					cn.append(chars[i]);					
-				} else {
-					cn.append(Character.toLowerCase(chars[i]));
+			if (i == 0 && Character.isUpperCase(chars[i])) {
+				if (i<chars.length && !Character.isUpperCase(chars[i+1])) { // Will allow uppercase for first if Second is also upper (acronym)
+					chars[i] = Character.toLowerCase(chars[i]);
 				}
-			} else if (chars[i] == '#') {
+			}				
+			if (i == 0 && (chars[i] >= '0' && chars[i] <= '9')) {
+					cn.append('n');					
+			}
+			if (chars[i] == '#') {
 				cn.append("Num");
 			} else if (chars[i] == '&') {
 				cn.append("And");
