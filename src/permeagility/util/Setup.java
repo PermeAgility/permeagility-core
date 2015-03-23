@@ -999,6 +999,10 @@ public class Setup {
 "    opacity: 0.6;   background-color: gray;\n" +
 "    top: 0; left: 0; bottom: 0; right: 0;\n" +
 "}\n" +
+"div.CodeMirror {\n"+
+"    border: 1px solid #eee;\n"+
+"    height: auto;\n"+
+"}\n"+
 "@media print { BODY { font-size: 6pt; margin: 1em; } }\n" +
 "@media print { #menu {display: none; } }\n" +
 "@media print { #service {position: absolute; top: 0.5in; left: auto;} }\n" +
@@ -1133,6 +1137,10 @@ public class Setup {
 "    opacity: 0.7;   background-color: #000000;\n" +
 "    top: 0; left: 0; bottom: 0; right: 0;\n" +
 "}\n" +
+"div.CodeMirror {\n"+
+"    border: 1px solid #eee;\n"+
+"    height: auto;\n"+
+"}\n"+
 "@media print { BODY { font-size: 6pt; margin: 1em; } }\n" +
 "@media print { #menu {display: none; } }\n" +
 "@media print { #service {position: absolute; top: 0.5in; left: auto;} }\n" +

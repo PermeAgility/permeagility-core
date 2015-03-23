@@ -26,6 +26,7 @@ import java.net.URLDecoder;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Locale;
@@ -45,7 +46,15 @@ import permeagility.util.QueryResult;
 import permeagility.util.Setup;
 
 import com.orientechnologies.orient.core.OConstants;
+import com.orientechnologies.orient.core.collate.OCollate;
 import com.orientechnologies.orient.core.id.ORecordId;
+import com.orientechnologies.orient.core.index.OIndex;
+import com.orientechnologies.orient.core.metadata.schema.OClass;
+import com.orientechnologies.orient.core.metadata.schema.OClass.INDEX_TYPE;
+import com.orientechnologies.orient.core.metadata.schema.OImmutableProperty;
+import com.orientechnologies.orient.core.metadata.schema.OProperty;
+import com.orientechnologies.orient.core.metadata.schema.OSchema;
+import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.orientechnologies.orient.core.metadata.security.ORole;
 import com.orientechnologies.orient.core.metadata.security.ORule;
 import com.orientechnologies.orient.core.metadata.security.ORule.ResourceGeneric;
@@ -997,7 +1006,7 @@ public class Server extends Thread {
 		OUT: for (Object ur: uRoles) {
 			for (Object kr: kRoles) {
 				if (ur != null && kr != null && ur.equals(kr)) {
-					if (DEBUG) System.out.println("Server.isRoleAuthorized: Match on user role "+ur.toString()+" Authorized!");
+					//if (DEBUG) System.out.println("Server.isRoleAuthorized: Match on user role "+ur.toString()+" Authorized!");
 					authorized = true;
 					break OUT;
 				}
@@ -1135,21 +1144,24 @@ public class Server extends Thread {
 	
 	/**  Call this when you update a table that the server or caches may be interested in   */
 	public static void tableUpdated(String table) {
-		if (table.equals("constant")) {
+		if (table.equalsIgnoreCase("metadata:schema")) {
+			DatabaseConnection con = database.getConnection();
+			if (DEBUG) System.out.println("Server: schema updated - reloading");
+			clearColumnsCache("ALL");
+			con.getSchema().reload();
+			database.freeConnection(con);
+		} else if (table.equals("constant")) {
 			if (DEBUG) System.out.println("Server: tableUpdated("+table+") - constants applied");
 			DatabaseConnection con = database.getConnection();
 			ConstantOverride.apply(con);
 			database.freeConnection(con);
-		}
-		if (table.equals("columns") ) {
+		} else if (table.equals("columns") ) {
 			if (DEBUG) System.out.println("Server: tableUpdated("+table+") - columns cache cleared");
 			Server.clearColumnsCache("ALL");  // Don't know which table or which row in columns table so clear all
-		}
-		if (table.equals("pickList") ) {
+		} else if (table.equals("pickList") ) {
 			if (DEBUG) System.out.println("Server: tableUpdated("+table+") - query caches cleared");
 			Weblet.queryCache.clear();
-		}
-		if (table.equals("locale") || table.equals("message")) {
+		} else if (table.equals("locale") || table.equals("message")) {
 			if (DEBUG) System.out.println("Server: tableUpdated("+table+") - messages refreshed and menus cleared");
 			DatabaseConnection con = database.getConnection();
 			Message.initialize(con);
@@ -1191,7 +1203,7 @@ public class Server extends Thread {
 		}
 	}
 	
-	public static QueryResult getColumns(String table) {
+	public static Collection<OProperty> getColumns(String table) {
 		return getColumns(table, null);
 	}
 
@@ -1200,29 +1212,38 @@ public class Server extends Thread {
 	 * overrides column order based on value in columnList in columns table and add inherited columns as well
 	 * (There must be a cleaner way to code this but hey, it works and it is fairly simple)
 	 */
-	public static QueryResult getColumns(String table, String columnOverride) {
+	public static Collection<OProperty> getColumns(String table, String columnOverride) {
 		
-		if (columnOverride == null) {
-			QueryResult ccolumns = columnsCache.get(table);
-	 		if (ccolumns != null) {
-				return ccolumns;
-			}
-		}
+//		if (columnOverride == null) {
+//			QueryResult ccolumns = columnsCache.get(table);
+//	 		if (ccolumns != null) {
+//				return ccolumns;
+//			}
+//		}
+		ArrayList<OProperty> result = new ArrayList<OProperty>();
+		
 		DatabaseConnection con = database.getConnection();
 		// Original list of columns
 		if (con == null) {
 			System.out.println("Server.getColumns() cannot get a connection");
 		} else {
-			QueryResult result =  con.query("select from (select expand(properties) from (select expand(classes) from metadata:schema) where name = '" + table + "') order by name");
+			OSchema schema = con.getSchema();
+			OClass tableClass = schema.getClass(table);
+			if (tableClass == null) {
+				System.out.println("Server: getColumns(tableClass not found for "+table+")");
+				return null;
+			}
+			result.addAll(tableClass.properties());
+			//QueryResult result =  con.query("select from (select expand(properties) from (select expand(classes) from metadata:schema) where name = '" + table + "') order by name");
 	
 			// Get details about the table so we can add superClass attributes 
 			QueryResult tableInfo = Server.getTableInfo(table);
 			String superClass = tableInfo.getStringValue(0, "superClass");
 			if (superClass != null) {
-				QueryResult superColumns = Server.getColumns(superClass);
-				for (ODocument sc : superColumns.get()) {
-					if (result.findFirstRow("name", (String)sc.field("name")) == -1) {
-						result.append(sc);  // Only add if not already there (latest version brings the superclass columns)
+				Collection<OProperty> superProperties = schema.getClass(superClass).properties();
+				for (OProperty sc : superProperties) {
+					if (!result.contains(sc)) {
+						result.add(sc);  // Only add if not already there (latest version brings the superclass columns)
 					}
 				}
 			}
@@ -1238,22 +1259,196 @@ public class Server extends Thread {
 				String list = (columnOverride == null ? columnList.getStringValue(0, "columnList") : columnOverride);
 				String columnNames[] = list.split(",");
 				if (columnNames.length > 0 ) {
-					ArrayList<ODocument> newList = new ArrayList<ODocument>();
+					ArrayList<OProperty> newList = new ArrayList<OProperty>();
 					for (String name : columnNames) {
-						if (name.trim().equals("-")) {
+						name = name.trim();
+						if (name.equals("-")) {
 							if (DEBUG) System.out.println("ColumnOverride="+columnOverride+" no dynamic columns");
 							addDynamicColumns = false;
 						}
-						if (!name.trim().startsWith("-")) {
-							int i = result.findFirstRow("name", name.trim());
-							if (i>-1) {
-								newList.add(result.get(i));
+						if (!name.startsWith("-")) {
+							if (name.trim().startsWith("button")) {
+								OProperty bd = new OProperty() {
+									String name;
+									public OProperty setType(OType t) {
+										return this;
+									}
+									public boolean isMandatory() { return false; }
+									@Override
+									public int compareTo(OProperty o) {
+										return 0;
+									}
+									@Override
+									public String getName() {
+										return name;
+									}
+									@Override
+									public String getFullName() {
+										return null;
+									}
+									@Override
+									public OProperty setName(String iName) {
+										name = iName;
+										return this;
+									}
+									@Override
+									public void set(ATTRIBUTES attribute,
+											Object iValue) {
+									}
+									@Override
+									public OType getType() {
+										return OType.TRANSIENT;
+									}
+									@Override
+									public OClass getLinkedClass() {
+										return null;
+									}
+									@Override
+									public OProperty setLinkedClass(
+											OClass oClass) {
+										return null;
+									}
+									@Override
+									public OType getLinkedType() {
+										return null;
+									}
+									@Override
+									public OProperty setLinkedType(OType type) {
+										return null;
+									}
+									@Override
+									public boolean isNotNull() {
+										return false;
+									}
+									@Override
+									public OProperty setNotNull(boolean iNotNull) {
+										return null;
+									}
+									@Override
+									public OCollate getCollate() {
+										return null;
+									}
+									@Override
+									public OProperty setCollate(
+											String iCollateName) {
+										return null;
+									}
+									@Override
+									public OProperty setCollate(OCollate collate) {
+										return null;
+									}
+									@Override
+									public OProperty setMandatory(
+											boolean mandatory) {
+										return null;
+									}
+									@Override
+									public boolean isReadonly() {
+										return false;
+									}
+									@Override
+									public OProperty setReadonly(
+											boolean iReadonly) {
+										return null;
+									}
+									@Override
+									public String getMin() {
+										return null;
+									}
+									@Override
+									public OProperty setMin(String min) {
+										return null;
+									}
+									@Override
+									public String getMax() {
+										return null;
+									}
+									@Override
+									public OProperty setMax(String max) {
+										return null;
+									}
+									@Override
+									public OIndex<?> createIndex(
+											INDEX_TYPE iType) {
+										return null;
+									}
+									@Override
+									public OIndex<?> createIndex(String iType) {
+										return null;
+									}
+									@Override
+									public OProperty dropIndexes() {
+										return null;
+									}
+									@Override
+									public Set<OIndex<?>> getIndexes() {
+										return null;
+									}
+									@Override
+									public OIndex<?> getIndex() {
+										return null;
+									}
+									@Override
+									public Collection<OIndex<?>> getAllIndexes() {
+										return null;
+									}
+									@Override
+									public boolean isIndexed() {
+										return false;
+									}
+									@Override
+									public String getRegexp() {
+										return null;
+									}
+									@Override
+									public OProperty setRegexp(String regexp) {
+										return null;
+									}
+									@Override
+									public String getCustom(String iName) {
+										return null;
+									}
+									@Override
+									public OProperty setCustom(String iName,
+											String iValue) {
+										return null;
+									}
+									@Override
+									public void removeCustom(String iName) {
+									}
+									@Override
+									public void clearCustom() {
+									}
+									@Override
+									public Set<String> getCustomKeys() {
+										return null;
+									}
+									@Override
+									public OClass getOwnerClass() {
+										return null;
+									}
+									@Override
+									public Object get(ATTRIBUTES iAttribute) {
+										return null;
+									}
+									@Override
+									public Integer getId() {
+										return null;
+									};
+								};
+								//OProperty bd = tableClass.createProperty(name.replace("(","_").replace(":","_").replace(")",""), OType.TRANSIENT);
+								bd.setName(name.replace("(","_").replace(":","_").replace(")",""));
+								newList.add(bd);
 							} else {
-								if (name.trim().startsWith("button(")) {
-									ODocument bd = new ODocument();
-									bd.field("name",name.trim());
-									newList.add(bd);
-								} else {
+								boolean found = false;
+								for (OProperty p : result) {
+									if (p.getName().equals(name)) {
+										newList.add(p);
+										found = true;
+										break;
+									}
+								}
+								if (!found) {
 									System.out.println("Could not find column "+name+" in the columns for table "+table+" even though this column was explicitly mentioned in the columns table - huh!");
 									clearColumnsCache(table);  // Maybe this will help
 								}
@@ -1261,8 +1456,8 @@ public class Server extends Thread {
 						}
 					}
 					if (addDynamicColumns) {
-						for (ODocument col : result.get()) {
-							String name = col.field("name");
+						for (OProperty col : result) {
+							String name = col.getName();
 							boolean found = false;
 							for (String cn : columnNames) {
 								String cnt = cn.trim();
@@ -1277,17 +1472,17 @@ public class Server extends Thread {
 						}
 					}
 					if (newList.size() > 0 ) {
-						QueryResult newResult = new QueryResult(newList);
-						if (columnOverride == null) {
-							columnsCache.put(table, newResult);
-						}
-						return newResult;
+						//QueryResult newResult = new QueryResult(newList);
+						//if (columnOverride == null) {
+						//	columnsCache.put(table, newResult);
+						//}
+						return newList;
 					}
 				}
 			}
-			if (columnOverride == null) {
-				columnsCache.put(table, result);							
-			}
+//			if (columnOverride == null) {
+//				columnsCache.put(table, result);							
+//			}
 			return result;
 		}
 		return null;
@@ -1350,7 +1545,7 @@ public class Server extends Thread {
 	
 	static boolean initializeServer() {
 		System.out.println("Initializing server using OrientDB Version "+OConstants.getVersion()+" Build number "+OConstants.getBuildNumber());
-//		OGlobalConfiguration.CACHE_LOCAL_ENABLED.setValue(false);  // To ensure concurrency across threads (pre 2.0-M3)
+		//OGlobalConfiguration.CACHE_LOCAL_ENABLED.setValue(false);  // To ensure concurrency across threads (pre 2.0-M3)
 		try {
 			String p = getLocalSetting(DB_NAME+HTTP_PORT, "");
 			//System.out.println("Localsetting for password is "+p);

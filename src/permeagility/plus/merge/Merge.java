@@ -1,6 +1,7 @@
 package permeagility.plus.merge;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 
 import permeagility.util.DatabaseConnection;
@@ -119,6 +120,7 @@ public class Merge extends Table {
 				if (columnMap != null && columnMap.size() > 0) {
 					int fromIndex = 0;
 					int toIndex = 0;
+					String lastFromKey = null;
 					while (fromIndex < fromResult.size()) {
 						ODocument fromDoc = fromResult.get(fromIndex);
 						ODocument toDoc = null;
@@ -137,7 +139,11 @@ public class Merge extends Table {
 								int comp = fromK.compareTo(toK);
 								if (comp < 0) {
 									//sb.append(paragraph("Would insert "+fromKey+"="+fromK));
-									insertCount += insertDocument(con, fromDoc, columnMap, toTable);
+									if (fromK.equals(lastFromKey)) {
+										sb.append(paragraph("Ignored duplicate from key "+fromKey+"="+fromK));
+									} else {
+										insertCount += insertDocument(con, fromDoc, columnMap, toTable);
+									}
 									fromIndex++;
 								} else if (comp == 0) {
 									//sb.append(paragraph("Would merge "+fromKey+"="+fromK));
@@ -149,10 +155,15 @@ public class Merge extends Table {
 								}
 							} else {
 								//sb.append(paragraph("To is empty: Would insert "+fromKey+"="+fromK));
-								insertCount += insertDocument(con, fromDoc, columnMap, toTable);
+								if (fromK.equals(lastFromKey)) {
+									sb.append(paragraph("Ignored duplicate from key "+fromKey+"="+fromK));
+								} else {
+									insertCount += insertDocument(con, fromDoc, columnMap, toTable);
+								}
 								fromIndex++;
 								toIndex++;
 							}
+							lastFromKey = fromK;
 						}
 					}
 					sb.append(paragraph("success","Merged "+columnMap.size()+" columns in "+fromResult.size()+" rows "));
@@ -191,39 +202,13 @@ public class Merge extends Table {
 	}
 
 	public int insertDocument(DatabaseConnection con, ODocument doc, QueryResult columnMap, String toTable) {
-		
 		OClass tableClass = con.getSchema().getClass(toTable);
 		ODocument newdoc = con.create(toTable);
 		if (newdoc == null || tableClass == null) {
 			System.out.println("Could not create new document of type "+toTable);
 			return 0;
 		}
-		return 1+mergeDocument(con, doc, newdoc, columnMap);
-/*		for (ODocument cm : columnMap.get()) {
-			String fromCol = cm.field("fromColumn");
-			String toCol = cm.field("toColumn");
-			String linkProp = cm.field("linkProperty");
-			if (fromCol == null || fromCol.equals("")) {
-				System.out.println("fromColumn is null");
-				return 0;
-			}
-			if (toCol == null || toCol.equals("")) {
-				System.out.println("toColumn is null");
-				return 0;
-			}
-			OProperty toProp = tableClass.getProperty(toCol);
-			if (toProp == null){
-				System.out.println("toColumn property can not be found in the target class");
-				return 0;
-			}
-			OClass linkedClass = toProp.getLinkedClass();
-			Object data = doc.field(fromCol);
-			newdoc.field(toCol, data);
-			
-		}
-		newdoc.save();
-		return 1;
-	*/
+		return 1 + mergeDocument(con, doc, newdoc, columnMap);
 	}
 	
 	public int mergeDocument(DatabaseConnection con, ODocument fromDoc, ODocument toDoc, QueryResult columnMap) {
@@ -362,11 +347,11 @@ public class Merge extends Table {
 		// Columns
 		for (ODocument t : tables.get()) {
 			String tName = t.field("name");
-			QueryResult cols = Server.getColumns(tName);
-			for (ODocument col : cols.get()) {
-				String cName = col.field("name");
-				Integer cType = col.field("type");
-				String cClass = col.field("linkedClass");
+			Collection<OProperty> cols = Server.getColumns(tName);
+			for (OProperty col : cols) {
+				String cName = col.getName();
+				Integer cType = col.getType().getId();
+				String cClass = col.getLinkedClass() != null ? col.getLinkedClass().getName() : null;
 				if (columnInit.length()>0) columnInit.append(", ");
 				columnInit.append("{ table:'"+tName+"', column:'"+cName+"', type:'"+Table.getTypeName(con.getLocale(),cType)+(cClass == null ? "" : " to "+cClass)+"'}");
 			}

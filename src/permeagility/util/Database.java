@@ -190,6 +190,10 @@ public class Database implements Serializable {
 	/** Put the connection back in the pool */
 	public void freeConnection(DatabaseConnection dbc) {
 		activeConnections.remove(dbc);
+		// Invalidate local cache for this connection
+		dbc.getDb().getLocalCache().invalidate();
+		
+		// Add it back into the pool
 		if (dbc != null && dbc.c != null) {
 			pooledConnections.add(dbc);
 		}

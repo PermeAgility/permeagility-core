@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -116,7 +117,7 @@ public class Table extends Weblet {
 			if (DEBUG) System.out.println("update_id="+parms.get("UPDATE_ID"));
 			if (submit != null && submit.equals(Message.get(locale, "COPY"))) {
 					parms.put("EDIT_ID", parms.get("UPDATE_ID"));
-					return head(title,getDateControlScript(con.getLocale())+getColorControlScript())
+					return head(title,getScripts(con))
 							+ body(standardLayout(con, parms, 
 								errors.toString()
 								+form("NEWROW","#",
@@ -129,7 +130,7 @@ public class Table extends Weblet {
 			} else if (submit!= null && submit.equals(Message.get(locale, "CREATE_ROW"))) {
 				if (DEBUG) System.out.println("************ Inserting row");
 				if (!insertRow(con,table,parms,errors)) {
-					return head(title,getDateControlScript(con.getLocale())+getColorControlScript())
+					return head(title,getScripts(con))
 							+ body(standardLayout(con, parms, 
 								errors.toString()
 								+form("NEWROW","#",
@@ -147,7 +148,7 @@ public class Table extends Weblet {
 						parms.remove("UPDATE_ID");
 						submit = null;
 					} else {
-						return head(title, getDateControlScript(con.getLocale())+getColorControlScript())
+						return head(title, getScripts(con))
 								+ body(standardLayout(con, parms, errors.toString() + getTableRowForm(con, table, parms) ));
 					}
 			} else if (submit != null && submit.equals(Message.get(locale, "UPDATE"))) {
@@ -156,7 +157,7 @@ public class Table extends Weblet {
 					parms.remove("EDIT_ID");
 					parms.remove("UPDATE_ID");
 				} else {
-					return head(title, getDateControlScript(con.getLocale())+getColorControlScript())
+					return head(title, getScripts(con))
 							+ body(standardLayout(con, parms, errors.toString() + getTableRowForm(con, table, parms) ));
 				}
 			}
@@ -268,14 +269,14 @@ public class Table extends Weblet {
 		}
 
 		if (parms.containsKey("EDIT_ID") && (submit == null || !submit.equals(Message.get(locale, "CREATE_ROW")))) {
-			return head(title, getDateControlScript(locale)+getColorControlScript())
+			return head(title, getScripts(con))
 					+ body(standardLayout(con, parms, getTableRowForm(con, table, parms)));
 		}
 
 		parms.remove("EDIT_ID"); // Need to avoid confusing getTableRowForm
 		
 		// Make the result
-		return head(title, getDateControlScript(locale)+getColorControlScript())
+		return head(title, getScripts(con))
 				+ body(standardLayout(con, parms,  
 					link(this.getClass().getName(),"&lt;"+Message.get(locale,"ALL_TABLES"))
 					+"&nbsp;&nbsp;&nbsp;"
@@ -303,14 +304,18 @@ public class Table extends Weblet {
 		dataTypeNames.clear();
 	}
 	
+	public String getScripts(DatabaseConnection con) {
+		return getDateControlScript(con.getLocale())+getColorControlScript()+getCodeEditorScript()+getScript("d3.js");
+	}
+	
 	public boolean insertRow(DatabaseConnection con, String table, HashMap<String, String> parms, StringBuilder errors) {
 		StringBuilder ins = new StringBuilder("INSERT INTO "+table+" SET ");
 		int colCount = 0;
 		ArrayList<String> blobList = new ArrayList<String>();
 		String comma = "";
-		for (ODocument column : Server.getColumns(table).get()) {
-			Integer type = column.field("type");
-			String name = column.field("name");
+		for (OProperty column : Server.getColumns(table)) {
+			Integer type = column.getType().getId();
+			String name = column.getName();
 			String value = parms.get(PARM_PREFIX+name);
 			if (DEBUG) System.out.println("InsertRow: column "+name+" is a "+type+" and its value is "+value);
 			if (!isNullOrBlank(value)) {				
@@ -463,11 +468,11 @@ public class Table extends Weblet {
 			QueryResult initrows = con.query("SELECT FROM #" + update_id);
 			if (initrows != null && initrows.size() == 1) {
 				ODocument updateRow = initrows.get(0);
-				QueryResult columns = Server.getColumns(table);
-				for (ODocument column : columns.get()) {
+				Collection<OProperty> columns = Server.getColumns(table);
+				for (OProperty column : columns) {
 					
-					String columnName = column.field("name");
-					Integer type = column.field("type");
+					String columnName = column.getName();
+					Integer type = column.getType().getId();
 					String newValue = parms.get(PARM_PREFIX+columnName);
 					if (DEBUG) System.out.println("updating "+columnName+" of type "+type+" with value "+newValue);
 					if (newValue != null) {
@@ -497,12 +502,14 @@ public class Table extends Weblet {
 					} else if (type == 1 || type == 2 || type == 3) { // Whole number
 						Number originalValue = updateRow.field(columnName);
 						Number newVal = null;
-						try {
-							newVal = Long.parseLong(newValue);
-						} catch (Exception e) {
-							errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_NUMBER_VALUE",newValue)+" " + e.getMessage()));
+						if (newValue != null) {
+							try {
+								newVal = Long.parseLong(newValue);
+							} catch (Exception e) {
+								errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_NUMBER_VALUE",newValue)+" " + e.getMessage()));
+							}
 						}
-						if ((newValue != null && originalValue != null && !newVal.equals(originalValue)) 
+						if ((newValue != null && originalValue != null && newVal != null && !newVal.equals(originalValue)) 
 								  || (newValue == null && originalValue != null)
 								  || (originalValue == null && newValue != null)) {
 							if (setString.length() > 0) {
@@ -513,12 +520,14 @@ public class Table extends Weblet {
 					} else if (type == 4 || type == 5) { // float, double
 						Double originalValue = updateRow.field(columnName);
 						Double newVal = null;
-						try {
-							newVal = Double.parseDouble(newValue);
-						} catch (Exception e) {
-							errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_READ_NUMBER_VALUE",newValue)+" " + e.getMessage()));
+						if (newValue != null) {
+							try {
+								newVal = Double.parseDouble(newValue);
+							} catch (Exception e) {
+								errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_READ_NUMBER_VALUE",newValue)+" " + e.getMessage()));
+							}
 						}
-						if ((newValue != null && originalValue != null && !newVal.equals(originalValue)) 
+						if ((newValue != null && originalValue != null && newVal != null && !newVal.equals(originalValue)) 
 								  || (newValue == null && originalValue != null)
 								  || (originalValue == null && newValue != null)) {
 							if (setString.length() > 0) {
@@ -529,12 +538,14 @@ public class Table extends Weblet {
 					} else if (type == 21) { // decimal
 						BigDecimal originalValue = updateRow.field(columnName);
 						BigDecimal newVal = null;
-						try {
-							newVal = new BigDecimal(newValue);
-						} catch (Exception e) {
-							errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_READ_NUMBER_VALUE",newValue)+" "+e.getMessage()));
+						if (newValue != null) {
+							try {
+								newVal = new BigDecimal(newValue);
+							} catch (Exception e) {
+								errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_READ_NUMBER_VALUE",newValue)+" "+e.getMessage()));
+							}
 						}
-						if ((newValue != null && originalValue != null && !newVal.equals(originalValue)) 
+						if ((newValue != null && originalValue != null && newVal != null && !newVal.equals(originalValue)) 
 								  || (newValue == null && originalValue != null)
 								  || (originalValue == null && newValue != null)) {
 							if (setString.length() > 0) {
@@ -575,7 +586,7 @@ public class Table extends Weblet {
 							}
 						}
 						
-					} else if (type == 20) {
+					} else if (type == 20) {  // Blob
 						String blob_name = parms.get(PARM_PREFIX+columnName); 
 						if (blob_name != null && !blob_name.trim().equals("")) {
 							if (DEBUG) System.out.println("Updating BLOB");
@@ -695,22 +706,6 @@ public class Table extends Weblet {
 								setString.append(columnName + " = "+(newValue == null ? "null" : wrapWithQuotes(sqlDateFormat.format(newDate))));
 							}	
 						}
-					} else if (type == 21) { // Decimal
-						BigDecimal originalValue = updateRow.field(columnName);
-						BigDecimal newVal = null;
-						try {
-							newVal = new BigDecimal(newValue);
-						} catch (Exception e) {
-							errors.append(paragraph("error", Message.get(con.getLocale(),"INVALID_NUMBER_VALUE", newValue)));
-						}
-						if ((newValue != null && originalValue != null && !newVal.equals(originalValue)) 
-								  || (newValue == null && originalValue != null)
-								  || (originalValue == null && newValue != null)) {
-							if (setString.length() > 0) {
-								setString.append(", ");
-							}
-							setString.append(columnName + " = " + (newVal == null ? "null" : newValue));
-						}
 					}
 				}
 				if ((setString.length() > 0 || extras.size() > 0 || blobs.size() > 0) && errors.length() == 0) {
@@ -731,6 +726,7 @@ public class Table extends Weblet {
 						errors.append(paragraph("success", Message.get(con.getLocale(), "ROW_UPDATED",(rc==null?"null":"true"))));
 						Server.tableUpdated(table);
 						getCache().refreshContains(table);
+						updateRow.reload();
 						return true;
 					} catch (Exception e) {
 						Throwable cause = e.getCause();
@@ -869,10 +865,10 @@ public class Table extends Weblet {
 
 		String formName = (edit_id == null ? "NEWROW" : "UPDATEROW");
 
-		QueryResult columns = Server.getColumns(table, columnOverride);
+		Collection<OProperty> columns = Server.getColumns(table, columnOverride);
 		if (columns != null) {
-			for (ODocument column : columns.get()) {
-				String name = (String) column.field("name");
+			for (OProperty column : columns) {
+				String name = column.getName();
 				if (parms.get("FORCE_"+name) != null) {
 					hidden.append(hidden(PARM_PREFIX+name,parms.get("FORCE_"+name)));
 					continue;
@@ -899,9 +895,9 @@ public class Table extends Weblet {
 	 * @param edit_id - record id of the value to be edited (the identity of initialValues would be misleading on a new record) 
 	 * @return
 	 */
-	private String getColumnAsField(ODocument column, ODocument initialValues, DatabaseConnection con, String formName, String edit_id, HashMap<String,String> parms) {
-		Integer type = column.field("type");
-		String name = (String) column.field("name");
+	private String getColumnAsField(OProperty column, ODocument initialValues, DatabaseConnection con, String formName, String edit_id, HashMap<String,String> parms) {
+		Integer type = column.getType().getId();
+		String name = column.getName();
 		String prettyName = makeCamelCasePretty(name);
 		String trName = Message.get(con.getLocale(),"COLUMN_"+name);
 		if (!trName.equals("COLUMN_"+name)) {
@@ -954,6 +950,16 @@ public class Table extends Weblet {
 		} else if (type == 7 && (name.toUpperCase().endsWith("COLOR") || name.toUpperCase().endsWith("COLOUR"))) {
 			if (DEBUG) System.out.println("Doing color field "+initialValues);
 			return row(label + column(getColorControl(formName,PARM_PREFIX+name,(String)initialValue)));
+
+		// Script-Javascript (String)
+		} else if (type == 7 && (name.toUpperCase().endsWith("SCRIPT") || name.toUpperCase().endsWith("CODE"))) {
+			if (DEBUG) System.out.println("Doing Javascript Code Editor field "+name);
+			return row(label + column(getCodeEditorControl(formName,PARM_PREFIX+name,(String)initialValue,"javascript")));
+
+		// Style-CSS (String)
+		} else if (type == 7 && (name.toUpperCase().endsWith("STYLE"))) {
+			if (DEBUG) System.out.println("Doing CSS Code Editor field "+initialValues);
+			return row(label + column(getCodeEditorControl(formName,PARM_PREFIX+name,(String)initialValue,"css")));
 
 		// String
 		} else if (type == 7) {  
@@ -1058,22 +1064,22 @@ public class Table extends Weblet {
 			return row(label + column(textArea(PARM_PREFIX+name, val, 5, TEXT_AREA_WIDTH)));
 
 		// Single link
-		} else if (type == 13 && column.field("linkedClass") != null) {
+		} else if (type == 13 && column.getLinkedClass() != null) {
 			String v = null;
 			if (initialValue != null && initialValue instanceof ODocument) {
 				v = ((ODocument)initialValue).getIdentity().toString().substring(1);
 			}
-			return row(label + column(createListFromTable(PARM_PREFIX+name, (v == null ? "" : v), con, (String)column.field("linkedClass"), null, true, null, true)
+			return row(label + column(createListFromTable(PARM_PREFIX+name, (v == null ? "" : v), con, column.getLinkedClass().getName(), null, true, null, true)
 						+(initialValues == null || initialValue == null 
 							? "" 
-							: linkNewWindow(this.getClass().getName()+"?TABLENAME="+column.field("linkedClass")+"&EDIT_ID="+v,Message.get(con.getLocale(), "GOTO_ROW")))
+							: linkNewWindow(this.getClass().getName()+"?TABLENAME="+column.getLinkedClass().getName()+"&EDIT_ID="+v,Message.get(con.getLocale(), "GOTO_ROW")))
 					));
 				
 		// Link list
 		} else if (type == 14) {
 			List<ODocument> l = null;
 			try { l = initialValues.field(name); } catch (NullPointerException e) { } // It will do this if it doesn't exist
-			String linkedClass = column.field("linkedClass");
+			String linkedClass = column.getLinkedClass().getName();
 			return row(label + columnNoWrap(linkListControl(con, PARM_PREFIX+name, linkedClass, getCache().getResult(con,getQueryForTable(con, linkedClass)), con.getLocale(), l)));
 
 		// Link set
@@ -1081,7 +1087,7 @@ public class Table extends Weblet {
 			Set<ODocument> l = null;
 			try {  l = initialValues.field(name);  } catch (NullPointerException e) { }  // It will do this if it doesn't exist
 			//System.out.println("linkset size="+l.size());			
-			String linkedClass = column.field("linkedClass");
+			String linkedClass = column.getLinkedClass().getName();
 			return row(label + columnNoWrap(linkSetControl(con, PARM_PREFIX+name, linkedClass, getCache().getResult(con,getQueryForTable(con, linkedClass)), con.getLocale(), l)));
 
 		// Link map
@@ -1089,7 +1095,7 @@ public class Table extends Weblet {
 			Map<String,ODocument> l = null;
 			try {  l = initialValues.field(name);  } catch (NullPointerException e) { }  // It will do this if it doesn't exist
 			if (l != null && DEBUG) System.out.println("linkmap size="+l.size());			
-			String linkedClass = column.field("linkedClass");
+			String linkedClass = column.getLinkedClass().getName();
 			return row(label + columnNoWrap(linkMapControl(con,PARM_PREFIX+name, linkedClass, getCache().getResult(con,getQueryForTable(con, linkedClass)), con.getLocale(), l)));
 			
 		} else {
@@ -1217,10 +1223,6 @@ public class Table extends Weblet {
 		return parms;
 	}
 
-	private int countLines(String string) {
-		return java.util.regex.Pattern.compile("[\\n]+").split(string.trim()).length;
-	}
-
 	public String getTable(DatabaseConnection con, String table) {
 		String query = "SELECT FROM " + table;
 		return getTable(con, null,table,query,null,0);
@@ -1330,7 +1332,7 @@ public class Table extends Weblet {
 			QueryResult rs = con.query(query);
 			
 			// Get the table's columns
-			QueryResult columns = Server.getColumns(table, columnOverride);
+			Collection<OProperty> columns = Server.getColumns(table, columnOverride);
 			if (columns == null) {
 				System.out.println("Get columns for table:"+table+" returned null");
 			} else {
@@ -1356,10 +1358,10 @@ public class Table extends Weblet {
 		}
 	}
 
-	public String getRowHeader(DatabaseConnection con, String table, QueryResult columns, String hideColumn) throws SQLException {
+	public String getRowHeader(DatabaseConnection con, String table, Collection<OProperty> columns, String hideColumn) throws SQLException {
 		StringBuilder sb = new StringBuilder();
-		for (ODocument column : columns.get()) {
-			String columnName = column.field("name");
+		for (OProperty column : columns) {
+			String columnName = column.getName();
 			String colNameI18N;
 			String trName = Message.get(con.getLocale(),"COLUMN_"+columnName);
 			if (!trName.equals("COLUMN_"+columnName)) {
@@ -1367,14 +1369,12 @@ public class Table extends Weblet {
 			} else {
 				colNameI18N = makeCamelCasePretty(columnName);
 			}
-			if (column.field("type") == OType.TRANSIENT) {
-				sb.append(columnHeader("sorttable_nosort", center(columnName)));				
-			} else if (!columnName.toUpperCase().endsWith("PASSWORD")  // && !columnName.startsWith("_")
+			if (!columnName.toUpperCase().endsWith("PASSWORD")  // && !columnName.startsWith("_")
 					&& (hideColumn == null || !columnName.equals(hideColumn)) ) {
-				if (columnName.startsWith("button(") && columnName.length() > 8 && columnName.indexOf(':',7) > 7) {
-					int cp = columnName.indexOf(':',7);
+				if (columnName.startsWith("button_") && columnName.length() > 8 && columnName.indexOf('_',7) > 7) {
+					int cp = columnName.indexOf('_',7);
 					//String n = columnName.substring(7,cp);  // Not used
-					String l = columnName.substring(cp+1,columnName.length()-1);
+					String l = columnName.substring(cp+1);
 					sb.append(columnHeaderNoSort(center(l)));
 				} else {
 					sb.append(columnHeader(center(colNameI18N)));
@@ -1384,18 +1384,18 @@ public class Table extends Weblet {
 		return row(sb.toString());
 	}
 
-	public String getRow(QueryResult columns, ODocument d, DatabaseConnection con, String hideColumn) throws SQLException {
+	public String getRow(Collection<OProperty> columns, ODocument d, DatabaseConnection con, String hideColumn) throws SQLException {
 		StringBuilder sb = new StringBuilder();
 //		if (DEBUG) System.out.println("Table.getRow colCount="+columns.size());
-		for (ODocument column : columns.get()) {
-			String fieldName = column.field("name");
+		for (OProperty column : columns) {
+			String fieldName = column.getName();
 			if (!fieldName.toUpperCase().endsWith("PASSWORD")   // && !fieldName.startsWith("_")
 					&& 	(hideColumn == null || !fieldName.equals(hideColumn)) 
 					) {
-				if (fieldName.startsWith("button(") && fieldName.length() > 8 && fieldName.indexOf(':',7) > 7) {
-					int cp = fieldName.indexOf(':',7);
+				if (fieldName.startsWith("button_") && fieldName.length() > 8 && fieldName.indexOf('_',7) > 7) {
+					int cp = fieldName.indexOf('_',7);
 					String n = fieldName.substring(7,cp);  
-					String l = fieldName.substring(cp+1,fieldName.length()-1);
+					String l = fieldName.substring(cp+1);
 //					sb.append(column("<div style=\"z-index: 1000;\">"+form(hidden(n,d.getIdentity().toString().substring(1))+submitButton(l))+"</div>"));
 //					sb.append(column(form(hidden(n,d.getIdentity().toString().substring(1))+submitButton(l))));
 					sb.append(column(form(button(n,d.getIdentity().toString().substring(1),l))));
@@ -1407,10 +1407,10 @@ public class Table extends Weblet {
 		return sb.toString();
 	}
 
-	private String getColumnAsCell(ODocument column, ODocument d, DatabaseConnection con) {
+	private String getColumnAsCell(OProperty column, ODocument d, DatabaseConnection con) {
 		StringBuilder sb = new StringBuilder();
-		String columnName = column.field("name");
-		Integer columnType = column.field("type"); 
+		String columnName = column.getName();
+		Integer columnType = column.getType().getId(); 
 //		if (DEBUG) System.out.println("permeagility.web.Table:Column name = "+columnName+" type = "+(columnType==null ? "null" : columnType));
 		if (columnType == 0) {
 			sb.append(column(checkboxDisabled(columnName, (d.field(columnName) == null ? false : (Boolean)d.field(columnName)))));
@@ -1507,7 +1507,9 @@ public class Table extends Weblet {
 		} else if (columnType == 19) {  // OrientDB Date
 			sb.append(column(""+(d.field(columnName) == null ? "" : formatDate(con.getLocale(),(Date)d.field(columnName),Message.get(con.getLocale(), "DATE_FORMAT")))));
 		} else if (columnType == 21) {   // OrientDB Decimal
-			sb.append(column("number", ""+formatNumber(con.getLocale(),(Number)d.field(columnName),FLOAT_FORMAT)));
+			Number num = (Number)d.field(columnName);
+			String formatted = (num == null ? "" : formatNumber(con.getLocale(),num,FLOAT_FORMAT));
+			sb.append(column("number", formatted));
 		} else if (columnType == 22) {   // LinkBag
 			sb.append(column("LinkBag"));
 		} else if (columnType == 23) {   // Any
@@ -1533,7 +1535,7 @@ public class Table extends Weblet {
 						String newtable = parms.get("RENAME_TABLE");
 						newtable = makePrettyCamelCase(newtable);
 						Server.tableUpdated(table);
-						Server.clearColumnsCache("ALL");
+						Server.clearColumnsCache(table);
 						con.update("ALTER CLASS "+table+" NAME "+newtable);
 						con.update("UPDATE columns SET name='"+newtable+"' WHERE name='"+table+"'");
 						table = newtable;
@@ -1603,7 +1605,7 @@ public class Table extends Weblet {
 		}
 		String title = table + " " + Message.get(locale, "ADVANCED_OPTIONS");
 		parms.put("SERVICE", title);
-		return head(title)
+		return head(title,getScripts(con))
 				+ body(standardLayout(con, parms,
 					advancedOptionsForm(con, table, parms,errors.toString())
 					+ br()
@@ -1675,7 +1677,7 @@ public class Table extends Weblet {
 
 		String title = table + " " + Message.get(locale, "ADVANCED_OPTIONS");
 		parms.put("SERVICE", title);
-		return head(title)
+		return head(title,getScripts(con))
 				+ body(standardLayout(con, parms,
 					rightsOptionsForm(con, table, parms,errors.toString())
 					+ br()

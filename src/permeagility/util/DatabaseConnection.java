@@ -182,6 +182,7 @@ public class DatabaseConnection {
     public synchronized Object update(String expression) {
         if (DEBUG) System.out.println("DatabaseConnection.DEBUG(update)="+expression+";");
        	lastAccess = System.currentTimeMillis();
+		//c.getLocalCache().clear();  // Remove existing objects from the cache as they will not know of SQL update
         return c.command(new OCommandSQL(expression)).execute();    // run the query return the resulting object
     }
 

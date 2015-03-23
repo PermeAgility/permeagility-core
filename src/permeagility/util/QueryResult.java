@@ -24,7 +24,7 @@ public class QueryResult {
     	result = _result;
     }
 	    
-    public List<ODocument> get() {
+	public List<ODocument> get() {
     	return result;
     }
     

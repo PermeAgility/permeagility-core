@@ -113,14 +113,16 @@ public abstract class Weblet {
 				+"  $(document).ready(function () {\n"
 				+ "   $('.screenwait').fadeOut(0); \n"
 				+"    $('.submit,button').click(function(e) {\n"  // submit is clicked
+				+"      var href = $(e.target).attr('href');"
+				+"      if (href == undefined || href.substring(0,4) == 'data') return;\n"  // If no href must just be a button
 				+"      var isngClick = $(e.target).attr('ng-click') !== undefined;\n"
 				+"      if (!isngClick) {\n"
-				+"      e.preventDefault();\n"
-				+"      e.stopPropagation();\n"	
-				+ "     $('.screenfade').fadeIn('fast'); \n"
+				+"        e.preventDefault();\n"
+				+"        e.stopPropagation();\n"	
+				+ "       $('.screenfade').fadeIn('fast'); \n"
 //				+ "     $('.screenwait').fadeIn('fast'); \n"  // no wait animation yet
-				+ "     $('.canpopup').slideUp('fast');\n"
-			    +"      $(this).fadeOut(330, function() { $(this).unbind('click').click(); });\n"
+				+ "       $('.canpopup').slideUp('fast');\n"
+			    +"        $(this).fadeOut(330, function() { $(this).unbind('click').click(); });\n"
 			    +"      }\n"
 				+"	  });\n"
 				+"    $('a:not(.popuplink),tr.clickable').click(function (e) {\n"      // When an anchor is clicked
@@ -697,7 +699,6 @@ public abstract class Weblet {
 //		System.out.println("Getting date control script for locale "+locale.getLanguage());
 // TODO: May need more intelligence here to ensure the locale has a file for JS Calendar ( or just replace the whole thing)
 		return 
-//				   "<link rel=\"stylesheet\" type=\"text/css\" media=\"all\" href=\"../js/jscalendar-1.0/calendar-win2k-cold-1.css\" title=\"win2k-cold-1\" />\n"
 		   "<link rel=\"stylesheet\" type=\"text/css\" href=\"../js/jscalendar-1.0/calendar-"+DATE_CONTROL_STYLE+".css\" title=\"Date Control\" />\n"
 		  +"<script type=\"text/javascript\" src=\"../js/jscalendar-1.0/calendar.js\"></script>\n"
 		  +"<script type=\"text/javascript\" src=\"../js/jscalendar-1.0/lang/calendar-"+locale.getLanguage()+".js\"></script>\n"
@@ -706,6 +707,44 @@ public abstract class Weblet {
 
 	public static String getColorControlScript() {
 		return "<script  type='text/javascript' src=\"../js/jscolor/jscolor.js\"></script>\n";
+	}
+
+	public static String EDITOR_THEME = "night";
+	
+	public static String getCodeEditorScript() {
+		return "<link rel=\"stylesheet\" type=\"text/css\" href=\"../js/codemirror/lib/codemirror.css\" />\n"
+			+"<link rel=\"stylesheet\" type=\"text/css\" href=\"../js/codemirror/theme/"+EDITOR_THEME+".css\" />\n"
+			+"<link rel=\"stylesheet\" type=\"text/css\" href=\"../js/codemirror/addon/hint/show-hint.css\" />\n"
+			+"<link rel=\"stylesheet\" type=\"text/css\" href=\"../js/codemirror/addon/dialog/dialog.css\" />\n"
+			+"<link rel=\"stylesheet\" type=\"text/css\" href=\"../js/codemirror/addon/tern/tern.css\" />\n"
+			+ "<script type=\"text/javascript\" src=\"../js/codemirror/lib/codemirror.js\"></script>\n"
+			+ "<script type=\"text/javascript\" src=\"../js/codemirror/mode/javascript/javascript.js\"></script>\n"
+			+ "<script type=\"text/javascript\" src=\"../js/codemirror/mode/css/css.js\"></script>\n"
+			+ "<script type=\"text/javascript\" src=\"../js/codemirror/addon/dialog/dialog.js\"></script>\n"
+			+ "<script type=\"text/javascript\" src=\"../js/codemirror/addon/tern/tern.js\"></script>\n"
+			+ "<script type=\"text/javascript\" src=\"../js/codemirror/addon/hint/show-hint.js\"></script>\n"
+			+ "<script type=\"text/javascript\" src=\"../js/codemirror/addon/hint/javascript-hint.js\"></script>\n"
+			+ "<script type=\"text/javascript\" src=\"../js/codemirror/addon/hint/css-hint.js\"></script>\n"
+			+ "<script type=\"text/javascript\" src=\"../js/codemirror/addon/lint/lint.js\"></script>\n"
+			+ "<script type=\"text/javascript\" src=\"../js/codemirror/addon/lint/javascript-lint.js\"></script>\n"
+			+ "<script type=\"text/javascript\" src=\"../js/codemirror/addon/lint/css-lint.js\"></script>\n"
+			+ "<script type=\"text/javascript\" src=\"../js/codemirror/addon/selection/active-line.js\"></script>\n"
+			+ "<script type=\"text/javascript\" src=\"../js/codemirror/addon/edit/matchbrackets.js\"></script>\n";
+	}
+
+	public String getCodeEditorControl(String formName, String controlName, String initialValue, String mode) {
+		return "<textarea id=\""+controlName+"\" name=\""+controlName+"\">"+(initialValue==null ? "" : initialValue)+"</textarea>\n"
+				+" <script>\n"
+				+ "var "+controlName+"Editor = CodeMirror.fromTextArea(document.getElementById(\""+controlName+"\")"
+				+ ", { lineNumbers: true, mode: \""+mode+"\""
+						+ ", theme: \""+EDITOR_THEME+"\", matchBrackets: true, extraKeys: {\"Ctrl-Space\": \"autocomplete\"}"
+						+ ", viewportMargin: Infinity });\n"
+				+ "</script>\n";
+				
+	}
+
+	public int countLines(String string) {
+		return java.util.regex.Pattern.compile("[\\n]+").split(string.trim()).length;
 	}
 
 	public static String getSortTableScript() {
@@ -1214,9 +1253,9 @@ public abstract class Weblet {
 
 	public String getStyles() {
 		if (internal_con != null && internal_con.isConnected()) {
-			QueryResult qr = queryCache.getResult(internal_con, "SELECT description FROM style WHERE name='"+ DEFAULT_STYLE + "'");
+			QueryResult qr = queryCache.getResult(internal_con, "SELECT CSSStyle FROM style WHERE name='"+ DEFAULT_STYLE + "'");
 			if (qr != null && qr.size() > 0) {
-				return qr.getStringValue(0, "description");
+				return qr.getStringValue(0, "CSSStyle");
 			}
 			System.out.println("Unable to load style sheet called: "+DEFAULT_STYLE);
 		} else {
@@ -1512,7 +1551,8 @@ public abstract class Weblet {
 		if (what == null || what.equals("")) {
 			return "null";
 		} else {
-			return '"'+what.replace("\"", "'")+'"';
+//			return '"'+what.replace("\"", "'")+'"';
+			return "'"+what.replace("\\","\\\\").replace("'", "\\'")+"'";
 		}
 	}
 

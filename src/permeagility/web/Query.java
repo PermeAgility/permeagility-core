@@ -6,6 +6,7 @@ at the URL "http://www.eclipse.org/legal/epl-v10.html".
 package permeagility.web;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -13,6 +14,7 @@ import java.util.Set;
 import permeagility.util.DatabaseConnection;
 import permeagility.util.QueryResult;
 
+import com.orientechnologies.orient.core.metadata.schema.OProperty;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 import com.orientechnologies.orient.core.record.impl.ORecordBytes;
 
@@ -261,11 +263,11 @@ public class Query extends Weblet {
 		// Columns
 		for (ODocument t : tables.get()) {
 			String tName = t.field("name");
-			QueryResult cols = Server.getColumns(tName);
-			for (ODocument col : cols.get()) {
-				String cName = col.field("name");
-				Integer cType = col.field("type");
-				String cClass = col.field("linkedClass");
+			Collection<OProperty> cols = Server.getColumns(tName);
+			for (OProperty col : cols) {
+				String cName = col.getName();
+				Integer cType = col.getType().getId();
+				String cClass = col.getLinkedClass() != null ? col.getLinkedClass().getName() : null;
 				if (columnInit.length()>0) columnInit.append(", ");
 				columnInit.append("{ table:'"+tName+"', column:'"+cName+"', type:'"+(cType == null ? "" : Table.getTypeName(con.getLocale(),cType))+(cClass == null ? "" : " to "+cClass)+"'}");
 			}
@@ -320,7 +322,7 @@ public class Query extends Weblet {
 				      +"  <option value=\"ALTER CLUSTER\">ALTER CLUSTER name|id NAME|DATASEGMENT|COMPRESSION|USE_WAL|RECORD_GROW_FACTOR|CONFLICTSTRATEGY value</option>\n"
 				      +"  <option value=\"ALTER PROPERTY\">ALTER PROPERTY class.property NAME|LINKEDCLASS|MIN|MAX|MANDATORY|NOTNULL|REGEXP|TYPE|COLLATE value</option>\n"
 				      +"  <option value=\"DROP\">DROP CLASS|CLUSTER|INDEX|PROPERTY value</option>\n"
-				      +"  <option value=\"TRUNCATE\">TRUNCATE CLASS|CLUSTER|RECORD name|rid</option>\n"
+				      +"  <option value=\"TRUNCATE CLASS\">TRUNCATE CLASS|CLUSTER|RECORD name|rid</option>\n"
 				      +"  <option value=\"GRANT\">GRANT NONE|CREATE|READ|UPDATE|DELETE|ALL ON class|resource TO role</option>\n"
 				      +"  <option value=\"REVOKE\">REVOKE NONE|CREATE|READ|UPDATE|DELETE|ALL ON class|resource FROM role</option>\n"
 				    : "")

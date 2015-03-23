@@ -20,7 +20,7 @@ public class PlusClassLoader extends URLClassLoader {
 	private static ClassLoader instance = null;  // There can only be one and it can only be loaded once
 	
 	private static ArrayList<String> modules = new ArrayList<String>();
-	private static String builtins[] = { "plus-translate", "plus-merge" };  // , "plus-visuility"
+	private static String builtins[] = { "plus-translate", "plus-merge", "plus-importJSON" };  // , "plus-visuility"
 	
 	public PlusClassLoader(URL[] urls) {
 		super(urls);
