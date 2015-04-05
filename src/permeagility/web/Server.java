@@ -40,18 +40,19 @@ import permeagility.util.Browser;
 import permeagility.util.ConstantOverride;
 import permeagility.util.Database;
 import permeagility.util.DatabaseConnection;
+import permeagility.util.DatabaseHook;
 import permeagility.util.Dumper;
 import permeagility.util.PlusClassLoader;
 import permeagility.util.QueryResult;
 import permeagility.util.Setup;
 
 import com.orientechnologies.orient.core.OConstants;
+import com.orientechnologies.orient.core.Orient;
 import com.orientechnologies.orient.core.collate.OCollate;
 import com.orientechnologies.orient.core.id.ORecordId;
 import com.orientechnologies.orient.core.index.OIndex;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OClass.INDEX_TYPE;
-import com.orientechnologies.orient.core.metadata.schema.OImmutableProperty;
 import com.orientechnologies.orient.core.metadata.schema.OProperty;
 import com.orientechnologies.orient.core.metadata.schema.OSchema;
 import com.orientechnologies.orient.core.metadata.schema.OType;
@@ -71,6 +72,7 @@ public class Server extends Thread {
 	static String DB_NAME = "plocal:db";  // Second parameter
 	private static Date serverInitTime = new Date();
 	private static String DEFAULT_DBFILE = "starterdb.json.gz";  //  Used at initial start
+	private static DatabaseHook databaseHook = null;
 
 	/* Overrideable constants */
 	public static boolean DEBUG = true;
@@ -1549,6 +1551,10 @@ public class Server extends Thread {
 		try {
 			String p = getLocalSetting(DB_NAME+HTTP_PORT, "");
 			//System.out.println("Localsetting for password is "+p);
+			if (DB_NAME.startsWith("plocal")) {
+				databaseHook = new DatabaseHook();
+				Orient.instance().addDbLifecycleListener(databaseHook);
+			}
 			database = new Database(DB_NAME, "server", (p == null || p.equals("") ? "server" : p));
 //			database = new Database(DB_NAME, "admin", (p == null || p.equals("") ? "admin" : p));
 			if (!database.isConnected()) {    

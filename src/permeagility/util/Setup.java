@@ -362,6 +362,7 @@ public class Setup {
 			mCount += checkCreateMessage(con, loc, "PLUS_VERSION", "Plus Version");
 			mCount += checkCreateMessage(con, loc, "PLUS_SETUP", "Setup");
 			mCount += checkCreateMessage(con, loc, "PLUS_DESCRIPTION", "Description");
+			mCount += checkCreateMessage(con, loc, "VISUILITY", "Visuility");
 						
 			if (mCount > 0) {
 				installMessages.append(Weblet.paragraph("CheckInstallation: Created "+mCount+" messages"));
@@ -380,7 +381,7 @@ public class Setup {
 			if (newsTable.count() == 0) {
 				ODocument n1 = con.create(TABLE_NEWS);
 				n1.field("name","Welcome to PermeAgility");
-				n1.field("description","The core template for big data applications in a micro service.  Default logins are:\n"
+				n1.field("description","The core template for big data applications in a micro service. Now with Visuility! Default logins are:\n"
 						+ "<ul><li><a href='permeagility.web.Home?USERNAME=admin&PASSWORD=admin'>admin/admin</a></li>\n"
 						+ "<li><a href='permeagility.web.Home?USERNAME=writer&PASSWORD=writer'>writer/writer</a></li>\n"
 						+ "<li><a href='permeagility.web.Home?USERNAME=reader&PASSWORD=reader'>reader/reader</a></li></ul>\n"
@@ -568,6 +569,22 @@ public class Setup {
 				mi_table.field("_allowRead", allRolesButGuest.toArray());
 				mi_table.save();				
 
+				ODocument mi_visuility = con.create(TABLE_MENUITEM);
+				mi_visuility.field("name","Visuility");
+				mi_visuility.field("description","Visuility browser");
+				mi_visuility.field("classname","permeagility.web.Visuility");
+				mi_visuility.field("active",true);
+				mi_visuility.field("_allowRead", allRolesButGuest.toArray());
+				mi_visuility.save();				
+
+				ODocument mi_visuilityData = con.create(TABLE_MENUITEM);
+				mi_visuilityData.field("name","Visuility");
+				mi_visuilityData.field("description","Visuility browser (data component)");
+				mi_visuilityData.field("classname","permeagility.web.VisuilityData");
+				mi_visuilityData.field("active",true);
+				mi_visuilityData.field("_allowRead", allRolesButGuest.toArray());
+				mi_visuilityData.save();				
+
 				ODocument mi_backup = con.create(TABLE_MENUITEM);
 				mi_backup.field("name","Backup");
 				mi_backup.field("description","Backup and restore the database");
@@ -587,6 +604,7 @@ public class Setup {
 				// Build default menu
 				ArrayList<ODocument> items = new ArrayList<ODocument>();
 				items.add(mi_userRequest);
+				items.add(mi_visuility);
 				items.add(mi_schema);
 				items.add(mi_query);
 				items.add(mi_blank);

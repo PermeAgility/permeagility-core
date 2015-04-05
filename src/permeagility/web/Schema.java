@@ -150,4 +150,73 @@ public class Schema extends Weblet {
 			));
 	}
 	
+	public static String getTableSelector(DatabaseConnection con) {
+		StringBuilder tableInit = new StringBuilder(); // JSON list of tables and groups
+		
+		// Add tables in groups (similar code to Schema - should be combined in one place - need one more use - and this should be it)
+		QueryResult schemas = con.query("SELECT from tableGroup");
+		QueryResult tables = con.query("SELECT name, superClass FROM (SELECT expand(classes) FROM metadata:schema) WHERE abstract=false ORDER BY name");
+		ArrayList<String> tablesInGroups = new ArrayList<String>(); 
+		for (ODocument schema : schemas.get()) {
+			StringBuilder tablelist = new StringBuilder();
+			String tablesf = schema.field("tables");
+			String table[] = {};
+			if (tablelist != null) {
+				table = tablesf.split(",");
+			}
+			String groupName = (String)schema.field("name");
+			tablelist.append(paragraph("banner", groupName));
+			//boolean groupHasTable = false;
+			for (String tableName : table) {
+				tableName = tableName.trim();
+				boolean show = true;
+				if (tableName.startsWith("-")) {
+					show = false;
+					tableName = tableName.substring(1);
+				}
+				tablesInGroups.add(tableName);
+				if (show) {
+					int privs = Server.getTablePriv(con, tableName);
+					//System.out.println("Table privs for table "+tableName+" for user "+con.getUser()+" privs="+privs);
+					if (privs > 0) {
+						tableName = tableName.trim();
+						if (tableInit.length()>0) tableInit.append(", ");
+						tableInit.append("{ group:'"+groupName+"', table:'"+tableName+"'}");
+				//		groupHasTable = true;
+					}
+				}
+			}
+		}
+		
+		// Add the non grouped (new) tables
+		StringBuilder tablelist = new StringBuilder();
+		tablelist.append(paragraph("banner",Message.get(con.getLocale(), "TABLE_NONGROUPED")));
+		for (ODocument row : tables.get()) {
+			String tablename = row.field("name");
+			if (!tablesInGroups.contains(tablename)) {
+				if (Server.getTablePriv(con, tablename) > 0) {
+					if (tableInit.length()>0) tableInit.append(", ");
+					tableInit.append("{ group:'New', table:'"+tablename+"'}");
+				}
+			}
+		}
+		
+	  return "<div ng-init=\"tables=["+tableInit+"];\">\n"
+	    +table(
+	    	row(column("")
+	    		+column(
+			    	"<select ng-model=\"selGroup\"\n"
+			    	+"  ng-options=\"v.group for v in tables | unique:'group'\" >\n"
+			    	+"  <option value=\"\">Table Group</option>\n"
+			    	+"</select>\n")
+			    +column("")
+		    	+column("<select id=\"tableSelector\" ng-model=\"selTable\"\n" 
+		    			+"  ng-options=\"v.table for v in tables | filter:{group:selGroup.group} | orderBy:'table'\">\n"
+		    			+"  <option value=\"\">Table</option>\n"
+		    			+"</select>\n")
+		     )
+		    )
+	    +"</div>\n";
+	}
+
 }
