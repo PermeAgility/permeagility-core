@@ -220,7 +220,7 @@ public class Database implements Serializable {
 			}
 			if (d.exists()) {
 				if (backupFile != null && new File(backupFile).isFile()) {
-					System.out.println("Loading "+backupFile+"....");
+					System.out.println("Loading "+backupFile+"...");
 					try {
 						ODatabaseImport importdb;
 						importdb = new ODatabaseImport(d,backupFile, new OCommandOutputListener() {
@@ -247,10 +247,16 @@ public class Database implements Serializable {
 					System.out.println("Cannot restore from "+backupFile+" as it does not exist - not a problem");
 				}
 				OSecurity osec = d.getMetadata().getSecurity();
+				OUser adminu = osec.getUser("admin");
+				if (adminu == null) {
+					System.out.println("Whoa, no admin user? - I guess I will have to create one but this is sure strange");
+					adminu = osec.createUser("admin", "admin", "admin");
+				}
 				OUser u = osec.getUser("server");
 				if (u == null) {
 					System.out.println("**** Security: Creating server user with server you should probably change this now");
-					u = d.getMetadata().getSecurity().createUser("server", "server", "admin");
+					u = osec.createUser("server", "server", "admin");
+					d.commit();
 					u.save();
 				} else {
 					u.setPassword(password);

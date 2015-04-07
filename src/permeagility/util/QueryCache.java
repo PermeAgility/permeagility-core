@@ -64,9 +64,8 @@ public class QueryCache extends ConcurrentHashMap<String,QueryResult> {
 	 * all queries that used that table
 	 */
 	public synchronized void refreshContains(String query) {
-		Object[] keys = keySet().toArray();
-		for (Object key : keys) {
-			if (((String)key).toUpperCase().contains(query.toUpperCase())) {
+		for (String key : keySet()) {
+			if (key.toUpperCase().contains(query.toUpperCase())) {
 				remove(key);
 			}
 		}

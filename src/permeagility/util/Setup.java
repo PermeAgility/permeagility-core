@@ -31,6 +31,7 @@ public class Setup {
 	public static final String TABLE_MENUITEM = "menuItem";
 	public static final String TABLE_NEWS = "article";
 	public static final String TABLE_USERREQUEST = "userRequest";
+	public static final String TABLE_AUDIT = "auditTrail";
 	
 	/**
 	 *  Verify the installation of the permeagility-core table structures
@@ -119,7 +120,7 @@ public class Setup {
 			Setup.checkCreateColumn(con, tableGroupTable, "tables", OType.STRING, installMessages);
 
 			if (tableGroupTable.count() == 0) {
-				con.create(TABLE_TABLEGROUP).field("name","Application").field("tables","columns,constant,locale,pickList,menu,menuItem,message,style,tableGroup,userRequest,-thumbnail").field("_allowRead", adminRoles.toArray()).save();
+				con.create(TABLE_TABLEGROUP).field("name","Application").field("tables","columns,constant,locale,pickList,menu,menuItem,message,style,tableGroup,userRequest,auditTrail,-thumbnail").field("_allowRead", adminRoles.toArray()).save();
 				con.create(TABLE_TABLEGROUP).field("name","System").field("tables","ORole,OUser,OFunction,OSchedule,-ORIDs,-E,-V,-_studio").field("_allowRead", adminRoles.toArray()).save();
 				con.create(TABLE_TABLEGROUP).field("name","News").field("tables","article").field("_allowRead", allRoles.toArray()).save();
 			}
@@ -143,6 +144,15 @@ public class Setup {
 			Setup.checkCreateColumn(con, constantTable, "description", OType.STRING, installMessages);
 			Setup.checkCreateColumn(con, constantTable, "field", OType.STRING, installMessages);
 			Setup.checkCreateColumn(con, constantTable, "value", OType.STRING, installMessages);
+			
+			System.out.print(TABLE_AUDIT+" ");
+			OClass auditTable = Setup.checkCreateTable(oschema, TABLE_AUDIT, installMessages);
+			Setup.checkCreateColumn(con, auditTable, "timestamp", OType.DATETIME, installMessages);
+			Setup.checkCreateColumn(con, auditTable, "action", OType.STRING, installMessages);
+			Setup.checkCreateColumn(con, auditTable, "table", OType.STRING, installMessages);
+			Setup.checkCreateColumn(con, auditTable, "rid", OType.STRING, installMessages);
+			Setup.checkCreateColumn(con, auditTable, "recordVersion", OType.LONG, installMessages);
+			Setup.checkCreateColumn(con, auditTable, "detail", OType.STRING, installMessages);
 			
 			if (constantTable.count() == 0) {
 				con.create(TABLE_CONSTANT).field("classname","permeagility.web.Server").field("description","Server debug flag").field("field","DEBUG").field("value","false").save();				

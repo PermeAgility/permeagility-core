@@ -40,7 +40,6 @@ import permeagility.util.Browser;
 import permeagility.util.ConstantOverride;
 import permeagility.util.Database;
 import permeagility.util.DatabaseConnection;
-import permeagility.util.DatabaseHook;
 import permeagility.util.Dumper;
 import permeagility.util.PlusClassLoader;
 import permeagility.util.QueryResult;
@@ -215,6 +214,8 @@ public class Server extends Thread {
 						s.start();
 					}
 				}
+			} else {
+				System.out.println("Failed to initialize server");
 			}
 			ss.close();
 		} catch (BindException b) {
@@ -1272,108 +1273,57 @@ public class Server extends Thread {
 							if (name.trim().startsWith("button")) {
 								OProperty bd = new OProperty() {
 									String name;
-									public OProperty setType(OType t) {
-										return this;
-									}
+									public OProperty setType(OType t) { return this; }
 									public boolean isMandatory() { return false; }
 									@Override
-									public int compareTo(OProperty o) {
-										return 0;
-									}
+									public int compareTo(OProperty o) { return 0; }
 									@Override
-									public String getName() {
-										return name;
-									}
+									public String getName() { return name; }
 									@Override
-									public String getFullName() {
-										return null;
-									}
+									public String getFullName() { return null; }
 									@Override
 									public OProperty setName(String iName) {
 										name = iName;
 										return this;
 									}
 									@Override
-									public void set(ATTRIBUTES attribute,
-											Object iValue) {
-									}
+									public void set(ATTRIBUTES attribute, Object iValue) { }
 									@Override
-									public OType getType() {
-										return OType.TRANSIENT;
-									}
+									public OType getType() { return OType.TRANSIENT; }
 									@Override
-									public OClass getLinkedClass() {
-										return null;
-									}
+									public OClass getLinkedClass() { return null; }
 									@Override
-									public OProperty setLinkedClass(
-											OClass oClass) {
-										return null;
-									}
+									public OProperty setLinkedClass(OClass oClass) { return null; }
 									@Override
-									public OType getLinkedType() {
-										return null;
-									}
+									public OType getLinkedType() { return null; }
 									@Override
-									public OProperty setLinkedType(OType type) {
-										return null;
-									}
+									public OProperty setLinkedType(OType type) { return null; }
 									@Override
-									public boolean isNotNull() {
-										return false;
-									}
+									public boolean isNotNull() { return false; }
 									@Override
-									public OProperty setNotNull(boolean iNotNull) {
-										return null;
-									}
+									public OProperty setNotNull(boolean iNotNull) { return null; }
 									@Override
-									public OCollate getCollate() {
-										return null;
-									}
+									public OCollate getCollate() { return null; }
 									@Override
-									public OProperty setCollate(
-											String iCollateName) {
-										return null;
-									}
+									public OProperty setCollate(String iCollateName) { return null; }
 									@Override
-									public OProperty setCollate(OCollate collate) {
-										return null;
-									}
+									public OProperty setCollate(OCollate collate) { return null; }
 									@Override
-									public OProperty setMandatory(
-											boolean mandatory) {
-										return null;
-									}
+									public OProperty setMandatory(boolean mandatory) { return null; }
 									@Override
-									public boolean isReadonly() {
-										return false;
-									}
+									public boolean isReadonly() { return false; }
 									@Override
-									public OProperty setReadonly(
-											boolean iReadonly) {
-										return null;
-									}
+									public OProperty setReadonly(boolean iReadonly) { return null; }
 									@Override
-									public String getMin() {
-										return null;
-									}
+									public String getMin() { return null; }
 									@Override
-									public OProperty setMin(String min) {
-										return null;
-									}
+									public OProperty setMin(String min) { return null; }
 									@Override
-									public String getMax() {
-										return null;
-									}
+									public String getMax() { return null; }
 									@Override
-									public OProperty setMax(String max) {
-										return null;
-									}
+									public OProperty setMax(String max) { return null; }
 									@Override
-									public OIndex<?> createIndex(
-											INDEX_TYPE iType) {
-										return null;
-									}
+									public OIndex<?> createIndex(INDEX_TYPE iType) { return null; }
 									@Override
 									public OIndex<?> createIndex(String iType) {
 										return null;
@@ -1547,16 +1497,15 @@ public class Server extends Thread {
 	
 	static boolean initializeServer() {
 		System.out.println("Initializing server using OrientDB Version "+OConstants.getVersion()+" Build number "+OConstants.getBuildNumber());
-		//OGlobalConfiguration.CACHE_LOCAL_ENABLED.setValue(false);  // To ensure concurrency across threads (pre 2.0-M3)
 		try {
-			String p = getLocalSetting(DB_NAME+HTTP_PORT, "");
-			//System.out.println("Localsetting for password is "+p);
-			if (DB_NAME.startsWith("plocal")) {
+			String p = getLocalSetting(DB_NAME+HTTP_PORT, null);
+			System.out.println("Localsetting for password is "+p);
+			if (DB_NAME.startsWith("plocal")) {  // Install database hook for Audit Trail and other triggers
+				System.out.println("Installing database hook for Audit Trail");
 				databaseHook = new DatabaseHook();
-				Orient.instance().addDbLifecycleListener(databaseHook);
 			}
-			database = new Database(DB_NAME, "server", (p == null || p.equals("") ? "server" : p));
-//			database = new Database(DB_NAME, "admin", (p == null || p.equals("") ? "admin" : p));
+			database = new Database(DB_NAME, "server", (p == null ? "server" : p));
+//			database = new Database(DB_NAME, "admin", (p == null ? "admin" : p));
 			if (!database.isConnected()) {    
 				System.out.println("Panic: Cannot login with server user, maybe this is first time so will try admin/admin");
 				database = new Database(DB_NAME, "admin", "admin");

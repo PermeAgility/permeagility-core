@@ -65,7 +65,7 @@ var LINK_SIZE = 25;
 var nodeSizes = { "control": { "width":20, "maxheight":15, "minheight":20, "corner": 20, "color": "#ccc", "controls":"" } 
                  ,"table": { "width":80, "maxheight":20, "minheight":5, "corner": 0, "color": "cyan", "controls":"x,r,c" }
                  ,"row": { "width":30, "maxheight":20, "minheight":5, "corner": 10, "color": "yellow", "controls":"x,t,c,d" }
-                 ,"column": { "width":90, "maxheight":20, "minheight":5, "corner": 5, "color": "orange", "controls":"x,t" }
+                 ,"column": { "width":90, "maxheight":20, "minheight":12, "corner": 5, "color": "orange", "controls":"x,t" }
                  ,"data": { "width":90, "maxheight":20, "minheight":5, "corner": 15, "color": "lightgreen", "controls":"x,r,c,t" }
                 };
 
