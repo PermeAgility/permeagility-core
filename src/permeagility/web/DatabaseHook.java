@@ -7,7 +7,7 @@ import com.orientechnologies.orient.core.metadata.schema.OClass;
 
 public class DatabaseHook implements ODatabaseLifecycleListener {
 	
-	public static boolean DEBUG = true;
+	public static boolean DEBUG = false;
 	private static RecordHook hook = new RecordHook();
 	
 	public DatabaseHook() {

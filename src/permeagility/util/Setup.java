@@ -151,6 +151,7 @@ public class Setup {
 			Setup.checkCreateColumn(con, auditTable, "action", OType.STRING, installMessages);
 			Setup.checkCreateColumn(con, auditTable, "table", OType.STRING, installMessages);
 			Setup.checkCreateColumn(con, auditTable, "rid", OType.STRING, installMessages);
+			Setup.checkCreateColumn(con, auditTable, "user", OType.STRING, installMessages);
 			Setup.checkCreateColumn(con, auditTable, "recordVersion", OType.LONG, installMessages);
 			Setup.checkCreateColumn(con, auditTable, "detail", OType.STRING, installMessages);
 			
