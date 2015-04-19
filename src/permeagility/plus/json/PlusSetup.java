@@ -10,7 +10,7 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 	public static boolean INSTALLED = false;  // Set via constant to complete installation
 	public static String INSTALLED_VERSION = "0";  // Set via constant to complete installation
 		
-	public static String MENU_CLASS = "permeagility.plus.importJSON.ImportJSON";
+	public static String MENU_CLASS = "permeagility.plus.json.ImportJSON";
 	
 	public String getName() { return "Import JSON"; }
 	public String getInfo() { return "(built-in) Import JSON data into a table"; }
