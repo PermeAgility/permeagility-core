@@ -28,18 +28,6 @@ public class VisuilityData extends Download {
 	@Override
 	public byte[] getFile(DatabaseConnection con, HashMap<String, String> parms) {
 
-		String view = parms.get("VIEW");
-		if (view != null && !view.equals("")) {
-			System.out.println("Build view "+view);
-			ODocument viewDoc = con.get("#"+view);
-			if (viewDoc == null) {
-				return ("Could not retrieve data using "+parms.toString()).getBytes();
-			} else {
-				String sampleData = viewDoc.field("dataScript");
-				return sampleData == null ? "".getBytes() : sampleData.replace("'","\"").getBytes();
-			}
-		}
-		
 		String id = parms.get("ROW");
 		if (id != null && !id.equals("")) {
 			System.out.println("Build ROW view "+id);
@@ -188,7 +176,7 @@ public class VisuilityData extends Download {
 
 	public byte[] assembleResult(StringBuilder nodes, StringBuilder links) {
 		return links.length() == 0 && nodes.length() == 0
-				? "{}".getBytes() 
+				? "{}".getBytes()  /// maybe send empty nodes and links instead of this???
 				: ("{ "
 					+ "\n\"nodes\": [ "+nodes.toString()+" ]"
 					+ "\n, \"links\": [ "+links.toString()+" ]"

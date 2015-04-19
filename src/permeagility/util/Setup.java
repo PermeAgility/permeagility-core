@@ -446,12 +446,12 @@ public class Setup {
 			Setup.checkCreateColumn(con, styleTable, "name", OType.STRING, installMessages);
 			Setup.checkCreateColumn(con, styleTable, "horizontal", OType.BOOLEAN, installMessages);
 			Setup.checkCreateColumn(con, styleTable, "logo", OType.STRING, installMessages);
-			Setup.checkCreateColumn(con, styleTable, "description", OType.STRING, installMessages);
+			Setup.checkCreateColumn(con, styleTable, "CSSStyle", OType.STRING, installMessages);
 			
 			if (styleTable.count() == 0) {
 				ODocument style = con.create(TABLE_STYLE); 
 				style.field("name", "default");
-				style.field("description", DEFAULT_STYLESHEET);
+				style.field("CSSStyle", DEFAULT_STYLESHEET);
 				style.field("logo", "Logo-blk.svg");
 				style.save();
 
@@ -459,7 +459,7 @@ public class Setup {
 				style2.field("name", "horizontal");
 				style2.field("horizontal", true);
 				style2.field("logo", "Logo-yel.svg");
-				style2.field("description", DEFAULT_ALT_STYLESHEET);
+				style2.field("CSSStyle", DEFAULT_ALT_STYLESHEET);
 				style2.save();
 				
 			}
@@ -918,11 +918,16 @@ public class Setup {
 	
 	/** Drop a table */
 	public static void dropTable(DatabaseConnection con, String classname) {
+		dropTable(con, classname, null);
+	}
+
+	public static void dropTable(DatabaseConnection con, String classname, StringBuilder errors) {
 		OSchema schema = con.getSchema();
 		schema.dropClass(classname);
 		Setup.removeTableFromAllTableGroups(con, classname);
 		Server.clearColumnsCache(classname);
 		DatabaseConnection.rowCountChanged(classname);
+		if (errors != null) errors.append(Weblet.paragraph("success","Table dropped: "+classname));
 	}
 
 	public static final String DEFAULT_STYLESHEET = 
@@ -1032,6 +1037,12 @@ public class Setup {
 "    border: 1px solid #eee;\n"+
 "    height: auto;\n"+
 "}\n"+
+".nodeTitle { fill: black; font-size: medium; }\n"+
+"g:not(.selected) { stroke: none; } \n"+
+"g.selected { stroke: black; }\n"+
+".link { fill: black; stroke: lightgray; }\n"+
+"rect.node { opacity: 1; }\n"+
+"rect.selection { stroke: black; fill: none; stroke-width: 4px; stroke-dasharray: 5,5; opacity: 0.8; }\n"+
 "@media print { BODY { font-size: 6pt; margin: 1em; } }\n" +
 "@media print { #menu {display: none; } }\n" +
 "@media print { #service {position: absolute; top: 0.5in; left: auto;} }\n" +
@@ -1170,6 +1181,12 @@ public class Setup {
 "    border: 1px solid #eee;\n"+
 "    height: auto;\n"+
 "}\n"+
+".nodeTitle { fill: white; filter: url(#drop-shadow); font-size: small; }\n"+
+"g:not(.selected) { stroke: none; } \n"+
+"g.selected { stroke: yellow; }\n"+
+".link { fill: lightgray; stroke: gray; }\n"+
+"rect.node { opacity: 0.5; }\n"+
+"rect.selection { opacity:0.8; fill: none; stroke: white; stroke-width: 4px; stroke-dasharray: 5,5; }\n"+
 "@media print { BODY { font-size: 6pt; margin: 1em; } }\n" +
 "@media print { #menu {display: none; } }\n" +
 "@media print { #service {position: absolute; top: 0.5in; left: auto;} }\n" +

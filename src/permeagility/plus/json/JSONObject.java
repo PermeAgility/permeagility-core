@@ -1,4 +1,4 @@
-package permeagility.plus.importJSON;
+package permeagility.plus.json;
 
 /*
  Copyright (c) 2002 JSON.org

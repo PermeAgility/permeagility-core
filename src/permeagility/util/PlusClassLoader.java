@@ -13,14 +13,14 @@ import java.util.List;
  * the additional libraries must be in the root of the plus directory to ensure no conflicts in VM space
  */
 public class PlusClassLoader extends URLClassLoader {
-
+	
 	public static final String PLUS_DIRECTORY = "plus";
 	public static final String PLUS_PREFIX = "plus-";
 	
 	private static ClassLoader instance = null;  // There can only be one and it can only be loaded once
 	
 	private static ArrayList<String> modules = new ArrayList<String>();
-	private static String builtins[] = { "plus-translate", "plus-merge", "plus-importJSON" };  // , "plus-visuility"
+	private static String builtins[] = { "plus-translate", "plus-merge", "plus-json" }; //, "plus-visuility"
 	
 	public PlusClassLoader(URL[] urls) {
 		super(urls);
@@ -64,7 +64,7 @@ public class PlusClassLoader extends URLClassLoader {
 	}
 
 	public static List<String> getModules() {
-		return modules;
+		return new ArrayList<String>(modules);   // Return a copy to protect the list
 	}
 	
 }

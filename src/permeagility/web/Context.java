@@ -17,7 +17,8 @@ import permeagility.util.Setup;
 
 public class Context extends Weblet {
 
-    public boolean DEBUG = true;  // Normally its nice to see these messages in the log
+	public static String TEST_MODULE = null;
+    public static boolean DEBUG = true;  // Normally its nice to see these messages in the log
 
 	public String getPage(DatabaseConnection con, java.util.HashMap<String,String> parms) {
 		return 	head("Context")+
@@ -75,6 +76,9 @@ public class Context extends Weblet {
 		String module = parms.get("MODULE");
 		StringBuilder plusList = new StringBuilder();
 		List<String> modules = PlusClassLoader.getModules();
+		if (TEST_MODULE != null) {
+			modules.add(TEST_MODULE);
+		}
 		for (String m : modules) {
 				String setupClassName = "permeagility.plus."+m.substring(5)+".PlusSetup";
 				try {

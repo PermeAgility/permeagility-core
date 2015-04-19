@@ -1,4 +1,4 @@
-package permeagility.plus.importJSON;
+package permeagility.plus.json;
 
 import java.io.IOException;
 import java.io.Writer;

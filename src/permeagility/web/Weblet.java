@@ -1255,11 +1255,17 @@ public abstract class Weblet {
 		if (internal_con != null && internal_con.isConnected()) {
 			QueryResult qr = queryCache.getResult(internal_con, "SELECT CSSStyle FROM style WHERE name='"+ DEFAULT_STYLE + "'");
 			if (qr != null && qr.size() > 0) {
-				return qr.getStringValue(0, "CSSStyle");
+				String style =  qr.getStringValue(0, "CSSStyle");
+				if (style == null || style.equals("")) {
+					System.out.println("***Weblet.getStyles()*** Unable to find style in CSSStyle column of style table");
+					return Setup.DEFAULT_STYLESHEET;
+				} else {
+					return style;
+				}
 			}
-			System.out.println("Unable to load style sheet called: "+DEFAULT_STYLE);
+			System.out.println("***Weblet.getStyles()*** Unable to load style sheet called: "+DEFAULT_STYLE);
 		} else {
-			System.out.println("No database connection to use to retrieve stylesheets");
+			System.out.println("***Weblet.getStyles()*** No database connection to use to retrieve stylesheets");
 		}
 		return Setup.DEFAULT_STYLESHEET;
 	}

@@ -1,4 +1,4 @@
-package permeagility.plus.importJSON;
+package permeagility.plus.json;
 
 /**
  * The JSONException is thrown by the JSON.org classes when things are amiss.
