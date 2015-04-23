@@ -200,7 +200,9 @@ public class Server extends Thread {
 			if (initializeServer()) {   
 				// Add shutdown hook
 				Runtime.getRuntime().addShutdownHook(new Thread() {
-					public void run() { closeAllConnections(); } 
+					public void run() {
+						closeAllConnections(); 
+					} 
 				});
 				if (SELF_TEST) {
 					System.out.println("self test - exiting...");
@@ -1602,4 +1604,6 @@ public class Server extends Thread {
 	public static Date getServerInitTime() {   return serverInitTime;  }
 	public static Date getSecurityRefreshTime() {   return securityRefreshTime;  }
 	public static String getCodeSource() { return codeSource; }
+	public static String getDBName() { return DB_NAME; }
+	
 }
