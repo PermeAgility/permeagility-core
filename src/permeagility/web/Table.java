@@ -474,9 +474,12 @@ public class Table extends Weblet {
 					String columnName = column.getName();
 					Integer type = column.getType().getId();
 					String newValue = parms.get(PARM_PREFIX+columnName);
+					if (newValue == null && !parms.containsKey(PARM_PREFIX+columnName)) {
+						continue;  // Don't update if not specified
+					}
 					if (DEBUG) System.out.println("updating "+columnName+" of type "+type+" with value "+newValue);
 					if (newValue != null) {
-						if (newValue.equals("") || newValue.equals("null")) {
+						if (newValue.equals("null")) {
 							newValue = null;
 						}
 					}
