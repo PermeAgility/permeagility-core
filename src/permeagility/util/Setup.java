@@ -464,6 +464,19 @@ public class Setup {
 				
 			}
 			
+			// Upgrade styles - remove this eventually
+			QueryResult styles = con.query("SELECT FROM "+TABLE_STYLE);
+			for (ODocument s : styles.get()) {
+				if (s.field("name").equals("default") && s.field("CSSStyle") == null) {
+					installMessages.append(Weblet.paragraph("success","Upgraded default stylesheet to latest in CSSStyle field - should remove the description column"));
+					s.field("CSSStyle",DEFAULT_STYLESHEET).save();
+				}
+				if (s.field("name").equals("horizontal") && s.field("CSSStyle") == null) {
+					installMessages.append(Weblet.paragraph("success","Upgraded horizontal stylesheet to latest in CSSStyle field - should remove the description column"));
+					s.field("CSSStyle",DEFAULT_ALT_STYLESHEET).save();
+				}
+			}
+			
 			System.out.print(TABLE_PICKLIST+" ");
 			OClass pickListTable = Setup.checkCreateTable(oschema, TABLE_PICKLIST, installMessages);
 			Setup.checkCreateColumn(con, pickListTable, "tablename", OType.STRING, installMessages);
@@ -520,7 +533,7 @@ public class Setup {
 				mi_password.field("name","Password");
 				mi_password.field("description","Change password");
 				mi_password.field("classname","permeagility.web.Password");
-				mi_password.field("active",false);
+				mi_password.field("active",true);
 				mi_password.field("_allowRead", allRolesButGuest.toArray());
 				mi_password.save();
 
