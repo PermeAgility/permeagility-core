@@ -13,6 +13,27 @@ var h = $("#service").height() - TOP_MARGIN, w = $("#service").width();
 d3.select("#service").style("cursor", "default");
 var svg = d3.select("#service").attr("visuilityBuild",true).append("svg").attr("width", w).attr("height", h);
 
+// Tooltip
+var tooltip = d3.select('body')
+    .append('div')
+    .style('position', 'absolute')
+    .style('bottom', h/3*2 + 'px')
+    .style('left', w/2 - w/10 +'px')
+    .style('right', w/2 - w/10 +'px')
+    .style('z-index', '10')
+    .style('visibility', 'hidden')
+    .style('background', 'steelblue')
+    .style('border-radius','8px')
+    .style('padding','8px')
+    .style('opacity',0)
+    .style('pointer-events','none')
+    .text('a simple tooltip');
+tooltip.show = function(text,duration) {
+        tooltip.text(text);
+		tooltip.transition("alertShow").duration(100).style('visibility','visible').style('opacity', 0.9);
+		tooltip.transition("alertFade").duration(duration).delay(500).style("opacity",0);
+}
+
 // Underlay to capture click and drag on the diagram background
 svg.append("rect")
    .attr({"class": "overlay" , "width": w , "height": h, "opacity": 0.0 })
@@ -392,12 +413,12 @@ function getMore(type,key,detail) {
    if (detail) detail="&DETAIL="+detail; else detail="";
    var id = type.toLowerCase()+"."+key;
    var selectedNodes = d3.selectAll(".selected");
-   d3.json("/permeagility.web.VisuilityData?"+type.toUpperCase()+"="+key+detail, function(data) {
+   d3.json("/permeagility.web.VisuilityData?TYPE="+type.toUpperCase()+"&ID="+key+detail, function(data) {
 	  if (data && (data.links || data.nodes)) {
 	    handleData(data.links, data.nodes);
 	    update();
 	  } else {
-	  	alert("no data");
+		  tooltip.show("no data",1000);
 	  	return;
 	  }
 	  // Show that we have completed the retrieval of all related nodes for this node by growing to full height

@@ -28,22 +28,24 @@ public class VisuilityData extends Download {
 	@Override
 	public byte[] getFile(DatabaseConnection con, HashMap<String, String> parms) {
 
-		String id = parms.get("ROW");
-		if (id != null && !id.equals("")) {
+		String type = parms.get("TYPE");
+		String id = parms.get("ID");
+		String detail = parms.get("DETAIL");
+
+		StringBuilder nodes = new StringBuilder();
+		StringBuilder links = new StringBuilder();
+		String linkComma = "";
+		String nodeComma = "";
+		
+		if ("ROW".equals(type) && id != null && !id.equals("")) {
 			System.out.println("Build ROW view "+id);
 			ODocument viewDoc = con.get("#"+id);
 			if (viewDoc == null) {
 				return ("Could not retrieve data using "+parms.toString()).getBytes();
 			} else {
-				String detail = parms.get("DETAIL");
 				String classname = viewDoc.getClassName();
 				Collection<OProperty> cols = Server.getColumns(classname);
-				StringBuilder nodes = new StringBuilder();
-				StringBuilder links = new StringBuilder();
 				nodes.append("{ \"id\": \"row."+id+"\", \"name\":\""+classname+id+"\" }");
-			//	links.append("{ \"sourceId\":\"row."+id+"\", \"targetId\":\"table."+classname+"\" }");
-				String linkComma = "";
-				String nodeComma = "\n, ";
 				String columnTarget = "table."+classname;  // For stringing columns together in order
 				String dataTarget = "row."+id;  // For stringing data columns together in order
 				int colCount = 0;
@@ -64,7 +66,7 @@ public class VisuilityData extends Download {
 						//		+ ", \"count\":"+rowCount
 								+" }");
 						linkComma = "\n,";
-					} else {
+					} else {   // Data - D
 						if (detail != null && detail.equalsIgnoreCase("D")) {
 							if (colData != null) {
 								colData = colData.toString().replace("\r","").replace("\n","<BR>").replace("\\","\\\\").replace("'","\\u0027").replace("<","&lt;").replace(">","&gt;");
@@ -86,14 +88,9 @@ public class VisuilityData extends Download {
 			}
 		}
 
-		String table = parms.get("TABLE");
-		if (table != null && !table.equals("")) {
-			String detail = parms.get("DETAIL");
+		if ("TABLE".equals(type) && id != null && !id.equals("")) {
+			String table = id;
 			System.out.println("Build TABLE view "+table);
-			StringBuilder nodes = new StringBuilder();
-			StringBuilder links = new StringBuilder();
-			String linkComma = "";
-			String nodeComma = "";
 
 			nodes.append("{ \"id\": \"table."+table+"\", \"name\":\""+table+"\" }");
 			nodeComma = "\n,";
@@ -115,7 +112,7 @@ public class VisuilityData extends Download {
 				}
 			}
 
-			// Rows
+			// Rows - R
 			if (detail != null && detail.equalsIgnoreCase("R")) {
 				QueryResult rows = con.query("SELECT FROM "+table);
 				String rowTarget = "table."+table+"";
@@ -136,7 +133,7 @@ public class VisuilityData extends Download {
 				}
 			}
 			
-			// Columns
+			// Columns - C
 			Collection<OProperty> cols = Server.getColumns(table);
 			String columnTarget = "table."+table;
 			int colCount = 0;
@@ -169,14 +166,13 @@ public class VisuilityData extends Download {
 			}
 			
 			return assembleResult(nodes,links);
-		}
-		
+		}	
 		return "{}".getBytes();
 	}
 
 	public byte[] assembleResult(StringBuilder nodes, StringBuilder links) {
 		return links.length() == 0 && nodes.length() == 0
-				? "{}".getBytes()  /// maybe send empty nodes and links instead of this???
+				? "{ \"nodes\": [ ],  \"links\": [ ] }".getBytes() 
 				: ("{ "
 					+ "\n\"nodes\": [ "+nodes.toString()+" ]"
 					+ "\n, \"links\": [ "+links.toString()+" ]"
