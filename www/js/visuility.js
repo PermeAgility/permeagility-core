@@ -418,7 +418,7 @@ function getMore(type,key,detail) {
 	    handleData(data.links, data.nodes);
 	    update();
 	  } else {
-		  tooltip.show("no data",1000);
+		  tooltip.show("no data: "+data.error,1000);
 	  	return;
 	  }
 	  // Show that we have completed the retrieval of all related nodes for this node by growing to full height

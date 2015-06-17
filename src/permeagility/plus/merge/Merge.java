@@ -6,8 +6,8 @@ import java.util.HashMap;
 
 import permeagility.util.DatabaseConnection;
 import permeagility.util.QueryResult;
+import permeagility.util.Security;
 import permeagility.web.Message;
-import permeagility.web.Server;
 import permeagility.web.Table;
 
 import com.orientechnologies.orient.core.metadata.schema.OClass;
@@ -190,7 +190,7 @@ public class Merge extends Table {
 		return 	head("Merge",getDateControlScript(con.getLocale())+getColorControlScript())
 				+body(standardLayout(con, parms, 
 				errors.toString()
-				+((Server.getTablePriv(con, PlusSetup.MERGE_TABLE) & PRIV_CREATE) > 0 && connect == null 
+				+((Security.getTablePriv(con, PlusSetup.MERGE_TABLE) & PRIV_CREATE) > 0 && connect == null 
 					? popupForm("CREATE_NEW_ROW", null, "New merge path", null, "name",
 						paragraph("banner", Message.get(con.getLocale(), "CREATE_ROW"))
 						+hidden("TABLENAME", PlusSetup.MERGE_TABLE)
@@ -319,7 +319,7 @@ public class Merge extends Table {
 				}
 				tablesInGroups.add(tableName);
 				if (show) {
-					int privs = Server.getTablePriv(con, tableName);
+					int privs = Security.getTablePriv(con, tableName);
 					//System.out.println("Table privs for table "+tableName+" for user "+con.getUser()+" privs="+privs);
 					if (privs > 0) {
 						tableName = tableName.trim();
@@ -337,7 +337,7 @@ public class Merge extends Table {
 		for (ODocument row : tables.get()) {
 			String tablename = row.field("name");
 			if (!tablesInGroups.contains(tablename)) {
-				if (Server.getTablePriv(con, tablename) > 0) {
+				if (Security.getTablePriv(con, tablename) > 0) {
 					if (tableInit.length()>0) tableInit.append(", ");
 					tableInit.append("{ group:'New', table:'"+tablename+"'}");
 				}
@@ -347,7 +347,7 @@ public class Merge extends Table {
 		// Columns
 		for (ODocument t : tables.get()) {
 			String tName = t.field("name");
-			Collection<OProperty> cols = Server.getColumns(tName);
+			Collection<OProperty> cols = con.getColumns(tName);
 			for (OProperty col : cols) {
 				String cName = col.getName();
 				Integer cType = col.getType().getId();

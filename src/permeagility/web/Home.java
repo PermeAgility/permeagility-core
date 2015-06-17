@@ -9,6 +9,7 @@ import java.util.HashMap;
 
 import permeagility.util.DatabaseConnection;
 import permeagility.util.QueryResult;
+import permeagility.util.Security;
 import permeagility.util.Setup;
 
 public class Home extends Weblet {
@@ -25,7 +26,7 @@ public class Home extends Weblet {
     	try {
 	    	QueryResult qr = con.query("SELECT dateline, name, description FROM "+Setup.TABLE_NEWS
 	    							+" WHERE (archive IS NULL or archive=false) and (locale IS NULL or locale.name='"+con.getLocale().getLanguage()+"') "
-	    							+"AND _allowRead in ["+Server.getUserRolesList(con)+"] ORDER BY dateline desc "
+	    							+"AND _allowRead in ["+Security.getUserRolesList(con)+"] ORDER BY dateline desc "
 	    							);
 	    	for (int i=0; i<qr.size(); i++) {
 	    		sb.append(paragraph("headline",qr.getStringValue(i, "name")));

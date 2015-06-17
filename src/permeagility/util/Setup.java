@@ -774,7 +774,7 @@ public class Setup {
 		if (d == null) {
 			d = con.create(TABLE_TABLEGROUP);
 			d.field("name",tableGroup);
-			d.field("_allowRead",Server.getUserRoles(con));
+			d.field("_allowRead",Security.getUserRoles(con));
 		}
 		String tableList = d.field("tables");
 		if (tableList == null || tableList.equals("")) {
@@ -938,7 +938,6 @@ public class Setup {
 		OSchema schema = con.getSchema();
 		schema.dropClass(classname);
 		Setup.removeTableFromAllTableGroups(con, classname);
-		Server.clearColumnsCache(classname);
 		DatabaseConnection.rowCountChanged(classname);
 		if (errors != null) errors.append(Weblet.paragraph("success","Table dropped: "+classname));
 	}

@@ -9,6 +9,7 @@ import java.util.ArrayList;
 
 import permeagility.util.DatabaseConnection;
 import permeagility.util.QueryResult;
+import permeagility.util.Security;
 import permeagility.util.Setup;
 
 import com.orientechnologies.orient.core.metadata.schema.OClass;
@@ -56,7 +57,7 @@ public class Schema extends Weblet {
 		int cellCount = 0;
 		StringBuilder rows = new StringBuilder();
 		StringBuilder columns = new StringBuilder();
-		QueryResult schemas = con.query("SELECT from "+Setup.TABLE_TABLEGROUP+" WHERE _allowRead in ["+Server.getUserRolesList(con)+"] ORDER BY name");
+		QueryResult schemas = con.query("SELECT from "+Setup.TABLE_TABLEGROUP+" WHERE _allowRead in ["+Security.getUserRolesList(con)+"] ORDER BY name");
 		QueryResult tables = con.query("SELECT name, superClass FROM (SELECT expand(classes) FROM metadata:schema) WHERE abstract=false ORDER BY name");
 		ArrayList<String> tablesInGroups = new ArrayList<String>(); 
 		for (ODocument schema : schemas.get()) {
@@ -87,7 +88,7 @@ public class Schema extends Weblet {
 				}
 				tablesInGroups.add(tableName);
 				if (show) {
-					int privs = Server.getTablePriv(con, tableName);
+					int privs = Security.getTablePriv(con, tableName);
 					//System.out.println("Table privs for table "+tableName+" for user "+con.getUser()+" privs="+privs);
 					if (privs > 0) {
 						tableName = tableName.trim();
@@ -112,13 +113,13 @@ public class Schema extends Weblet {
 		}
 		
 		// Add new/ungrouped - for DBA's only
-		if (Server.isDBA(con)) {
+		if (Security.isDBA(con)) {
 			StringBuilder tablelist = new StringBuilder();
 			tablelist.append(paragraph("banner",Message.get(con.getLocale(), "TABLE_NONGROUPED")));
 			for (ODocument row : tables.get()) {
 				String tablename = row.field("name");
 				if (!tablesInGroups.contains(tablename)) {
-					if (Server.getTablePriv(con, tablename) > 0) {
+					if (Security.getTablePriv(con, tablename) > 0) {
 						String pretty = Message.get(con.getLocale(), "TABLE_"+tablename);
 						if (pretty != null && ("TABLE_"+tablename).equals(pretty)) {
 							pretty = makeCamelCasePretty(tablename);
@@ -141,7 +142,7 @@ public class Schema extends Weblet {
 			body( standardLayout(con, parms,  
 					errors.toString()
 					+table("layout",rows.toString())+br()
-					+(Server.isDBA(con) 
+					+(Security.isDBA(con) 
 						? popupForm("NEWTABLE_Ungrouped",null,Message.get(con.getLocale(),"NEW_TABLE"),"","NEWTABLENAME",
 								input("NEWTABLENAME","")+"&nbsp;&nbsp;"
 								+submitButton(Message.get(con.getLocale(),"NEW_TABLE"))
@@ -176,7 +177,7 @@ public class Schema extends Weblet {
 				}
 				tablesInGroups.add(tableName);
 				if (show) {
-					int privs = Server.getTablePriv(con, tableName);
+					int privs = Security.getTablePriv(con, tableName);
 					//System.out.println("Table privs for table "+tableName+" for user "+con.getUser()+" privs="+privs);
 					if (privs > 0) {
 						tableName = tableName.trim();
@@ -194,7 +195,7 @@ public class Schema extends Weblet {
 		for (ODocument row : tables.get()) {
 			String tablename = row.field("name");
 			if (!tablesInGroups.contains(tablename)) {
-				if (Server.getTablePriv(con, tablename) > 0) {
+				if (Security.getTablePriv(con, tablename) > 0) {
 					if (tableInit.length()>0) tableInit.append(", ");
 					tableInit.append("{ group:'New', table:'"+tablename+"'}");
 				}

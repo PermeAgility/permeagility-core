@@ -13,6 +13,7 @@ import permeagility.util.Database;
 import permeagility.util.DatabaseConnection;
 import permeagility.util.PlusClassLoader;
 import permeagility.util.QueryResult;
+import permeagility.util.Security;
 import permeagility.util.Setup;
 
 public class Context extends Weblet {
@@ -32,31 +33,25 @@ public class Context extends Weblet {
 		
 		// Do stuff if asked
 		String ref = parms.get("TABLE_NAME");
-		if (ref != null && Server.isDBA(con)) {
+		if (ref != null && Security.isDBA(con)) {
 		    if (DEBUG) System.out.println("Context: Cache refresh="+ref);
 		    getCache().refresh(ref);
 		}
 
-		String cc = parms.get("CLEAR_COLUMNS");
-		if (cc != null && Server.isDBA(con)) {
-		    if (DEBUG) System.out.println("Context: Column Cache refresh="+cc);
-			Server.clearColumnsCache("ALL");
-		}
-	
 		String cm = parms.get("CLEAR_MENUS");
-		if (cm != null && Server.isDBA(con)) {
+		if (cm != null && Security.isDBA(con)) {
 		    if (DEBUG) System.out.println("Context: Menu Cache refresh");
 			Menu.clearCache();
 		}
 	
 		String refSec = parms.get("REFRESH_SECURITY_MODEL");
-		if (refSec != null && Server.isDBA(con)) {
+		if (refSec != null && Security.isDBA(con)) {
 		    if (DEBUG) System.out.println("Context: refresh security");
-			Server.refreshSecurity();
+			Security.refreshSecurity();
 		}
 
 		String checkInst = parms.get("CHECK_INSTALLATION");
-		if (checkInst != null && Server.isDBA(con)) {
+		if (checkInst != null && Security.isDBA(con)) {
 		    if (DEBUG) System.out.println("Context: Check Installation");
 			Setup.checkInstallation(con);
 		}
@@ -149,16 +144,13 @@ public class Context extends Weblet {
 		
 		// Return content
 		return
-		    paragraph(Message.get(locale, "SERVER_ON_PORT")+"&nbsp;"+Server.HTTP_PORT
+		    paragraph(Message.get(locale, "SERVER_ON_PORT")+"&nbsp;"+Server.getHTTPPort()
 		    		+br()+Message.get(locale, "SERVER_RUNNING")+"&nbsp;"+Server.getServerInitTime()
 		    		+br()+Message.get(locale, "SERVER_JAR")+"&nbsp;"+Server.getCodeSource()
-		    		+br()+Message.get(locale, "SERVER_CONNECT")+"&nbsp;"+Server.DB_NAME
+		    		+br()+Message.get(locale, "SERVER_CONNECT")+"&nbsp;"+Server.getDBName()
 		    		+br()+Message.get(locale, "SERVER_USER")+"&nbsp;"+Server.getDatabase().getUser()
 		    		+br()+Message.get(locale, "SERVER_VERSION")+"&nbsp;"+Server.getDatabase().getClientVersion())
 		    +paragraph("banner",Message.get(locale, "SERVER_CACHE"))
-			+form(submitButton("CLEAR_COLUMNS",Message.get(locale, "CACHE_CLEAR_COLUMNS"))
-					+ "&nbsp;" + Message.get(locale, "CACHE_COUNT",""+Server.columnsCacheSize()))
-			+br()
 			+form(submitButton("CLEAR_MENUS",Message.get(locale, "CACHE_CLEAR_MENUS"))
 					+ "&nbsp;" + Message.get(locale, "CACHE_COUNT",""+Menu.cacheSize()))
 		    +table("data",

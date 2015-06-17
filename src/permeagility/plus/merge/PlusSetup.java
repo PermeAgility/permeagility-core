@@ -51,9 +51,6 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 		Setup.checkCreateColumn(con, logTable, "toColumn", OType.STRING, errors);
 		Setup.checkCreateColumn(con, logTable, "linkProperty", OType.STRING, errors);
 
-		Server.clearColumnsCache(MERGE_TABLE);
-		Server.clearColumnsCache(ATTR_TABLE);
-		
 		Setup.createMenuItem(con,getName(),getInfo(),MENU_CLASS,parms.get("MENU"),parms.get("ROLES"));	
 		
 		setPlusInstalled(con, this.getClass().getName(), getInfo(), getVersion());

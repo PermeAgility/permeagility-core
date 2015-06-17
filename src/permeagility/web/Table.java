@@ -22,6 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import permeagility.util.DatabaseConnection;
 import permeagility.util.QueryResult;
+import permeagility.util.Security;
 import permeagility.util.Setup;
 
 import com.orientechnologies.orient.core.id.ORecordId;
@@ -259,7 +260,6 @@ public class Table extends Weblet {
 						}
 						errors.append(paragraph("success", Message.get(locale, "NEW_COLUMN_CREATED")+":&nbsp;"+camel));
 						Server.tableUpdated("metadata:schema");
-						Server.clearColumnsCache(table);
 					}
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -280,12 +280,12 @@ public class Table extends Weblet {
 				+ body(standardLayout(con, parms,  
 					link(this.getClass().getName(),"&lt;"+Message.get(locale,"ALL_TABLES"))
 					+"&nbsp;&nbsp;&nbsp;"
-					+((Server.getTablePriv(con, table) & PRIV_CREATE) > 0 ? popupForm("CREATE_NEW_ROW",null,Message.get(locale,"NEW_ROW"),null,"NAME",
+					+((Security.getTablePriv(con, table) & PRIV_CREATE) > 0 ? popupForm("CREATE_NEW_ROW",null,Message.get(locale,"NEW_ROW"),null,"NAME",
 							paragraph("banner",Message.get(locale, "CREATE_ROW"))
 							+getTableRowFields(con, table, parms)
 							+center(submitButton(Message.get(locale, "CREATE_ROW")))) : "")
 					+"&nbsp;&nbsp;&nbsp;"
-					+(Server.isDBA(con) ?
+					+(Security.isDBA(con) ?
 						popupForm("NEWCOLUMN", null, Message.get(locale, "ADD_COLUMN"),null,"NEWCOLUMNNAME", newColumnForm(con))
 						+"&nbsp;&nbsp;&nbsp;"
 						+popupForm("RIGHTSOPTIONS", null, Message.get(locale, "TABLE_RIGHTS_OPTIONS"),null,"XXX", rightsOptionsForm(con,table,parms,""))
@@ -295,7 +295,7 @@ public class Table extends Weblet {
 					+ br() 
 					+ errors.toString()
 					+ br()
-					+ ((Server.getTablePriv(con, table) & PRIV_READ) > 0 ? getTable(con, table, page) : paragraph(Message.get(locale,"NO_PERMISSION_TO_VIEW")))
+					+ ((Security.getTablePriv(con, table) & PRIV_READ) > 0 ? getTable(con, table, page) : paragraph(Message.get(locale,"NO_PERMISSION_TO_VIEW")))
 				));
 	}
 
@@ -313,7 +313,7 @@ public class Table extends Weblet {
 		int colCount = 0;
 		ArrayList<String> blobList = new ArrayList<String>();
 		String comma = "";
-		for (OProperty column : Server.getColumns(table)) {
+		for (OProperty column : con.getColumns(table)) {
 			Integer type = column.getType().getId();
 			String name = column.getName();
 			String value = parms.get(PARM_PREFIX+name);
@@ -468,7 +468,7 @@ public class Table extends Weblet {
 			QueryResult initrows = con.query("SELECT FROM #" + update_id);
 			if (initrows != null && initrows.size() == 1) {
 				ODocument updateRow = initrows.get(0);
-				Collection<OProperty> columns = Server.getColumns(table);
+				Collection<OProperty> columns = con.getColumns(table);
 				for (OProperty column : columns) {
 					
 					String columnName = column.getName();
@@ -813,13 +813,13 @@ public class Table extends Weblet {
 			+ form(formName, 
 					getTableRowFields(con, table, parms)
 					+ center((edit_id == null 
-					  ? ((Server.getTablePriv(con, table) & PRIV_CREATE) > 0 ? submitButton(Message.get(con.getLocale(), "CREATE_ROW")) : "")
-					  : ((Server.getTablePriv(con, table) & PRIV_UPDATE) > 0 ? submitButton(Message.get(con.getLocale(), "UPDATE")) : "") 
+					  ? ((Security.getTablePriv(con, table) & PRIV_CREATE) > 0 ? submitButton(Message.get(con.getLocale(), "CREATE_ROW")) : "")
+					  : ((Security.getTablePriv(con, table) & PRIV_UPDATE) > 0 ? submitButton(Message.get(con.getLocale(), "UPDATE")) : "") 
 						+ "&nbsp;&nbsp;"
 						+ submitButton(Message.get(con.getLocale(), "CANCEL"))))
 					+paragraph("delete",
-					  (edit_id != null && (Server.getTablePriv(con, table) & PRIV_CREATE) > 0 ? submitButton(Message.get(con.getLocale(), "COPY")) : "") + "&nbsp;&nbsp;"
-					+ (edit_id != null && (Server.getTablePriv(con, table) & PRIV_DELETE) > 0 ? deleteButton(con.getLocale()) : ""))
+					  (edit_id != null && (Security.getTablePriv(con, table) & PRIV_CREATE) > 0 ? submitButton(Message.get(con.getLocale(), "COPY")) : "") + "&nbsp;&nbsp;"
+					+ (edit_id != null && (Security.getTablePriv(con, table) & PRIV_DELETE) > 0 ? deleteButton(con.getLocale()) : ""))
 			)
 			+ getTableRowRelated(con,table,parms);
 	}
@@ -868,7 +868,7 @@ public class Table extends Weblet {
 
 		String formName = (edit_id == null ? "NEWROW" : "UPDATEROW");
 
-		Collection<OProperty> columns = Server.getColumns(table, columnOverride);
+		Collection<OProperty> columns = con.getColumns(table, columnOverride);
 		if (columns != null) {
 			for (OProperty column : columns) {
 				String name = column.getName();
@@ -1118,7 +1118,7 @@ public class Table extends Weblet {
 		for (OClass c : con.getSchema().getClasses()) {
 			for (OProperty p : c.properties()) {
 				if (p.getLinkedClass() != null && p.getLinkedClass().getName().equals(table)) {
-					if (SHOW_ALL_RELATED_TABLES || (Server.getTablePriv(con, c.getName()) & PRIV_READ) > 0) {
+					if (SHOW_ALL_RELATED_TABLES || (Security.getTablePriv(con, c.getName()) & PRIV_READ) > 0) {
 						tables.push(c.getName());
 						columns.push(p.getName());
 						types.push(p.getType());
@@ -1152,7 +1152,7 @@ public class Table extends Weblet {
 			String fkColumn = columns.pop();
 			OType fkType = types.pop();
 			
-			int priv = Server.getTablePriv(con, table);
+			int priv = Security.getTablePriv(con, table);
 			//System.out.println("Privilege on table "+table+" for user "+con.getUser()+" = "+priv);
 			
 			HashMap<String,String> fkParms = new HashMap<String,String>();
@@ -1169,7 +1169,7 @@ public class Table extends Weblet {
 						+getTableRowFields(con, relTable, fkParms)  // send fkcolumn data in parms
 						+center(submitButton(Message.get(con.getLocale(), "CREATE_ROW")))) : "")
 				+ "&nbsp;&nbsp;&nbsp;"
-				+ (Server.isDBA(con) 
+				+ (Security.isDBA(con) 
 				  ? popupForm("NEWCOLUMN_"+relTable, null, Message.get(con.getLocale(), "ADD_COLUMN"),null,"NEWCOLUMNNAME",
 						hiddenFields
 						+newColumnForm(con))
@@ -1179,7 +1179,7 @@ public class Table extends Weblet {
 				   + rightsOptionsForm(con,relTable,null,"")) 
 				 : "")
 				+ br() 
-				+ ((Server.getTablePriv(con, relTable) & PRIV_READ) > 0 ?
+				+ ((Security.getTablePriv(con, relTable) & PRIV_READ) > 0 ?
 						(fkType == OType.LINKLIST || fkType == OType.LINKSET || fkType == OType.LINKMAP || fkType == OType.LINKBAG 
 							? (fkType == OType.LINKMAP ? getTableWhere(con,parms,relTable,fkColumn,"containsvalue",edit_id,-1) 
 														:getTableWhere(con,parms,relTable,fkColumn,"contains",edit_id,-1))
@@ -1335,7 +1335,7 @@ public class Table extends Weblet {
 			QueryResult rs = con.query(query);
 			
 			// Get the table's columns
-			Collection<OProperty> columns = Server.getColumns(table, columnOverride);
+			Collection<OProperty> columns = con.getColumns(table, columnOverride);
 			if (columns == null) {
 				System.out.println("Get columns for table:"+table+" returned null");
 			} else {
@@ -1538,7 +1538,6 @@ public class Table extends Weblet {
 						String newtable = parms.get("RENAME_TABLE");
 						newtable = makePrettyCamelCase(newtable);
 						Server.tableUpdated(table);
-						Server.clearColumnsCache(table);
 						con.update("ALTER CLASS "+table+" NAME "+newtable);
 						con.update("UPDATE columns SET name='"+newtable+"' WHERE name='"+table+"'");
 						table = newtable;
@@ -1566,7 +1565,6 @@ public class Table extends Weblet {
 							}								
 						}
 						Server.tableUpdated("metadata:schema");
-						Server.clearColumnsCache(table);
 						return redirect(locale, this, "TABLENAME=" + table);
 					} catch (Exception e) {
 						errors.append(paragraph("error", e.getMessage()));
@@ -1584,7 +1582,6 @@ public class Table extends Weblet {
 						errors.append(paragraph("success", "Data for column removed:"+ret));						
 						Setup.removeColumnFromColumns(con, table, colToDrop);
 						Server.tableUpdated("metadata:schema");
-						Server.clearColumnsCache(table);
 						return redirect(locale, this, "TABLENAME=" + table);
 					} catch (Exception e) {
 						errors.append(paragraph("error", e.getMessage()));
@@ -1593,7 +1590,6 @@ public class Table extends Weblet {
 			} else if (submit.equals(Message.get(locale, "DROP_TABLE_BUTTON"))) {
 				try {
 					con.update("DROP class " + table);
-					Server.clearColumnsCache(table);
 					ODocument d = con.queryDocument("SELECT FROM columns WHERE name='"+table+"'");
 					if (d != null) {
 						d.delete();
@@ -1653,7 +1649,7 @@ public class Table extends Weblet {
 			try {
 				con.update(grantQuery);
 				Server.tableUpdated("ORole");  // Privs are stored in ORole
-				Server.tablePrivUpdated(table);
+				Security.tablePrivUpdated(table);
 			} catch (Exception e) {
 				errors.append(e.getLocalizedMessage());
 				e.printStackTrace();
@@ -1670,7 +1666,7 @@ public class Table extends Weblet {
 			try {
 				con.update(revokeQuery);
 				Server.tableUpdated("ORole");  // Stored in ORole
-				Server.tablePrivUpdated(table);
+				Security.tablePrivUpdated(table);
 			} catch (Exception e) {
 				errors.append(e.getLocalizedMessage());
 				e.printStackTrace();
@@ -1691,7 +1687,7 @@ public class Table extends Weblet {
 	public String rightsOptionsForm(DatabaseConnection con, String table, HashMap<String, String> parms,String errors) {
 		StringBuilder currentRights = new StringBuilder();
 		List<String> rightsNames = new ArrayList<String>();
-		HashMap<String,Number> privs = Server.getTablePrivs(table);
+		HashMap<String,Number> privs = Security.getTablePrivs(table);
 
 		for (String role : privs.keySet()) {
 			Number b = privs.get(role);

@@ -6,6 +6,7 @@ at the URL "http://www.eclipse.org/legal/epl-v10.html".
 package permeagility.web;
 
 import permeagility.util.DatabaseConnection;
+import permeagility.util.Security;
 
 public class Password extends Weblet {
    
@@ -22,7 +23,7 @@ public class Password extends Weblet {
 			String newPass= (String)parms.get("NEWPASS");
 			String confirmPass=(String)parms.get("CONFIRMPASS");
 			if(newPass != null && newPass.equals(confirmPass)) {
-				if (Server.changePassword(con, currentPass, newPass)) {
+				if (Security.changePassword(con, currentPass, newPass)) {
 				    errors.append(paragraph("success",Message.get(con.getLocale(),"PASSWORD_CHANGE_SUCCESS",con.getUser())));
 				} else {
 				    errors.append(paragraph("error",Message.get(con.getLocale(),"PASSWORD_CHANGE_FAILED",con.getUser())));					

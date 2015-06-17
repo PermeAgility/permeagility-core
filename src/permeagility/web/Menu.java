@@ -13,6 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import permeagility.util.DatabaseConnection;
 import permeagility.util.QueryResult;
+import permeagility.util.Security;
 import permeagility.util.Setup;
 
 import com.orientechnologies.orient.core.record.impl.ODocument;
@@ -83,7 +84,7 @@ public class Menu extends Weblet {
 			            		} else if (menuDesc == null) {
 			            			prettyDesc = "";
 			            		}
-			                	if (readRoles != null && Server.isRoleMatch(Server.getUserRoles(con),readRoles.toArray())) {
+			                	if (readRoles != null && Security.isRoleMatch(Security.getUserRoles(con),readRoles.toArray())) {
 		                        	if (i.field("classname") == null || ((String)i.field("classname")).equals("")) {
 		                                itemMenu.append((HORIZONTAL_LAYOUT ? "&nbsp;" : "<br>") +"\n");                	                	
 		                        	} else {

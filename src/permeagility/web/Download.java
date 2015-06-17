@@ -13,12 +13,12 @@ import permeagility.util.DatabaseConnection;
 public abstract class Download {
 
    public byte[] doPage(DatabaseConnection con, HashMap<String,String> parms) {
-	   return getFile(con,parms);
+	   return getBytes(con,parms);
    }
 
    public abstract String getContentType();
    public abstract String getContentDisposition();
    
-   public abstract byte[] getFile(DatabaseConnection con, HashMap<String,String> parms);
+   public abstract byte[] getBytes(DatabaseConnection con, HashMap<String,String> parms);
 	
 }

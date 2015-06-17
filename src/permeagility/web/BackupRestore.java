@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.Locale;
 
 import permeagility.util.DatabaseConnection;
+import permeagility.util.Security;
 
 import com.orientechnologies.orient.core.command.OCommandOutputListener;
 import com.orientechnologies.orient.core.db.tool.ODatabaseExport;
@@ -28,7 +29,7 @@ public class BackupRestore extends Weblet {
 		parms.put("SERVICE",service);
 		StringBuilder errors = new StringBuilder();
 
-		if (!Server.isDBA(con)) {
+		if (!Security.isDBA(con)) {
 	    	return head(service)+standardLayout(con, parms,paragraph("error",Message.get(locale, "RESTORE_ACCESS")));
 		}
 
@@ -72,7 +73,7 @@ public class BackupRestore extends Weblet {
 		}
 		
 		if (submit != null && submit.equals(Message.get(locale,"RESTORE_NOW"))) {
-			if (!Server.DB_NAME.startsWith("plocal")) {
+			if (!Server.getDBName().startsWith("plocal")) {
 		    	return head(service)+standardLayout(con, parms,paragraph("error",Message.get(locale, "RESTORE_PLOCAL")));
 			}
 
@@ -105,7 +106,7 @@ public class BackupRestore extends Weblet {
 
 						System.gc();
 						
-						String dbDirectory = Server.DB_NAME.split(":")[1];
+						String dbDirectory = Server.getDBName().split(":")[1];
 
 						// Delete the database files in the db_saved directory if they exist from a previous restore
 						File dbSaved = new File(dbDirectory+"_saved");

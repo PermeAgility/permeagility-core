@@ -26,13 +26,10 @@ import java.net.URLDecoder;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -42,23 +39,11 @@ import permeagility.util.Database;
 import permeagility.util.DatabaseConnection;
 import permeagility.util.Dumper;
 import permeagility.util.PlusClassLoader;
-import permeagility.util.QueryResult;
+import permeagility.util.Security;
 import permeagility.util.Setup;
 
 import com.orientechnologies.orient.core.OConstants;
 import com.orientechnologies.orient.core.Orient;
-import com.orientechnologies.orient.core.collate.OCollate;
-import com.orientechnologies.orient.core.id.ORecordId;
-import com.orientechnologies.orient.core.index.OIndex;
-import com.orientechnologies.orient.core.metadata.schema.OClass;
-import com.orientechnologies.orient.core.metadata.schema.OClass.INDEX_TYPE;
-import com.orientechnologies.orient.core.metadata.schema.OProperty;
-import com.orientechnologies.orient.core.metadata.schema.OSchema;
-import com.orientechnologies.orient.core.metadata.schema.OType;
-import com.orientechnologies.orient.core.metadata.security.ORole;
-import com.orientechnologies.orient.core.metadata.security.ORule;
-import com.orientechnologies.orient.core.metadata.security.ORule.ResourceGeneric;
-import com.orientechnologies.orient.core.record.impl.ODocument;
 
 /** This is the PermeAgility web server - it handles security, database connections and some useful caches for privileges and such
   * all web requests go through the run() function for each thread/socket
@@ -67,14 +52,20 @@ import com.orientechnologies.orient.core.record.impl.ODocument;
   */
 public class Server extends Thread {
 
-	static int HTTP_PORT = 1999;  // First parameter
-	static String DB_NAME = "plocal:db";  // Second parameter
+	private static int HTTP_PORT = 1999;  // First parameter
+	private static String DB_NAME = "plocal:db";  // Second parameter
+	private static boolean SELF_TEST = false; // Will exit after initialization
 	private static Date serverInitTime = new Date();
 	private static String DEFAULT_DBFILE = "starterdb.json.gz";  //  Used at initial start
-	private static DatabaseHook databaseHook = null;
+	private static String codeSource;  // The file this class is in, for version reporting
+	static boolean restore_lockout = false;
+	static String restore_file = null;  // Backup file to restore when initializing
+	static long resource_jar_last_modified = 0l;
+	static String resource_jar_last_modified__string = "";
+	private static SimpleDateFormat gmt_date_format = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz");
 
 	/* Overrideable constants */
-	public static boolean DEBUG = true;
+	public static boolean DEBUG = false;
 	public static int SOCKET_TIMEOUT = 180000;  // Three minute timeout
 	public static boolean ALLOW_KEEP_ALIVE = true;
 	public static boolean KEEP_ALIVE = true;  // Keep sockets alive by default, don't wait for browser to ask
@@ -93,41 +84,23 @@ public class Server extends Thread {
 	public static boolean LOGOUT_KILLS_USER = false; // Set this to true to kill all sessions for a user when a user logs out (more secure)
 	public static String LOCKOUT_MESSAGE = "<p>The system is unavailable because a system restore is being performed. Please try again later.</p><a href='/'>Try it now</a>";
 	
-	private static String codeSource;  // The file this class is in, for version reporting
-	static Database database;  // Server database connection
-	static Database dbNone = null;  // Used for login and account request
-
-	static boolean restore_lockout = false;
-	static String restore_file = null;  // Backup file to restore when initializing
-
-	static long resource_jar_last_modified = 0l;
-	static String resource_jar_last_modified__string = "";
-	
-	static Message messages = null;
-	
-	static ConcurrentHashMap<String,String> sessions = new ConcurrentHashMap<String,String>(); // Cookie (user+random) -> username
-	static ConcurrentHashMap<String,Locale> sessionsLocale = new ConcurrentHashMap<String,Locale>(); // Cookie (user+random) -> locale
-	static ConcurrentHashMap<String,Database> sessionsDB = new ConcurrentHashMap<String,Database>();  // username -> Database pool
-	
-	private static Date securityRefreshTime = new Date();
-	private static ConcurrentHashMap<String,Object[]> userRoles = new ConcurrentHashMap<String,Object[]>();
-	private static ConcurrentHashMap<String,HashMap<String,Number>> userRules = new ConcurrentHashMap<String,HashMap<String,Number>>();
-	private static ConcurrentHashMap<String,Object[]> keyRoles = new ConcurrentHashMap<String,Object[]>();
-	private static ConcurrentHashMap<String,QueryResult> columnsCache = new ConcurrentHashMap<String,QueryResult>();
-	private static ConcurrentHashMap<String,HashMap<String,Number>> tablePrivsCache = new ConcurrentHashMap<String,HashMap<String,Number>>();
-
-	private static SimpleDateFormat gmt_date_format = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz");
+	private static Database database;  // Server database connection (internal)
+	private static Database dbNone = null;  // Used for login and account request
 
 	private static String SETTINGS_FILE = "init.pa";
 	private static Properties localSettings = new Properties();
 
+	static ConcurrentHashMap<String,String> sessions = new ConcurrentHashMap<String,String>(); // Cookie (user+random) -> username
+	static ConcurrentHashMap<String,Locale> sessionsLocale = new ConcurrentHashMap<String,Locale>(); // Cookie (user+random) -> locale
+	static ConcurrentHashMap<String,Database> sessionsDB = new ConcurrentHashMap<String,Database>();  // username -> Database pool
+	
 	private static ConcurrentHashMap<String,byte[]> transientImages = new ConcurrentHashMap<String,byte[]>();
 	private static ConcurrentHashMap<String,Date> transientImageDates = new ConcurrentHashMap<String,Date>();
 	private static ConcurrentHashMap<String,String> transientImageTypes = new ConcurrentHashMap<String,String>();
 
-	private static boolean SELF_TEST = false; // Will exit after initialization
-
+	private static DatabaseHook databaseHook = null;
 	private static ClassLoader plusClassLoader;
+	static Message messages = null;
 
 	Socket socket;
 	
@@ -612,10 +585,7 @@ public class Server extends Thread {
 					// Validate that class is allowed to be used
 					if (db != null) {
 						if (DEBUG) System.out.println("Authorizing user "+db.getUser()+" for class "+className);
-						Object[] uRoles = userRoles.get(db.getUser());
-						Object[] kRoles = keyRoles.get(className);
-						boolean authorized = isRoleMatch(uRoles,kRoles);
-						if (authorized) {
+						if (Security.authorized(db.getUser(),className)) {
 							if (DEBUG) System.out.println("User "+db.getUser()+" is allowed to use "+className);								
 						} else {
 							System.out.println("User "+db.getUser()+" is attempting to use "+className+" without authorization");
@@ -922,223 +892,6 @@ public class Server extends Thread {
 		else return "text/html";
 	}
 
-	/** Refresh the cached security model in the server */
-	public static void refreshSecurity() {
-		securityRefreshTime = new Date();
-		DatabaseConnection con = database.getConnection();
-		int entryCount = 0;
-		try {
-			QueryResult qr = new QueryResult(con.getSecurity().getAllUsers());
-//			QueryResult qr = con.query("SELECT name, roles from OUser");
-			if (qr != null) {
-				for (int i=0;i<qr.size();i++) {
-					String n = qr.getStringValue(i, "name");
-					Object[] roles = qr.getLinkSetValue(i,"roles");
-					if (roles != null) {
-						if (DEBUG) System.out.println("Adding security key "+n+" - "+roles.length);
-						entryCount++;
-						userRoles.put(n, roles);
-					}
-				}
-				System.out.println("Server.refreshSecurity() - loaded "+entryCount+" users");
-			}
-			entryCount = 0;
-			qr = con.query("SELECT classname, _allowRead from menuItem");
-			if (qr != null) {
-				for (int i=0;i<qr.size();i++) {
-					String n = qr.getStringValue(i, "classname");
-					Object[] roles = qr.getLinkSetValue(i,"_allowRead");
-					if (n != null && roles != null) {
-						if (DEBUG) System.out.println("Adding security key "+n);
-						entryCount++;
-						keyRoles.put(n, roles);
-					}
-				}
-				System.out.println("Server.refreshSecurity() - loaded "+entryCount+" menuItems");
-			}
-			
-			for (String user : userRoles.keySet()) {
-				// User object rules are compiled into a simple HashMap<String,Byte>
-				Object[] roles = userRoles.get(user);  // I believe these are ODocuments or ORecordIds
-				ArrayList<Set<ORule>> rules = new ArrayList<Set<ORule>>();  // To hold the rules
-				for (Object role : roles) {
-					ODocument r;
-					if (role instanceof ORecordId) {
-						r = con.getDb().getRecord((ORecordId)role);
-					} else {
-						r = (ODocument)role;
-					}
-					getRoleRules(new ORole(r),rules);				
-				}
-				if (DEBUG) System.out.println(user+" rules="+rules);
-				// Collapse the rules into a single HashMap 
-				HashMap<String,Number> newRules = new HashMap<String,Number>();
-				for (Set<ORule> m : rules) {
-					for (ORule rule : m) {
-						ResourceGeneric rg = rule.getResourceGeneric();
-						if (rg != null) {
-							if (DEBUG) System.out.println("ResourceGeneric="+rg.getName()+" priv="+rule.getAccess());
-							newRules.put(rg.getName(), rule.getAccess());
-						}
-						Map<String,Byte> spec = rule.getSpecificResources();
-						for (String res : spec.keySet()) {
-							String resource = res;
-							Number newPriv = spec.get(res);
-							if (DEBUG) System.out.println("Resource="+resource+" newPriv="+newPriv+" generic="+rule.getResourceGeneric());
-							newRules.put(resource, newPriv);
-						}
-					}
-				}
-				if (DEBUG) System.out.println(user+" newRules="+newRules);
-				userRules.put(user, newRules);
-			}
-		} catch (Exception e) {
-			System.out.println("Error retrieving security model into cache - "+e.getMessage());
-			e.printStackTrace();
-		}
-		database.freeConnection(con);
-	}
-
-	/** Returns true is one of the first set of roles is a match for a role in the second set - please pass in arrays of ORoles */
-	public static boolean isRoleMatch(Object uRoles[], Object kRoles[]) {
-		boolean authorized = false;
-
-		if (uRoles == null || kRoles == null) {
-			System.out.println("Server.isRoleAuthorized: kRoles/uRoles is null");
-			return authorized;
-		}
-
-		OUT: for (Object ur: uRoles) {
-			for (Object kr: kRoles) {
-				if (ur != null && kr != null && ur.equals(kr)) {
-					//if (DEBUG) System.out.println("Server.isRoleAuthorized: Match on user role "+ur.toString()+" Authorized!");
-					authorized = true;
-					break OUT;
-				}
-			}
-		}
-		return authorized;
-	}
-	
-	/** Recursive function to return the rules for a role that has been given (includes inherited rules) */
-	public static int getRoleRules(ORole role, ArrayList<Set<ORule>> rules) {
-		if (role.getParentRole() != null) {
-			getRoleRules(role.getParentRole(), rules);
-		} 
-		Set<ORule> ru = (Set<ORule>)role.getRuleSet();
-		rules.add(ru);
-		return rules.size();
-	}
-	
-	/** Get the connected user's roles in an object array (be warned, they could be ODocuments or ORecordIds) */ 
-	public static Object[] getUserRoles(DatabaseConnection con) {
-		return userRoles.get(con.getUser());  // I believe these are ODocuments or ORecordIds
-	}
-
-	/** Get the connected user's roles as a list that can be used in SQL. Example: #1:1,#1:2,#1:3 */
-	public static String getUserRolesList(DatabaseConnection con) {
-		Object[] roles = userRoles.get(con.getUser());
-		if (roles != null) {
-			StringBuilder rb = new StringBuilder();
-			for(Object r : roles) {
-				if (r != roles[0]) { rb.append(", "); }
-				if (r instanceof ORecordId) {  // Sometimes, these are returned
-					rb.append(((ORecordId)r).getIdentity());
-				} else {
-					rb.append(((ODocument)r).getIdentity());
-				}
-			}
-			return rb.toString();  // These are ODocuments or ORecordIds
-		} else {
-			System.out.println("This is odd, "+con.getUser()+" has no roles?");
-			return "";
-		}
-	}
-
-	public static boolean isDBA(DatabaseConnection con) {
-		String user = con.getUser();
-		if (user.equals("admin") || user.equals("server") || user.equals("dba")) {
-			return true;
-		}
-		return false;
-	}
-	
-	/** Get the privileges that the connected user has to the given table */
-	public static int getTablePriv(DatabaseConnection con, String table) {
-		int priv = 0;
-		String user = con.getUser();
-		HashMap<String,Number> newRules = userRules.get(user);
-		
-		// if starts with database, it is a specific privilege
-		if (table.startsWith("database.")) {
-			Number r = newRules.get(table);
-			if (r != null) {
-				return r.intValue();
-			}
-		}
-		
-		// Find the most specific privilege for the table from the user's rules
-		Number o;
-		o = newRules.get(ResourceGeneric.BYPASS_RESTRICTED.getName()); 
-		if (o != null) {
-			//if (DEBUG) System.out.println("Found "+ResourceGeneric.BYPASS_RESTRICTED.getName()+"="+o);
-			priv = o.intValue();
-		}
-		o = newRules.get(ResourceGeneric.CLASS.getName());
-		if (o != null) {
-			//if (DEBUG) System.out.println("Found "+ResourceGeneric.CLASS.getName()+"="+o);
-			priv = o.intValue();
-		}
-		o = newRules.get(table.toLowerCase());
-		if (o != null) {
-			//if (DEBUG) System.out.println("Found database.class."+table.toLowerCase()+"="+o);
-			priv = o.intValue();
-		}
-		return priv;
-	}
-
-	protected static HashMap<String,Number> getTablePrivs(String table) {
-		HashMap<String,Number> cmap = tablePrivsCache.get(table);
-		if (cmap != null) {
-			return cmap;
-		}
-		
-		if (DEBUG) System.out.println("Retrieving privs for table "+table);
-		HashMap<String,Number> map = new HashMap<String,Number>();
-		DatabaseConnection con = database.getConnection();		
-		QueryResult roles = Weblet.getCache().getResult(con, "select from ORole");
-		database.freeConnection(con);		
-		for (ODocument role : roles.get()) {
-			String roleName = role.field("name");
-			ArrayList<Set<ORule>> rules = new ArrayList<Set<ORule>>();
-			getRoleRules(new ORole(role),rules);
-			for (Set<ORule> rs : rules) {
-				for (ORule rule : rs) {
-					if (rule.containsSpecificResource(table.toLowerCase())) {
-						if (DEBUG) System.out.println("getTablePrivs: specific "+rule.toString()+": "+rule.getAccess());
-						map.put(roleName, rule.getAccess());
-					} else if (rule.getResourceGeneric() == ResourceGeneric.CLASS) {
-						if (DEBUG) System.out.println("getTablePrivs: all classes: "+rule.getAccess());
-						if (rule.getAccess() != null) {
-							map.put(roleName, rule.getAccess());
-						}
-					} else if (rule.getResourceGeneric() == ResourceGeneric.BYPASS_RESTRICTED) {
-						if (DEBUG) System.out.println("getTablePrivs: all classes: "+rule.getAccess());
-						if (rule.getAccess() != null) {
-							map.put(roleName, rule.getAccess());
-						}
-					}
-				}
-			}
-		}		
-		tablePrivsCache.put(table,map);
-		return map;
-	}
-	
-	public static void tablePrivUpdated(String table) {
-		tablePrivsCache.remove(table);
-	}
-	
 	public static String addTransientImage(String type, byte[] data) {
 		String name = "IMG_"+(int)(Math.random()*1000000)+".jpg";
 		transientImages.put(name, data);
@@ -1152,7 +905,7 @@ public class Server extends Thread {
 		if (table.equalsIgnoreCase("metadata:schema")) {
 			DatabaseConnection con = database.getConnection();
 			if (DEBUG) System.out.println("Server: schema updated - reloading");
-			clearColumnsCache("ALL");
+			//clearColumnsCache("ALL");
 			con.getSchema().reload();
 			database.freeConnection(con);
 		} else if (table.equals("constant")) {
@@ -1161,8 +914,8 @@ public class Server extends Thread {
 			ConstantOverride.apply(con);
 			database.freeConnection(con);
 		} else if (table.equals("columns") ) {
-			if (DEBUG) System.out.println("Server: tableUpdated("+table+") - columns cache cleared");
-			Server.clearColumnsCache("ALL");  // Don't know which table or which row in columns table so clear all
+			//if (DEBUG) System.out.println("Server: tableUpdated("+table+") - columns cache cleared");
+			//Server.clearColumnsCache("ALL");  // Don't know which table or which row in columns table so clear all
 		} else if (table.equals("pickList") ) {
 			if (DEBUG) System.out.println("Server: tableUpdated("+table+") - query caches cleared");
 			Weblet.queryCache.clear();
@@ -1179,298 +932,13 @@ public class Server extends Thread {
 		  || table.equals("menuItem")
 		  || table.equals("ORole")
 		  || table.equals("OUser")) {
-			refreshSecurity();  // Will display its own messages
+			Security.refreshSecurity();  // Will display its own messages
 			Menu.clearCache();
 		}
 		if (DEBUG) System.out.println("Server: tableUpdated("+table+") - query cache updated");
 		Weblet.queryCache.refreshContains(table);
 	}
-
-	/** Return table information - includes superClass, abstract, */
-	public static QueryResult getTableInfo(String table) {
-		DatabaseConnection con = database.getConnection();
-		QueryResult result =  con.query("select from (select expand(classes) from metadata:schema) where name = '"+table+"'");
-		database.freeConnection(con);
-		return result;
-	}
 	
-	public static int columnsCacheSize() {
-		return columnsCache.size();
-	}
-	
-	public static void clearColumnsCache(String table) {
-		if (table.equals("ALL")) {
-			columnsCache.clear();
-			if (DEBUG) System.out.println("Server.clearColumnsCache() Columns cleared for all tables");
-		} else {
-			columnsCache.remove(table);
-			if (DEBUG) System.out.println("Server.clearColumnsCache() Columns cleared for table "+table);
-		}
-	}
-	
-	public static Collection<OProperty> getColumns(String table) {
-		return getColumns(table, null);
-	}
-
-	/**
-	 * Returns column names and column details including type, and linked class
-	 * overrides column order based on value in columnList in columns table and add inherited columns as well
-	 * (There must be a cleaner way to code this but hey, it works and it is fairly simple)
-	 */
-	public static Collection<OProperty> getColumns(String table, String columnOverride) {
-		
-//		if (columnOverride == null) {
-//			QueryResult ccolumns = columnsCache.get(table);
-//	 		if (ccolumns != null) {
-//				return ccolumns;
-//			}
-//		}
-		ArrayList<OProperty> result = new ArrayList<OProperty>();
-		
-		DatabaseConnection con = database.getConnection();
-		// Original list of columns
-		if (con == null) {
-			System.out.println("Server.getColumns() cannot get a connection");
-		} else {
-			OSchema schema = con.getSchema();
-			OClass tableClass = schema.getClass(table);
-			if (tableClass == null) {
-				System.out.println("Server: getColumns(tableClass not found for "+table+")");
-				return null;
-			}
-			result.addAll(tableClass.properties());
-			//QueryResult result =  con.query("select from (select expand(properties) from (select expand(classes) from metadata:schema) where name = '" + table + "') order by name");
-	
-			// Get details about the table so we can add superClass attributes 
-			QueryResult tableInfo = Server.getTableInfo(table);
-			String superClass = tableInfo.getStringValue(0, "superClass");
-			if (superClass != null) {
-				Collection<OProperty> superProperties = schema.getClass(superClass).properties();
-				for (OProperty sc : superProperties) {
-					if (!result.contains(sc)) {
-						result.add(sc);  // Only add if not already there (latest version brings the superclass columns)
-					}
-				}
-			}
-			
-			// List of columns to override natural alphabetical order
-			QueryResult columnList = null;
-			if (columnOverride == null) {
-				columnList = con.query("SELECT columnList FROM "+Setup.TABLE_COLUMNS+" WHERE name='"+table+"'");
-			}
-			database.freeConnection(con);
-			boolean addDynamicColumns = true;
-			if (columnOverride != null || (columnList != null && columnList.size()>0)) {
-				String list = (columnOverride == null ? columnList.getStringValue(0, "columnList") : columnOverride);
-				String columnNames[] = list.split(",");
-				if (columnNames.length > 0 ) {
-					ArrayList<OProperty> newList = new ArrayList<OProperty>();
-					for (String name : columnNames) {
-						name = name.trim();
-						if (name.equals("-")) {
-							if (DEBUG) System.out.println("ColumnOverride="+columnOverride+" no dynamic columns");
-							addDynamicColumns = false;
-						}
-						if (!name.startsWith("-")) {
-							if (name.trim().startsWith("button")) {
-								OProperty bd = new OProperty() {
-									String name;
-									public OProperty setType(OType t) { return this; }
-									public boolean isMandatory() { return false; }
-									@Override
-									public int compareTo(OProperty o) { return 0; }
-									@Override
-									public String getName() { return name; }
-									@Override
-									public String getFullName() { return null; }
-									@Override
-									public OProperty setName(String iName) {
-										name = iName;
-										return this;
-									}
-									@Override
-									public void set(ATTRIBUTES attribute, Object iValue) { }
-									@Override
-									public OType getType() { return OType.TRANSIENT; }
-									@Override
-									public OClass getLinkedClass() { return null; }
-									@Override
-									public OProperty setLinkedClass(OClass oClass) { return null; }
-									@Override
-									public OType getLinkedType() { return null; }
-									@Override
-									public OProperty setLinkedType(OType type) { return null; }
-									@Override
-									public boolean isNotNull() { return false; }
-									@Override
-									public OProperty setNotNull(boolean iNotNull) { return null; }
-									@Override
-									public OCollate getCollate() { return null; }
-									@Override
-									public OProperty setCollate(String iCollateName) { return null; }
-									@Override
-									public OProperty setCollate(OCollate collate) { return null; }
-									@Override
-									public OProperty setMandatory(boolean mandatory) { return null; }
-									@Override
-									public boolean isReadonly() { return false; }
-									@Override
-									public OProperty setReadonly(boolean iReadonly) { return null; }
-									@Override
-									public String getMin() { return null; }
-									@Override
-									public OProperty setMin(String min) { return null; }
-									@Override
-									public String getMax() { return null; }
-									@Override
-									public OProperty setMax(String max) { return null; }
-									@Override
-									public OIndex<?> createIndex(INDEX_TYPE iType) { return null; }
-									@Override
-									public OIndex<?> createIndex(String iType) {
-										return null;
-									}
-									@Override
-									public OProperty dropIndexes() {
-										return null;
-									}
-									@Override
-									public Set<OIndex<?>> getIndexes() {
-										return null;
-									}
-									@Override
-									public OIndex<?> getIndex() {
-										return null;
-									}
-									@Override
-									public Collection<OIndex<?>> getAllIndexes() {
-										return null;
-									}
-									@Override
-									public boolean isIndexed() {
-										return false;
-									}
-									@Override
-									public String getRegexp() {
-										return null;
-									}
-									@Override
-									public OProperty setRegexp(String regexp) {
-										return null;
-									}
-									@Override
-									public String getCustom(String iName) {
-										return null;
-									}
-									@Override
-									public OProperty setCustom(String iName,
-											String iValue) {
-										return null;
-									}
-									@Override
-									public void removeCustom(String iName) {
-									}
-									@Override
-									public void clearCustom() {
-									}
-									@Override
-									public Set<String> getCustomKeys() {
-										return null;
-									}
-									@Override
-									public OClass getOwnerClass() {
-										return null;
-									}
-									@Override
-									public Object get(ATTRIBUTES iAttribute) {
-										return null;
-									}
-									@Override
-									public Integer getId() {
-										return null;
-									};
-								};
-								//OProperty bd = tableClass.createProperty(name.replace("(","_").replace(":","_").replace(")",""), OType.TRANSIENT);
-								bd.setName(name.replace("(","_").replace(":","_").replace(")",""));
-								newList.add(bd);
-							} else {
-								boolean found = false;
-								for (OProperty p : result) {
-									if (p.getName().equals(name)) {
-										newList.add(p);
-										found = true;
-										break;
-									}
-								}
-								if (!found) {
-									System.out.println("Could not find column "+name+" in the columns for table "+table+" even though this column was explicitly mentioned in the columns table - huh!");
-									clearColumnsCache(table);  // Maybe this will help
-								}
-							}
-						}
-					}
-					if (addDynamicColumns) {
-						for (OProperty col : result) {
-							String name = col.getName();
-							boolean found = false;
-							for (String cn : columnNames) {
-								String cnt = cn.trim();
-								if (cnt.equals(name) 
-								  || (cnt.startsWith("-") && cnt.substring(1).equals(name))) {
-									found = true;
-								}
-							}
-							if (!found) {
-								newList.add(col);
-							}
-						}
-					}
-					if (newList.size() > 0 ) {
-						//QueryResult newResult = new QueryResult(newList);
-						//if (columnOverride == null) {
-						//	columnsCache.put(table, newResult);
-						//}
-						return newList;
-					}
-				}
-			}
-//			if (columnOverride == null) {
-//				columnsCache.put(table, result);							
-//			}
-			return result;
-		}
-		return null;
-	}
-
-	public static boolean changePassword(DatabaseConnection con, String oldPassword, String newPassword) {
-		if (!con.isPassword(oldPassword)) {
-			System.out.println("Attempt to change password with incorrect old password");
-			return false;
-		}
-		DatabaseConnection c = database.getConnection();
-		try {
-			if (c != null) {
-				Object rc = c.update("UPDATE OUser SET password='"+newPassword+"' WHERE name='"+con.getUser()+"'");
-				System.out.println(con.getUser()+" password changed successfully "+rc);
-				con.setPassword(newPassword);
-			    if (con.getUser().equalsIgnoreCase("server")) {
-			    	//System.out.println("Setting localsetting for server password using key="+Server.DB_NAME + Server.HTTP_PORT+" and pass="+newPassword);
-			    	Server.setLocalSetting(Server.DB_NAME + Server.HTTP_PORT, newPassword);
-			    }
-				return true;
-			} else {
-				System.out.println("Server.changePassword() - could not get a server connection");
-				return false;
-			}
-		} catch (Exception e) {
-			System.out.println("Cannot change password for user "+con.getUser());
-			e.printStackTrace();
-			return false;
-		} finally {
-			if (c != null) database.freeConnection(c);
-		}
-	}
-
 	public static void viewPage(String url) {
 		Browser.displayURL("http://localhost:"+HTTP_PORT+"/"+url);
 	}
@@ -1532,11 +1000,19 @@ public class Server extends Thread {
 				if (!Setup.checkInstallation(con)) {
 					System.out.println("---\n--- Warning condition: checkInstallation failed - check install messages in context\n---");
 				}
-//				database.freeConnection(con);
-//				database.close();  // Close all the connections after installation check
+
 				database.setPoolSize(SERVER_POOL_SIZE);
-//				con = database.getConnection();
 				System.out.println("Connected to database name="+DB_NAME+" version="+database.getClientVersion());
+
+				// Initialize security
+				Security.setDatabase(database);
+				Security.refreshSecurity();
+				if (Security.keyRoleCount() < 1) {
+					System.out.println("***\n*** Exit condition: No key roles found for security - no functions to enable\n***");
+					exit(-1);
+				}
+				
+				// Initialize PlusClassLoader
 				plusClassLoader = PlusClassLoader.get();
 				if (plusClassLoader == null) {
 					System.out.println("***\n*** Exit condition: Could not initialize the PlusClassLoader\n***");
@@ -1548,12 +1024,6 @@ public class Server extends Thread {
 				// Do this after plus modules loaded so we can set their constants
 				if (!ConstantOverride.apply(con)) {
 					System.out.println("***\n*** Exit condition: Could not apply constant overrides\n***");
-					exit(-1);
-				}
-
-				refreshSecurity();
-				if (keyRoles.size() < 1) {
-					System.out.println("***\n*** Exit condition: No key roles found for security - no functions to enable\n***");
 					exit(-1);
 				}
 				
@@ -1572,12 +1042,11 @@ public class Server extends Thread {
 
 	/** Get the guest connection */
 	public Database getNonUserDatabase() {
-		if (dbNone == null)	{  // Just once, thank you
+		if (dbNone == null)	{  
 			Database d = null;
 			try {
 				d = new Database(DB_NAME,"guest","guest");
 				d.setPoolSize(GUEST_POOL_SIZE);
-//				d = new Database(DB_NAME,"admin","admin");  // Just incase you change guest password and need to login
 				dbNone = d;
 			} catch (Exception e) {
 				System.out.println("Cannot connect guest database");
@@ -1602,8 +1071,9 @@ public class Server extends Thread {
 	}
 	
 	public static Date getServerInitTime() {   return serverInitTime;  }
-	public static Date getSecurityRefreshTime() {   return securityRefreshTime;  }
+	public static Date getSecurityRefreshTime() {   return Security.securityRefreshTime;  }
 	public static String getCodeSource() { return codeSource; }
 	public static String getDBName() { return DB_NAME; }
+	public static int getHTTPPort() { return HTTP_PORT; }
 	
 }

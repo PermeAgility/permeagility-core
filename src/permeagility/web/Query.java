@@ -13,6 +13,7 @@ import java.util.Set;
 
 import permeagility.util.DatabaseConnection;
 import permeagility.util.QueryResult;
+import permeagility.util.Security;
 
 import com.orientechnologies.orient.core.metadata.schema.OProperty;
 import com.orientechnologies.orient.core.record.impl.ODocument;
@@ -84,7 +85,7 @@ public class Query extends Weblet {
 		try {
 			rc = con.update(query);
 			if (rc != null && (query.trim().toUpperCase().startsWith("GRANT") || query.trim().toUpperCase().startsWith("REVOKE"))) {
-				Server.refreshSecurity();
+				Security.refreshSecurity();
 				secRef = true;
 			}
 		} catch (Exception e) {
@@ -235,7 +236,7 @@ public class Query extends Weblet {
 				}
 				tablesInGroups.add(tableName);
 				if (show) {
-					int privs = Server.getTablePriv(con, tableName);
+					int privs = Security.getTablePriv(con, tableName);
 					//System.out.println("Table privs for table "+tableName+" for user "+con.getUser()+" privs="+privs);
 					if (privs > 0) {
 						tableName = tableName.trim();
@@ -253,18 +254,17 @@ public class Query extends Weblet {
 		for (ODocument row : tables.get()) {
 			String tablename = row.field("name");
 			if (!tablesInGroups.contains(tablename)) {
-				if (Server.getTablePriv(con, tablename) > 0) {
+				if (Security.getTablePriv(con, tablename) > 0) {
 					if (tableInit.length()>0) tableInit.append(", ");
 					tableInit.append("{ group:'New', table:'"+tablename+"'}");
 				}
 			}
 		}
 
-		// Columns
+		// Columns - this will be slow as tables grow (could do an angular get when user selects table - later)
 		for (ODocument t : tables.get()) {
 			String tName = t.field("name");
-			Collection<OProperty> cols = Server.getColumns(tName);
-			for (OProperty col : cols) {
+			for (OProperty col : con.getColumns(tName)) {
 				String cName = col.getName();
 				Integer cType = col.getType().getId();
 				String cClass = col.getLinkedClass() != null ? col.getLinkedClass().getName() : null;
@@ -312,7 +312,7 @@ public class Query extends Weblet {
 			      +"  <option value=\"INSERT INTO\">INSERT INTO class [SET field=value, *] [FROM query] [RETURN ret]</option>\n"
 			      +"  <option value=\"UPDATE\">UPDATE [SET field=val *] [UPSERT] [WHERE condition *] [LIMIT n] [RETURN ret]</option>\n"
 			      +"  <option value=\"DELETE FROM\">DELETE class [WHERE condition *] [LIMIT n] [RETURN ret]</option>\n"
-			      +(Server.isDBA(con)
+			      +(Security.isDBA(con)
 			      	? "  <option value=\"CREATE CLASS\">CREATE CLASS class [EXTENDS super] [CLUSTER name, *]</option>\n"
 				      +"  <option value=\"CREATE CLUSTER\">CREATE CLUSTER name [POSITION position|APPEND] [CLUSTER name, *]</option>\n"
 				      +"  <option value=\"CREATE PROPERTY\">CREATE PROPERTY class.property type [linkedClass]</option>\n"
