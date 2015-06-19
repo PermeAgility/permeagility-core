@@ -4,7 +4,6 @@ import java.util.HashMap;
 
 import permeagility.util.DatabaseConnection;
 import permeagility.util.Setup;
-import permeagility.web.Server;
 
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OSchema;

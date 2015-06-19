@@ -5,8 +5,6 @@ import java.util.HashMap;
 
 import permeagility.util.DatabaseConnection;
 import permeagility.util.QueryResult;
-import permeagility.web.Download;
-import permeagility.web.Weblet;
 
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OProperty;

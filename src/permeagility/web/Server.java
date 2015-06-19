@@ -43,7 +43,6 @@ import permeagility.util.Security;
 import permeagility.util.Setup;
 
 import com.orientechnologies.orient.core.OConstants;
-import com.orientechnologies.orient.core.Orient;
 
 /** This is the PermeAgility web server - it handles security, database connections and some useful caches for privileges and such
   * all web requests go through the run() function for each thread/socket

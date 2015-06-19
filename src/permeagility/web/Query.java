@@ -6,7 +6,6 @@ at the URL "http://www.eclipse.org/legal/epl-v10.html".
 package permeagility.web;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
