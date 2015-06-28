@@ -23,6 +23,10 @@ import com.orientechnologies.orient.core.db.tool.ODatabaseImport;
 import com.orientechnologies.orient.core.metadata.security.OSecurity;
 import com.orientechnologies.orient.core.metadata.security.OUser;
 
+/**
+ * This class holds a user's connection to a database, it implements a pool of connections for each logged in user
+ * 
+ */
 public class Database implements Serializable {
 
 	private static final long serialVersionUID = -3694830690200123194L;  // So that we can serialize the sessions
@@ -96,11 +100,12 @@ public class Database implements Serializable {
 		return pooledConnections.size();
 	}
 	
-	/* Not very reliable. Can't be trusted to know if any of the connections are still good */
+	/** Not very reliable. Can't be trusted to know if any of the connections are still good */
 	public boolean isConnected() {
 		return pooledConnections.size() + activeConnections.size() > 0;
 	}
 
+	/** Get a connection from the pool */
 	public DatabaseConnection getConnection() {
 		lastAccessed = new Date();
 		if (pooledConnections.isEmpty()) {
@@ -144,6 +149,7 @@ public class Database implements Serializable {
 		return null;
 	}
 	
+	/* close this database connection all connections will be closed */
 	public void close() {
 		try {
 			for (DatabaseConnection c : activeConnections) {
@@ -168,9 +174,7 @@ public class Database implements Serializable {
 		while ( pooledConnections.size() < POOL_SIZE) {
 			ODatabaseDocumentTx c = new ODatabaseDocumentTx(url);
 			try {
-				//if (c.exists()) {
-					c.open(user,password);
-				//}
+				c.open(user,password);
 			} catch (Exception e) {
 				System.out.println("CONNECT ERROR: "+e.getMessage());
 				//e.printStackTrace();

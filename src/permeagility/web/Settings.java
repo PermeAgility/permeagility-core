@@ -49,7 +49,7 @@ public class Settings extends Weblet {
 			if (setStyle != null && !setStyle.equals(styleConstant.getIdentity().toString())) {
 				try {
 					ODocument style = con.get(setStyle);
-					styleConstant.field("value", style.field("name"));
+					styleConstant.field("value", style.field("name").toString());
 					currentStyleName = style.field("name");
 					styleConstant.save();
 					

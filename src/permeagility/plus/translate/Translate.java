@@ -1,9 +1,11 @@
 package permeagility.plus.translate;
 
 import java.net.URL;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import permeagility.util.DatabaseConnection;
 import permeagility.util.QueryResult;
@@ -138,7 +140,7 @@ public class Translate extends Table {
 								if (newMessage == null) {
 									newMessage = con.create(Setup.TABLE_MESSAGE);
 									newMessage.field("name",messageName);
-									newMessage.field("description",m.field("description"));
+									newMessage.field("description",m.field("description").toString());
 									newMessage.field("locale",newLocale);
 									newMessage.save();
 								}
@@ -277,10 +279,10 @@ public class Translate extends Table {
 									ODocument newsArticle = con.create(Setup.TABLE_NEWS);
 									newsArticle.field("name",newText);
 									newsArticle.field("description",newDesc);
-									newsArticle.field("dateline",newsDoc.field("dateline"));
+									newsArticle.field("dateline",(Date)newsDoc.field("dateline"));
 									newsArticle.field("locale",newLocale);
 									newsArticle.field("archive",false);
-									newsArticle.field("_allowRead",newsDoc.field("_allowRead"));
+									newsArticle.field("_allowRead",(Set)newsDoc.field("_allowRead"));
 									newsArticle.save();
 								}
 								translateCount++;

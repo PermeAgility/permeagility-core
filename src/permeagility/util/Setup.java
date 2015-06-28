@@ -32,6 +32,7 @@ public class Setup {
 	public static final String TABLE_NEWS = "article";
 	public static final String TABLE_USERREQUEST = "userRequest";
 	public static final String TABLE_AUDIT = "auditTrail";
+	public static final String TABLE_PICKVALUES = "pickValues";
 	
 	/**
 	 *  Verify the installation of the permeagility-core table structures
@@ -120,7 +121,7 @@ public class Setup {
 			Setup.checkCreateColumn(con, tableGroupTable, "tables", OType.STRING, installMessages);
 
 			if (tableGroupTable.count() == 0) {
-				con.create(TABLE_TABLEGROUP).field("name","Application").field("tables","columns,constant,locale,pickList,menu,menuItem,message,style,tableGroup,userRequest,auditTrail,-thumbnail").field("_allowRead", adminRoles.toArray()).save();
+				con.create(TABLE_TABLEGROUP).field("name","Application").field("tables","columns,constant,locale,pickList,pickValues,menu,menuItem,message,style,tableGroup,userRequest,auditTrail,-thumbnail").field("_allowRead", adminRoles.toArray()).save();
 				con.create(TABLE_TABLEGROUP).field("name","System").field("tables","ORole,OUser,OFunction,OSchedule,-ORIDs,-E,-V,-_studio").field("_allowRead", adminRoles.toArray()).save();
 				con.create(TABLE_TABLEGROUP).field("name","News").field("tables","article").field("_allowRead", allRoles.toArray()).save();
 			}
@@ -485,6 +486,16 @@ public class Setup {
 
 			if (pickListTable.count() == 0) {
 				con.create(TABLE_PICKLIST).field("tablename","OIdentity").field("query","select @rid.asString(), name from ORole").field("description","This will restrict row level table privileges to only selecting Roles, alter or remove this to allow user and role selection for _allow, _allowRead, etc... columns").save();				
+			}
+			
+			System.out.print(TABLE_PICKVALUES+" ");
+			OClass pickValuesTable = Setup.checkCreateTable(oschema, TABLE_PICKVALUES, installMessages);
+			Setup.checkCreateColumn(con, pickValuesTable, "name", OType.STRING, installMessages);
+			Setup.checkCreateColumn(con, pickValuesTable, "values", OType.STRING, installMessages);
+			
+			if (pickValuesTable.count() == 0) {
+				con.create(TABLE_PICKVALUES).field("name","OUser.status").field("values","ACTIVE,INACTIVE").save();				
+				con.create(TABLE_PICKVALUES).field("name","OFunction.language").field("values","javascript").save();				
 			}
 			
 			System.out.print(TABLE_MENU+" ");

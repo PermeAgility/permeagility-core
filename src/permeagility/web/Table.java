@@ -880,7 +880,7 @@ public class Table extends Weblet {
 	//			if (initialValues.field(name) == null && parms.get(name) != null) {
 	//				initialValues.field(name, parms.get(name));
 	//			}
-				fields.append(getColumnAsField(column, initialValues, con, formName, edit_id, parms));
+				fields.append(getColumnAsField(table, column, initialValues, con, formName, edit_id, parms));
 	
 			}
 			return hidden.toString()+center(table("data", fields.toString()));
@@ -898,7 +898,7 @@ public class Table extends Weblet {
 	 * @param edit_id - record id of the value to be edited (the identity of initialValues would be misleading on a new record) 
 	 * @return
 	 */
-	private String getColumnAsField(OProperty column, ODocument initialValues, DatabaseConnection con, String formName, String edit_id, HashMap<String,String> parms) {
+	private String getColumnAsField(String table, OProperty column, ODocument initialValues, DatabaseConnection con, String formName, String edit_id, HashMap<String,String> parms) {
 		Integer type = column.getType().getId();
 		String name = column.getName();
 		String prettyName = makeCamelCasePretty(name);
@@ -926,6 +926,10 @@ public class Table extends Weblet {
 
 		// Number
 		} else if (type == 1 || type == 2 || type == 3 || type == 4 || type == 5 || type == 17 || type == 21) {  
+			List<String> pickValues = Server.getPickValues(table, name);
+			if (pickValues != null) {
+				return row(label + column(createList(con.getLocale(), PARM_PREFIX+name, initialValue != null ? initialValue.toString() : null, pickValues, null, false, null, true)));
+			}
 			return row(label + column(input("number", PARM_PREFIX+name, initialValue)));
 
 		// Datetime
@@ -966,6 +970,10 @@ public class Table extends Weblet {
 
 		// String
 		} else if (type == 7) {  
+			List<String> pickValues = Server.getPickValues(table, name);
+			if (pickValues != null) {
+				return row(label + column(createList(con.getLocale(), PARM_PREFIX+name, initialValue != null ? initialValue.toString() : null, pickValues, null, false, null, true)));
+			}
 			if (initialValue != null && ((String) initialValue).length() > TEXT_AREA_THRESHOLD || name.equals("description")) {
 				int linecount = (initialValue != null ? countLines((String) initialValue) : 0);
 				return row(label + column(textArea(PARM_PREFIX+name, initialValue, (linecount > 2 ? linecount + 3 : 3), TEXT_AREA_WIDTH)));
@@ -982,7 +990,7 @@ public class Table extends Weblet {
 			StringBuilder desc = new StringBuilder();
 			if (edit_id != null) {
 				String nail = null;
-				String blobid = Thumbnail.getThumbnailId(initialValues.getClassName(), edit_id, name, desc);
+				String blobid = Thumbnail.getThumbnailId(table, edit_id, name, desc);
 				if (blobid != null) {
 					nail = Thumbnail.getThumbnailLink(con.getLocale(),blobid, desc.toString());
 				} else {

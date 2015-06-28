@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
 import java.util.StringTokenizer;
@@ -43,6 +44,7 @@ import permeagility.util.Security;
 import permeagility.util.Setup;
 
 import com.orientechnologies.orient.core.OConstants;
+import com.orientechnologies.orient.core.record.impl.ODocument;
 
 /** This is the PermeAgility web server - it handles security, database connections and some useful caches for privileges and such
   * all web requests go through the run() function for each thread/socket
@@ -97,6 +99,8 @@ public class Server extends Thread {
 	private static ConcurrentHashMap<String,Date> transientImageDates = new ConcurrentHashMap<String,Date>();
 	private static ConcurrentHashMap<String,String> transientImageTypes = new ConcurrentHashMap<String,String>();
 
+	private static ConcurrentHashMap<String,List<String>> pickValues = new ConcurrentHashMap<String,List<String>>();
+	
 	private static DatabaseHook databaseHook = null;
 	private static ClassLoader plusClassLoader;
 	static Message messages = null;
@@ -918,6 +922,9 @@ public class Server extends Thread {
 		} else if (table.equals("pickList") ) {
 			if (DEBUG) System.out.println("Server: tableUpdated("+table+") - query caches cleared");
 			Weblet.queryCache.clear();
+		} else if (table.equals("pickValues") ) {
+			if (DEBUG) System.out.println("Server: tableUpdated("+table+") - pickValues cleared");
+			updatePickValues();
 		} else if (table.equals("locale") || table.equals("message")) {
 			if (DEBUG) System.out.println("Server: tableUpdated("+table+") - messages refreshed and menus cleared");
 			DatabaseConnection con = database.getConnection();
@@ -936,6 +943,32 @@ public class Server extends Thread {
 		}
 		if (DEBUG) System.out.println("Server: tableUpdated("+table+") - query cache updated");
 		Weblet.queryCache.refreshContains(table);
+	}
+	
+	public static List<String> getPickValues(String table, String column) {
+		if (pickValues.size() == 0) {
+			updatePickValues();  // There must be a few by default - empty means not loaded yet (Note: restart server if delete)
+		}
+		return pickValues.get(table+"."+column);
+	}
+
+	public static void updatePickValues() {
+		DatabaseConnection con = null;
+		try {
+			con = database.getConnection();
+			for (ODocument values : con.getDb().browseClass(Setup.TABLE_PICKVALUES)) {
+				String v[] = values.field("values").toString().split(",");
+				ArrayList<String> list = new ArrayList<String>();
+				for (String s : v) {
+					list.add(s);
+				}
+				pickValues.put(values.field("name"),list);
+			}
+		} catch (Exception e) {
+			System.err.println("Error getting pickValues: "+e.getMessage());
+		} finally {
+			if (con != null) database.freeConnection(con);
+		}		
 	}
 	
 	public static void viewPage(String url) {

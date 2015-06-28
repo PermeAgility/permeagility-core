@@ -147,7 +147,7 @@ public class Thumbnail {
 							t = "image/jpeg";
 						}
 						type.append(t);
-						file.append(thumbnail.field("name"));
+						file.append(thumbnail.field("name").toString());
 					}
 					ByteArrayOutputStream content = new ByteArrayOutputStream();
 					if (DEBUG) System.out.print("Reading blob content: available="+bis.available());

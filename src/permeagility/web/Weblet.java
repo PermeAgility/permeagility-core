@@ -886,7 +886,9 @@ public abstract class Weblet {
 	    	if (picked != null) { // Find in the list of picked, hope it isn't long
 	    		for (Object p : picked) {
 	    			ORID id = null;
-	    			if (p instanceof ORecordId) {
+	    			if (p == null) {
+	    				
+	    			} else if (p instanceof ORecordId) {
 	    				id = ((ORecordId)p).getIdentity();
 	    			} else {  // Assume ODocument
 	    				id = ((ODocument)p).getIdentity();
