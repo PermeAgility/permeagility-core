@@ -268,7 +268,7 @@ public class Server extends Thread {
 				}
 			}
 
-			if (method.equals("GET") || method.equals("POST")) {
+			if (method.equals("GET") || method.equals("POST") || method.equals("PUT") || method.equals("DELETE")) {
 				content_type = getContentType(file);
 				if (st.hasMoreTokens()) {
 					version = st.nextToken();
@@ -322,8 +322,9 @@ public class Server extends Thread {
 					className = HOME_CLASS;
 				}
 				
-				// Get URL encoded parameters
+				// Get URL encoded parameters and put in HashMap
 				HashMap<String,String> parms = new HashMap<String,String>();
+				parms.put("HTTP_METHOD",method);
 				while (st2.hasMoreTokens()) {
 					String string2 = st2.nextToken("&");
 					if (string2.startsWith("?")) {
@@ -343,7 +344,7 @@ public class Server extends Thread {
 				}
 
 				// Get multipart data and put into parms - files into temp files
-				if (method.equals("POST") && boundaryValue != null ) {
+				if ( ( method.equals("POST")  || method.equals("PUT") ) && boundaryValue != null ) {
 					if (DEBUG) System.out.println("Reading multipart stuff");
 					@SuppressWarnings("unused")
 					int firstchar = is.read();
@@ -664,7 +665,7 @@ public class Server extends Thread {
 					os.flush();
 					keep_alive = false;
 				}
-			} else {  // method does not equal "GET" or "POST"
+			} else {  // method does not equal "GET" or "POST" or "PUT" or "DELETE"
 				if (version.startsWith("HTTP/")) {  // send a MIME header
 					os.write(("HTTP/1.1 501 Not Implemented\r\n").getBytes());
 					os.write(("Date: " + new java.util.Date() + "\r\n").getBytes());
