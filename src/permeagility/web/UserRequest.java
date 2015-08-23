@@ -10,7 +10,7 @@ import permeagility.util.Setup;
 
 public class UserRequest extends Table {
 
-    public String getPage(DatabaseConnection con, java.util.HashMap<String,String> parms) {
+     public String getPage(DatabaseConnection con, java.util.HashMap<String,String> parms) {
 	return head(Message.get(con.getLocale(),"REQUEST_ACCOUNT"),getDateControlScript(con.getLocale())+getColorControlScript())+
 	    body(getHTML(con,parms));
     }
@@ -18,11 +18,11 @@ public class UserRequest extends Table {
     public String getHTML(DatabaseConnection con, java.util.HashMap<String,String> parms) {
     	StringBuilder errors = new StringBuilder();
     	if (parms.get("SUBMIT") != null) {
-    		if (insertRow(con, Setup.TABLE_USERREQUEST, parms, errors)) {
-    			return paragraph("success",Message.get(con.getLocale(), "USERREQUEST_INSERTED"))+link("/",Message.get(con.getLocale(), "HEADER_LOGO_DESC"));
-    		}
+            if (insertRow(con, Setup.TABLE_USERREQUEST, parms, errors)) {
+                return paragraph("success",Message.get(con.getLocale(), "USERREQUEST_INSERTED"))+link("/",Message.get(con.getLocale(), "HEADER_LOGO_DESC"));
+            }
     	}
     	return errors+getTableRowForm(con, Setup.TABLE_USERREQUEST, parms);
     }
-        
+                
 }

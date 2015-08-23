@@ -5,6 +5,7 @@ at the URL "http://www.eclipse.org/legal/epl-v10.html".
 */
 package permeagility.web;
 
+import com.orientechnologies.orient.core.exception.OSecurityAccessException;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -27,6 +28,8 @@ import com.orientechnologies.orient.core.metadata.schema.OProperty;
 import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 import com.orientechnologies.orient.core.record.impl.ORecordBytes;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 
 import permeagility.util.DatabaseConnection;
 import permeagility.util.QueryResult;
@@ -325,442 +328,451 @@ public class Table extends Weblet {
 	}
 	
 	public boolean insertRow(DatabaseConnection con, String table, HashMap<String, String> parms, StringBuilder errors) {
-		ODocument newDoc = con.create(table);
-		for (OProperty column : con.getColumns(table)) {
-			Integer type = column.getType().getId();
-			String name = column.getName();
-			String value = parms.get(PARM_PREFIX+name);
-			if (DEBUG) System.out.println("InsertRow(JavaAPI): column "+name+" is a "+type+" and its value is "+value);
-			if (!isNullOrBlank(value)) {				
-				if (type == 0) {  // Boolean
-					newDoc.field(name,(value.equals("on") ? true : false));
-				} else if (type == 1 || type == 2 || type == 3 || type == 17) {   // Number (int,long, etc...)
-					try {
-						long longValue = Long.parseLong(value);
-						newDoc.field(name,longValue);
-					} catch (Exception e) {
-						errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_NUMBER_VALUE",value)));
-					}						
-					
-				} else if (type == 4 || type == 5 || type == 21) {  // Float - Double - Decimal
-					try {
-						double dubValue = Double.parseDouble(value);
-						newDoc.field(name,dubValue);
-					} catch (Exception e) {
-						errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_NUMBER_VALUE", value)));
-					}					
-				} else if (type == 6) {  // Datetime
-					newDoc.field(name,value,column.getType());
-				} else if (type == 7) {  // String
-					newDoc.field(name,value);
-				} else if (type == 20) {  // Binary/image (8 = binary, 20 = custom)
-					updateBlob(newDoc, table, name, parms, errors);					
-				} else if (type >= 9 && type <= 12) {  // Embedded types
-					newDoc.field(name,value);
-				} else if (type == 13) {  // Link
-					ODocument linkDoc = null;
-					if (value != null) { 
-						linkDoc = con.get(value);
-						if (linkDoc == null) {
-							System.out.println("INSERT WARNING: attempted to insert with a link field with a document that couldn't be found - will not update this field with questionable data");
-						}
-					};
-					if (value == null || linkDoc != null) {
-						newDoc.field(name,linkDoc);
-					}
-				} else if (type == 14) { // LinkList
-					String[] newValues = {};
-					if (value != null && !value.trim().equals("")) {
-						newValues = value.split(",");
-					}
-					// Add new list
-					List<ODocument> list = new ArrayList<ODocument>();
-					boolean okToUpdate = true;
-					for (String nv : newValues) {
-						ODocument doc = con.get(nv);
-						if (doc != null) {
-							list.add(doc);
-						} else {
-							okToUpdate = false;
-							System.out.println("INSERT WARNING: attempted to add a non-existent document to a list - list will remain unchanged");
-						}
-					}
-					if (okToUpdate) {
-						newDoc.field(name,list);
-					}
-				} else if (type == 15) { // Linkset
-					String[] newValues = {};
-					if (value != null) {  newValues = value.split(","); }
-					// Add new list
-					Set<ODocument> list = new HashSet<ODocument>();
-					boolean okToUpdate = true;
-					for (String nv : newValues) {
-						ODocument doc = con.get(nv);
-						if (doc != null) {
-							list.add(doc);
-						} else {
-							okToUpdate = false;
-							System.out.println("INSERT WARNING: attempted to add a non-existent document to a list - list will remain unchanged");
-						}
-					}
-					if (okToUpdate) {
-						newDoc.field(name,list);
-					}
-				} else if (type == 16) { // LinkMap
-					Map<String,ODocument> map = new HashMap<String,ODocument>();
-					if (DEBUG) System.out.println("Updating LinkMap "+(map == null ? "" : map));
-					String[] newValues = {};
-					if (value != null && !value.trim().equals("")) {
-						newValues = splitCSV(value);
-					}
-					boolean okToUpdate = true;
-					// Add all from new list
-					for (String nv : newValues) {
-						String[] v = nv.split(":",2);
-						try {
-							if (v.length != 2) {
-								okToUpdate = false;
-								System.out.println("INSERT WARNING: Cannot parse map value "+nv+" it should be <name>:<cluster>:<record> - field will remain unchanged");
-							}
-							ODocument doc = con.get(v[1]);
-							if (doc != null) {
-								map.put(v[0], doc);
-							} else {
-								okToUpdate = false;
-								System.out.println("INSERT WARNING: attempted to add a non-existent document to a map - map will remain unchanged");																		
-							}
-						} catch (ArrayIndexOutOfBoundsException e) {
-							System.out.println("Could not understand map field:"+nv);
-						}									
-					}
-					if (okToUpdate) {
-						newDoc.field(name,map,OType.LINKMAP);
-					}
-				} else if (type == 19) {  // Date
-					newDoc.field(name,value,column.getType());
-				} else {
-					errors.append(paragraph("error", Message.get(con.getLocale(),"UNKNOWN_FIELD_TYPE",""+type,name)));
-				}
-			}
-		}
-		if (newDoc.isDirty()) {
-			newDoc.save();
-			errors.append(paragraph("success", Message.get(con.getLocale(), "NEW_ROW_CREATED",(newDoc.isDirty() ? "false" : "true"))));
-			Server.tableUpdated(table);
-                        DatabaseConnection.rowCountChanged(table);
-			return true;
-		} else {
-			errors.append(paragraph("warning", Message.get(con.getLocale(),"NOTHING_TO_UPDATE")));
-			return false;
-		}
+            ODocument newDoc = con.create(table);
+            for (OProperty column : con.getColumns(table)) {
+                Integer type = column.getType().getId();
+                String name = column.getName();
+                String value = parms.get(PARM_PREFIX+name);
+                if (DEBUG) System.out.println("InsertRow(JavaAPI): column "+name+" is a "+type+" and its value is "+value);
+                if (!isNullOrBlank(value)) {				
+                    if (type == 0) {  // Boolean
+                        newDoc.field(name,(value.equals("on") ? true : false));
+                    } else if (type == 1 || type == 2 || type == 3 || type == 17) {   // Number (int,long, etc...)
+                        try {
+                            long longValue = Long.parseLong(value);
+                            newDoc.field(name,longValue);
+                        } catch (Exception e) {
+                            errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_NUMBER_VALUE",value)));
+                        }						
+                    } else if (type == 4 || type == 5 || type == 21) {  // Float - Double - Decimal
+                        try {
+                            double dubValue = Double.parseDouble(value);
+                            newDoc.field(name,dubValue);
+                        } catch (Exception e) {
+                            errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_NUMBER_VALUE", value)));
+                        }					
+                    } else if (type == 6) {  // Datetime
+                            newDoc.field(name,value,column.getType());
+                    } else if (type == 7) {  // String
+                        newDoc.field(name,value);
+                    } else if (type == 20) {  // Binary/image (8 = binary, 20 = custom)
+                        updateBlob(newDoc, table, name, parms, errors);					
+                    } else if (type >= 9 && type <= 12) {  // Embedded types
+                        newDoc.field(name,value);
+                    } else if (type == 13) {  // Link
+                        ODocument linkDoc = null;
+                        if (value != null) { 
+                            linkDoc = con.get(value);
+                            if (linkDoc == null) {
+                                System.out.println("INSERT WARNING: attempted to insert with a link field with a document that couldn't be found - will not update this field with questionable data");
+                            }
+                        };
+                        if (value == null || linkDoc != null) {
+                            newDoc.field(name,linkDoc);
+                        }
+                    } else if (type == 14) { // LinkList
+                        String[] newValues = {};
+                        if (value != null && !value.trim().equals("")) {
+                            newValues = value.split(",");
+                        }
+                        // Add new list
+                        List<ODocument> list = new ArrayList<ODocument>();
+                        boolean okToUpdate = true;
+                        for (String nv : newValues) {
+                            ODocument doc = con.get(nv);
+                            if (doc != null) {
+                                list.add(doc);
+                            } else {
+                                okToUpdate = false;
+                                System.out.println("INSERT WARNING: attempted to add a non-existent document to a list - list will remain unchanged");
+                            }
+                        }
+                        if (okToUpdate) {
+                            newDoc.field(name,list);
+                        }
+                    } else if (type == 15) { // Linkset
+                        String[] newValues = {};
+                        if (value != null) {  newValues = value.split(","); }
+                        // Add new list
+                        Set<ODocument> list = new HashSet<ODocument>();
+                        boolean okToUpdate = true;
+                        for (String nv : newValues) {
+                            ODocument doc = con.get(nv);
+                            if (doc != null) {
+                                list.add(doc);
+                            } else {
+                                okToUpdate = false;
+                                System.out.println("INSERT WARNING: attempted to add a non-existent document to a list - list will remain unchanged");
+                            }
+                        }
+                        if (okToUpdate) {
+                            newDoc.field(name,list);
+                        }
+                    } else if (type == 16) { // LinkMap
+                        Map<String,ODocument> map = new HashMap<String,ODocument>();
+                        if (DEBUG) System.out.println("Updating LinkMap "+(map == null ? "" : map));
+                        String[] newValues = {};
+                        if (value != null && !value.trim().equals("")) {
+                            newValues = splitCSV(value);
+                        }
+                        boolean okToUpdate = true;
+                        // Add all from new list
+                        for (String nv : newValues) {
+                            String[] v = nv.split(":",2);
+                            try {
+                                if (v.length != 2) {
+                                    okToUpdate = false;
+                                    System.out.println("INSERT WARNING: Cannot parse map value "+nv+" it should be <name>:<cluster>:<record> - field will remain unchanged");
+                                }
+                                ODocument doc = con.get(v[1]);
+                                if (doc != null) {
+                                    map.put(v[0], doc);
+                                } else {
+                                    okToUpdate = false;
+                                    System.out.println("INSERT WARNING: attempted to add a non-existent document to a map - map will remain unchanged");																		
+                                }
+                            } catch (ArrayIndexOutOfBoundsException e) {
+                                System.out.println("Could not understand map field:"+nv);
+                            }									
+                        }
+                        if (okToUpdate) {
+                            newDoc.field(name,map,OType.LINKMAP);
+                        }
+                    } else if (type == 19) {  // Date
+                        newDoc.field(name,value,column.getType());
+                    } else {
+                        errors.append(paragraph("error", Message.get(con.getLocale(),"UNKNOWN_FIELD_TYPE",""+type,name)));
+                    }
+                }
+            }
+            if (newDoc.isDirty()) {
+                try {
+                    newDoc.save();
+                    errors.append(paragraph("success", Message.get(con.getLocale(), "NEW_ROW_CREATED",(newDoc.isDirty() ? "false" : "true"))));
+                    Server.tableUpdated(table);
+                    DatabaseConnection.rowCountChanged(table);
+                    return true;
+                } catch (Exception e) {
+                    StringWriter sw = new StringWriter();
+                    e.printStackTrace(new PrintWriter(sw));
+                    errors.append(paragraph("error", Message.get(con.getLocale(), "CANNOT_CREATE_ROW")+e.getMessage())+(DEBUG ? "<br>"+xxSmall(sw.toString()) : "")); 
+                    if (DEBUG || e instanceof OSecurityAccessException) System.err.println(sw.toString());  // Security messages must go to log
+                    return false;
+                }
+            } else {
+                errors.append(paragraph("warning", Message.get(con.getLocale(),"NOTHING_TO_UPDATE")));
+                return false;
+            }
 	}
 
 
 	public boolean updateBlob(ODocument doc, String table, String blobName, HashMap<String, String> parms, StringBuilder errors) {
-		if (doc != null) {
-			String blob_temp_file = parms.get(PARM_PREFIX+blobName);
-			String blob_file_name = parms.get(PARM_PREFIX+blobName+"_FILENAME");
-			String blob_type = parms.get(PARM_PREFIX+blobName+"_TYPE");
-			if (blob_temp_file != null && !blob_temp_file.trim().equals("")) {
-				if (DEBUG) System.out.println("Writing blob "+blob_file_name+" type:"+blob_type+" file:"+blob_temp_file);
-				ORecordBytes record = new ORecordBytes();
-				try {
-					record.fromInputStream(new FileInputStream(blob_temp_file));
-				} catch (IOException ioe) {
-					ioe.printStackTrace();
-				}
-				record.save();
-				doc.field(blobName,record);
-				Thumbnail.createThumbnail(table, doc, blobName);
-			}
-		} else {
-			System.out.println("Table.updateBlobs() - document is null");
-		}
-		return true;
+            if (doc != null) {
+                String blob_temp_file = parms.get(PARM_PREFIX+blobName);
+                String blob_file_name = parms.get(PARM_PREFIX+blobName+"_FILENAME");
+                String blob_type = parms.get(PARM_PREFIX+blobName+"_TYPE");
+                if (blob_temp_file != null && !blob_temp_file.trim().equals("")) {
+                    if (DEBUG) System.out.println("Writing blob "+blob_file_name+" type:"+blob_type+" file:"+blob_temp_file);
+                    ORecordBytes record = new ORecordBytes();
+                    try {
+                        record.fromInputStream(new FileInputStream(blob_temp_file));
+                    } catch (IOException ioe) {
+                        ioe.printStackTrace();
+                    }
+                    record.save();
+                    doc.field(blobName,record);
+                    Thumbnail.createThumbnail(table, doc, blobName);
+                }
+            } else {
+                System.out.println("Table.updateBlobs() - document is null");
+            }
+            return true;
 	}
 
 	public boolean updateRow(DatabaseConnection con, String table, HashMap<String, String> parms, StringBuilder errors) {
-		if (DEBUG) System.out.println("In updateRow (Java API) of table "+table);
-		ODocument updateRow = con.get(parms.get("UPDATE_ID"));
-		if (updateRow != null) {
-			Collection<OProperty> columns = con.getColumns(table);
-			for (OProperty column : columns) {
-				
-				String columnName = column.getName();
-				Integer type = column.getType().getId();
-				String newValue = parms.get(PARM_PREFIX+columnName);
-				if (newValue == null && !parms.containsKey(PARM_PREFIX+columnName)) {
-					continue;  // Don't update if not specified in parameters
-				}
-				if (DEBUG) System.out.println("updating "+columnName+" of type "+type+" with value "+newValue);
-				if (newValue != null) {
-					if (newValue.equals("null")) {
-						newValue = null;
-					}
-				}
-				if (type == 0) { // Boolean
-					Boolean oldval = updateRow.field(columnName);
-					boolean oldbool = false;
-					boolean newbool = false;
-					if (oldval != null) {
-						oldbool = oldval.booleanValue();
-					}
-					if (newValue != null) {
-						if (newValue.equalsIgnoreCase("on") || newValue.equalsIgnoreCase("true")
-								|| newValue.equalsIgnoreCase("yes")) {
-							newbool = true;
-						}
-					}
-					if (oldbool != newbool) {
-						updateRow.field(columnName,newbool);
-					}
-				} else if (type == 1 || type == 2 || type == 3) { // Whole number
-					Number originalValue = updateRow.field(columnName);
-					Number newVal = null;
-					if (newValue != null) {
-						try {
-							newVal = Long.parseLong(newValue);
-						} catch (Exception e) {
-							errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_NUMBER_VALUE",newValue)+" " + e.getMessage()));
-						}
-					}
-					if ((newValue != null && originalValue != null && newVal != null && !newVal.equals(originalValue)) 
-							  || (newValue == null && originalValue != null)
-							  || (originalValue == null && newValue != null)) {
-						updateRow.field(columnName,newVal);
-					}
-				} else if (type == 4 || type == 5) { // float, double
-					Double originalValue = updateRow.field(columnName);
-					Double newVal = null;
-					if (newValue != null) {
-						try {
-							newVal = Double.parseDouble(newValue);
-						} catch (Exception e) {
-							errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_READ_NUMBER_VALUE",newValue)+" " + e.getMessage()));
-						}
-					}
-					if ((newValue != null && originalValue != null && newVal != null && !newVal.equals(originalValue)) 
-							  || (newValue == null && originalValue != null)
-							  || (originalValue == null && newValue != null)) {
-						updateRow.field(columnName,newVal);
-					}
-				} else if (type == 21) { // decimal
-					BigDecimal originalValue = updateRow.field(columnName);
-					BigDecimal newVal = null;
-					if (newValue != null) {
-						try {
-							newVal = new BigDecimal(newValue);
-						} catch (Exception e) {
-							errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_READ_NUMBER_VALUE",newValue)+" "+e.getMessage()));
-						}
-					}
-					if ((newValue != null && originalValue != null && newVal != null && !newVal.equals(originalValue)) 
-							  || (newValue == null && originalValue != null)
-							  || (originalValue == null && newValue != null)) {
-						updateRow.field(columnName,newVal);
-					}
-				} else if (type == 6) {  // Datetime
-					Date originalValue = updateRow.field(columnName);
-					Date newDate = parseDate(con.getLocale(),newValue);
-					if (newValue != null && newDate == null) {
-						errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_DATE_VALUE",newValue)));							
-					} else {
-						
-						if (DEBUG) System.out.println("Updating Datetime "+(originalValue == null ? "" : originalValue.toString())+" to "+newDate);
-						if ((newValue != null && originalValue != null && !newDate.equals(originalValue)) 
-							  || (newValue == null && originalValue != null)
-							  || (originalValue == null && newValue != null)) {
-							updateRow.field(columnName,newDate);
-						}	
-					}
-					
-				} else if (type == 7) { // String
-					String originalValue = updateRow.field(columnName);
-					if ((newValue != null && originalValue != null && !newValue.equals(originalValue)) 
-							  || (newValue == null && originalValue != null)
-							  || (originalValue == null && newValue != null)) {
-						if (columnName.toUpperCase().endsWith("PASSWORD") && (newValue == null || newValue.equals(""))) {
-							System.out.println("Not updating null password requested by user "+con.getUser());
-						} else {
-							updateRow.field(columnName,newValue);
-						}
-					}
-					
-				} else if (type == 20) {  // Blob
-					String blob_name = parms.get(PARM_PREFIX+columnName); 
-					if (blob_name != null && !blob_name.trim().equals("")) {
-						if (DEBUG) System.out.println("Updating BLOB");
-						updateBlob(updateRow,table,columnName,parms,errors);
-					}
-					
-				} else if (type == 9 || type==10 || type==11 || type==12) { // Embedded types - treat like a string (without quotes) - user beware
-					Object originalValue = updateRow.field(columnName);
-					if ((newValue != null && originalValue != null && !newValue.equals(originalValue)) // They will always detect a change because the string is formatted differently
-							  || (newValue == null && originalValue != null)  // This could be considered a bug
-							  || (originalValue == null && newValue != null)) {
-						if (DEBUG) System.out.println("Embedded value changed");
-						updateRow.field(columnName,newValue);
-					}
-					
-				} else if (type == 13) { // Link
-					ODocument o = updateRow.field(columnName);
-					if (DEBUG) System.out.println("Updating Link "+(o == null ? "" : o.getIdentity().toString()));
-					String originalValue = (o == null ? null : o.getIdentity().toString().substring(1));
-					if ((newValue != null && originalValue != null && !newValue.equals(originalValue)) 
-						  || (newValue == null && originalValue != null)
-						  || (originalValue == null && newValue != null)) {
-						ODocument linkDoc = null;
-						if (newValue != null) { 
-							linkDoc = con.get(newValue);
-							if (linkDoc == null) {
-								System.out.println("UPDATE WARNING: attempted to update a link field with a document that couldn't be found - will not update this field with questionable data");
-							}
-						};
-						if (newValue == null || linkDoc != null) {
-							updateRow.field(columnName,linkDoc);
-						}
-					}
+            if (DEBUG) System.out.println("In updateRow (Java API) of table "+table);
+            ODocument updateRow = con.get(parms.get("UPDATE_ID"));
+            if (updateRow != null) {
+                Collection<OProperty> columns = con.getColumns(table);
+                for (OProperty column : columns) {
+                    String columnName = column.getName();
+                    Integer type = column.getType().getId();
+                    String newValue = parms.get(PARM_PREFIX+columnName);
+                    if (newValue == null && !parms.containsKey(PARM_PREFIX+columnName)) {
+                        continue;  // Don't update if not specified in parameters
+                    }
+                    if (DEBUG) System.out.println("updating "+columnName+" of type "+type+" with value "+newValue);
+                    if (newValue != null) {
+                        if (newValue.equals("null")) {
+                                newValue = null;
+                        }
+                    }
+                    if (type == 0) { // Boolean
+                        Boolean oldval = updateRow.field(columnName);
+                        boolean oldbool = false;
+                        boolean newbool = false;
+                        if (oldval != null) {
+                            oldbool = oldval.booleanValue();
+                        }
+                        if (newValue != null) {
+                            if (newValue.equalsIgnoreCase("on") || newValue.equalsIgnoreCase("true")
+                                            || newValue.equalsIgnoreCase("yes")) {
+                                    newbool = true;
+                            }
+                        }
+                        if (oldbool != newbool) {
+                            updateRow.field(columnName,newbool);
+                        }
+                    } else if (type == 1 || type == 2 || type == 3) { // Whole number
+                        Number originalValue = updateRow.field(columnName);
+                        Number newVal = null;
+                        if (newValue != null) {
+                            try {
+                                newVal = Long.parseLong(newValue);
+                            } catch (Exception e) {
+                                errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_NUMBER_VALUE",newValue)+" " + e.getMessage()));
+                            }
+                        }
+                        if ((newValue != null && originalValue != null && newVal != null && !newVal.equals(originalValue)) 
+                                || (newValue == null && originalValue != null)
+                                || (originalValue == null && newValue != null)) {
+                            updateRow.field(columnName,newVal);
+                        }
+                    } else if (type == 4 || type == 5) { // float, double
+                        Double originalValue = updateRow.field(columnName);
+                        Double newVal = null;
+                        if (newValue != null) {
+                            try {
+                                newVal = Double.parseDouble(newValue);
+                            } catch (Exception e) {
+                                errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_READ_NUMBER_VALUE",newValue)+" " + e.getMessage()));
+                            }
+                        }
+                        if ((newValue != null && originalValue != null && newVal != null && !newVal.equals(originalValue)) 
+                            || (newValue == null && originalValue != null)
+                            || (originalValue == null && newValue != null)) {
+                                updateRow.field(columnName,newVal);
+                        }
+                    } else if (type == 21) { // decimal
+                        BigDecimal originalValue = updateRow.field(columnName);
+                        BigDecimal newVal = null;
+                        if (newValue != null) {
+                            try {
+                                newVal = new BigDecimal(newValue);
+                            } catch (Exception e) {
+                                errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_READ_NUMBER_VALUE",newValue)+" "+e.getMessage()));
+                            }
+                        }
+                        if ((newValue != null && originalValue != null && newVal != null && !newVal.equals(originalValue)) 
+                            || (newValue == null && originalValue != null)
+                            || (originalValue == null && newValue != null)) {
+                                updateRow.field(columnName,newVal);
+                        }
+                    } else if (type == 6) {  // Datetime
+                        Date originalValue = updateRow.field(columnName);
+                        Date newDate = parseDate(con.getLocale(),newValue);
+                        if (newValue != null && newDate == null) {
+                            errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_DATE_VALUE",newValue)));							
+                        } else {
 
-				} else if (type == 14) { // LinkList (Ordered and can contain duplicates)
-					List<ODocument> o = updateRow.field(columnName);
-					if (DEBUG) System.out.println("Updating LinkList "+(o == null ? "" : o));
-					String[] newValues = {};
-					if (newValue != null && !newValue.trim().equals("")) {
-						newValues = newValue.split(",");
-					}
-					// Remove all from original list as this list is ordered
-					if (o == null) { 
-						o = new ArrayList<ODocument>(); 
-					} else {
-						o.clear();
-					}
-					// Add new list
-					boolean okToUpdate = true;
-					for (String nv : newValues) {
-						ODocument doc = con.get(nv);
-						if (doc != null) {
-							o.add(doc);
-						} else {
-							okToUpdate = false;
-							System.out.println("UPDATE WARNING: attempted to add a non-existent document to a list - list will remain unchanged");
-						}
-					}
-					if (okToUpdate) {
-						updateRow.field(columnName,o);
-					}
+                                if (DEBUG) System.out.println("Updating Datetime "+(originalValue == null ? "" : originalValue.toString())+" to "+newDate);
+                                if ((newValue != null && originalValue != null && !newDate.equals(originalValue)) 
+                                    || (newValue == null && originalValue != null)
+                                    || (originalValue == null && newValue != null)) {
+                                        updateRow.field(columnName,newDate);
+                                }	
+                        }
+                    } else if (type == 7) { // String
+                        String originalValue = updateRow.field(columnName);
+                        if ((newValue != null && originalValue != null && !newValue.equals(originalValue)) 
+                            || (newValue == null && originalValue != null)
+                            || (originalValue == null && newValue != null)) {
+                                if (columnName.toUpperCase().endsWith("PASSWORD") && (newValue == null || newValue.equals(""))) {
+                                    System.out.println("Not updating null password requested by user "+con.getUser());
+                                } else {
+                                    updateRow.field(columnName,newValue);
+                                }
+                        }
+                    } else if (type == 20) {  // Blob
+                        String blob_name = parms.get(PARM_PREFIX+columnName); 
+                        if (blob_name != null && !blob_name.trim().equals("")) {
+                            if (DEBUG) System.out.println("Updating BLOB");
+                            updateBlob(updateRow,table,columnName,parms,errors);
+                        }
+                    } else if (type == 9 || type==10 || type==11 || type==12) { // Embedded types - treat like a string (without quotes) - user beware
+                        Object originalValue = updateRow.field(columnName);
+                        if ((newValue != null && originalValue != null && !newValue.equals(originalValue)) // They will always detect a change because the string is formatted differently
+                            || (newValue == null && originalValue != null)  // This could be considered a bug
+                            || (originalValue == null && newValue != null)) {
+                            if (DEBUG) System.out.println("Embedded value changed");
+                                updateRow.field(columnName,newValue);
+                        }
 
-				} else if (type == 15) { // Linkset
-					Set<ODocument> o = updateRow.field(columnName);
-					if (DEBUG) System.out.println("Updating LinkSet "+(o == null ? "" : o));
-					String[] newValues = {};
-					if (newValue != null && !newValue.trim().equals("")) {
-						newValues = newValue.split(",");
-					}
-					boolean okToUpdate = true;
-					// Remove any from original list where not in new list
-					if (o == null) {
-						o = new HashSet<ODocument>();
-					} else {
-						Object[] oldList = o.toArray();  // Make a copy of list to avoid concurrent modification exception
-						for (Object d : oldList) {
-							boolean found = false;
-							if (d != null) {
-								String id = ((ODocument)d).getIdentity().toString().substring(1);
-								for (String nv : newValues) {
-									if (id.equals(nv)) { found = true; }
-								}
-								if (!found) {
-									o.remove(d);
-								}
-							}
-						}
-					}
-					// Add any from new list where not in original list
-					for (String nv : newValues) {
-						boolean found = false;
-						if (o != null) {
-							for (ODocument d : o) {
-								if (d != null && d.getIdentity().toString().substring(1).equals(nv)) { found = true; }
-							}
-						}
-						if (!found) {
-							ODocument doc = con.get(nv);
-							if (doc != null) {
-								o.add(doc);
-							} else {
-								okToUpdate = false;
-								System.out.println("UPDATE WARNING: attempted to add a non-existent document to a set - set will remain unchanged");									
-							}
-						}
-					}
-					if (okToUpdate && o != null) {
-						updateRow.field(columnName,o);
-					}
-				} else if (type == 16) { // LinkMap
-					Map<String,ODocument> o = updateRow.field(columnName);
-					if (DEBUG) System.out.println("Updating LinkMap "+(o == null ? "" : o));
-					String[] newValues = {};
-					if (newValue != null && !newValue.trim().equals("")) {
-						newValues = splitCSV(newValue);
-					}
-					// Remove all from original map as this list field is ordered
-					if (o == null) {
-						o = new HashMap<String,ODocument>();
-					} else {
-						o.clear();
-					}
-					boolean okToUpdate = true;
-					// Add all from new list
-					for (String nv : newValues) {
-						String[] v = nv.split(":",2);
-						try {
-							if (v.length != 2) {
-								okToUpdate = false;
-								System.out.println("UPDATE WARNING: Cannot parse map value "+nv+" it should be <name>:<cluster>:<record> - field will remain unchanged");
-							}
-							ODocument doc = con.get(v[1]);
-							if (doc != null) {
-								o.put(v[0], doc);
-							} else {
-								okToUpdate = false;
-								System.out.println("UPDATE WARNING: attempted to add a non-existent document to a map - map will remain unchanged");																		
-							}
-						} catch (ArrayIndexOutOfBoundsException e) {
-							System.out.println("Could not understand map field:"+nv);
-						}									
-					}
-					if (okToUpdate) {
-						updateRow.field(columnName,o,OType.LINKSET);
-					}
-				} else if (type == 19) {  // Date
-					Date originalValue = updateRow.field(columnName);
-					Date newDate = parseDate(con.getLocale(),newValue);
-					if (newValue != null && newDate == null) {
-						errors.append(paragraph("error", Message.get(con.getLocale(),"INVALID_DATE_VALUE",newValue)));							
-					} else {
-						if (DEBUG) System.out.println("Updating Date/Datetime "+(originalValue == null ? "" : originalValue.toString())+" to "+newDate);
-						if ((newValue != null && originalValue != null && !newDate.equals(originalValue)) 
-							  || (newValue == null && originalValue != null)
-							  || (originalValue == null && newValue != null)) {
-							updateRow.field(columnName,newDate,column.getType());
-						}	
-					}
-				}
-			}
-			if (updateRow.isDirty()) {
-				updateRow.save();
-				errors.append(paragraph("success", Message.get(con.getLocale(), "ROW_UPDATED",(updateRow.isDirty() ? "false" : "true"))));
-				Server.tableUpdated(table);
-				return true;
-			} else {
-				errors.append(paragraph("warning", Message.get(con.getLocale(),"NOTHING_TO_UPDATE")));
-				return false;
-			}
-		} else {
-			if (DEBUG) System.out.println("Error in permeagility.web.Table:updateRow: Could not find row "+parms.get("UPDATE_ID"));
-			errors.append(paragraph("error",Message.get(con.getLocale(),"NOTHING_TO_UPDATE")+" "+parms.get("UPDATE_ID")+" not found"));
-			return false;
-		}
+                    } else if (type == 13) { // Link
+                        ODocument o = updateRow.field(columnName);
+                        if (DEBUG) System.out.println("Updating Link "+(o == null ? "" : o.getIdentity().toString()));
+                        String originalValue = (o == null ? null : o.getIdentity().toString().substring(1));
+                        if ((newValue != null && originalValue != null && !newValue.equals(originalValue)) 
+                                  || (newValue == null && originalValue != null)
+                                  || (originalValue == null && newValue != null)) {
+                                ODocument linkDoc = null;
+                                if (newValue != null) { 
+                                        linkDoc = con.get(newValue);
+                                        if (linkDoc == null) {
+                                                System.out.println("UPDATE WARNING: attempted to update a link field with a document that couldn't be found - will not update this field with questionable data");
+                                        }
+                                };
+                                if (newValue == null || linkDoc != null) {
+                                        updateRow.field(columnName,linkDoc);
+                                }
+                        }
+                    } else if (type == 14) { // LinkList (Ordered and can contain duplicates)
+                        List<ODocument> o = updateRow.field(columnName);
+                        if (DEBUG) System.out.println("Updating LinkList "+(o == null ? "" : o));
+                        String[] newValues = {};
+                        if (newValue != null && !newValue.trim().equals("")) {
+                            newValues = newValue.split(",");
+                        }
+                        // Remove all from original list as this list is ordered
+                        if (o == null) { 
+                            o = new ArrayList<ODocument>(); 
+                        } else {
+                            o.clear();
+                        }
+                        // Add new list
+                        boolean okToUpdate = true;
+                        for (String nv : newValues) {
+                            ODocument doc = con.get(nv);
+                            if (doc != null) {
+                                o.add(doc);
+                            } else {
+                                okToUpdate = false;
+                                System.out.println("UPDATE WARNING: attempted to add a non-existent document to a list - list will remain unchanged");
+                            }
+                        }
+                        if (okToUpdate) {
+                            updateRow.field(columnName,o);
+                        }
+                    } else if (type == 15) { // Linkset
+                        Set<ODocument> o = updateRow.field(columnName);
+                        if (DEBUG) System.out.println("Updating LinkSet "+(o == null ? "" : o));
+                        String[] newValues = {};
+                        if (newValue != null && !newValue.trim().equals("")) {
+                            newValues = newValue.split(",");
+                        }
+                        boolean okToUpdate = true;
+                        // Remove any from original list where not in new list
+                        if (o == null) {
+                            o = new HashSet<ODocument>();
+                        } else {
+                            Object[] oldList = o.toArray();  // Make a copy of list to avoid concurrent modification exception
+                            for (Object d : oldList) {
+                                boolean found = false;
+                                if (d != null) {
+                                    String id = ((ODocument)d).getIdentity().toString().substring(1);
+                                    for (String nv : newValues) {
+                                        if (id.equals(nv)) { found = true; }
+                                    }
+                                    if (!found) {
+                                        o.remove(d);
+                                    }
+                                }
+                            }
+                        }
+                        // Add any from new list where not in original list
+                        for (String nv : newValues) {
+                            boolean found = false;
+                            if (o != null) {
+                                for (ODocument d : o) {
+                                    if (d != null && d.getIdentity().toString().substring(1).equals(nv)) { found = true; }
+                                }
+                            }
+                            if (!found) {
+                                ODocument doc = con.get(nv);
+                                if (doc != null) {
+                                    o.add(doc);
+                                } else {
+                                    okToUpdate = false;
+                                    System.out.println("UPDATE WARNING: attempted to add a non-existent document to a set - set will remain unchanged");									
+                                }
+                            }
+                        }
+                        if (okToUpdate && o != null) {
+                            updateRow.field(columnName,o);
+                        }
+                    } else if (type == 16) { // LinkMap
+                        Map<String,ODocument> o = updateRow.field(columnName);
+                        if (DEBUG) System.out.println("Updating LinkMap "+(o == null ? "" : o));
+                        String[] newValues = {};
+                        if (newValue != null && !newValue.trim().equals("")) {
+                            newValues = splitCSV(newValue);
+                        }
+                        // Remove all from original map as this list field is ordered
+                        if (o == null) {
+                            o = new HashMap<String,ODocument>();
+                        } else {
+                            o.clear();
+                        }
+                        boolean okToUpdate = true;
+                        // Add all from new list
+                        for (String nv : newValues) {
+                            String[] v = nv.split(":",2);
+                            try {
+                                if (v.length != 2) {
+                                    okToUpdate = false;
+                                    System.out.println("UPDATE WARNING: Cannot parse map value "+nv+" it should be <name>:<cluster>:<record> - field will remain unchanged");
+                                }
+                                ODocument doc = con.get(v[1]);
+                                if (doc != null) {
+                                    o.put(v[0], doc);
+                                } else {
+                                    okToUpdate = false;
+                                    System.out.println("UPDATE WARNING: attempted to add a non-existent document to a map - map will remain unchanged");																		
+                                }
+                            } catch (ArrayIndexOutOfBoundsException e) {
+                                System.out.println("Could not understand map field:"+nv);
+                            }									
+                        }
+                        if (okToUpdate) {
+                            updateRow.field(columnName,o,OType.LINKSET);
+                        }
+                    } else if (type == 19) {  // Date
+                        Date originalValue = updateRow.field(columnName);
+                        Date newDate = parseDate(con.getLocale(),newValue);
+                        if (newValue != null && newDate == null) {
+                            errors.append(paragraph("error", Message.get(con.getLocale(),"INVALID_DATE_VALUE",newValue)));							
+                        } else {
+                            if (DEBUG) System.out.println("Updating Date/Datetime "+(originalValue == null ? "" : originalValue.toString())+" to "+newDate);
+                            if ((newValue != null && originalValue != null && !newDate.equals(originalValue)) 
+                                || (newValue == null && originalValue != null)
+                                || (originalValue == null && newValue != null)) {
+                              updateRow.field(columnName,newDate,column.getType());
+                            }	
+                        }
+                    }
+                }
+                if (updateRow.isDirty()) {
+                    try {
+                        updateRow.save();
+                        errors.append(paragraph("success", Message.get(con.getLocale(), "ROW_UPDATED",(updateRow.isDirty() ? "false" : "true"))));
+                        Server.tableUpdated(table);
+                        return true;
+                    } catch (Exception e) {
+                        StringWriter sw = new StringWriter();
+                        e.printStackTrace(new PrintWriter(sw));
+                        errors.append(paragraph("error", Message.get(con.getLocale(), "CANNOT_UPDATE")+e.getMessage())+(DEBUG ? "<br>"+xxSmall(sw.toString()) : "")); 
+                        if (DEBUG || e instanceof OSecurityAccessException) System.err.println(sw.toString());  // Security messages will always go to log
+                        return false;
+                    }
+                } else {
+                    errors.append(paragraph("warning", Message.get(con.getLocale(),"NOTHING_TO_UPDATE")));
+                    return false;
+                }
+            } else {
+                if (DEBUG) System.out.println("Error in permeagility.web.Table:updateRow: Could not find row "+parms.get("UPDATE_ID"));
+                errors.append(paragraph("error",Message.get(con.getLocale(),"NOTHING_TO_UPDATE")+" "+parms.get("UPDATE_ID")+" not found"));
+                return false;
+            }
 	}
 
         
@@ -796,12 +808,12 @@ public class Table extends Weblet {
 
 		if (DEBUG) System.out.println("Table.getTableRowForm: table="+table+" class.isAbstract="+tclass.isAbstract());
 		if (tclass.isAbstract()) {  // If table name is abstract, get the table name from the document itself
-			ODocument d = con.get(edit_id);
-			if (d != null) {
-				OClass c = d.getSchemaClass();
-				table = c.getName();
-				parms.put("TABLENAME", table);
-			}
+                    ODocument d = con.get(edit_id);
+                    if (d != null) {
+                        OClass c = d.getSchemaClass();
+                        table = c.getName();
+                        parms.put("TABLENAME", table);
+                    }
 		}
 
 		String formName = (edit_id == null ? "NEWROW" : "UPDATEROW");
@@ -810,32 +822,31 @@ public class Table extends Weblet {
 			+ paragraph("banner", (edit_id == null ? Message.get(con.getLocale(), "CREATE_ROW") 
 					: Message.get(con.getLocale(), "UPDATE") + "&nbsp;" + makeCamelCasePretty(table)))
 			+ form(formName, 
-					getTableRowFields(con, table, parms)
-					+ center((edit_id == null 
-					  ? ((Security.getTablePriv(con, table) & PRIV_CREATE) > 0 ? submitButton(con.getLocale(), "CREATE_ROW") : "")
-					  : ((Security.getTablePriv(con, table) & PRIV_UPDATE) > 0 ? submitButton(con.getLocale(), "UPDATE") : "") 
-						+ "&nbsp;&nbsp;"
-						+ submitButton(con.getLocale(), "CANCEL")))
-					+paragraph("delete",
-					  (edit_id != null && (Security.getTablePriv(con, table) & PRIV_CREATE) > 0 ? submitButton(con.getLocale(), "COPY") : "") + "&nbsp;&nbsp;"
-					+ (edit_id != null && (Security.getTablePriv(con, table) & PRIV_DELETE) > 0 ? deleteButton(con.getLocale()) : ""))
+                            getTableRowFields(con, table, parms)
+                            + center((edit_id == null 
+                              ? ((Security.getTablePriv(con, table) & PRIV_CREATE) > 0 ? submitButton(con.getLocale(), "CREATE_ROW") : "")
+                              : ((Security.getTablePriv(con, table) & PRIV_UPDATE) > 0 ? submitButton(con.getLocale(), "UPDATE") : "") 
+                                    + "&nbsp;&nbsp;"
+                                    + submitButton(con.getLocale(), "CANCEL")))
+                            +paragraph("delete",
+                              (edit_id != null && (Security.getTablePriv(con, table) & PRIV_CREATE) > 0 ? submitButton(con.getLocale(), "COPY") : "") + "&nbsp;&nbsp;"
+                            + (edit_id != null && (Security.getTablePriv(con, table) & PRIV_DELETE) > 0 ? deleteButton(con.getLocale()) : ""))
 			)
 			+ getTableRowRelated(con,table,parms);
 	}
 
 	private String getLinkTrail(DatabaseConnection con, String tables, String ids) {
-		if (tables == null || tables.equals("")) return "";
-		if (ids == null || ids.equals("")) return "";
-		String tabs[] = tables.split(",");
-		String tabIds[] = ids.split(",");
-		StringBuilder ret = new StringBuilder();
-//		for (int i=tabs.length; i=>0; i--) {
-		for (int i=0; i<tabs.length; i++) {
-			String t = tabs[i];
-			String id = tabIds[i];
-			ret.append("<br>&nbsp;&nbsp;&nbsp;"+link(this.getClass().getName()+"?TABLENAME="+t+"&EDIT_ID="+id, makeCamelCasePretty(t)+" ("+getDescriptionFromTable(con, t, id)+")"));
-		}
-		return ret.toString();
+            if (tables == null || tables.equals("")) return "";
+            if (ids == null || ids.equals("")) return "";
+            String tabs[] = tables.split(",");
+            String tabIds[] = ids.split(",");
+            StringBuilder ret = new StringBuilder();
+            for (int i=0; i<tabs.length; i++) {
+                    String t = tabs[i];
+                    String id = tabIds[i];
+                    ret.append("<br>&nbsp;&nbsp;&nbsp;"+link(this.getClass().getName()+"?TABLENAME="+t+"&EDIT_ID="+id, makeCamelCasePretty(t)+" ("+getDescriptionFromTable(con, t, id)+")"));
+            }
+            return ret.toString();
 	}
 
 	public String getTableRowFields(DatabaseConnection con, String table, HashMap<String, String> parms) {
@@ -844,48 +855,43 @@ public class Table extends Weblet {
 	
 	/** Returns the fields for a table - can be for insert of a new row or update of an existing (as specified by the EDIT_ID in parms) */
 	public String getTableRowFields(DatabaseConnection con, String table, HashMap<String, String> parms, String columnOverride) {
-		String edit_id = (parms != null ? parms.get("EDIT_ID") : null);
-		ODocument initialValues = null;
-		if (edit_id != null) {
-			QueryResult initrows = con.query("SELECT * FROM #" + edit_id);
-			if (initrows != null && initrows.size() == 1) {
-				initialValues = initrows.get(0);
-			} else {
-				if (DEBUG) System.out.println("Error in permeagility.web.Table:getTableRowForm: Only one row may be returned by ID for editing rows="
-									+ initrows.size());
-				return paragraph("error",
-						Message.get(con.getLocale(), "ONLY_ONE_ROW_CAN_BE_EDITED"));
-			}
-		} else {
-			if (DEBUG) System.out.println("getTableRowFields: No EDIT_ID specified");
-		}
-		StringBuilder fields = new StringBuilder();
-		StringBuilder hidden = new StringBuilder();
-		if (edit_id != null) {
-			hidden.append(hidden("UPDATE_ID", edit_id));
-		}
-
-		String formName = (edit_id == null ? "NEWROW" : "UPDATEROW");
-
-		Collection<OProperty> columns = con.getColumns(table, columnOverride);
-		if (columns != null) {
-			for (OProperty column : columns) {
-				String name = column.getName();
-				if (parms.get("FORCE_"+name) != null) {
-					hidden.append(hidden(PARM_PREFIX+name,parms.get("FORCE_"+name)));
-					continue;
-				}
-				// Added to support request approval using parms to prime the initial values
-	//			if (initialValues.field(name) == null && parms.get(name) != null) {
-	//				initialValues.field(name, parms.get(name));
-	//			}
-				fields.append(getColumnAsField(table, column, initialValues, con, formName, edit_id, parms));
-	
-			}
-			return hidden.toString()+center(table("data", fields.toString()));
-		} else {
-			return null;
-		}
+            String edit_id = (parms != null ? parms.get("EDIT_ID") : null);
+            ODocument initialValues = null;
+            if (edit_id != null) {
+                QueryResult initrows = con.query("SELECT * FROM #" + edit_id);
+                if (initrows != null && initrows.size() == 1) {
+                    initialValues = initrows.get(0);
+                } else {
+                    if (DEBUG) System.out.println("Error in permeagility.web.Table:getTableRowForm: Only one row may be returned by ID for editing rows="+ initrows.size());
+                    return paragraph("error", Message.get(con.getLocale(), "ONLY_ONE_ROW_CAN_BE_EDITED"));
+                }
+            } else {
+                if (DEBUG) System.out.println("getTableRowFields: No EDIT_ID specified");
+            }
+            StringBuilder fields = new StringBuilder();
+            StringBuilder hidden = new StringBuilder();
+            if (edit_id != null) {
+                hidden.append(hidden("UPDATE_ID", edit_id));
+            }
+            String formName = (edit_id == null ? "NEWROW" : "UPDATEROW");
+            Collection<OProperty> columns = con.getColumns(table, columnOverride);
+            if (columns != null) {
+                for (OProperty column : columns) {
+                    String name = column.getName();
+                    if (parms.get("FORCE_"+name) != null) {
+                            hidden.append(hidden(PARM_PREFIX+name,parms.get("FORCE_"+name)));
+                            continue;
+                    }
+                    // Added to support request approval using parms to prime the initial values
+//			if (initialValues.field(name) == null && parms.get(name) != null) {
+//				initialValues.field(name, parms.get(name));
+//			}
+                    fields.append(getColumnAsField(table, column, initialValues, con, formName, edit_id, parms));
+                }
+                return hidden.toString()+center(table("data", fields.toString()));
+            } else {
+                return null;
+            }
 	}
 
 	/**
@@ -897,220 +903,203 @@ public class Table extends Weblet {
 	 * @return  a table row for a given column in the document
 	 */
 	private String getColumnAsField(String table, OProperty column, ODocument initialValues, DatabaseConnection con, String formName, String edit_id, HashMap<String,String> parms) {
-		Integer type = column.getType().getId();
-		String name = column.getName();
-		String prettyName = makeCamelCasePretty(name);
-		String trName = Message.get(con.getLocale(),"COLUMN_"+name);
-		if (!trName.equals("COLUMN_"+name)) {
-			prettyName = trName;
-		}
-		String label = column("label",prettyName);
-		
-		if (DEBUG) System.out.println("Table.getColumnAsField() " + name + " is a " + type);
+            Integer type = column.getType().getId();
+            String name = column.getName();
+            String prettyName = makeCamelCasePretty(name);
+            String trName = Message.get(con.getLocale(),"COLUMN_"+name);
+            if (!trName.equals("COLUMN_"+name)) {
+                prettyName = trName;
+            }
+            String label = column("label",prettyName);
 
-		Object initialValue;
-		try {
-			initialValue = initialValues.field(name);
-		} catch (Exception e) {
-			initialValue = null;
-		}
-		if (DEBUG) System.out.println(name+" InitialValue="+(type != 20 ? initialValue : "binary"));
-		if (initialValue == null && edit_id != null) {
-			initialValue = parms.get(PARM_PREFIX+name);  // Need to load parms with values
-		}
-		
-		if (type == 0) {
-			return row(label + column(checkbox(PARM_PREFIX+name, (initialValue == null ? false : new Boolean(initialValue.toString())))));
+            if (DEBUG) System.out.println("Table.getColumnAsField() " + name + " is a " + type);
 
-		// Number
-		} else if (type == 1 || type == 2 || type == 3 || type == 4 || type == 5 || type == 17 || type == 21) {  
-			List<String> pickValues = Server.getPickValues(table, name);
-			if (pickValues != null) {
-				return row(label + column(createList(con.getLocale(), PARM_PREFIX+name, initialValue != null ? initialValue.toString() : null, pickValues, null, false, null, true)));
-			}
-			return row(label + column(input("number", PARM_PREFIX+name, initialValue)));
+            Object initialValue;
+            try {
+                initialValue = initialValues.field(name);
+            } catch (Exception e) {
+                initialValue = null;
+            }
+            if (DEBUG) System.out.println(name+" InitialValue="+(type != 20 ? initialValue : "binary"));
+            if (initialValue == null && edit_id != null) {
+                initialValue = parms.get(PARM_PREFIX+name);  // Need to load parms with values
+            }
 
-		// Datetime
-		} else if (type == 6) { 
-			return row(label + column(
-					getDateTimeControl(formName, PARM_PREFIX+name, 
-							(initialValue != null && initialValue instanceof Date 
-								? formatDate(con.getLocale(),(Date)initialValue,Message.get(con.getLocale(), "DATE_FORMAT")+" "+Message.get(con.getLocale(), "TIME_FORMAT")) 
-								: "")
-					)));
+            if (type == 0) {
+                return row(label + column(checkbox(PARM_PREFIX+name, (initialValue == null ? false : new Boolean(initialValue.toString())))));
 
-		// Date
-		} else if (type == 19) { 
-			return row(label + column(getDateControl(formName, PARM_PREFIX+name, 
-					(initialValue != null && initialValue instanceof Date 
-						? formatDate(con.getLocale(),(Date)initialValue,Message.get(con.getLocale(), "DATE_FORMAT")) 
-						: "")
-					)));
-
-		// Password (String)
-		} else if (type == 7 && name.toUpperCase().endsWith("PASSWORD")) {
-			return row(label + column(password(PARM_PREFIX+name, null, 15)));
-
-		// Colour (String)
-		} else if (type == 7 && (name.toUpperCase().endsWith("COLOR") || name.toUpperCase().endsWith("COLOUR"))) {
-			if (DEBUG) System.out.println("Doing color field "+initialValues);
-			return row(label + column(getColorControl(formName,PARM_PREFIX+name,(String)initialValue)));
-
-		// Script-Javascript (String)
-		} else if (type == 7 && (name.toUpperCase().endsWith("SCRIPT") || name.toUpperCase().endsWith("CODE"))) {
-			if (DEBUG) System.out.println("Doing Javascript Code Editor field "+name);
-			return row(label + column(getCodeEditorControl(formName,PARM_PREFIX+name,(String)initialValue,"javascript")));
-
-		// Style-CSS (String)
-		} else if (type == 7 && (name.toUpperCase().endsWith("STYLE"))) {
-			if (DEBUG) System.out.println("Doing CSS Code Editor field "+initialValues);
-			return row(label + column(getCodeEditorControl(formName,PARM_PREFIX+name,(String)initialValue,"css")));
-
-		// String
-		} else if (type == 7) {  
-			List<String> pickValues = Server.getPickValues(table, name);
-			if (pickValues != null) {
-				return row(label + column(createList(con.getLocale(), PARM_PREFIX+name, initialValue != null ? initialValue.toString() : null, pickValues, null, false, null, true)));
-			}
-			if (initialValue != null && ((String) initialValue).length() > TEXT_AREA_THRESHOLD || name.equals("description")) {
-				int linecount = (initialValue != null ? countLines((String) initialValue) : 0);
-				return row(label + column(textArea(PARM_PREFIX+name, initialValue, (linecount > 2 ? linecount + 3 : 3), TEXT_AREA_WIDTH)));
-			} else {
-				int length = 20;
-				if (initialValue != null && initialValue.toString().length() > 20) {
-					length = initialValue.toString().length() + 5;
-				}
-				return row(label + column(input("text", PARM_PREFIX+name, initialValue, length)));
-			}
-
-		// Binary
-		} else if (type == 20) { // 8 = binary, 20 = custom 
-			StringBuilder desc = new StringBuilder();
-			if (edit_id != null) {
-				String nail = null;
-				String blobid = Thumbnail.getThumbnailId(table, edit_id, name, desc);
-				if (blobid != null) {
-					nail = Thumbnail.getThumbnailLink(con.getLocale(),blobid, desc.toString());
-				} else {
-					nail = "<div title=\""+Message.get(con.getLocale(), "THUMBNAIL_NOT_FOUND",name, edit_id+"\">"+Message.get(con.getLocale(),"OPTION_NONE")+"</div>");					
-				} 
-				return row(label + column(nail+fileInput(PARM_PREFIX+name)));
-			} else {
-				return row(label + column(fileInput(PARM_PREFIX+name)));
-			}
-
-		// Embedded
-		} else if (type == 9) {  
-			String val = (initialValue == null ? "" : initialValue.toString());
-			return row(label + column(textArea(PARM_PREFIX+name, val, 5, TEXT_AREA_WIDTH)));
-
-		// Embedded list
-		} else if (type == 10) {  
-			String val = (initialValue == null ? "" : initialValue.toString());
-			// convert val to JSON format for editing directly
-			if (initialValue != null) {
-				StringBuilder sb = new StringBuilder();
-				sb.append("[\n");
-				if (initialValue instanceof List) {
-					@SuppressWarnings("unchecked")
-					List<Object> l = (List<Object>)initialValue;
-					String comma = " ";
-					for (Object o : l.toArray()) {
-						if (o instanceof String) {
-							sb.append(comma+"\""+o+"\"\n");
-						} else {
-							sb.append(comma+o+"\n");
-						}
-						comma = ",";
-					}
-					sb.append("]");
-					val = sb.toString();
-				}
-			}
-			return row(label + column(50, textArea(PARM_PREFIX+name, val, 5, TEXT_AREA_WIDTH)));
-			
-		// Embedded set
-		} else if (type == 11) {  
-			String val = (initialValue == null ? "" : initialValue.toString());
-			// convert val to JSON format for editing directly
-			if (initialValue != null) {
-				StringBuilder sb = new StringBuilder();
-				sb.append("[\n");
-				@SuppressWarnings("unchecked")
-				Set<Object> l = (Set<Object>)initialValue;
-				String comma = " ";
-				for (Object o : l.toArray()) {
-					if (o instanceof String) {
-						sb.append(comma+"\""+o+"\"\n");
-					} else {
-						sb.append(comma+o+"\n");
-					}
-					comma = ",";
-				}
-				sb.append("]");
-				val = sb.toString();
-			}
-			return row(label + column(textArea(PARM_PREFIX+name, val, 5, TEXT_AREA_WIDTH)));
-
-		// Embedded map
-		} else if (type == 12) {  
-			String val = (initialValue == null ? "" : initialValue.toString());
-			// convert val to JSON format for editing directly
-			if (initialValue != null) {
-				StringBuilder sb = new StringBuilder();
-				sb.append("{\n");
-				@SuppressWarnings("unchecked")
-				Map<String,Object> m = (Map<String,Object>)initialValue;
-				String comma = " ";
-				for (String key : m.keySet()) {
-					Object o = m.get(key);
-					sb.append(comma+"\""+key+"\":"+(o instanceof String ? "\""+o+"\"" : o)+"\n");
-					comma = ",";
-				}
-				sb.append("}");
-				val = sb.toString();
-			}
-			return row(label + column(textArea(PARM_PREFIX+name, val, 5, TEXT_AREA_WIDTH)));
-
-		// Single link
-		} else if (type == 13 && column.getLinkedClass() != null) {
-			String v = null;
-			if (initialValue != null && initialValue instanceof ODocument) {
-				v = ((ODocument)initialValue).getIdentity().toString().substring(1);
-			}
-			return row(label + column(createListFromTable(PARM_PREFIX+name, (v == null ? "" : v), con, column.getLinkedClass().getName(), null, true, null, true)
-						+(initialValues == null || initialValue == null 
-							? "" 
-							: linkNewWindow(this.getClass().getName()+"?TABLENAME="+column.getLinkedClass().getName()+"&EDIT_ID="+v,Message.get(con.getLocale(), "GOTO_ROW")))
-					));
-				
-		// Link list
-		} else if (type == 14) {
-			List<ODocument> l = null;
-			try { l = initialValues.field(name); } catch (NullPointerException e) { } // It will do this if it doesn't exist
-			String linkedClass = column.getLinkedClass().getName();
-			return row(label + columnNoWrap(linkListControl(con, PARM_PREFIX+name, linkedClass, getCache().getResult(con,getQueryForTable(con, linkedClass)), con.getLocale(), l)));
-
-		// Link set
-		} else if (type == 15) {
-			Set<ODocument> l = null;
-			try {  l = initialValues.field(name);  } catch (NullPointerException e) { }  // It will do this if it doesn't exist
-			//System.out.println("linkset size="+l.size());			
-			String linkedClass = column.getLinkedClass().getName();
-			return row(label + columnNoWrap(linkSetControl(con, PARM_PREFIX+name, linkedClass, getCache().getResult(con,getQueryForTable(con, linkedClass)), con.getLocale(), l)));
-
-		// Link map
-		} else if (type == 16) {
-			Map<String,ODocument> l = null;
-			try {  l = initialValues.field(name);  } catch (NullPointerException e) { }  // It will do this if it doesn't exist
-			if (l != null && DEBUG) System.out.println("linkmap size="+l.size());			
-			String linkedClass = column.getLinkedClass().getName();
-			return row(label + columnNoWrap(linkMapControl(con,PARM_PREFIX+name, linkedClass, getCache().getResult(con,getQueryForTable(con, linkedClass)), con.getLocale(), l)));
-			
-		} else {
-			System.out.println("Table.GetColumnAsField: Unrecognized type: "+type);
-			return row(label + column(input("other", PARM_PREFIX+name, initialValue)));
-		}
+            // Number
+            } else if (type == 1 || type == 2 || type == 3 || type == 4 || type == 5 || type == 17 || type == 21) {  
+                List<String> pickValues = Server.getPickValues(table, name);
+                if (pickValues != null) {
+                    return row(label + column(createList(con.getLocale(), PARM_PREFIX+name, initialValue != null ? initialValue.toString() : null, pickValues, null, false, null, true)));
+                }
+                return row(label + column(input("number", PARM_PREFIX+name, initialValue)));
+            // Datetime
+            } else if (type == 6) { 
+                return row(label + column(
+                    getDateTimeControl(formName, PARM_PREFIX+name, 
+                        (initialValue != null && initialValue instanceof Date 
+                                ? formatDate(con.getLocale(),(Date)initialValue,Message.get(con.getLocale(), "DATE_FORMAT")+" "+Message.get(con.getLocale(), "TIME_FORMAT")) 
+                                : "")
+                    )));
+            // Date
+            } else if (type == 19) { 
+                return row(label + column(getDateControl(formName, PARM_PREFIX+name, 
+                (initialValue != null && initialValue instanceof Date 
+                        ? formatDate(con.getLocale(),(Date)initialValue,Message.get(con.getLocale(), "DATE_FORMAT")) 
+                        : "")
+                )));
+            // Password (String)
+            } else if (type == 7 && name.toUpperCase().endsWith("PASSWORD")) {
+                return row(label + column(password(PARM_PREFIX+name, null, 15)));
+            // Colour (String)
+            } else if (type == 7 && (name.toUpperCase().endsWith("COLOR") || name.toUpperCase().endsWith("COLOUR"))) {
+                if (DEBUG) System.out.println("Doing color field "+initialValues);
+                return row(label + column(getColorControl(formName,PARM_PREFIX+name,(String)initialValue)));
+            // Script-Javascript (String)
+            } else if (type == 7 && (name.toUpperCase().endsWith("SCRIPT") || name.toUpperCase().endsWith("CODE"))) {
+                    if (DEBUG) System.out.println("Doing Javascript Code Editor field "+name);
+                    return row(label + column(getCodeEditorControl(formName,PARM_PREFIX+name,(String)initialValue,"javascript")));
+            // Style-CSS (String)
+            } else if (type == 7 && (name.toUpperCase().endsWith("STYLE"))) {
+                    if (DEBUG) System.out.println("Doing CSS Code Editor field "+initialValues);
+                    return row(label + column(getCodeEditorControl(formName,PARM_PREFIX+name,(String)initialValue,"css")));
+            // String
+            } else if (type == 7) {  
+                List<String> pickValues = Server.getPickValues(table, name);
+                if (pickValues != null) {
+                    return row(label + column(createList(con.getLocale(), PARM_PREFIX+name, initialValue != null ? initialValue.toString() : null, pickValues, null, false, null, true)));
+                }
+                if (initialValue != null && ((String) initialValue).length() > TEXT_AREA_THRESHOLD || name.equals("description")) {
+                    int linecount = (initialValue != null ? countLines((String) initialValue) : 0);
+                    return row(label + column(textArea(PARM_PREFIX+name, initialValue, (linecount > 2 ? linecount + 3 : 3), TEXT_AREA_WIDTH)));
+                } else {
+                    int length = 20;
+                    if (initialValue != null && initialValue.toString().length() > 20) {
+                        length = initialValue.toString().length() + 5;
+                    }
+                    return row(label + column(input("text", PARM_PREFIX+name, initialValue, length)));
+                }
+            // Binary
+            } else if (type == 20) { // 8 = binary, 20 = custom 
+                StringBuilder desc = new StringBuilder();
+                if (edit_id != null) {
+                    String nail = null;
+                    String blobid = Thumbnail.getThumbnailId(table, edit_id, name, desc);
+                    if (blobid != null) {
+                        nail = Thumbnail.getThumbnailLink(con.getLocale(),blobid, desc.toString());
+                    } else {
+                        nail = "<div title=\""+Message.get(con.getLocale(), "THUMBNAIL_NOT_FOUND",name, edit_id+"\">"+Message.get(con.getLocale(),"OPTION_NONE")+"</div>");					
+                    } 
+                    return row(label + column(nail+fileInput(PARM_PREFIX+name)));
+                } else {
+                    return row(label + column(fileInput(PARM_PREFIX+name)));
+                }
+            // Embedded
+            } else if (type == 9) {  
+                String val = (initialValue == null ? "" : initialValue.toString());
+                return row(label + column(textArea(PARM_PREFIX+name, val, 5, TEXT_AREA_WIDTH)));
+            // Embedded list
+            } else if (type == 10) {  
+                String val = (initialValue == null ? "" : initialValue.toString());
+                // convert val to JSON format for editing directly
+                if (initialValue != null) {
+                    StringBuilder sb = new StringBuilder();
+                    sb.append("[\n");
+                    if (initialValue instanceof List) {
+                        @SuppressWarnings("unchecked")
+                        List<Object> l = (List<Object>)initialValue;
+                        String comma = " ";
+                        for (Object o : l.toArray()) {
+                            if (o instanceof String) {
+                                sb.append(comma+"\""+o+"\"\n");
+                            } else {
+                                sb.append(comma+o+"\n");
+                            }
+                            comma = ",";
+                        }
+                        sb.append("]");
+                        val = sb.toString();
+                    }
+                }
+                return row(label + column(50, textArea(PARM_PREFIX+name, val, 5, TEXT_AREA_WIDTH)));
+            // Embedded set
+            } else if (type == 11) {  
+                String val = (initialValue == null ? "" : initialValue.toString());
+                // convert val to JSON format for editing directly
+                if (initialValue != null) {
+                    StringBuilder sb = new StringBuilder();
+                    sb.append("[\n");
+                    @SuppressWarnings("unchecked")
+                    Set<Object> l = (Set<Object>)initialValue;
+                    String comma = " ";
+                    for (Object o : l.toArray()) {
+                        if (o instanceof String) {
+                            sb.append(comma+"\""+o+"\"\n");
+                        } else {
+                            sb.append(comma+o+"\n");
+                        }
+                        comma = ",";
+                    }
+                    sb.append("]");
+                    val = sb.toString();
+                }
+                return row(label + column(textArea(PARM_PREFIX+name, val, 5, TEXT_AREA_WIDTH)));
+            // Embedded map
+            } else if (type == 12) {  
+                String val = (initialValue == null ? "" : initialValue.toString());
+                // convert val to JSON format for editing directly
+                if (initialValue != null) {
+                    StringBuilder sb = new StringBuilder();
+                    sb.append("{\n");
+                    @SuppressWarnings("unchecked")
+                    Map<String,Object> m = (Map<String,Object>)initialValue;
+                    String comma = " ";
+                    for (String key : m.keySet()) {
+                        Object o = m.get(key);
+                        sb.append(comma+"\""+key+"\":"+(o instanceof String ? "\""+o+"\"" : o)+"\n");
+                        comma = ",";
+                    }
+                    sb.append("}");
+                    val = sb.toString();
+                }
+                return row(label + column(textArea(PARM_PREFIX+name, val, 5, TEXT_AREA_WIDTH)));
+            // Single link
+            } else if (type == 13 && column.getLinkedClass() != null) {
+                String v = null;
+                if (initialValue != null && initialValue instanceof ODocument) {
+                    v = ((ODocument)initialValue).getIdentity().toString().substring(1);
+                }
+                return row(label + column(createListFromTable(PARM_PREFIX+name, (v == null ? "" : v), con, column.getLinkedClass().getName(), null, true, null, true)
+                    +(initialValues == null || initialValue == null 
+                            ? "" 
+                            : linkNewWindow(this.getClass().getName()+"?TABLENAME="+column.getLinkedClass().getName()+"&EDIT_ID="+v,Message.get(con.getLocale(), "GOTO_ROW")))
+                ));
+            // Link list
+            } else if (type == 14) {
+                List<ODocument> l = null;
+                try { l = initialValues.field(name); } catch (NullPointerException e) { } // It will do this if it doesn't exist
+                String linkedClass = column.getLinkedClass().getName();
+                return row(label + columnNoWrap(linkListControl(con, PARM_PREFIX+name, linkedClass, getCache().getResult(con,getQueryForTable(con, linkedClass)), con.getLocale(), l)));
+            // Link set
+            } else if (type == 15) {
+                Set<ODocument> l = null;
+                try {  l = initialValues.field(name);  } catch (NullPointerException e) { }  // It will do this if it doesn't exist
+                //System.out.println("linkset size="+l.size());			
+                String linkedClass = column.getLinkedClass().getName();
+                return row(label + columnNoWrap(linkSetControl(con, PARM_PREFIX+name, linkedClass, getCache().getResult(con,getQueryForTable(con, linkedClass)), con.getLocale(), l)));
+            // Link map
+            } else if (type == 16) {
+                Map<String,ODocument> l = null;
+                try {  l = initialValues.field(name);  } catch (NullPointerException e) { }  // It will do this if it doesn't exist
+                if (l != null && DEBUG) System.out.println("linkmap size="+l.size());			
+                String linkedClass = column.getLinkedClass().getName();
+                return row(label + columnNoWrap(linkMapControl(con,PARM_PREFIX+name, linkedClass, getCache().getResult(con,getQueryForTable(con, linkedClass)), con.getLocale(), l)));
+            } else {
+                System.out.println("Table.GetColumnAsField: Unrecognized type: "+type);
+                return row(label + column(input("other", PARM_PREFIX+name, initialValue)));
+            }
 	}
 
 	public String getTableRowRelated(DatabaseConnection con, String table, HashMap<String, String> parms) {
@@ -1347,13 +1336,15 @@ public class Table extends Weblet {
                 } else {
                     sb.append(getRowHeader(con, table, columns, hideColumn));
                     for (ODocument row : rs.get()) {
-                            //if (DEBUG) System.out.println("Print row...");
-//					sb.append(rowOnClick("clickable", getRow(columns, row, con, hideColumn), "window.location.href='" + this.getClass().getName()
-//							+ "?EDIT_ID=" + row.getIdentity().toString().substring(1) + "&TABLENAME=" + table + sourceTable + sourceId +"';"));
-                            sb.append(rowOnClick("clickable", getRow(columns, row, con, hideColumn), this.getClass().getName()
-                                            + "?EDIT_ID=" + row.getIdentity().toString().substring(1) + "&TABLENAME=" + table + sourceTable + sourceId ));
-                            rowCount++;
-                            if (page > -1 && rowCount >= ROW_COUNT_LIMIT) break;
+                        sb.append(rowOnClick("clickable", getRow(columns, row, con, hideColumn), 
+                            this.getClass().getName()  // Supports descendants using this function
+                            + "?EDIT_ID=" + row.getIdentity().toString().substring(1) 
+                            + "&TABLENAME=" + table 
+                            + sourceTable 
+                            + sourceId 
+                        ));
+                        rowCount++;
+                        if (page > -1 && rowCount >= ROW_COUNT_LIMIT) break;
                     }
                     String rowCountInfo = paragraph(Message.get(con.getLocale(), "ROWS_OF", ""+rowCount, ""+totalRows) + "&nbsp;"+(page > -1 ? Message.get(con.getLocale(), "PAGE_NAV")+"&nbsp;"+page : ""));
                     sb.append(tableFooter(row(columnSpan(columns.size(), rowCountInfo ))));
@@ -1689,7 +1680,7 @@ public class Table extends Weblet {
 
 	public String rightsOptionsForm(DatabaseConnection con, String table, HashMap<String, String> parms,String errors) {
             StringBuilder currentRights = new StringBuilder();
-            List<String> rightsNames = new ArrayList<String>();
+            List<String> rightsNames = new ArrayList<>();
             HashMap<String,Number> privs = Security.getTablePrivs(table);
 
             for (String role : privs.keySet()) {
