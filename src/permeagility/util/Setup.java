@@ -166,7 +166,7 @@ public class Setup {
 				con.create(TABLE_CONSTANT).field("classname","permeagility.web.Table").field("description","Table page count").field("field","ROW_COUNT_LIMIT").field("value","200").save();				
 				con.create(TABLE_CONSTANT).field("classname","permeagility.web.Table").field("description","Show related tables even if no privilege").field("field","SHOW_ALL_RELATED_TABLES").field("value","true").save();				
 				con.create(TABLE_CONSTANT).field("classname","permeagility.web.Context").field("description","Style sheet").field("field","DEFAULT_STYLE").field("value","dark (horizontal menu)").save();				
-				con.create(TABLE_CONSTANT).field("classname","permeagility.web.Context").field("description","Code editor theme").field("field","EDITOR_THEME").field("value","lesser-dark").save();				
+				con.create(TABLE_CONSTANT).field("classname","permeagility.web.Context").field("description","Code editor theme").field("field","EDITOR_THEME").field("value","blackboard").save();				
 				con.create(TABLE_CONSTANT).field("classname","permeagility.web.Header").field("description","Logo for header").field("field","LOGO_FILE").field("value","Logo-yel.svg").save();				
 				con.create(TABLE_CONSTANT).field("classname","permeagility.web.Menu").field("description","Menu direction (true=horizontal, false=vertical)").field("field","HORIZONTAL_LAYOUT").field("value","true").save();				
 				con.create(TABLE_CONSTANT).field("classname","permeagility.web.Schema").field("description","Number of columns in tables view").field("field","NUMBER_OF_COLUMNS").field("value","4").save();				
@@ -471,7 +471,7 @@ public class Setup {
                             style2.field("name", "dark (horizontal menu)");
                             style2.field("horizontal", true);
                             style2.field("logo", "Logo-yel.svg");
-                            style2.field("editorTheme","lesser-dark");
+                            style2.field("editorTheme","blackboard");
                             style2.field("CSSStyle", DEFAULT_STYLESHEET);
                             style2.save();				
 			}
