@@ -32,9 +32,9 @@ public class Message {
 	public Message () {
 	}
 
-	public Message (DatabaseConnection con) {
-		initialize(con);
-	}
+//	public Message (DatabaseConnection con) {
+//		initialize(con);
+//	}
 	
 	public static void initialize(DatabaseConnection con) {
 		if (con == null) {

@@ -12,7 +12,6 @@ import java.util.Set;
 
 import permeagility.util.DatabaseConnection;
 import permeagility.util.QueryResult;
-import permeagility.util.Security;
 
 import com.orientechnologies.orient.core.metadata.schema.OProperty;
 import com.orientechnologies.orient.core.record.impl.ODocument;
@@ -220,7 +219,7 @@ public class Query extends Weblet {
 			StringBuilder tablelist = new StringBuilder();
 			String tablesf = schema.field("tables");
 			String table[] = {};
-			if (tablelist != null) {
+			if (tablesf != null) {
 				table = tablesf.split(",");
 			}
 			String groupName = (String)schema.field("name");

@@ -12,16 +12,15 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
-import permeagility.web.Server;
-
 import com.orientechnologies.orient.core.OConstants;
 import com.orientechnologies.orient.core.command.OCommandOutputListener;
 import com.orientechnologies.orient.core.db.ODatabase.STATUS;
-import com.orientechnologies.orient.core.db.ODatabaseRecordThreadLocal;
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
 import com.orientechnologies.orient.core.db.tool.ODatabaseImport;
 import com.orientechnologies.orient.core.metadata.security.OSecurity;
 import com.orientechnologies.orient.core.metadata.security.OUser;
+
+import permeagility.web.Server;
 
 /**
  * This class holds a user's connection to a database, it implements a pool of connections for each logged in user
@@ -108,6 +107,11 @@ public class Database implements Serializable {
 	/** Get a connection from the pool */
 	public DatabaseConnection getConnection() {
 		lastAccessed = new Date();
+		if (POOL_SIZE == 0) {
+			DatabaseConnection dc = getDatabaseConnection();
+			activeConnections.add(dc);
+			return dc;
+		}
 		if (pooledConnections.isEmpty()) {
 			try {
 				fillPool();
@@ -142,8 +146,6 @@ public class Database implements Serializable {
 			}
 		} else {
 			activeConnections.add(c);
-			// Attach the database connection to this thread
-			ODatabaseRecordThreadLocal.INSTANCE.set(c.getDb());
 			return c;
 		}
 		return null;
@@ -167,30 +169,44 @@ public class Database implements Serializable {
 	}
 
 	public Database fillPool() {
-		if (ALLOW_POOL_GROWTH && (double)activeConnections.size()/(double)POOL_SIZE > POOL_GROWTH_FACTOR) {
+		if (POOL_SIZE > 0 && ALLOW_POOL_GROWTH && (double)activeConnections.size()/(double)POOL_SIZE > POOL_GROWTH_FACTOR) {
 			POOL_SIZE += POOL_GROWTH_STEP;
 			System.out.println("Increasing database pool size for user "+user+" to "+POOL_SIZE);
 		}
 		while ( pooledConnections.size() < POOL_SIZE) {
-			ODatabaseDocumentTx c = new ODatabaseDocumentTx(url);
-			try {
-				c.open(user,password);
-			} catch (Exception e) {
-				System.out.println("CONNECT ERROR: "+e.getMessage());
-				//e.printStackTrace();
-			}
-			if (c.getStatus() != STATUS.OPEN) {
+			DatabaseConnection dbc = getDatabaseConnection();
+			if (dbc == null) {
 				System.out.println("Unable to open a connection for the pool for user "+user);
 				//System.out.println("Unable to open a connection for the pool using "+user+"/"+password);   // For debugging only
 				break;
 			}
-			DatabaseConnection dbc = new DatabaseConnection(this,c);
 			pooledConnections.add(dbc);
+		}
+		while (pooledConnections.size() > POOL_SIZE) {
+			System.out.println("Removing connection from the pool");
+			(pooledConnections.removeLast()).close();;
 		}
 		System.out.println("Database.fillPool() "+user+" active:"+activeConnections.size()+" pooled:"+pooledConnections.size());
 		return this;
 	}
 
+	public DatabaseConnection getDatabaseConnection() {
+		ODatabaseDocumentTx c = new ODatabaseDocumentTx(url);
+		try {
+			c.open(user,password);
+		} catch (Exception e) {
+			System.out.println("CONNECT ERROR: "+e.getMessage());
+			//e.printStackTrace();
+		}
+		if (c.getStatus() != STATUS.OPEN) {
+			System.out.println("Unable to open a connection for user "+user);
+			//System.out.println("Unable to open a connection for the pool using "+user+"/"+password);   // For debugging only
+			c.close();
+			return null;
+		}
+		return new DatabaseConnection(this,c);
+	}
+	
 	/** Put the connection back in the pool */
 	public void freeConnection(DatabaseConnection dbc) {
 		activeConnections.remove(dbc);
@@ -269,6 +285,7 @@ public class Database implements Serializable {
 				d.close();
 			} else {
 				System.out.println("Error creating database - does not exist (create must have failed)");
+				d.close();
 			}
 		} else {
 			System.out.println("Error creating database - can only create plocal databases");			

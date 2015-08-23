@@ -13,7 +13,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import permeagility.util.DatabaseConnection;
 import permeagility.util.QueryResult;
-import permeagility.util.Security;
 import permeagility.util.Setup;
 
 import com.orientechnologies.orient.core.record.impl.ODocument;
@@ -56,7 +55,7 @@ public class Menu extends Weblet {
 		DatabaseConnection dbcon = null;
 		try {
 			// Only the server and admin need to see the menu table
-			dbcon = Server.getDatabase().getConnection();
+			dbcon = Server.getServerConnection();
 			if (DEBUG) System.out.println("Menu: Connected as (server) "+dbcon.getUser());
 
 			// Assemble menu based on the users roles and the menuItem's _allowRead
@@ -115,7 +114,7 @@ public class Menu extends Weblet {
 			e.printStackTrace();
 		} finally {
 			if (dbcon != null) {
-				Server.getDatabase().freeConnection(dbcon);
+				Server.freeServerConnection(dbcon);
 			}
 		}
 		if (DEBUG) System.out.println("Menu: Adding menu for "+con.getUser()+" to menuCache");

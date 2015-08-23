@@ -6,7 +6,6 @@ at the URL "http://www.eclipse.org/legal/epl-v10.html".
 package permeagility.web;
 
 import permeagility.util.DatabaseConnection;
-import permeagility.util.Security;
 
 public class Password extends Weblet {
    

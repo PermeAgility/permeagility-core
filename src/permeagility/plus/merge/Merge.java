@@ -6,8 +6,8 @@ import java.util.HashMap;
 
 import permeagility.util.DatabaseConnection;
 import permeagility.util.QueryResult;
-import permeagility.util.Security;
 import permeagility.web.Message;
+import permeagility.web.Security;
 import permeagility.web.Table;
 
 import com.orientechnologies.orient.core.metadata.schema.OClass;

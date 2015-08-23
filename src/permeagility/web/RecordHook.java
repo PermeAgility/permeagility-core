@@ -29,7 +29,7 @@ public class RecordHook implements ORecordHook {
 	public static boolean AUDIT_WRITES = false;
 	public static boolean FINALIZE_ONLY = true;  // for writes, otherwise saves three records
 	
-	private static DatabaseConnection con = null;  // Don't connect until we have to
+	private static DatabaseConnection con = null;  // Don't connect until we have to (holds the connection)
 	
 	public RecordHook() {
 	}
@@ -57,7 +57,7 @@ public class RecordHook implements ORecordHook {
 					if (DEBUG) System.out.println("RecordHook:onTrigger type="+iType.name()+" table="+className+" record="+iRecord.toJSON());
 					try {
 						if (con == null) {
-							con = Server.getDatabase().getConnection();
+							con = Server.getServerConnection();
 						}
 						if (con != null) {
 							ODocument log = con.create("auditTrail");

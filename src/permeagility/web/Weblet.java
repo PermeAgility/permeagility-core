@@ -1259,7 +1259,7 @@ public abstract class Weblet {
 			if (qr != null && qr.size() > 0) {
 				String style =  qr.getStringValue(0, "CSSStyle");
 				if (style == null || style.equals("")) {
-					System.out.println("***Weblet.getStyles()*** Unable to find style in CSSStyle column of style table");
+					System.out.println("***Weblet.getStyles()*** Unable to find style "+DEFAULT_STYLE+" in CSSStyle column of style table");
 					return Setup.DEFAULT_STYLESHEET;
 				} else {
 					return style;

@@ -46,7 +46,7 @@ public class DatabaseConnection {
 	}
 	
 	protected void close() {
-			c.getLocalCache().invalidate();
+			c.activateOnCurrentThread();
 			c.close();
 			c = null;
 	}
@@ -82,6 +82,7 @@ public class DatabaseConnection {
 	
 	/** Get the native connection object. A ODatabaseDocumentTx */ 
 	public ODatabaseDocumentTx getDb() {
+		c.activateOnCurrentThread();
 		return c;
 	}
 
@@ -90,6 +91,7 @@ public class DatabaseConnection {
 		if (c == null) {
 			return null;
 		} else {
+			c.activateOnCurrentThread();
 			return c.getMetadata().getSchema();
 		}
 	}
@@ -99,24 +101,29 @@ public class DatabaseConnection {
 		if (c == null) {
 			return null;
 		} else {
+			c.activateOnCurrentThread();
 			return c.getMetadata().getSecurity();
 		}
 	}
 	
 	/** Create a document - supply the classname */
 	public ODocument create(String className) {
+		c.activateOnCurrentThread();
 		return c.newInstance(className);
 	}
 
 	public void begin() {
+		c.activateOnCurrentThread();
 		c.begin();
 	}
 
 	public void commit() {
+		c.activateOnCurrentThread();
 		c.commit();
 	}
 	
 	public void rollback() {
+		c.activateOnCurrentThread();
 		c.rollback();
 	}
 
@@ -130,6 +137,7 @@ public class DatabaseConnection {
 		}
 		//System.out.println("Counting rows of "+table);
 		try {
+			c.activateOnCurrentThread();
 			long cnt = c.countClass(table);
 			tableCountCache.put(table, new Long(cnt));
 			return cnt;
@@ -154,6 +162,7 @@ public class DatabaseConnection {
     	if (DEBUG) System.out.println("DatabaseConnection.DEBUG(query)="+expression+";");
     	if (expression == null) { return null; }
        	lastAccess = System.currentTimeMillis();
+        c.activateOnCurrentThread();
     	List<ODocument> result = c.query(new OSQLSynchQuery<ODocument>(expression));
     	return new QueryResult(result);
     }
@@ -163,6 +172,7 @@ public class DatabaseConnection {
     	if (DEBUG) System.out.println("DatabaseConnection.DEBUG(queryDocument)="+expression+";");
     	if (expression == null) { return null; }
        	lastAccess = System.currentTimeMillis();
+       	c.activateOnCurrentThread();
     	List<ODocument> result = c.query(new OSQLSynchQuery<ODocument>(expression));
     	if (result != null && result.size() > 0) {
     		return result.get(0);
@@ -176,12 +186,14 @@ public class DatabaseConnection {
         if (DEBUG) System.out.println("DatabaseConnection.DEBUG(update)="+expression+";");
        	lastAccess = System.currentTimeMillis();
 		//c.getLocalCache().clear();  // Remove existing objects from the cache as they will not know of SQL update
+       	c.activateOnCurrentThread();
         return c.command(new OCommandSQL(expression)).execute();    // run the query return the resulting object
     }
 
     /** Get a document by its RID */
     public synchronized ODocument get(String rid) {
        	lastAccess = System.currentTimeMillis();
+       	c.activateOnCurrentThread();
        	return c.getRecord(new ORecordId(rid));
     }
     
@@ -205,6 +217,7 @@ public class DatabaseConnection {
 
     /** FLush the local cache */
 	public void flush() {
+		c.activateOnCurrentThread();
 		c.getLocalCache().invalidate();		
 	}
 
@@ -229,20 +242,10 @@ public class DatabaseConnection {
 		}
 		result.addAll(tableClass.properties());
 
-		// Get details about the table so we can add superClass attributes 
-		OClass superClass = tableClass.getSuperClass();
-		if (superClass != null) {
-			Collection<OProperty> superProperties = superClass.properties();
-			for (OProperty sc : superProperties) {
-				if (!result.contains(sc)) {
-					result.add(sc);  // Only add if not already there (latest version brings the superclass columns)
-				}
-			}
-		}
-		
-		// List of columns to override natural (random) order
+		// List of columns to override natural (apparently random) order
 		QueryResult columnList = null;
 		if (columnOverride == null) {
+			c.activateOnCurrentThread();
 			columnList = query("SELECT columnList FROM "+Setup.TABLE_COLUMNS+" WHERE name='"+table+"'");
 		}
 		boolean addDynamicColumns = true;
@@ -390,6 +393,14 @@ public class DatabaseConnection {
 		public Object get(ATTRIBUTES iAttribute) {	return null;		}
 		@Override
 		public Integer getId() {
+			return null;
+		}
+		@Override
+		public String getDefaultValue() {
+			return null;
+		}
+		@Override
+		public OProperty setDefaultValue(String arg0) {
 			return null;
 		};
 

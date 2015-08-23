@@ -48,5 +48,10 @@ public class DatabaseHook implements ODatabaseLifecycleListener {
 	public void onDropClass(ODatabaseInternal iDatabase, OClass iClass) {
 		if (DEBUG) System.out.println("DatabaseHook:onDropClass");
 	}
+
+	@Override
+	public void onDrop(ODatabaseInternal arg0) {
+		if (DEBUG) System.out.println("DatabaseHook:onDrop");
+	}
 	 
 }

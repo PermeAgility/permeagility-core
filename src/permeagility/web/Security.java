@@ -1,4 +1,4 @@
-package permeagility.util;
+package permeagility.web;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -7,18 +7,17 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import permeagility.web.Server;
-import permeagility.web.Weblet;
-
 import com.orientechnologies.orient.core.id.ORecordId;
 import com.orientechnologies.orient.core.metadata.security.ORole;
 import com.orientechnologies.orient.core.metadata.security.ORule;
 import com.orientechnologies.orient.core.metadata.security.ORule.ResourceGeneric;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 
+import permeagility.util.DatabaseConnection;
+import permeagility.util.QueryResult;
+
 public class Security {
 
-	private static Database database;
 	public static Date securityRefreshTime = new Date();
 	private static ConcurrentHashMap<String,Object[]> userRoles = new ConcurrentHashMap<String,Object[]>();
 	private static ConcurrentHashMap<String,HashMap<String,Number>> userRules = new ConcurrentHashMap<String,HashMap<String,Number>>();
@@ -30,11 +29,6 @@ public class Security {
 		// TODO Auto-generated constructor stub
 	}
 
-	// Must be called before anything else
-	public static void setDatabase(Database db) {
-		database = db;
-	}
-	
 	public static boolean authorized(String user, String className) {
 		Object[] uRoles = userRoles.get(user);
 		Object[] kRoles = keyRoles.get(className);
@@ -48,7 +42,7 @@ public class Security {
 	/** Refresh the cached security model in the server */
 	public static void refreshSecurity() {
 		securityRefreshTime = new Date();
-		DatabaseConnection con = database.getConnection();
+		DatabaseConnection con = Server.getServerConnection();
 		int entryCount = 0;
 		try {
 			QueryResult qr = new QueryResult(con.getSecurity().getAllUsers());
@@ -118,7 +112,7 @@ public class Security {
 			System.out.println("Error retrieving security model into cache - "+e.getMessage());
 			e.printStackTrace();
 		}
-		database.freeConnection(con);
+		Server.freeServerConnection(con);
 	}
 
 	/** Returns true is one of the first set of roles is a match for a role in the second set - please pass in arrays of ORoles */
@@ -227,9 +221,9 @@ public class Security {
 		
 		if (Server.DEBUG) System.out.println("Retrieving privs for table "+table);
 		HashMap<String,Number> map = new HashMap<String,Number>();
-		DatabaseConnection con = database.getConnection();		
+		DatabaseConnection con = Server.getServerConnection();		
 		QueryResult roles = Weblet.getCache().getResult(con, "select from ORole");
-		database.freeConnection(con);		
+		Server.freeServerConnection(con);		
 		for (ODocument role : roles.get()) {
 			String roleName = role.field("name");
 			ArrayList<Set<ORule>> rules = new ArrayList<Set<ORule>>();
@@ -266,7 +260,7 @@ public class Security {
 			System.out.println("Attempt to change password with incorrect old password");
 			return false;
 		}
-		DatabaseConnection c = database.getConnection();
+		DatabaseConnection c = Server.getServerConnection();
 		try {
 			if (c != null) {
 				Object rc = c.update("UPDATE OUser SET password='"+newPassword+"' WHERE name='"+con.getUser()+"'");
@@ -286,7 +280,7 @@ public class Security {
 			e.printStackTrace();
 			return false;
 		} finally {
-			if (c != null) database.freeConnection(c);
+			if (c != null) Server.freeServerConnection(c);
 		}
 	}
 

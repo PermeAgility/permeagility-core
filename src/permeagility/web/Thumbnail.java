@@ -33,11 +33,11 @@ public class Thumbnail {
 	public static int THUMBNAIL_MEDIUM_WIDTH = 640;
 	public static int THUMBNAIL_MEDIUM_HEIGHT = 480;
 	
-	static Database database;
+//	static Database database;
 
-	public static void setDatabase(Database d) {
-		database = d;
-	}
+//	public static void setDatabase(Database d) {
+//		database = d;
+//	}
 
 	public static String getThumbnailLink(Locale locale, String tid, String description) {
 		if (description.startsWith("image")) {
@@ -59,7 +59,7 @@ public class Thumbnail {
 		if (table.equals("thumbnail")) {
 			return rid;
 		}
-		DatabaseConnection con = database.getConnection();
+		DatabaseConnection con = Server.getServerConnection();
 		if (con != null) {
 			try {
 				String query = "SELECT FROM thumbnail\n"
@@ -83,7 +83,7 @@ public class Thumbnail {
 			} catch (Exception e) {
 				e.printStackTrace();
 			} finally {
-				database.freeConnection(con);
+				Server.freeServerConnection(con);
 			}
 		}
 		return null;
@@ -91,7 +91,7 @@ public class Thumbnail {
 
 	public static byte[] getThumbnail(String rid, String size, StringBuilder type, StringBuilder file) {
 		
-		DatabaseConnection con = database.getConnection();
+		DatabaseConnection con = Server.getServerConnection();
 		if (con != null) {
 			try {
 				ODocument thumbnail = null;
@@ -170,7 +170,7 @@ public class Thumbnail {
 			} catch (Exception e) {
 				e.printStackTrace();
 			} finally {
-				database.freeConnection(con);
+				Server.freeServerConnection(con);
 			}
 		}
 		return null;
@@ -178,7 +178,7 @@ public class Thumbnail {
 
 	public static byte[] getContent(String rid, String column, StringBuilder type, StringBuilder file) {
 		
-		DatabaseConnection con = database.getConnection();
+		DatabaseConnection con = Server.getServerConnection();
 		if (con != null) {
 			try {
 				ODocument record = null;
@@ -232,7 +232,7 @@ public class Thumbnail {
 			} catch (Exception e) {
 				e.printStackTrace();
 			} finally {
-				database.freeConnection(con);
+				Server.freeServerConnection(con);
 			}
 		}
 		return null;
@@ -242,7 +242,7 @@ public class Thumbnail {
 	public static String createThumbnail(String table, ODocument doc, String column) {
 
 		if (DEBUG) System.out.println("Thumbnail: creating thumbnail for "+table+" column="+column+" id="+doc.getIdentity().toString());
-		DatabaseConnection con = database.getConnection();
+		DatabaseConnection con = Server.getServerConnection();
 		if (con == null) {
 			return null;
 		}
@@ -356,7 +356,7 @@ public class Thumbnail {
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
-			database.freeConnection(con);			
+			Server.freeServerConnection(con);			
 		}
 
 		return null;
@@ -365,7 +365,7 @@ public class Thumbnail {
 	public static String deleteThumbnail(String table, String id) {
 
 		if (DEBUG) System.out.println("Thumbnail: deleting thumbnail for "+table+" id="+id);
-		DatabaseConnection con = database.getConnection();
+		DatabaseConnection con = Server.getServerConnection();
 		if (con == null) {
 			return null;
 		}
@@ -383,7 +383,7 @@ public class Thumbnail {
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
-			database.freeConnection(con);			
+			Server.freeServerConnection(con);			
 		}
 
 		return null;

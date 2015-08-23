@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.net.BindException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -34,17 +35,16 @@ import java.util.Properties;
 import java.util.StringTokenizer;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.orientechnologies.orient.core.OConstants;
+import com.orientechnologies.orient.core.record.impl.ODocument;
+
 import permeagility.util.Browser;
 import permeagility.util.ConstantOverride;
 import permeagility.util.Database;
 import permeagility.util.DatabaseConnection;
 import permeagility.util.Dumper;
 import permeagility.util.PlusClassLoader;
-import permeagility.util.Security;
 import permeagility.util.Setup;
-
-import com.orientechnologies.orient.core.OConstants;
-import com.orientechnologies.orient.core.record.impl.ODocument;
 
 /** This is the PermeAgility web server - it handles security, database connections and some useful caches for privileges and such
   * all web requests go through the run() function for each thread/socket
@@ -81,7 +81,7 @@ public class Server extends Thread {
 	public static double GUEST_POOL_GROWTH_STEP = 5;  // When growing the pool, increase by this size
 	public static double GUEST_POOL_GROWTH_FACTOR = 0.75; // When active connections reaches this portion of the MAX, increase the pool 
 	public static boolean ALLOW_GUEST_POOL_GROWTH = true;   // Will increase size by if active guest connections > 75% of pool 
-	public static int SERVER_POOL_SIZE = 10;
+	public static int SERVER_POOL_SIZE = 5;
 	public static boolean LOGOUT_KILLS_USER = false; // Set this to true to kill all sessions for a user when a user logs out (more secure)
 	public static String LOCKOUT_MESSAGE = "<p>The system is unavailable because a system restore is being performed. Please try again later.</p><a href='/'>Try it now</a>";
 	
@@ -103,7 +103,7 @@ public class Server extends Thread {
 	
 	private static DatabaseHook databaseHook = null;
 	private static ClassLoader plusClassLoader;
-	static Message messages = null;
+//	static Message messages = null;
 
 	Socket socket;
 	
@@ -371,7 +371,7 @@ public class Server extends Thread {
 				
 				try {
 					long startTime = System.currentTimeMillis();
-					Database db = null;
+					Database userdb = null;
 					if (DEBUG) System.out.println("DATA="+file);
 					byte[] theData = new byte[0]; 
 					
@@ -436,18 +436,18 @@ public class Server extends Thread {
 						if (DEBUG) System.out.println("Server: looking for cookie |"+cookieValue+"| there are "+sessions.size()+" sessions");
 						String u = sessions.get(cookieValue);
 						if (u != null) {
-							db = sessionsDB.get(u);
-							if (DEBUG) System.out.println("Server: session lookup found "+db);
+							userdb = sessionsDB.get(u);
+							if (DEBUG) System.out.println("Server: session lookup found "+userdb);
 						}
 					}
 
 					// Logout if logged in and login class requested
-					if (db != null && className.equals(LOGIN_CLASS)) {  // If you ask to login and you are already connected, then you have asked to log out
-						System.out.println("User "+db.getUser()+" logging out");
+					if (userdb != null && className.equals(LOGIN_CLASS)) {  // If you ask to login and you are already connected, then you have asked to log out
+						System.out.println("User "+userdb.getUser()+" logging out");
 						sessions.remove(cookieValue);  
 							// Should remove other cookies for this user (They asked to log out - their user ID will be removed from memory)
 							if (LOGOUT_KILLS_USER) {
-								String u = db.getUser();
+								String u = userdb.getUser();
 								if (!u.equals("guest")) {  // Except for guest - leave them alone - there may be lots of them
 									ArrayList<String> cookiesToRemove = new ArrayList<String>();
 									for (String c : sessions.keySet()) {
@@ -464,26 +464,26 @@ public class Server extends Thread {
 									sessionsDB.remove(u).close();
 								}
 							}
-							db = null;
+							userdb = null;
 							className = HOME_CLASS;
 					}
 					
 					// If username specified in parms and we do not have a connection we must be logging in
 					String parmUserName = parms.get("USERNAME"); 
-					if (db == null || parmUserName != null) {
+					if (userdb == null || parmUserName != null) {
 						if (parmUserName != null) {  // Trying to log in
 							try {
-								db = sessionsDB.get(parmUserName);
-								if (db == null || !db.isPassword(parms.get("PASSWORD"))) { 	
-									if (db != null) {
+								userdb = sessionsDB.get(parmUserName);
+								if (userdb == null || !userdb.isPassword(parms.get("PASSWORD"))) { 	
+									if (userdb != null) {
 										System.out.println("session with wrong password found - removing it");
 										if (cookieValue != null) sessions.remove(cookieValue);
 										sessionsDB.remove(parmUserName);
 									}
-									db = new Database(DB_NAME,parmUserName,parms.get("PASSWORD"));
-									if (!db.isConnected()) {
+									userdb = new Database(DB_NAME,parmUserName,parms.get("PASSWORD"));
+									if (!userdb.isConnected()) {
 										System.out.println("Database login failed for user "+parmUserName);
-										db = null;
+										userdb = null;
 									}
 								} else {
 									if (DEBUG) System.out.println("Reusing connection");
@@ -494,25 +494,25 @@ public class Server extends Thread {
 						}
 
 						// Set a cookie value
-						if (db != null && parmUserName != null) {
+						if (userdb != null && parmUserName != null) {
 							if (DEBUG) System.out.println("Calculating new cookie for: "+parmUserName);
 							newCookieValue = parmUserName + (Math.random() * 100000000);
 							sessions.put(newCookieValue, parmUserName);
 							if (!sessionsDB.containsKey(parmUserName)) {
-								sessionsDB.put(parmUserName, db);
+								sessionsDB.put(parmUserName, userdb);
 							}
-							if (DEBUG) System.out.println("User "+db.getUser()+" logged in");
+							if (DEBUG) System.out.println("User "+userdb.getUser()+" logged in");
 						}		
 
 						// Get database connection (guest) for non users
-						if (db == null) {
+						if (userdb == null) {
 							try {
 								if (DEBUG) System.out.println("Using guest connection");
-								db = getNonUserDatabase();
-								newCookieValue = db.getUser() + (Math.random() * 100000000);
+								userdb = getNonUserDatabase();
+								newCookieValue = userdb.getUser() + (Math.random() * 100000000);
 								sessions.put(newCookieValue, "guest");
 								if (!sessionsDB.containsKey("guest")) {
-									sessionsDB.put("guest", db);
+									sessionsDB.put("guest", userdb);
 								}
 								if (requestLocale != null && parms.get("LOCALE") == null) { // Since new connect, use the requested language
 									parms.put("LOCALE",requestLocale.getLanguage());
@@ -524,28 +524,28 @@ public class Server extends Thread {
 					}
 										
 					// Set locale if specified
-					if (db != null) {
-						if (parms.containsKey("LOCALE") && db != null) {
+					if (userdb != null) {
+						if (parms.containsKey("LOCALE") && userdb != null) {
 							if (DEBUG) System.out.println("Setting locale to "+parms.get("LOCALE"));
 							Locale l = Message.getLocale(parms.get("LOCALE"));
 							if (l != null) {
-								db.setLocale(l);
+								userdb.setLocale(l);
 								sessionsLocale.put((cookieValue != null ? cookieValue : newCookieValue), l);
-								Menu.clearMenu(db.getUser());  // clear Menu cache for this user
+								Menu.clearMenu(userdb.getUser());  // clear Menu cache for this user
 							}
 						} else {
 							if (cookieValue != null) {
 								Locale l = sessionsLocale.get(cookieValue);
-								if (l != null && l != db.getLocale()) {
-									db.setLocale(l);
-									Menu.clearMenu(db.getUser());  // clear Menu cache for this user
+								if (l != null && l != userdb.getLocale()) {
+									userdb.setLocale(l);
+									Menu.clearMenu(userdb.getUser());  // clear Menu cache for this user
 								}
 							}
 						}
 					}
 					
 					// Pull log text files from the log directory (only for Admin)
-					if (db != null && file.startsWith("/log/") && db.getUser().equals("admin")) {
+					if (userdb != null && file.startsWith("/log/") && userdb.getUser().equals("admin")) {
 						if (DEBUG) System.out.println("Looking for log "+file);
 						File logfile = new File(file.substring(1));
 						if (logfile != null && logfile.exists()) {
@@ -565,7 +565,7 @@ public class Server extends Thread {
 					}
 
 					// Thumbnails
-					if (db != null && file.startsWith("/thumbnail")) {
+					if (userdb != null && file.startsWith("/thumbnail")) {
 						String tsize = parms.get("SIZE");
 						String tid = parms.get("ID");
 						if (DEBUG) System.out.println("Retrieving thumbnail "+tid);
@@ -587,12 +587,12 @@ public class Server extends Thread {
 					}
 
 					// Validate that class is allowed to be used
-					if (db != null) {
-						if (DEBUG) System.out.println("Authorizing user "+db.getUser()+" for class "+className);
-						if (Security.authorized(db.getUser(),className)) {
-							if (DEBUG) System.out.println("User "+db.getUser()+" is allowed to use "+className);								
+					if (userdb != null) {
+						if (DEBUG) System.out.println("Authorizing user "+userdb.getUser()+" for class "+className);
+						if (Security.authorized(userdb.getUser(),className)) {
+							if (DEBUG) System.out.println("User "+userdb.getUser()+" is allowed to use "+className);								
 						} else {
-							System.out.println("User "+db.getUser()+" is attempting to use "+className+" without authorization");
+							System.out.println("User "+userdb.getUser()+" is attempting to use "+className+" without authorization");
 							parms.put("SECURITY_VIOLATION","You are not authorized to access "+className);
 							className = HOME_CLASS;							
 						}
@@ -607,11 +607,11 @@ public class Server extends Thread {
 				    	if (DEBUG) System.out.println("LOADING HTML PAGE="+className+" PARAMETER="+parms.toString());
 						DatabaseConnection con = null;
 						try {
-							if (db != null) { 
-								con = db.getConnection();
+							if (userdb != null) { 
+								con = userdb.getConnection();
 								if (con == null) {
 									theData = "<BODY><P>Server is busy, please try again</P></BODY>".getBytes();
-									System.out.println("!"+db.getUser());
+									System.out.println("!"+userdb.getUser());
 								} else {
 									theData = weblet.doPage(con, parms);
 								}
@@ -619,22 +619,25 @@ public class Server extends Thread {
 						} catch (Exception e) {
 							System.out.println("Exception running weblet: ");
 							e.printStackTrace();
-							db.closeConnection(con);
+							ByteArrayOutputStream dataStream = new ByteArrayOutputStream();
+							e.printStackTrace(new PrintWriter(dataStream));
+							theData = dataStream.toByteArray();
+							userdb.closeConnection(con);
 							con = null;
 						}
-						if (db != null && con != null) {
-							db.freeConnection(con);							
+						if (userdb != null && con != null) {
+							userdb.freeConnection(con);							
 						}
 				    } else if (classInstance instanceof Download) {
 			    		Download downloadlet = (Download)classOf.newInstance();
 						DatabaseConnection con = null;
-						if (db != null) { 
-							con = db.getConnection();
-						}
-						if (DEBUG) System.out.println("DOWNLOAD PAGE="+className+" PARAMETER="+parms.toString());
-						theData = downloadlet.doPage(con, parms);
-						if (db != null) {
-							db.freeConnection(con);
+						if (userdb != null) { 
+							con = userdb.getConnection();
+							if (con != null) {
+								if (DEBUG) System.out.println("DOWNLOAD PAGE="+className+" PARAMETER="+parms.toString());
+								theData = downloadlet.doPage(con, parms);
+								userdb.freeConnection(con);
+							}
 						}
 						// Do after to allow content-disposition to be dynamic if necessary
 				    	content_type = downloadlet.getContentType();
@@ -701,13 +704,9 @@ public class Server extends Thread {
 		StringBuilder sb = new StringBuilder();
 		int c = is.read();
 			do {
-				if (c != 0x0A && c != 0x0D) sb.append((char)c);
-				if (is.available()>0) {
-					c = is.read();
-				}
-				if (sb.length() > 1024) {
-					break;
-				}
+				if (c != 0x0A && c != 0x0D) { sb.append((char)c); }
+				if (is.available()>0) { c = is.read(); }
+				if (sb.length() > 1024) { break; }
 			} while (c != 0x0A  && c != -1);
 		return sb.toString();
 	}
@@ -876,10 +875,23 @@ public class Server extends Thread {
 
 	/** Get the server's database connection 
 	 *  (this is protected as only classes within this package should use this) */
-	protected static Database getDatabase() {
-		return database;
+	protected static DatabaseConnection getServerConnection() {
+		return database.getConnection();
 	}
 	
+	protected static void freeServerConnection(DatabaseConnection dbc) {
+		if (dbc != null) database.freeConnection(dbc);
+	}
+	
+	protected static String getServerUser() {
+		return database.getUser();
+	}
+	
+	protected static String getClientVersion() {
+		return database.getClientVersion();
+	}
+	
+
 	/** Get the mime content type based on the filename */
 	public String getContentType(String name) {
 		if (name.endsWith(".html") || name.endsWith(".htm")) return "text/html";
@@ -907,16 +919,16 @@ public class Server extends Thread {
 	/**  Call this when you update a table that the server or caches may be interested in   */
 	public static void tableUpdated(String table) {
 		if (table.equalsIgnoreCase("metadata:schema")) {
-			DatabaseConnection con = database.getConnection();
+			DatabaseConnection con = getServerConnection();
 			if (DEBUG) System.out.println("Server: schema updated - reloading");
 			//clearColumnsCache("ALL");
 			con.getSchema().reload();
-			database.freeConnection(con);
+			freeServerConnection(con);
 		} else if (table.equals("constant")) {
 			if (DEBUG) System.out.println("Server: tableUpdated("+table+") - constants applied");
-			DatabaseConnection con = database.getConnection();
+			DatabaseConnection con = getServerConnection();
 			ConstantOverride.apply(con);
-			database.freeConnection(con);
+			freeServerConnection(con);
 		} else if (table.equals("columns") ) {
 			//if (DEBUG) System.out.println("Server: tableUpdated("+table+") - columns cache cleared");
 			//Server.clearColumnsCache("ALL");  // Don't know which table or which row in columns table so clear all
@@ -928,9 +940,9 @@ public class Server extends Thread {
 			updatePickValues();
 		} else if (table.equals("locale") || table.equals("message")) {
 			if (DEBUG) System.out.println("Server: tableUpdated("+table+") - messages refreshed and menus cleared");
-			DatabaseConnection con = database.getConnection();
+			DatabaseConnection con = getServerConnection();
 			Message.initialize(con);
-			database.freeConnection(con);
+			freeServerConnection(con);
 			Menu.clearCache();
 			Table.clearDataTypes();
 		}
@@ -956,7 +968,7 @@ public class Server extends Thread {
 	public static void updatePickValues() {
 		DatabaseConnection con = null;
 		try {
-			con = database.getConnection();
+			con = getServerConnection();
 			for (ODocument values : con.getDb().browseClass(Setup.TABLE_PICKVALUES)) {
 				String v[] = values.field("values").toString().split(",");
 				ArrayList<String> list = new ArrayList<String>();
@@ -968,7 +980,7 @@ public class Server extends Thread {
 		} catch (Exception e) {
 			System.err.println("Error getting pickValues: "+e.getMessage());
 		} finally {
-			if (con != null) database.freeConnection(con);
+			if (con != null) freeServerConnection(con);
 		}		
 	}
 	
@@ -1029,16 +1041,17 @@ public class Server extends Thread {
 				}
 			}
 			if (database.isConnected()) {
-				DatabaseConnection con = database.getConnection();
+				DatabaseConnection con = getServerConnection();
+				
 				if (!Setup.checkInstallation(con)) {
 					System.out.println("---\n--- Warning condition: checkInstallation failed - check install messages in context\n---");
 				}
 
 				database.setPoolSize(SERVER_POOL_SIZE);
 				System.out.println("Connected to database name="+DB_NAME+" version="+database.getClientVersion());
-
+				
 				// Initialize security
-				Security.setDatabase(database);
+				//Security.setDatabase(database);
 				Security.refreshSecurity();
 				if (Security.keyRoleCount() < 1) {
 					System.out.println("***\n*** Exit condition: No key roles found for security - no functions to enable\n***");
@@ -1060,9 +1073,9 @@ public class Server extends Thread {
 					exit(-1);
 				}
 				
-				messages = new Message(con);
-				Thumbnail.setDatabase(database);
-				database.freeConnection(con);
+				Message.initialize(con);
+				
+				freeServerConnection(con);
 				
 				if (restore_lockout) restore_lockout = false;
 			}

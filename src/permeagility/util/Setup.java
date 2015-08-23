@@ -2,16 +2,22 @@ package permeagility.util;
 
 import java.util.ArrayList;
 import java.util.Date;
-
-import permeagility.web.Message;
-import permeagility.web.Server;
-import permeagility.web.Weblet;
+import java.util.List;
 
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OProperty;
 import com.orientechnologies.orient.core.metadata.schema.OSchema;
 import com.orientechnologies.orient.core.metadata.schema.OType;
+import com.orientechnologies.orient.core.metadata.security.ORole;
+import com.orientechnologies.orient.core.metadata.security.ORule;
+import com.orientechnologies.orient.core.metadata.security.ORule.ResourceGeneric;
+import com.orientechnologies.orient.core.metadata.security.OSecurity;
 import com.orientechnologies.orient.core.record.impl.ODocument;
+
+import permeagility.web.Message;
+import permeagility.web.Security;
+import permeagility.web.Server;
+import permeagility.web.Weblet;
 
 public class Setup {
 
@@ -74,12 +80,14 @@ public class Setup {
 //						+", \"database.cluster.*\":2"
 //						+ ", \"database.class.style\":2,\"database.cluster.style\":2 }");
 				try {
-					con.update("GRANT READ ON database.cluster.* TO guest");
-					con.update("GRANT READ ON database.class.article TO guest");
-					con.update("GRANT READ ON database.class.style TO guest");
-					con.update("GRANT READ ON database.class.locale TO guest");
-					con.update("GRANT CREATE ON database.class.userrequest TO guest");
-					con.update("GRANT CREATE ON database.cluster.userrequest TO guest");
+	//				con.update("GRANT READ ON database TO guest");
+	//				con.update("GRANT READ ON database.command TO guest");
+	//				con.update("GRANT READ ON database.cluster.* TO guest");
+	//				con.update("GRANT READ ON database.class.article TO guest");
+	//				con.update("GRANT READ ON database.class.style TO guest");
+	//				con.update("GRANT READ ON database.class.locale TO guest");
+	//				con.update("GRANT CREATE ON database.class.userrequest TO guest");
+	//				con.update("GRANT CREATE ON database.cluster.userrequest TO guest");
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
@@ -91,6 +99,18 @@ public class Setup {
 				guestUser = (ODocument)con.update("insert into OUser set name = 'guest', password = 'guest', status = 'ACTIVE', roles = (select from ORole where name = 'guest')");
 				installMessages.append(Weblet.paragraph("CheckInstallation: Created guest user"));
 			}
+
+			// Verify the minimum privileges for the guest role since this changed in OrientDB 2.1
+			checkCreatePrivilege(con,"guest",ResourceGeneric.DATABASE,null,2,installMessages);
+			checkCreatePrivilege(con,"guest",ResourceGeneric.COMMAND,null,2,installMessages);
+			checkCreatePrivilege(con,"guest",ResourceGeneric.SCHEMA,null,2,installMessages);
+			checkCreatePrivilege(con,"guest",ResourceGeneric.CLUSTER,"*",2,installMessages);
+			checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,"columns",2,installMessages);
+			checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,"article",2,installMessages);
+			checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,"style",2,installMessages);
+			checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,"locale",2,installMessages);
+			checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,"userrequest",1,installMessages);
+//			checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,"locale",2,installMessages);
 
 			// columns must be first as it will receive the properties as they are created by checkCreateProperty
 			System.out.print(TABLE_COLUMNS+" ");  
@@ -447,19 +467,23 @@ public class Setup {
 			Setup.checkCreateColumn(con, styleTable, "name", OType.STRING, installMessages);
 			Setup.checkCreateColumn(con, styleTable, "horizontal", OType.BOOLEAN, installMessages);
 			Setup.checkCreateColumn(con, styleTable, "logo", OType.STRING, installMessages);
+			Setup.checkCreateColumn(con, styleTable, "editorTheme", OType.STRING, installMessages);
 			Setup.checkCreateColumn(con, styleTable, "CSSStyle", OType.STRING, installMessages);
 			
 			if (styleTable.count() == 0) {
 				ODocument style = con.create(TABLE_STYLE); 
 				style.field("name", "default");
-				style.field("CSSStyle", DEFAULT_STYLESHEET);
+				style.field("horizontal", false);
 				style.field("logo", "Logo-blk.svg");
+				style.field("editorTheme","ambiance");
+				style.field("CSSStyle", DEFAULT_STYLESHEET);
 				style.save();
 
 				ODocument style2 = con.create(TABLE_STYLE); 
 				style2.field("name", "horizontal");
 				style2.field("horizontal", true);
 				style2.field("logo", "Logo-yel.svg");
+				style2.field("editorTheme","night");
 				style2.field("CSSStyle", DEFAULT_ALT_STYLESHEET);
 				style2.save();
 				
@@ -495,7 +519,8 @@ public class Setup {
 			
 			if (pickValuesTable.count() == 0) {
 				con.create(TABLE_PICKVALUES).field("name","OUser.status").field("values","ACTIVE,INACTIVE").save();				
-				con.create(TABLE_PICKVALUES).field("name","OFunction.language").field("values","javascript").save();				
+				con.create(TABLE_PICKVALUES).field("name","OFunction.language").field("values","javascript").save();
+				con.create(TABLE_PICKVALUES).field("name","style.editorTheme").field("values","3024-day,3024-night,ambiance-mobile,ambiance,base16-dark,base16-light,blackboard,cobalt,colorforth,eclipse,elegant,erlang-dark,lesser-dark,mbo,mdn-like,midnight,monokai,neat,neo,night,paraiso-dark,paraiso-light,pastel-on-dark,rubyblue,solarized,the-matrix,tomorrow-night-bright,tomorrow-night-eighties,twilight,vibrant-ink,xq-dark,xq-light,zenburn").save();
 			}
 			
 			System.out.print(TABLE_MENU+" ");
@@ -923,22 +948,39 @@ public class Setup {
 			errors.append(Weblet.paragraph("error","Schema update: Cannot find superclass "+superClassName+" to assign to class "+oclass.getName()));
 			return;
 		}
-		OClass sc = oclass.getSuperClass();
-		if (sc == null) {
-			oclass.setSuperClass(s);
+		List<OClass> sc = oclass.getSuperClasses();
+		boolean hasSuper = false;
+		for (OClass c : sc) {
+			if (c.getName().equals(superClassName)) { hasSuper = true; }
+		}
+		if (!hasSuper) {
+			oclass.addSuperClass(s);
 			errors.append(Weblet.paragraph("Schema update: Assigned superclass "+superClassName+" to class "+oclass.getName()));
 			if (superClassName.equals("ORestricted") && RESTRICTED_BY_ROLE) {
 				oclass.setCustom("onCreate.identityType", "role");   //alter class x custom onCreate.identityType=role
 			}
 			return;
-		} else {
-			if (!sc.getName().equals(superClassName)) {
-				errors.append(Weblet.paragraph("error","Schema update: Trying to assign superclass "+superClassName+" to class "+oclass.getName()+" but it already has "+sc.getName()+" as a superclass"));	
-				return;
-			}
 		}
 		return;
 	}
+
+	/** Check for the existence of a privilege or add it */
+	public static boolean checkCreatePrivilege(DatabaseConnection con, String roleName, ORule.ResourceGeneric resource, String className, int priv, StringBuilder errors) {
+		OSecurity osecurity = con.getDb().getMetadata().getSecurity();
+		ORole role = osecurity.getRole(roleName);
+		if (!role.hasRule(resource,className)) {
+			System.out.println("Adding privilege: "+resource);
+			ORole newRole = role.addRule(resource,className, priv);
+			if (newRole.allow(resource,className, priv)){
+				newRole.save();
+				errors.append(Weblet.paragraph("success",resource.getName()+(className != null ? "."+className : "")+":"+priv+" added to "+roleName));
+			} else {
+				errors.append(Weblet.paragraph("error",resource.getName()+(className != null ? "."+className : "")+" failed to add privilege "+priv+" to "+roleName));
+			}
+		}
+		return true;
+	}
+
 	
 	/** Drop a table */
 	public static void dropTable(DatabaseConnection con, String classname) {

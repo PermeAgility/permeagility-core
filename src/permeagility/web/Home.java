@@ -9,7 +9,6 @@ import java.util.HashMap;
 
 import permeagility.util.DatabaseConnection;
 import permeagility.util.QueryResult;
-import permeagility.util.Security;
 import permeagility.util.Setup;
 
 public class Home extends Weblet {

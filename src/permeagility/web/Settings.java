@@ -51,12 +51,15 @@ public class Settings extends Weblet {
 					ODocument style = con.get(setStyle);
 					styleConstant.field("value", style.field("name").toString());
 					currentStyleName = style.field("name");
+					String theme = style.field("editorTheme");
 					styleConstant.save();
 					
 					Boolean horiz = style.field("horizontal");
 					if (horiz == null) horiz = new Boolean(false);
 					setCreateConstant(con,"permeagility.web.Menu","HORIZONTAL_LAYOUT",""+horiz);
-
+					if (theme != null && !theme.equals("")) {
+						setCreateConstant(con,"permeagility.web.Context","EDITOR_THEME",""+style.field("editorTheme"));
+					}
 					setCreateConstant(con,"permeagility.web.Header","LOGO_FILE",(String)style.field("logo"));
 					Menu.clearCache();
 					Server.tableUpdated("constant");

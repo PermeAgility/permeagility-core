@@ -13,7 +13,6 @@ import permeagility.util.Database;
 import permeagility.util.DatabaseConnection;
 import permeagility.util.PlusClassLoader;
 import permeagility.util.QueryResult;
-import permeagility.util.Security;
 import permeagility.util.Setup;
 
 public class Context extends Weblet {
@@ -148,8 +147,8 @@ public class Context extends Weblet {
 		    		+br()+Message.get(locale, "SERVER_RUNNING")+"&nbsp;"+Server.getServerInitTime()
 		    		+br()+Message.get(locale, "SERVER_JAR")+"&nbsp;"+Server.getCodeSource()
 		    		+br()+Message.get(locale, "SERVER_CONNECT")+"&nbsp;"+Server.getDBName()
-		    		+br()+Message.get(locale, "SERVER_USER")+"&nbsp;"+Server.getDatabase().getUser()
-		    		+br()+Message.get(locale, "SERVER_VERSION")+"&nbsp;"+Server.getDatabase().getClientVersion())
+		    		+br()+Message.get(locale, "SERVER_USER")+"&nbsp;"+Server.getServerUser()
+		    		+br()+Message.get(locale, "SERVER_VERSION")+"&nbsp;"+Server.getClientVersion())
 		    +paragraph("banner",Message.get(locale, "SERVER_CACHE"))
 			+form(submitButton("CLEAR_MENUS",Message.get(locale, "CACHE_CLEAR_MENUS"))
 					+ "&nbsp;" + Message.get(locale, "CACHE_COUNT",""+Menu.cacheSize()))

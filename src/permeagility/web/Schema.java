@@ -9,7 +9,6 @@ import java.util.ArrayList;
 
 import permeagility.util.DatabaseConnection;
 import permeagility.util.QueryResult;
-import permeagility.util.Security;
 import permeagility.util.Setup;
 
 import com.orientechnologies.orient.core.metadata.schema.OClass;
