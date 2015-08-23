@@ -464,7 +464,7 @@ public class Setup {
                             style.field("horizontal", false);
                             style.field("logo", "Logo-blk.svg");
                             style.field("editorTheme","default");
-                            style.field("CSSStyle", DEFAULT_STYLESHEET);
+                            style.field("CSSStyle", DEFAULT_ALT_STYLESHEET);
                             style.save();
 
                             ODocument style2 = con.create(TABLE_STYLE); 
@@ -472,7 +472,7 @@ public class Setup {
                             style2.field("horizontal", true);
                             style2.field("logo", "Logo-yel.svg");
                             style2.field("editorTheme","lesser-dark");
-                            style2.field("CSSStyle", DEFAULT_ALT_STYLESHEET);
+                            style2.field("CSSStyle", DEFAULT_STYLESHEET);
                             style2.save();				
 			}
 			
