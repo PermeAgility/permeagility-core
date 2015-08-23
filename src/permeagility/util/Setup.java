@@ -74,23 +74,6 @@ public class Setup {
 
 			if (guestRoles.size() == 0) {
 				ODocument guestRole = (ODocument)con.update("insert into ORole set name = 'guest', mode = 0");
-//						+", rules = {\"database.schema\":2, \"database\":2, \"database.command\":3"
-//						+", \"database.class.userrequest\":1, \"database.cluster.userrequest\":1"
-//						+", \"database.class.article\":2, \"database.cluster.article\":2"
-//						+", \"database.cluster.*\":2"
-//						+ ", \"database.class.style\":2,\"database.cluster.style\":2 }");
-				try {
-	//				con.update("GRANT READ ON database TO guest");
-	//				con.update("GRANT READ ON database.command TO guest");
-	//				con.update("GRANT READ ON database.cluster.* TO guest");
-	//				con.update("GRANT READ ON database.class.article TO guest");
-	//				con.update("GRANT READ ON database.class.style TO guest");
-	//				con.update("GRANT READ ON database.class.locale TO guest");
-	//				con.update("GRANT CREATE ON database.class.userrequest TO guest");
-	//				con.update("GRANT CREATE ON database.cluster.userrequest TO guest");
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
 				guestRoles.add(guestRole);
 				allRoles.add(guestRole);
 				installMessages.append(Weblet.paragraph("CheckInstallation: Created guest role"));
@@ -110,7 +93,7 @@ public class Setup {
 			checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,"style",2,installMessages);
 			checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,"locale",2,installMessages);
 			checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,"userrequest",1,installMessages);
-//			checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,"locale",2,installMessages);
+			checkCreatePrivilege(con,"guest",ResourceGeneric.CLUSTER,"userrequest",1,installMessages);
 
 			// columns must be first as it will receive the properties as they are created by checkCreateProperty
 			System.out.print(TABLE_COLUMNS+" ");  
@@ -182,8 +165,10 @@ public class Setup {
 				con.create(TABLE_CONSTANT).field("classname","permeagility.web.Table").field("description","Table debug flag").field("field","DEBUG").field("value","false").save();				
 				con.create(TABLE_CONSTANT).field("classname","permeagility.web.Table").field("description","Table page count").field("field","ROW_COUNT_LIMIT").field("value","200").save();				
 				con.create(TABLE_CONSTANT).field("classname","permeagility.web.Table").field("description","Show related tables even if no privilege").field("field","SHOW_ALL_RELATED_TABLES").field("value","true").save();				
-				con.create(TABLE_CONSTANT).field("classname","permeagility.web.Context").field("description","Style sheet").field("field","DEFAULT_STYLE").field("value","default").save();				
-				con.create(TABLE_CONSTANT).field("classname","permeagility.web.Header").field("description","Logo for header").field("field","LOGO_FILE").field("value","Logo-blk.svg").save();				
+				con.create(TABLE_CONSTANT).field("classname","permeagility.web.Context").field("description","Style sheet").field("field","DEFAULT_STYLE").field("value","dark (horizontal menu)").save();				
+				con.create(TABLE_CONSTANT).field("classname","permeagility.web.Context").field("description","Code editor theme").field("field","EDITOR_THEME").field("value","default").save();				
+				con.create(TABLE_CONSTANT).field("classname","permeagility.web.Header").field("description","Logo for header").field("field","LOGO_FILE").field("value","Logo-yel.svg").save();				
+				con.create(TABLE_CONSTANT).field("classname","permeagility.web.Menu").field("description","Menu direction (true=horizontal, false=vertical)").field("field","HORIZONTAL_LAYOUT").field("value","true").save();				
 				con.create(TABLE_CONSTANT).field("classname","permeagility.web.Schema").field("description","Number of columns in tables view").field("field","NUMBER_OF_COLUMNS").field("value","4").save();				
 				con.create(TABLE_CONSTANT).field("classname","permeagility.util.Setup").field("description","When true, ORestricted tables will be by role (Delete OIdentity pickList if setting to false)").field("field","RESTRICTED_BY_ROLE").field("value","true").save();				
 			}
@@ -474,22 +459,21 @@ public class Setup {
 			Setup.checkCreateColumn(con, styleTable, "CSSStyle", OType.STRING, installMessages);
 			
 			if (styleTable.count() == 0) {
-				ODocument style = con.create(TABLE_STYLE); 
-				style.field("name", "default");
-				style.field("horizontal", false);
-				style.field("logo", "Logo-blk.svg");
-				style.field("editorTheme","ambiance");
-				style.field("CSSStyle", DEFAULT_STYLESHEET);
-				style.save();
+                            ODocument style = con.create(TABLE_STYLE); 
+                            style.field("name", "light (vertical menu)");
+                            style.field("horizontal", false);
+                            style.field("logo", "Logo-blk.svg");
+                            style.field("editorTheme","default");
+                            style.field("CSSStyle", DEFAULT_STYLESHEET);
+                            style.save();
 
-				ODocument style2 = con.create(TABLE_STYLE); 
-				style2.field("name", "horizontal");
-				style2.field("horizontal", true);
-				style2.field("logo", "Logo-yel.svg");
-				style2.field("editorTheme","night");
-				style2.field("CSSStyle", DEFAULT_ALT_STYLESHEET);
-				style2.save();
-				
+                            ODocument style2 = con.create(TABLE_STYLE); 
+                            style2.field("name", "dark (horizontal menu)");
+                            style2.field("horizontal", true);
+                            style2.field("logo", "Logo-yel.svg");
+                            style2.field("editorTheme","lesser-dark");
+                            style2.field("CSSStyle", DEFAULT_ALT_STYLESHEET);
+                            style2.save();				
 			}
 			
 			// Upgrade styles - remove this eventually
@@ -523,7 +507,7 @@ public class Setup {
 			if (pickValuesTable.count() == 0) {
 				con.create(TABLE_PICKVALUES).field("name","OUser.status").field("values","ACTIVE,INACTIVE").save();				
 				con.create(TABLE_PICKVALUES).field("name","OFunction.language").field("values","javascript").save();
-				con.create(TABLE_PICKVALUES).field("name","style.editorTheme").field("values","3024-day,3024-night,ambiance-mobile,ambiance,base16-dark,base16-light,blackboard,cobalt,colorforth,eclipse,elegant,erlang-dark,lesser-dark,mbo,mdn-like,midnight,monokai,neat,neo,night,paraiso-dark,paraiso-light,pastel-on-dark,rubyblue,solarized,the-matrix,tomorrow-night-bright,tomorrow-night-eighties,twilight,vibrant-ink,xq-dark,xq-light,zenburn").save();
+				con.create(TABLE_PICKVALUES).field("name","style.editorTheme").field("values","default,3024-day,3024-night,ambiance-mobile,ambiance,base16-dark,base16-light,blackboard,cobalt,colorforth,eclipse,elegant,erlang-dark,lesser-dark,mbo,mdn-like,midnight,monokai,neat,neo,night,paraiso-dark,paraiso-light,pastel-on-dark,rubyblue,solarized,the-matrix,tomorrow-night-bright,tomorrow-night-eighties,twilight,vibrant-ink,xq-dark,xq-light,zenburn").save();
 			}
 			
 			System.out.print(TABLE_MENU+" ");
