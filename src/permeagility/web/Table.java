@@ -56,6 +56,7 @@ public class Table extends Weblet {
 
 	// Need to store the data type names by locale and don't want to generate it every time so this is a cache
 	static ConcurrentHashMap<Locale,ArrayList<String>> dataTypeNames = new ConcurrentHashMap<Locale,ArrayList<String>>();
+	static ConcurrentHashMap<Locale,ArrayList<String>> dataTypeValues = new ConcurrentHashMap<Locale,ArrayList<String>>();
 	
 	
 	public String getPage(DatabaseConnection con, java.util.HashMap<String, String> parms) {
@@ -64,6 +65,7 @@ public class Table extends Weblet {
 		// Make sure data type names are set up for this locale
 		if (dataTypeNames.get(locale) == null) {
 			ArrayList<String> names = new ArrayList<String>();
+			ArrayList<String> values = new ArrayList<String>();
 			names.add(Message.get(locale, "DATATYPE_TEXT"));
 			names.add(Message.get(locale, "DATATYPE_FLOAT"));
 			names.add(Message.get(locale, "DATATYPE_INT"));
@@ -76,7 +78,20 @@ public class Table extends Weblet {
 			names.add(Message.get(locale, "DATATYPE_LINKLIST")); // Link List control
 			names.add(Message.get(locale, "DATATYPE_LINKMAP"));  // Link map control
 			names.add(Message.get(locale, "DATATYPE_BLOB"));  // Image (with thumbnail)
+			values.add("DATATYPE_TEXT");
+			values.add("DATATYPE_FLOAT");
+			values.add("DATATYPE_INT");
+			values.add("DATATYPE_DECIMAL");  
+			values.add("DATATYPE_DATE");  // Calendar
+			values.add("DATATYPE_DATETIME"); // Calendar and time
+			values.add("DATATYPE_BOOLEAN");   // Checkbox
+			values.add("DATATYPE_LINK");    // PickList
+			values.add("DATATYPE_LINKSET");  // Link Set control
+			values.add("DATATYPE_LINKLIST"); // Link List control
+			values.add("DATATYPE_LINKMAP");  // Link map control
+			values.add("DATATYPE_BLOB"); // Image (with thumbnail)
 			dataTypeNames.put(locale,names);
+			dataTypeValues.put(locale,values);
 		}
 				
 		String submit = parms.get("SUBMIT");
@@ -106,17 +121,17 @@ public class Table extends Weblet {
 		StringBuilder errors = new StringBuilder();
 
 		if (parms.get("ADVANCED_OPTIONS") != null
-				|| (submit != null && submit.equals(Message.get(locale, "ADVANCED_OPTIONS")))) {
+				|| (submit != null && submit.equals("ADVANCED_OPTIONS"))) {
 			return advancedOptions(con, table, parms);
 		}
 
 		if (parms.get("RIGHTS_OPTIONS") != null
-				|| (submit != null && submit.equals(Message.get(locale, "RIGHTS_OPTIONS")))) {
+				|| (submit != null && submit.equals("RIGHTS_OPTIONS"))) {
 			return rightsOptions(con, table, parms);
 		}
-		if (submit != null && (parms.containsKey("UPDATE_ID") || submit.equals(Message.get(locale, "CREATE_ROW")))) {
+		if (submit != null && (parms.containsKey("UPDATE_ID") || submit.equals("CREATE_ROW"))) {
 			if (DEBUG) System.out.println("update_id="+parms.get("UPDATE_ID"));
-			if (submit != null && submit.equals(Message.get(locale, "COPY"))) {
+			if (submit.equals("COPY")) {
 					parms.put("EDIT_ID", parms.get("UPDATE_ID"));
 					return head(title,getScripts(con))
 							+ body(standardLayout(con, parms, 
@@ -124,11 +139,10 @@ public class Table extends Weblet {
 								+form("NEWROW","#",
 										paragraph("banner",Message.get(locale, "COPY")+"&nbsp;"+prettyTable)
 										+getTableRowFields(con, table, parms)
-										+center(submitButton(Message.get(locale, "CREATE_ROW"))
-										+submitButton(Message.get(locale, "CANCEL")))
+										+center(submitButton(locale,"CREATE_ROW")+submitButton(locale,"CANCEL"))
 								)
 							));
-			} else if (submit!= null && submit.equals(Message.get(locale, "CREATE_ROW"))) {
+			} else if (submit.equals("CREATE_ROW")) {
 				if (DEBUG) System.out.println("************ Inserting row");
 				if (!insertRow(con,table,parms,errors)) {
 					return head(title,getScripts(con))
@@ -137,12 +151,12 @@ public class Table extends Weblet {
 								+form("NEWROW","#",
 										paragraph("banner",Message.get(locale, "CREATE")+"&nbsp;"+prettyTable)
 										+getTableRowFields(con, table, parms)
-										+center(submitButton(Message.get(locale, "CREATE_ROW"))
-										+submitButton(Message.get(locale, "CANCEL")))
+										+center(submitButton(locale, "CREATE_ROW")
+										+submitButton(locale, "CANCEL"))
 								)
 							));					
 				}
-			}else if (submit != null && submit.equals(Message.get(locale, "DELETE"))) {
+			}else if (submit.equals("DELETE")) {
 				if (DEBUG) System.out.println("************ Deleting row");
 					if (deleteRow(con, table, parms, errors)) {
 						parms.remove("EDIT_ID");
@@ -152,7 +166,7 @@ public class Table extends Weblet {
 						return head(title, getScripts(con))
 								+ body(standardLayout(con, parms, errors.toString() + getTableRowForm(con, table, parms) ));
 					}
-			} else if (submit != null && submit.equals(Message.get(locale, "UPDATE"))) {
+			} else if (submit.equals("UPDATE")) {
 				if (DEBUG) System.out.println("In updating row");
 				if (updateRow(con, table, parms, errors)) {
 					parms.remove("EDIT_ID");
@@ -193,52 +207,53 @@ public class Table extends Weblet {
 			}
 		}
 
-		if (submit != null && submit.equals(Message.get(locale, "NEW_COLUMN"))) {
+		if (submit != null && submit.equals("NEW_COLUMN")) {
 			String cn = parms.get("NEWCOLUMNNAME");
 			String dt = parms.get("NEWDATATYPE");
 			String tr = parms.get("NEWTABLEREF");
 			
 			OType type = null;
-			if (dt.equals(Message.get(locale, "DATATYPE_FLOAT"))) {
+			if (dt == null || dt.isEmpty()) {
+                        } else if (dt.equals("DATATYPE_FLOAT")) {
 				type = OType.DOUBLE;
 				tr = null;
-			} else if (dt.equals(Message.get(locale, "DATATYPE_INT"))) {
+			} else if (dt.equals("DATATYPE_INT")) {
 				type = OType.LONG;
 				tr = null;
-			} else if (dt.equals(Message.get(locale, "DATATYPE_BOOLEAN"))) {
+			} else if (dt.equals("DATATYPE_BOOLEAN")) {
 				type = OType.BOOLEAN;
 				tr = null;
-			} else if (dt.equals(Message.get(locale, "DATATYPE_TEXT"))) {
+			} else if (dt.equals("DATATYPE_TEXT")) {
 				type = OType.STRING;
 				tr = null;
-			} else if (dt.equals(Message.get(locale, "DATATYPE_DATETIME"))) {
+			} else if (dt.equals("DATATYPE_DATETIME")) {
 				type = OType.DATETIME;
 				tr = null;
-			} else if (dt.equals(Message.get(locale, "DATATYPE_DATE"))) {
+			} else if (dt.equals("DATATYPE_DATE")) {
 				type = OType.DATE;
 				tr = null;
-			} else if (dt.equals(Message.get(locale, "DATATYPE_BLOB"))) {
+			} else if (dt.equals("DATATYPE_BLOB")) {
 				type = OType.CUSTOM;
 				tr = null;
-			} else if (dt.equals(Message.get(locale, "DATATYPE_DECIMAL"))) {
+			} else if (dt.equals("DATATYPE_DECIMAL")) {
 				type = OType.DECIMAL;
 				tr = null;
-			} else if (dt.equals(Message.get(locale, "DATATYPE_LINK"))) {
+			} else if (dt.equals("DATATYPE_LINK")) {
 				type = OType.LINK;
 				if (isNullOrBlank(tr)) {
 					errors.append(paragraph("error", Message.get(locale, "LINK_TYPES_NEED_LINK_TABLE")));
 				}
-			} else if (dt.equals(Message.get(locale, "DATATYPE_LINKLIST"))) {
+			} else if (dt.equals("DATATYPE_LINKLIST")) {
 				type = OType.LINKLIST;
 				if (isNullOrBlank(tr)) {
 					errors.append(paragraph("error", Message.get(locale, "LINK_TYPES_NEED_LINK_TABLE")));
 				}
-			} else if (dt.equals(Message.get(locale, "DATATYPE_LINKSET"))) {
+			} else if (dt.equals("DATATYPE_LINKSET")) {
 				type = OType.LINKSET;
 				if (isNullOrBlank(tr)) {
 					errors.append(paragraph("error", Message.get(locale, "LINK_TYPES_NEED_LINK_TABLE")));
 				}
-			} else if (dt.equals(Message.get(locale, "DATATYPE_LINKMAP"))) {
+			} else if (dt.equals("DATATYPE_LINKMAP")) {
 				type = OType.LINKMAP;
 				if (isNullOrBlank(tr)) {
 					errors.append(paragraph("error", Message.get(locale, "LINK_TYPES_NEED_LINK_TABLE")));
@@ -268,7 +283,7 @@ public class Table extends Weblet {
 			} 
 		}
 
-		if (parms.containsKey("EDIT_ID") && (submit == null || !submit.equals(Message.get(locale, "CREATE_ROW")))) {
+		if (parms.containsKey("EDIT_ID") && (submit == null || !submit.equals("CREATE_ROW"))) {
 			return head(title, getScripts(con))
 					+ body(standardLayout(con, parms, getTableRowForm(con, table, parms)));
 		}
@@ -283,7 +298,7 @@ public class Table extends Weblet {
 					+((Security.getTablePriv(con, table) & PRIV_CREATE) > 0 ? popupForm("CREATE_NEW_ROW",null,Message.get(locale,"NEW_ROW"),null,"NAME",
 							paragraph("banner",Message.get(locale, "CREATE_ROW"))
 							+getTableRowFields(con, table, parms)
-							+center(submitButton(Message.get(locale, "CREATE_ROW")))) : "")
+							+center(submitButton(locale, "CREATE_ROW"))) : "")
 					+"&nbsp;&nbsp;&nbsp;"
 					+(Security.isDBA(con) ?
 						popupForm("NEWCOLUMN", null, Message.get(locale, "ADD_COLUMN"),null,"NEWCOLUMNNAME", newColumnForm(con))
@@ -302,6 +317,7 @@ public class Table extends Weblet {
 	// Clear all the dataTypes from the list if a message or locale has changed - called by Server
 	public static void clearDataTypes() {
 		dataTypeNames.clear();
+		dataTypeValues.clear();
 	}
 	
 	public String getScripts(DatabaseConnection con) {
@@ -796,12 +812,12 @@ public class Table extends Weblet {
 			+ form(formName, 
 					getTableRowFields(con, table, parms)
 					+ center((edit_id == null 
-					  ? ((Security.getTablePriv(con, table) & PRIV_CREATE) > 0 ? submitButton(Message.get(con.getLocale(), "CREATE_ROW")) : "")
-					  : ((Security.getTablePriv(con, table) & PRIV_UPDATE) > 0 ? submitButton(Message.get(con.getLocale(), "UPDATE")) : "") 
+					  ? ((Security.getTablePriv(con, table) & PRIV_CREATE) > 0 ? submitButton(con.getLocale(), "CREATE_ROW") : "")
+					  : ((Security.getTablePriv(con, table) & PRIV_UPDATE) > 0 ? submitButton(con.getLocale(), "UPDATE") : "") 
 						+ "&nbsp;&nbsp;"
-						+ submitButton(Message.get(con.getLocale(), "CANCEL"))))
+						+ submitButton(con.getLocale(), "CANCEL")))
 					+paragraph("delete",
-					  (edit_id != null && (Security.getTablePriv(con, table) & PRIV_CREATE) > 0 ? submitButton(Message.get(con.getLocale(), "COPY")) : "") + "&nbsp;&nbsp;"
+					  (edit_id != null && (Security.getTablePriv(con, table) & PRIV_CREATE) > 0 ? submitButton(con.getLocale(), "COPY") : "") + "&nbsp;&nbsp;"
 					+ (edit_id != null && (Security.getTablePriv(con, table) & PRIV_DELETE) > 0 ? deleteButton(con.getLocale()) : ""))
 			)
 			+ getTableRowRelated(con,table,parms);
@@ -1098,1147 +1114,1144 @@ public class Table extends Weblet {
 	}
 
 	public String getTableRowRelated(DatabaseConnection con, String table, HashMap<String, String> parms) {
-		StringBuilder sb = new StringBuilder();
-		Stack<String> tables = new Stack<String>();
-		Stack<String> columns = new Stack<String>();
-		Stack<OType> types = new Stack<OType>();
+            StringBuilder sb = new StringBuilder();
+            Stack<String> tables = new Stack<>();
+            Stack<String> columns = new Stack<>();
+            Stack<OType> types = new Stack<>();
 
-		String edit_id = parms.get("EDIT_ID");
-			
-		for (OClass c : con.getSchema().getClasses()) {
-			for (OProperty p : c.properties()) {
-				if (p.getLinkedClass() != null && p.getLinkedClass().getName().equals(table)) {
-					if (SHOW_ALL_RELATED_TABLES || (Security.getTablePriv(con, c.getName()) & PRIV_READ) > 0) {
-						tables.push(c.getName());
-						columns.push(p.getName());
-						types.push(p.getType());
-					}
-				}
-			}
-		}
+            String edit_id = parms.get("EDIT_ID");
 
-		// Add to or start the bread crumb so we can find our way back from a submit
-		String sourceTable = parms.get("SOURCETABLENAME");
-		String sourceId = parms.get("SOURCEEDIT_ID");
-		String newSourceTable = null;
-		String newSourceId = null;
-		if (sourceTable != null && !sourceTable.equals("") && sourceId != null && parms.get("SUBMIT") == null) {
-			String ids[] = sourceId.split(",");
-			String lastId = ids[ids.length-1];
-			if (!edit_id.equals(lastId)) {
-				newSourceTable = sourceTable+","+table;
-				newSourceId = sourceId+","+edit_id;
-			} 
-		} else {
-			newSourceTable = table;
-			newSourceId = edit_id;
-		}			
-		parms.put("SOURCEEDIT_ID", (newSourceId != null ? newSourceId : edit_id));
-		parms.put("SOURCETABLENAME", (newSourceTable != null ? newSourceTable : table));
+            for (OClass c : con.getSchema().getClasses()) {
+                for (OProperty p : c.properties()) {
+                    if (p.getLinkedClass() != null && p.getLinkedClass().getName().equals(table)) {
+                        if (SHOW_ALL_RELATED_TABLES || (Security.getTablePriv(con, c.getName()) & PRIV_READ) > 0) {
+                            tables.push(c.getName());
+                            columns.push(p.getName());
+                            types.push(p.getType());
+                        }
+                    }
+                }
+            }
 
-		if (DEBUG) System.out.println("getTableRowRelated "+tables.size());
+            // Add to or start the bread crumb so we can find our way back from a submit
+            String sourceTable = parms.get("SOURCETABLENAME");
+            String sourceId = parms.get("SOURCEEDIT_ID");
+            String newSourceTable = null;
+            String newSourceId = null;
+            if (sourceTable != null && !sourceTable.equals("") && sourceId != null && parms.get("SUBMIT") == null) {
+                String ids[] = sourceId.split(",");
+                String lastId = ids[ids.length-1];
+                if (!edit_id.equals(lastId)) {
+                    newSourceTable = sourceTable+","+table;
+                    newSourceId = sourceId+","+edit_id;
+                } 
+            } else {
+                newSourceTable = table;
+                newSourceId = edit_id;
+            }			
+            parms.put("SOURCEEDIT_ID", (newSourceId != null ? newSourceId : edit_id));
+            parms.put("SOURCETABLENAME", (newSourceTable != null ? newSourceTable : table));
+
+            if (DEBUG) System.out.println("getTableRowRelated "+tables.size());
 	    while (!tables.isEmpty()) {
-			String relTable = tables.pop();
-			String fkColumn = columns.pop();
-			OType fkType = types.pop();
-			
-			int priv = Security.getTablePriv(con, table);
-			//System.out.println("Privilege on table "+table+" for user "+con.getUser()+" = "+priv);
-			
-			HashMap<String,String> fkParms = new HashMap<String,String>();
-			fkParms.put("FORCE_"+fkColumn, edit_id);
-			
-			String hiddenFields = hidden("TABLENAME", relTable)
-								+ (newSourceId != null ? hidden("SOURCEEDIT_ID", newSourceId) : "")
-								+ (newSourceTable != null ? hidden("SOURCETABLENAME", newSourceTable) : "");
-			sb.append(
-				paragraph("banner",(table.equals(fkColumn) ?  makeCamelCasePretty(relTable) : makeCamelCasePretty(relTable) + " (" + makeCamelCasePretty(fkColumn) + ")"))
-				+ ((priv & PRIV_CREATE) > 0 ? popupForm("CREATE_NEW_ROW_"+relTable,"permeagility.web.Table",Message.get(con.getLocale(),"NEW_ROW"),null,"NAME",
-						paragraph("banner",Message.get(con.getLocale(), "CREATE_ROW"))
-						+hiddenFields
-						+getTableRowFields(con, relTable, fkParms)  // send fkcolumn data in parms
-						+center(submitButton(Message.get(con.getLocale(), "CREATE_ROW")))) : "")
-				+ "&nbsp;&nbsp;&nbsp;"
-				+ (Security.isDBA(con) 
-				  ? popupForm("NEWCOLUMN_"+relTable, null, Message.get(con.getLocale(), "ADD_COLUMN"),null,"NEWCOLUMNNAME",
-						hiddenFields
-						+newColumnForm(con))
-				   + "&nbsp;&nbsp;&nbsp;"
-				   + popupForm("RIGHTSOPTIONS_"+relTable, null, Message.get(con.getLocale(), "TABLE_RIGHTS_OPTIONS"),null,"XXX",
-				   hiddenFields
-				   + rightsOptionsForm(con,relTable,null,"")) 
-				 : "")
-				+ br() 
-				+ ((Security.getTablePriv(con, relTable) & PRIV_READ) > 0 ?
-						(fkType == OType.LINKLIST || fkType == OType.LINKSET || fkType == OType.LINKMAP || fkType == OType.LINKBAG 
-							? (fkType == OType.LINKMAP ? getTableWhere(con,parms,relTable,fkColumn,"containsvalue",edit_id,-1) 
-														:getTableWhere(con,parms,relTable,fkColumn,"contains",edit_id,-1))
-							: getTableWhere(con,parms,relTable,fkColumn,edit_id,-1)  // Need to pass parms so can add source to URL
-						)
-				: Message.get(con.getLocale(),"NO_ACCESS_TO_TABLE"))
-			);
+                String relTable = tables.pop();
+                String fkColumn = columns.pop();
+                OType fkType = types.pop();
+
+                int priv = Security.getTablePriv(con, table);
+                //System.out.println("Privilege on table "+table+" for user "+con.getUser()+" = "+priv);
+
+                HashMap<String,String> fkParms = new HashMap<String,String>();
+                fkParms.put("FORCE_"+fkColumn, edit_id);
+
+                String hiddenFields = hidden("TABLENAME", relTable)
+                    + (newSourceId != null ? hidden("SOURCEEDIT_ID", newSourceId) : "")
+                    + (newSourceTable != null ? hidden("SOURCETABLENAME", newSourceTable) : "");
+                sb.append(
+                    paragraph("banner",(table.equals(fkColumn) ?  makeCamelCasePretty(relTable) : makeCamelCasePretty(relTable) + " (" + makeCamelCasePretty(fkColumn) + ")"))
+                    + ((priv & PRIV_CREATE) > 0 ? popupForm("CREATE_NEW_ROW_"+relTable,"permeagility.web.Table",Message.get(con.getLocale(),"NEW_ROW"),null,"NAME",
+                        paragraph("banner",Message.get(con.getLocale(), "CREATE_ROW"))
+                        +hiddenFields
+                        +getTableRowFields(con, relTable, fkParms)  // send fkcolumn data in parms
+                        +center(submitButton(con.getLocale(), "CREATE_ROW"))) : "")
+                    + "&nbsp;&nbsp;&nbsp;"
+                    + (Security.isDBA(con) 
+                      ? popupForm("NEWCOLUMN_"+relTable, null, Message.get(con.getLocale(), "ADD_COLUMN"),null,"NEWCOLUMNNAME",
+                            hiddenFields
+                            +newColumnForm(con))
+                       + "&nbsp;&nbsp;&nbsp;"
+                       + popupForm("RIGHTSOPTIONS_"+relTable, null, Message.get(con.getLocale(), "TABLE_RIGHTS_OPTIONS"),null,"XXX",
+                       hiddenFields
+                       + rightsOptionsForm(con,relTable,null,"")) 
+                     : "")
+                    + br() 
+                    + ((Security.getTablePriv(con, relTable) & PRIV_READ) > 0 ?
+                        (fkType == OType.LINKLIST || fkType == OType.LINKSET || fkType == OType.LINKMAP || fkType == OType.LINKBAG 
+                            ? (fkType == OType.LINKMAP ? getTableWhere(con,parms,relTable,fkColumn,"containsvalue",edit_id,-1) 
+                                                    :getTableWhere(con,parms,relTable,fkColumn,"contains",edit_id,-1))
+                            : getTableWhere(con,parms,relTable,fkColumn,edit_id,-1)  // Need to pass parms so can add source to URL
+                        )
+                    : Message.get(con.getLocale(),"NO_ACCESS_TO_TABLE"))
+		);
 	    }
 	    return sb.toString();
 	}
 
 	public String newColumnForm(DatabaseConnection con) {
-		Locale l = con.getLocale();
-		String show = "ng-show=\"NEWDATATYPE == '"+Message.get(l, "DATATYPE_LINK")+"' || NEWDATATYPE == '"+Message.get(l, "DATATYPE_LINKLIST")+"' || NEWDATATYPE == '"+Message.get(l, "DATATYPE_LINKSET")+"' || NEWDATATYPE == '"+Message.get(l, "DATATYPE_LINKMAP")+"' \"";
-		return
-			paragraph("banner",Message.get(l, "NEW_COLUMN"))
-			+ createList(l,"NEWDATATYPE", Message.get(l, "DATATYPE_INT"), dataTypeNames.get(l), "ng-model=\"NEWDATATYPE\"", false, null, true)
-			+ createListFromCache("NEWTABLEREF", null, con, TABLE_REF_LIST, show, false, null, true)
-			+ br()
-			+ input("NEWCOLUMNNAME", "")
-			+ br()
-			+ center(submitButton(Message.get(l, "NEW_COLUMN")));
+            Locale l = con.getLocale();
+            String show = "ng-show=\"NEWDATATYPE == 'DATATYPE_LINK' || NEWDATATYPE == 'DATATYPE_LINKLIST' || NEWDATATYPE == 'DATATYPE_LINKSET' || NEWDATATYPE == 'DATATYPE_LINKMAP' \"";
+            return
+                paragraph("banner",Message.get(l, "NEW_COLUMN"))
+                + selectList(l,"NEWDATATYPE", "DATATYPE_TEXT", dataTypeNames.get(l), dataTypeValues.get(l), "ng-model=\"NEWDATATYPE\"", false, null, true)
+                + createListFromCache("NEWTABLEREF", null, con, TABLE_REF_LIST, show, false, null, true)
+                + br()
+                + input("NEWCOLUMNNAME", "")
+                + br()
+                + center(submitButton(l, "NEW_COLUMN"));
 	}
 	
 	/** Get the EDIT_ID from the parms, get the document and populate the parms with the document's field data */
 	public HashMap<String, String> getTableRowParameters(DatabaseConnection con, String schema, String table, HashMap<String, String> parms) {
-		if (DEBUG) System.out.println("getTableRowParameters: Getting row and injecting into parameters");
-		String edit_id = parms.get("EDIT_ID");
-		if (edit_id != null) {
-			QueryResult rows = con.query("SELECT FROM #" + edit_id);
-			if (rows != null && rows.size() == 1) {
-				String[] keys = rows.getColumns();
-				for (int i=0; i<keys.length; i++) {
-					String value = rows.getStringValue(0,keys[i]);
-					parms.put(keys[i], value);
-					if (DEBUG) System.out.println("Injected "+keys[i]+"="+value);
-				}
-			} else {
-				if (DEBUG) System.out.println("Error in permeagility.web.Table:getTableRowForm: Only one row may be returned by ID for editing rows="+ rows.size());
-				}
-		} else {
-			System.out.println("getTableRowParameters: EDIT_ID not specified");
-		}
-		return parms;
+            if (DEBUG) System.out.println("getTableRowParameters: Getting row and injecting into parameters");
+            String edit_id = parms.get("EDIT_ID");
+            if (edit_id != null) {
+                QueryResult rows = con.query("SELECT FROM #" + edit_id);
+                if (rows != null && rows.size() == 1) {
+                    String[] keys = rows.getColumns();
+                    for (int i=0; i<keys.length; i++) {
+                        String value = rows.getStringValue(0,keys[i]);
+                        parms.put(keys[i], value);
+                        if (DEBUG) System.out.println("Injected "+keys[i]+"="+value);
+                    }
+                } else {
+                    if (DEBUG) System.out.println("Error in permeagility.web.Table:getTableRowForm: Only one row may be returned by ID for editing rows="+ rows.size());
+                }
+            } else {
+                System.out.println("getTableRowParameters: EDIT_ID not specified");
+            }
+            return parms;
 	}
 
 	public String getTable(DatabaseConnection con, String table) {
-		String query = "SELECT FROM " + table;
-		return getTable(con, null,table,query,null,0);
+            String query = "SELECT FROM " + table;
+            return getTable(con, null,table,query,null,0);
 	}
 
 	public String getTable(DatabaseConnection con, String table, long page) {
-		String query = "SELECT FROM " + table;
-		return getTable(con, null,table,query,null,page);
+            String query = "SELECT FROM " + table;
+            return getTable(con, null,table,query,null,page);
 	}
 
 	public String getTableWhere(DatabaseConnection con, String table, String column, String columnValue) {
-		String query = "SELECT FROM " + table + " WHERE "+column+" = #"+columnValue;
-		return getTable(con, null,table,query,column, 0);
+            String query = "SELECT FROM " + table + " WHERE "+column+" = #"+columnValue;
+            return getTable(con, null,table,query,column, 0);
 	}
 
 	public String getTableWhere(DatabaseConnection con, String table, String column, String operator, String columnValue) {
-		String query = "SELECT FROM " + table + " WHERE "+column+" "+operator+" #"+columnValue;
-		return getTable(con, null,table,query,column, 0);
+            String query = "SELECT FROM " + table + " WHERE "+column+" "+operator+" #"+columnValue;
+            return getTable(con, null,table,query,column, 0);
 	}
 
 	public String getTableWhere(DatabaseConnection con, String table, String column, String columnValue, long page) {
-		String query = "SELECT FROM " + table + " WHERE "+column+"= #"+columnValue;
-		return getTable(con, null,table,query,column,page);
+            String query = "SELECT FROM " + table + " WHERE "+column+"= #"+columnValue;
+            return getTable(con, null,table,query,column,page);
 	}
 
 	public String getTableWhere(DatabaseConnection con, String table, String column, String operator, String columnValue, long page) {
-		String query = "SELECT FROM " + table + " WHERE "+column+" "+operator+" #"+columnValue;
-		return getTable(con, null,table,query,column,page);
+            String query = "SELECT FROM " + table + " WHERE "+column+" "+operator+" #"+columnValue;
+            return getTable(con, null,table,query,column,page);
 	}
 
 	public String getTable(DatabaseConnection con, String table, String query, String hideColumn, long page) {
-		return getTable(con, null, table, query, hideColumn, page, null);
+            return getTable(con, null, table, query, hideColumn, page, null);
 	}
 
 	public String getTable(DatabaseConnection con, HashMap<String,String> parms, String table) {
-		String query = "SELECT FROM " + table;
-		return getTable(con,table,query,null,0);
+            String query = "SELECT FROM " + table;
+            return getTable(con,table,query,null,0);
 	}
 
 	public String getTable(DatabaseConnection con, HashMap<String,String> parms, String table, long page) {
-		String query = "SELECT FROM " + table;
-		return getTable(con,table,query,null,page);
+            String query = "SELECT FROM " + table;
+            return getTable(con,table,query,null,page);
 	}
 
 	public String getTableWhere(DatabaseConnection con, HashMap<String,String> parms, String table, String column, String columnValue) {
-		String query = "SELECT FROM " + table + " WHERE "+column+" = #"+columnValue;
-		return getTable(con, parms,table,query,column, 0);
+            String query = "SELECT FROM " + table + " WHERE "+column+" = #"+columnValue;
+            return getTable(con, parms,table,query,column, 0);
 	}
 
 	public String getTableWhere(DatabaseConnection con, HashMap<String,String> parms, String table, String column, String operator, String columnValue) {
-		String query = "SELECT FROM " + table + " WHERE "+column+" "+operator+" #"+columnValue;
-		return getTable(con, parms,table,query,column, 0);
+            String query = "SELECT FROM " + table + " WHERE "+column+" "+operator+" #"+columnValue;
+            return getTable(con, parms,table,query,column, 0);
 	}
 
 	public String getTableWhere(DatabaseConnection con, HashMap<String,String> parms, String table, String column, String columnValue, long page) {
-		String query = "SELECT FROM " + table + " WHERE "+column+"= #"+columnValue;
-		return getTable(con, parms,table,query,column,page);
+            String query = "SELECT FROM " + table + " WHERE "+column+"= #"+columnValue;
+            return getTable(con, parms,table,query,column,page);
 	}
 
 	public String getTableWhere(DatabaseConnection con, HashMap<String,String> parms, String table, String column, String operator, String columnValue, long page) {
-		String query = "SELECT FROM " + table + " WHERE "+column+" "+operator+" #"+columnValue;
-		return getTable(con, parms,table,query,column,page);
+            String query = "SELECT FROM " + table + " WHERE "+column+" "+operator+" #"+columnValue;
+            return getTable(con, parms,table,query,column,page);
 	}
 
 	public String getTable(DatabaseConnection con, HashMap<String,String> parms, String table, String query, String hideColumn, long page) {
-		return getTable(con, parms, table, query, hideColumn, page, null);
+            return getTable(con, parms, table, query, hideColumn, page, null);
 	}
 
 	/** Get a row-clickable table - See example usages  Note: page=-1 will show all records, use where clause to limit data */
 	public String getTable(DatabaseConnection con, HashMap<String,String> parms, String table, String query, String hideColumn, long page, String columnOverride) {
-		try {
-			StringBuilder sb = new StringBuilder();
-			int rowCount = 0;
-			long totalRows = con.getRowCount(table);
-			// Handle Paging
-			if (page > -1) {
-				if (totalRows > ROW_COUNT_LIMIT) {
-					sb.append(Message.get(con.getLocale(), "PAGE_NAV")+"&nbsp;");
-					long pageCount = totalRows/ROW_COUNT_LIMIT+1;
-					for (long p=1; p<=pageCount; p++) {
-						if (Math.abs(page - p) < PAGE_WINDOW || pageCount - p < PAGE_WINDOW || p < PAGE_WINDOW) {
-							if (p == page) {
-								sb.append(bold(color("red", ""+p))+"&nbsp;");
-							} else {
-								sb.append(linkWithTip("permeagility.web.Table?TABLENAME="+table+"&PAGE="+p,""+p,"Page "+p)+"&nbsp;");
-							}
-						} else {
-							if (p % DOT_INTERVAL == 0) {
-								sb.append(linkWithTip("permeagility.web.Table?TABLENAME="+table+"&PAGE="+p,".","Page "+p));							
-							}
-						}
-					}
-				}
-				String skip = "";
-				if (page > 0) {
-					skip = " SKIP "+((page - 1) * ROW_COUNT_LIMIT);
-				}
-				query += skip + " LIMIT "+ROW_COUNT_LIMIT;
-			}
-			
-			String sourceTable = (parms != null ? parms.get("SOURCETABLENAME") : null);
-			String sourceId = (parms != null ? parms.get("SOURCEEDIT_ID") : null);
-			if (sourceTable != null) { sourceTable = "&SOURCETABLENAME="+sourceTable; } else { sourceTable = ""; }
-			if (sourceId != null) { sourceId = "&SOURCEEDIT_ID="+sourceId; } else { sourceId = ""; }
-			
-			if (DEBUG) System.out.println("permeagility.web.Table:query="+query);
-			QueryResult rs = con.query(query);
-			
-			// Get the table's columns
-			Collection<OProperty> columns = con.getColumns(table, columnOverride);
-			if (columns == null) {
-				System.out.println("Get columns for table:"+table+" returned null");
-			} else {
-				sb.append(getRowHeader(con, table, columns, hideColumn));
-				for (ODocument row : rs.get()) {
-					//if (DEBUG) System.out.println("Print row...");
+            try {
+                StringBuilder sb = new StringBuilder();
+                int rowCount = 0;
+                long totalRows = con.getRowCount(table);
+                // Handle Paging
+                if (page > -1) {
+                    if (totalRows > ROW_COUNT_LIMIT) {
+                        sb.append(Message.get(con.getLocale(), "PAGE_NAV")+"&nbsp;");
+                        long pageCount = totalRows/ROW_COUNT_LIMIT+1;
+                        for (long p=1; p<=pageCount; p++) {
+                            if (Math.abs(page - p) < PAGE_WINDOW || pageCount - p < PAGE_WINDOW || p < PAGE_WINDOW) {
+                                if (p == page) {
+                                    sb.append(bold(color("red", ""+p))+"&nbsp;");
+                                } else {
+                                    sb.append(linkWithTip("permeagility.web.Table?TABLENAME="+table+"&PAGE="+p,""+p,"Page "+p)+"&nbsp;");
+                                }
+                            } else {
+                                if (p % DOT_INTERVAL == 0) {
+                                    sb.append(linkWithTip("permeagility.web.Table?TABLENAME="+table+"&PAGE="+p,".","Page "+p));							
+                                }
+                            }
+                        }
+                    }
+                    String skip = "";
+                    if (page > 0) {
+                        skip = " SKIP "+((page - 1) * ROW_COUNT_LIMIT);
+                    }
+                    query += skip + " LIMIT "+ROW_COUNT_LIMIT;
+                }
+
+                String sourceTable = (parms != null ? parms.get("SOURCETABLENAME") : null);
+                String sourceId = (parms != null ? parms.get("SOURCEEDIT_ID") : null);
+                if (sourceTable != null) { sourceTable = "&SOURCETABLENAME="+sourceTable; } else { sourceTable = ""; }
+                if (sourceId != null) { sourceId = "&SOURCEEDIT_ID="+sourceId; } else { sourceId = ""; }
+
+                if (DEBUG) System.out.println("permeagility.web.Table:query="+query);
+                QueryResult rs = con.query(query);
+
+                // Get the table's columns
+                Collection<OProperty> columns = con.getColumns(table, columnOverride);
+                if (columns == null) {
+                    System.out.println("Get columns for table:"+table+" returned null");
+                } else {
+                    sb.append(getRowHeader(con, table, columns, hideColumn));
+                    for (ODocument row : rs.get()) {
+                            //if (DEBUG) System.out.println("Print row...");
 //					sb.append(rowOnClick("clickable", getRow(columns, row, con, hideColumn), "window.location.href='" + this.getClass().getName()
 //							+ "?EDIT_ID=" + row.getIdentity().toString().substring(1) + "&TABLENAME=" + table + sourceTable + sourceId +"';"));
-					sb.append(rowOnClick("clickable", getRow(columns, row, con, hideColumn), this.getClass().getName()
-							+ "?EDIT_ID=" + row.getIdentity().toString().substring(1) + "&TABLENAME=" + table + sourceTable + sourceId ));
-					rowCount++;
-					if (page > -1 && rowCount >= ROW_COUNT_LIMIT) break;
-				}
-				String rowCountInfo = paragraph(Message.get(con.getLocale(), "ROWS_OF", ""+rowCount, ""+totalRows) + "&nbsp;"+(page > -1 ? Message.get(con.getLocale(), "PAGE_NAV")+"&nbsp;"+page : ""));
-				sb.append(tableFooter(row(columnSpan(columns.size(), rowCountInfo ))));
-			}
-			return table("sortable", sb.toString());
-		} catch (Exception e) {
-			Throwable cause = e.getCause();
-			System.out.println("permeagility.web.Table: Error: " + e.getMessage() + (cause == null ? "" : ": " + cause.getMessage()));
-			e.printStackTrace();
-			return "Error: " + e.getMessage() + (cause == null ? "" : "<BR>" + cause.getMessage());
-		}
+                            sb.append(rowOnClick("clickable", getRow(columns, row, con, hideColumn), this.getClass().getName()
+                                            + "?EDIT_ID=" + row.getIdentity().toString().substring(1) + "&TABLENAME=" + table + sourceTable + sourceId ));
+                            rowCount++;
+                            if (page > -1 && rowCount >= ROW_COUNT_LIMIT) break;
+                    }
+                    String rowCountInfo = paragraph(Message.get(con.getLocale(), "ROWS_OF", ""+rowCount, ""+totalRows) + "&nbsp;"+(page > -1 ? Message.get(con.getLocale(), "PAGE_NAV")+"&nbsp;"+page : ""));
+                    sb.append(tableFooter(row(columnSpan(columns.size(), rowCountInfo ))));
+                }
+                return table("sortable", sb.toString());
+            } catch (Exception e) {
+                Throwable cause = e.getCause();
+                System.out.println("permeagility.web.Table: Error: " + e.getMessage() + (cause == null ? "" : ": " + cause.getMessage()));
+                e.printStackTrace();
+                return "Error: " + e.getMessage() + (cause == null ? "" : "<BR>" + cause.getMessage());
+            }
 	}
 
 	public String getRowHeader(DatabaseConnection con, String table, Collection<OProperty> columns, String hideColumn) throws SQLException {
-		StringBuilder sb = new StringBuilder();
-		for (OProperty column : columns) {
-			String columnName = column.getName();
-			String colNameI18N;
-			String trName = Message.get(con.getLocale(),"COLUMN_"+columnName);
-			if (!trName.equals("COLUMN_"+columnName)) {
-				colNameI18N = trName;
-			} else {
-				colNameI18N = makeCamelCasePretty(columnName);
-			}
-			if (!columnName.toUpperCase().endsWith("PASSWORD")  // && !columnName.startsWith("_")
-					&& (hideColumn == null || !columnName.equals(hideColumn)) ) {
-				if (columnName.startsWith("button_") && columnName.length() > 8 && columnName.indexOf('_',7) > 7) {
-					int cp = columnName.indexOf('_',7);
-					//String n = columnName.substring(7,cp);  // Not used
-					String l = columnName.substring(cp+1);
-					sb.append(columnHeaderNoSort(center(l)));
-				} else {
-					sb.append(columnHeader(center(colNameI18N)));
-				}
-			}
-		}
-		return row(sb.toString());
+            StringBuilder sb = new StringBuilder();
+            for (OProperty column : columns) {
+                String columnName = column.getName();
+                String colNameI18N;
+                String trName = Message.get(con.getLocale(),"COLUMN_"+columnName);
+                if (!trName.equals("COLUMN_"+columnName)) {
+                    colNameI18N = trName;
+                } else {
+                    colNameI18N = makeCamelCasePretty(columnName);
+                }
+                if (!columnName.toUpperCase().endsWith("PASSWORD")  // && !columnName.startsWith("_")
+                    && (hideColumn == null || !columnName.equals(hideColumn)) ) {
+                    if (columnName.startsWith("button_") && columnName.length() > 8 && columnName.indexOf('_',7) > 7) {
+                        int cp = columnName.indexOf('_',7);
+                        //String n = columnName.substring(7,cp);  // Not used
+                        String l = columnName.substring(cp+1);
+                        sb.append(columnHeaderNoSort(center(l)));
+                    } else {
+                        sb.append(columnHeader(center(colNameI18N)));
+                    }
+                }
+            }
+            return row(sb.toString());
 	}
 
 	public String getRow(Collection<OProperty> columns, ODocument d, DatabaseConnection con, String hideColumn) throws SQLException {
-		StringBuilder sb = new StringBuilder();
+            StringBuilder sb = new StringBuilder();
 //		if (DEBUG) System.out.println("Table.getRow colCount="+columns.size());
-		for (OProperty column : columns) {
-			String fieldName = column.getName();
-			if (!fieldName.toUpperCase().endsWith("PASSWORD")   // && !fieldName.startsWith("_")
-					&& 	(hideColumn == null || !fieldName.equals(hideColumn)) 
-					) {
-				if (fieldName.startsWith("button_") && fieldName.length() > 8 && fieldName.indexOf('_',7) > 7) {
-					int cp = fieldName.indexOf('_',7);
-					String n = fieldName.substring(7,cp);  
-					String l = fieldName.substring(cp+1);
+            for (OProperty column : columns) {
+                String fieldName = column.getName();
+                if (!fieldName.toUpperCase().endsWith("PASSWORD")   // && !fieldName.startsWith("_")
+                   && 	(hideColumn == null || !fieldName.equals(hideColumn)) ) {
+                    if (fieldName.startsWith("button_") && fieldName.length() > 8 && fieldName.indexOf('_',7) > 7) {
+                        int cp = fieldName.indexOf('_',7);
+                        String n = fieldName.substring(7,cp);  
+                        String l = fieldName.substring(cp+1);
 //					sb.append(column("<div style=\"z-index: 1000;\">"+form(hidden(n,d.getIdentity().toString().substring(1))+submitButton(l))+"</div>"));
 //					sb.append(column(form(hidden(n,d.getIdentity().toString().substring(1))+submitButton(l))));
-					sb.append(column(form(button(n,d.getIdentity().toString().substring(1),l))));
-				} else {
-					sb.append(getColumnAsCell(column, d, con));					
-				}
-			}
-		}
-		return sb.toString();
+                        sb.append(column(form(button(n,d.getIdentity().toString().substring(1),l))));
+                    } else {
+                        sb.append(getColumnAsCell(column, d, con));					
+                    }
+                }
+            }
+            return sb.toString();
 	}
 
 	private String getColumnAsCell(OProperty column, ODocument d, DatabaseConnection con) {
-		StringBuilder sb = new StringBuilder();
-		String columnName = column.getName();
-		Integer columnType = column.getType().getId(); 
+            StringBuilder sb = new StringBuilder();
+            String columnName = column.getName();
+            Integer columnType = column.getType().getId(); 
 //		if (DEBUG) System.out.println("permeagility.web.Table:Column name = "+columnName+" type = "+(columnType==null ? "null" : columnType));
-		if (columnType == 0) {
-			sb.append(column(checkboxDisabled(columnName, (d.field(columnName) == null ? false : (Boolean)d.field(columnName)))));
-		} else if (columnType == 1 || columnType == 2 || columnType == 3) {   // OrientDB int, short, long type
-			sb.append(column("number", ""+(d.field(columnName) == null ? "" : formatNumber(con.getLocale(),(Number)d.field(columnName),INT_FORMAT))));
-		} else if (columnType == 4 || columnType == 5) {   // OrientDB float, double
-			sb.append(column("number", ""+(d.field(columnName) == null ? "" : formatNumber(con.getLocale(),(Number)d.field(columnName),FLOAT_FORMAT))));
-		} else if (columnType == 6) {  // OrientDB Datetime
-			sb.append(column(""+(d.field(columnName) == null ? "" : formatDate(con.getLocale(),(Date)d.field(columnName),Message.get(con.getLocale(), "DATE_FORMAT")+' '+Message.get(con.getLocale(), "TIME_FORMAT")))));
-		} else if (columnType == 7) {  // String
-			if (columnName.toUpperCase().endsWith("COLOR") 
-				|| columnName.toUpperCase().endsWith("COLOUR")) {
-				sb.append(columnColor(5, (String)d.field(columnName)));				
-			} else {
-				String stringvalue = d.field(columnName);
-				if (stringvalue != null && stringvalue.length() > MAX_STRING_DISPLAY) {
-					stringvalue = stringvalue.substring(0, MAX_STRING_DISPLAY) + "...";
-				}
-				if (stringvalue != null) {
-					stringvalue = stringvalue.replace("<","&lt;"); // These can mess up the display
-					stringvalue = stringvalue.replace(">","&gt;");
-				}
-				sb.append(column(stringvalue));
-			}
-		} else if (columnType == 20) {  // Binary (Using CUSTOM OType)
-			StringBuilder desc = new StringBuilder();
-			String blobid = Thumbnail.getThumbnailId(d.getClassName(), d.getIdentity().toString().substring(1), columnName, desc);
-			if (blobid != null) {
-				sb.append(column(Thumbnail.getThumbnailLink(con.getLocale(),blobid, desc.toString())));
-			} else {
-				sb.append(column("<div title=\""+Message.get(con.getLocale(), "THUMBNAIL_NOT_FOUND",columnName, d.getIdentity().toString()+"\">"+Message.get(con.getLocale(),"OPTION_NONE")+"</div>")));					
-			} 
+            if (columnType == 0) {
+                    sb.append(column(checkboxDisabled(columnName, (d.field(columnName) == null ? false : (Boolean)d.field(columnName)))));
+            } else if (columnType == 1 || columnType == 2 || columnType == 3) {   // OrientDB int, short, long type
+                    sb.append(column("number", ""+(d.field(columnName) == null ? "" : formatNumber(con.getLocale(),(Number)d.field(columnName),INT_FORMAT))));
+            } else if (columnType == 4 || columnType == 5) {   // OrientDB float, double
+                    sb.append(column("number", ""+(d.field(columnName) == null ? "" : formatNumber(con.getLocale(),(Number)d.field(columnName),FLOAT_FORMAT))));
+            } else if (columnType == 6) {  // OrientDB Datetime
+                    sb.append(column(""+(d.field(columnName) == null ? "" : formatDate(con.getLocale(),(Date)d.field(columnName),Message.get(con.getLocale(), "DATE_FORMAT")+' '+Message.get(con.getLocale(), "TIME_FORMAT")))));
+            } else if (columnType == 7) {  // String
+                    if (columnName.toUpperCase().endsWith("COLOR") 
+                            || columnName.toUpperCase().endsWith("COLOUR")) {
+                            sb.append(columnColor(5, (String)d.field(columnName)));				
+                    } else {
+                            String stringvalue = d.field(columnName);
+                            if (stringvalue != null && stringvalue.length() > MAX_STRING_DISPLAY) {
+                                    stringvalue = stringvalue.substring(0, MAX_STRING_DISPLAY) + "...";
+                            }
+                            if (stringvalue != null) {
+                                    stringvalue = stringvalue.replace("<","&lt;"); // These can mess up the display
+                                    stringvalue = stringvalue.replace(">","&gt;");
+                            }
+                            sb.append(column(stringvalue));
+                    }
+            } else if (columnType == 20) {  // Binary (Using CUSTOM OType)
+                    StringBuilder desc = new StringBuilder();
+                    String blobid = Thumbnail.getThumbnailId(d.getClassName(), d.getIdentity().toString().substring(1), columnName, desc);
+                    if (blobid != null) {
+                            sb.append(column(Thumbnail.getThumbnailLink(con.getLocale(),blobid, desc.toString())));
+                    } else {
+                            sb.append(column("<div title=\""+Message.get(con.getLocale(), "THUMBNAIL_NOT_FOUND",columnName, d.getIdentity().toString()+"\">"+Message.get(con.getLocale(),"OPTION_NONE")+"</div>")));					
+                    } 
 
-		} else if (columnType >= 9 && columnType <= 12) {  // Embedded
-			String stringvalue = ""+d.field(columnName);
-			if (stringvalue != null && stringvalue.length() > MAX_STRING_DISPLAY) {
-				stringvalue = stringvalue.substring(0, MAX_STRING_DISPLAY) + "...";
-			}
-			sb.append(column(stringvalue));
-		} else if (columnType == 13) {  // Link
-			ODocument l = d.field(columnName);
-			String desc = "";
-			if (l != null) {
-				desc = getDescriptionFromDocument(con, l);
-				if (desc == null) {
-					desc = (String)l.field("name");
-				}
-			}
-			sb.append(column(desc == null ? "null" : desc));
-		} else if (columnType == 14) {  // LinkList
-			List<ODocument> l = d.field(columnName);
-			StringBuilder ll = new StringBuilder();
-			if (l != null) {
-				if (DEBUG) System.out.println("linkList size="+l.size()+(l.size()>0 ? " type="+l.get(0).getClass().getName() : ""));
-				for (ODocument o : l) {
-					if (o != null) {
-						ll.append(getDescriptionFromDocument(con, o)+br());
-					}
-				}
-			}
-			sb.append(column(ll.toString()));
-		} else if (columnType == 15) {  // LinkSet
-			Set<ODocument> l = d.field(columnName);
-			StringBuilder ll = new StringBuilder();
-			if (l != null) {
-				for (Object o : l) {
-					if (o != null) {
-						if (o instanceof ORecordId) {
-							o = con.getDb().getRecord((ORecordId)o);
-						}
-						if (o != null) {
-							ll.append(getDescriptionFromDocument(con, (ODocument)o)+br());
-						}
-					}
-				}
-			}
-			sb.append(column(ll.toString()));
-		} else if (columnType == 16) {    // LinkMap
-			Map<String,ODocument> l = d.field(columnName);
-			StringBuilder ll = new StringBuilder();
-			if (l != null) {
-				for (String k : l.keySet()) {
-					ODocument o = l.get(k);
-					if (o != null) {
-						ll.append(k+":"+getDescriptionFromDocument(con, o)+br());
-					}
-				}
-			}
-			sb.append(column(ll.toString()));
-		} else if (columnType == 17) {  // Byte
-			sb.append(column(""+d.field(columnName)));
-		} else if (columnType == 18) {  // Transient
-			sb.append(column("transient"));
-		} else if (columnType == 19) {  // OrientDB Date
-			sb.append(column(""+(d.field(columnName) == null ? "" : formatDate(con.getLocale(),(Date)d.field(columnName),Message.get(con.getLocale(), "DATE_FORMAT")))));
-		} else if (columnType == 21) {   // OrientDB Decimal
-			Number num = (Number)d.field(columnName);
-			String formatted = (num == null ? "" : formatNumber(con.getLocale(),num,FLOAT_FORMAT));
-			sb.append(column("number", formatted));
-		} else if (columnType == 22) {   // LinkBag
-			sb.append(column("LinkBag"));
-		} else if (columnType == 23) {   // Any
-			Object value = d.field(columnName);
-			sb.append(column(value == null ? "null" : value.toString() ));
-		} else {
-			if (DEBUG) System.out.println("Table: unrecognized type "+columnType);
-			sb.append(column("??"+columnType+"??"));
-		}
-		return sb.toString();
+            } else if (columnType >= 9 && columnType <= 12) {  // Embedded
+                    String stringvalue = ""+d.field(columnName);
+                    if (stringvalue != null && stringvalue.length() > MAX_STRING_DISPLAY) {
+                            stringvalue = stringvalue.substring(0, MAX_STRING_DISPLAY) + "...";
+                    }
+                    sb.append(column(stringvalue));
+            } else if (columnType == 13) {  // Link
+                    ODocument l = d.field(columnName);
+                    String desc = "";
+                    if (l != null) {
+                            desc = getDescriptionFromDocument(con, l);
+                            if (desc == null) {
+                                    desc = (String)l.field("name");
+                            }
+                    }
+                    sb.append(column(desc == null ? "null" : desc));
+            } else if (columnType == 14) {  // LinkList
+                    List<ODocument> l = d.field(columnName);
+                    StringBuilder ll = new StringBuilder();
+                    if (l != null) {
+                            if (DEBUG) System.out.println("linkList size="+l.size()+(l.size()>0 ? " type="+l.get(0).getClass().getName() : ""));
+                            for (ODocument o : l) {
+                                    if (o != null) {
+                                            ll.append(getDescriptionFromDocument(con, o)+br());
+                                    }
+                            }
+                    }
+                    sb.append(column(ll.toString()));
+            } else if (columnType == 15) {  // LinkSet
+                    Set<ODocument> l = d.field(columnName);
+                    StringBuilder ll = new StringBuilder();
+                    if (l != null) {
+                            for (Object o : l) {
+                                    if (o != null) {
+                                            if (o instanceof ORecordId) {
+                                                    o = con.getDb().getRecord((ORecordId)o);
+                                            }
+                                            if (o != null) {
+                                                    ll.append(getDescriptionFromDocument(con, (ODocument)o)+br());
+                                            }
+                                    }
+                            }
+                    }
+                    sb.append(column(ll.toString()));
+            } else if (columnType == 16) {    // LinkMap
+                    Map<String,ODocument> l = d.field(columnName);
+                    StringBuilder ll = new StringBuilder();
+                    if (l != null) {
+                            for (String k : l.keySet()) {
+                                    ODocument o = l.get(k);
+                                    if (o != null) {
+                                            ll.append(k+":"+getDescriptionFromDocument(con, o)+br());
+                                    }
+                            }
+                    }
+                    sb.append(column(ll.toString()));
+            } else if (columnType == 17) {  // Byte
+                    sb.append(column(""+d.field(columnName)));
+            } else if (columnType == 18) {  // Transient
+                    sb.append(column("transient"));
+            } else if (columnType == 19) {  // OrientDB Date
+                    sb.append(column(""+(d.field(columnName) == null ? "" : formatDate(con.getLocale(),(Date)d.field(columnName),Message.get(con.getLocale(), "DATE_FORMAT")))));
+            } else if (columnType == 21) {   // OrientDB Decimal
+                    Number num = (Number)d.field(columnName);
+                    String formatted = (num == null ? "" : formatNumber(con.getLocale(),num,FLOAT_FORMAT));
+                    sb.append(column("number", formatted));
+            } else if (columnType == 22) {   // LinkBag
+                    sb.append(column("LinkBag"));
+            } else if (columnType == 23) {   // Any
+                    Object value = d.field(columnName);
+                    sb.append(column(value == null ? "null" : value.toString() ));
+            } else {
+                    if (DEBUG) System.out.println("Table: unrecognized type "+columnType);
+                    sb.append(column("??"+columnType+"??"));
+            }
+            return sb.toString();
 	}
 
 	public String advancedOptions(DatabaseConnection con, String table, HashMap<String, String> parms) {
-		Locale locale = con.getLocale();
-		StringBuilder errors = new StringBuilder();
-		String submit = parms.get("SUBMIT");
-		if (submit != null) {
-			if (submit.equals(Message.get(locale, "RENAME_TABLE_BUTTON"))) {
-				if (isNullOrBlank(parms.get("RENAME_TABLE"))) {
-					errors.append(paragraph("error", "Please specify a new name"));
-				} else {
-					try {
-						String newtable = parms.get("RENAME_TABLE");
-						newtable = makePrettyCamelCase(newtable);
-						Server.tableUpdated(table);
-						con.update("ALTER CLASS "+table+" NAME "+newtable);
-						con.update("UPDATE columns SET name='"+newtable+"' WHERE name='"+table+"'");
-						table = newtable;
-						Server.tableUpdated("metadata:schema");
-						return redirect(locale, this, "TABLENAME=" + table);
-					} catch (Exception e) {
-						errors.append(paragraph("error", e.getMessage()));
-					}
-				}
-			} else if (submit.equals(Message.get(locale, "RENAME_COLUMN_BUTTON"))) {
-				if (isNullOrBlank(parms.get("RENAME_COLUMN"))) {
-					errors.append(paragraph("error", Message.get(locale, "SPECIFY_COLUMN_NAME")));
-				} else {
-					try {
-						String oldcolumn = parms.get("COLUMN_TO_RENAME");
-						String newcolumn = parms.get("RENAME_COLUMN");
-						newcolumn = makePrettyCamelCase(newcolumn);
-						con.update("ALTER PROPERTY " + table + "."+ oldcolumn +" NAME " + newcolumn);
-						ODocument d = con.queryDocument("SELECT FROM columns WHERE name='"+table+"'");
-						if (d != null) {
-							String cl = d.field("columnList");
-							if (cl != null) {
-								d.field("columnList",cl.replace(oldcolumn, newcolumn));
-								d.save();
-							}								
-						}
-						Server.tableUpdated("metadata:schema");
-						return redirect(locale, this, "TABLENAME=" + table);
-					} catch (Exception e) {
-						errors.append(paragraph("error", e.getMessage()));
-					}
-				}
-			} else if (submit.equals(Message.get(locale, "DROP_COLUMN_BUTTON"))) {
-				if (isNullOrBlank(parms.get("COLUMN_TO_DROP"))) {
-					errors.append(paragraph("error", Message.get(locale, "SPECIFY_COLUMN_NAME")));
-				} else {
-					String colToDrop = parms.get("COLUMN_TO_DROP");
-					try {
-						OClass c = con.getSchema().getClass(table);
-						c.dropProperty(colToDrop);
-						Object ret = con.update("UPDATE "+table+" REMOVE "+colToDrop);  // Otherwise, column actually remains in the data
-						errors.append(paragraph("success", "Data for column removed:"+ret));						
-						Setup.removeColumnFromColumns(con, table, colToDrop);
-						Server.tableUpdated("metadata:schema");
-						return redirect(locale, this, "TABLENAME=" + table);
-					} catch (Exception e) {
-						errors.append(paragraph("error", e.getMessage()));
-					}
-				}
-			} else if (submit.equals(Message.get(locale, "DROP_TABLE_BUTTON"))) {
-				try {
-					con.update("DROP class " + table);
-					ODocument d = con.queryDocument("SELECT FROM columns WHERE name='"+table+"'");
-					if (d != null) {
-						d.delete();
-						d.save();
-					}
-					DatabaseConnection.rowCountChanged(table);
-					return redirect(locale, this);
-				} catch (Exception e) {
-					errors.append(paragraph("error", e.getMessage()));
-				}
-			}
-		}
-		String title = table + " " + Message.get(locale, "ADVANCED_OPTIONS");
-		parms.put("SERVICE", title);
-		return head(title,getScripts(con))
-				+ body(standardLayout(con, parms,
-					advancedOptionsForm(con, table, parms,errors.toString())
-					+ br()
-					+ link("permeagility.web.Table?TABLENAME=" + table, Message.get(locale, "BACK_TO_TABLE"))
-				));
+            Locale locale = con.getLocale();
+            StringBuilder errors = new StringBuilder();
+            String submit = parms.get("SUBMIT");
+            if (submit != null) {
+                if (submit.equals("RENAME_TABLE_BUTTON")) {
+                        if (isNullOrBlank(parms.get("RENAME_TABLE"))) {
+                                errors.append(paragraph("error", "Please specify a new name"));
+                        } else {
+                                try {
+                                        String newtable = parms.get("RENAME_TABLE");
+                                        newtable = makePrettyCamelCase(newtable);
+                                        Server.tableUpdated(table);
+                                        con.update("ALTER CLASS "+table+" NAME "+newtable);
+                                        con.update("UPDATE columns SET name='"+newtable+"' WHERE name='"+table+"'");
+                                        table = newtable;
+                                        Server.tableUpdated("metadata:schema");
+                                        return redirect(locale, this, "TABLENAME=" + table);
+                                } catch (Exception e) {
+                                        errors.append(paragraph("error", e.getMessage()));
+                                }
+                        }
+                } else if (submit.equals("RENAME_COLUMN_BUTTON")) {
+                        if (isNullOrBlank(parms.get("RENAME_COLUMN"))) {
+                                errors.append(paragraph("error", Message.get(locale, "SPECIFY_COLUMN_NAME")));
+                        } else {
+                                try {
+                                        String oldcolumn = parms.get("COLUMN_TO_RENAME");
+                                        String newcolumn = parms.get("RENAME_COLUMN");
+                                        newcolumn = makePrettyCamelCase(newcolumn);
+                                        con.update("ALTER PROPERTY " + table + "."+ oldcolumn +" NAME " + newcolumn);
+                                        ODocument d = con.queryDocument("SELECT FROM columns WHERE name='"+table+"'");
+                                        if (d != null) {
+                                                String cl = d.field("columnList");
+                                                if (cl != null) {
+                                                        d.field("columnList",cl.replace(oldcolumn, newcolumn));
+                                                        d.save();
+                                                }								
+                                        }
+                                        Server.tableUpdated("metadata:schema");
+                                        return redirect(locale, this, "TABLENAME=" + table);
+                                } catch (Exception e) {
+                                        errors.append(paragraph("error", e.getMessage()));
+                                }
+                        }
+                } else if (submit.equals("DROP_COLUMN_BUTTON")) {
+                        if (isNullOrBlank(parms.get("COLUMN_TO_DROP"))) {
+                                errors.append(paragraph("error", Message.get(locale, "SPECIFY_COLUMN_NAME")));
+                        } else {
+                                String colToDrop = parms.get("COLUMN_TO_DROP");
+                                try {
+                                        OClass c = con.getSchema().getClass(table);
+                                        c.dropProperty(colToDrop);
+                                        Object ret = con.update("UPDATE "+table+" REMOVE "+colToDrop);  // Otherwise, column actually remains in the data
+                                        errors.append(paragraph("success", "Data for column removed:"+ret));						
+                                        Setup.removeColumnFromColumns(con, table, colToDrop);
+                                        Server.tableUpdated("metadata:schema");
+                                        return redirect(locale, this, "TABLENAME=" + table);
+                                } catch (Exception e) {
+                                        errors.append(paragraph("error", e.getMessage()));
+                                }
+                        }
+                } else if (submit.equals("DROP_TABLE_BUTTON")) {
+                        try {
+                                con.update("DROP class " + table);
+                                ODocument d = con.queryDocument("SELECT FROM columns WHERE name='"+table+"'");
+                                if (d != null) {
+                                        d.delete();
+                                        d.save();
+                                }
+                                DatabaseConnection.rowCountChanged(table);
+                                return redirect(locale, this);
+                        } catch (Exception e) {
+                                errors.append(paragraph("error", e.getMessage()));
+                        }
+                }
+            }
+            String title = table + " " + Message.get(locale, "ADVANCED_OPTIONS");
+            parms.put("SERVICE", title);
+            return head(title,getScripts(con))
+                + body(standardLayout(con, parms,
+                        advancedOptionsForm(con, table, parms,errors.toString())
+                        + br()
+                        + link("permeagility.web.Table?TABLENAME=" + table, Message.get(locale, "BACK_TO_TABLE"))
+                ));
 	}
 
 	public String advancedOptionsForm(DatabaseConnection con, String table, HashMap<String, String> parms,String errors) {
-		Locale locale = con.getLocale();
-		return hidden("ADVANCED_OPTIONS", "YES")
-				+ paragraph("banner",Message.get(locale, "ADVANCED_OPTIONS"))
-				+ errors
-				+ paragraph(Message.get(locale, "RENAME_TABLE_TO") + input("RENAME_TABLE", (parms != null ? parms.get("RENAME_TABLE") : ""))
-					+ submitButton(Message.get(locale, "RENAME_TABLE_BUTTON")))
-				+ paragraph(Message.get(locale, "RENAME_COLUMN") + " " 
-					+ createListFromCache("COLUMN_TO_RENAME", (parms != null ? parms.get("COLUMN_TO_RENAME") : ""), con,
-							"SELECT name as rid, name FROM (SELECT expand(properties) FROM (select expand(classes) from metadata:schema) where name = '" + table + "') ORDER BY name") 
-						+ Message.get(locale, "CHANGE_NAME_TO")
-					+ input("RENAME_COLUMN", (parms != null ? parms.get("RENAME_COLUMN") : ""))
-					+ submitButton(Message.get(locale, "RENAME_COLUMN_BUTTON")))
-				+ paragraph(Message.get(locale, "DROP_COLUMN") + " " 
-					+ createListFromCache("COLUMN_TO_DROP", (parms != null ? parms.get("COLUMN_TO_DROP") : ""), con,
-							"SELECT name as rid, name FROM (SELECT expand(properties) FROM (select expand(classes) from metadata:schema) where name = '" + table + "') ORDER BY name") 
-					+ confirmButton(Message.get(locale, "DROP_COLUMN_BUTTON"), Message.get(locale, "DROP_COLUMN")))
-				+ paragraph(Message.get(locale, "DROP_TABLE") + " " + table + "   "
-					+ confirmButton(Message.get(locale, "DROP_TABLE_BUTTON"),
-							Message.get(locale, "DROP_TABLE_CONFIRM")));
+            Locale locale = con.getLocale();
+            return hidden("ADVANCED_OPTIONS", "YES")
+                + paragraph("banner",Message.get(locale, "ADVANCED_OPTIONS"))
+                + errors
+                + paragraph(Message.get(locale, "RENAME_TABLE_TO") + input("RENAME_TABLE", (parms != null ? parms.get("RENAME_TABLE") : ""))
+                        + submitButton(locale, "RENAME_TABLE_BUTTON"))
+                + paragraph(Message.get(locale, "RENAME_COLUMN") + " " 
+                        + createListFromCache("COLUMN_TO_RENAME", (parms != null ? parms.get("COLUMN_TO_RENAME") : ""), con,
+                                        "SELECT name as rid, name FROM (SELECT expand(properties) FROM (select expand(classes) from metadata:schema) where name = '" + table + "') ORDER BY name") 
+                                + Message.get(locale, "CHANGE_NAME_TO")
+                        + input("RENAME_COLUMN", (parms != null ? parms.get("RENAME_COLUMN") : ""))
+                        + submitButton(locale, "RENAME_COLUMN_BUTTON"))
+                + paragraph(Message.get(locale, "DROP_COLUMN") + " " 
+                        + createListFromCache("COLUMN_TO_DROP", (parms != null ? parms.get("COLUMN_TO_DROP") : ""), con,
+                                        "SELECT name as rid, name FROM (SELECT expand(properties) FROM (select expand(classes) from metadata:schema) where name = '" + table + "') ORDER BY name") 
+                        + confirmButton(Message.get(locale, "DROP_COLUMN_BUTTON"), Message.get(locale, "DROP_COLUMN")))
+                + paragraph(Message.get(locale, "DROP_TABLE") + " " + table + "   "
+                        + confirmButton(Message.get(locale, "DROP_TABLE_BUTTON"), Message.get(locale, "DROP_TABLE_CONFIRM")));
 	}
 
 	public String rightsOptions(DatabaseConnection con, String table, HashMap<String, String> parms) {
-		Locale locale = con.getLocale();
-		StringBuilder errors = new StringBuilder();
-		String submit = (parms != null ? parms.get("SUBMIT") : null);
-		String right = (parms != null ? parms.get("RIGHT") : null);
-		String role = (parms != null ? parms.get("ROLESELECT") : null);
-		if (submit != null && submit.equals(Message.get(locale, "GRANT_RIGHT"))) {
-			if (DEBUG) System.out.println("Granting right");
-			String grantQuery = "GRANT "+right
-								+" ON database.class."+table
-								+" TO "+role;
-			System.out.println("Executing GRANT: "+grantQuery);
-			try {
-				con.update(grantQuery);
-				Server.tableUpdated("ORole");  // Privs are stored in ORole
-				Security.tablePrivUpdated(table);
-			} catch (Exception e) {
-				errors.append(e.getLocalizedMessage());
-				e.printStackTrace();
-			}
+            Locale locale = con.getLocale();
+            StringBuilder errors = new StringBuilder();
+            String submit = (parms != null ? parms.get("SUBMIT") : null);
+            String right = (parms != null ? parms.get("RIGHT") : null);
+            String role = (parms != null ? parms.get("ROLESELECT") : null);
+            if (submit != null && submit.equals("GRANT_RIGHT")) {
+                if (DEBUG) System.out.println("Granting right");
+                String grantQuery = "GRANT "+right
+                                +" ON database.class."+table
+                                +" TO "+role;
+                System.out.println("Executing GRANT: "+grantQuery);
+                try {
+                    con.update(grantQuery);
+                    Server.tableUpdated("ORole");  // Privs are stored in ORole
+                    Security.tablePrivUpdated(table);
+                } catch (Exception e) {
+                    errors.append(e.getLocalizedMessage());
+                    e.printStackTrace();
+                }
+                return redirect(locale, this, "TABLENAME=" + table);
+            }
+            if (submit != null && submit.equals("REVOKE_RIGHT")) {
+                if (DEBUG) System.out.println("Revoking right ");
+                String revokeQuery = "REVOKE "+right
+                                +" ON database.class."+table
+                                +" FROM "+role;
+                System.out.println("Executing REVOKE: "+revokeQuery);
+                try {
+                    con.update(revokeQuery);
+                    Server.tableUpdated("ORole");  // Stored in ORole
+                    Security.tablePrivUpdated(table);
+                } catch (Exception e) {
+                    errors.append(e.getLocalizedMessage());
+                    e.printStackTrace();
+                }
+                return redirect(locale, this, "TABLENAME=" + table);
+            }
 
-			return redirect(locale, this, "TABLENAME=" + table);
-		}
-		if (submit != null && submit.equals(Message.get(locale, "REVOKE_RIGHT"))) {
-			if (DEBUG) System.out.println("Revoking right ");
-			String revokeQuery = "REVOKE "+right
-								+" ON database.class."+table
-								+" FROM "+role;
-			System.out.println("Executing REVOKE: "+revokeQuery);
-			try {
-				con.update(revokeQuery);
-				Server.tableUpdated("ORole");  // Stored in ORole
-				Security.tablePrivUpdated(table);
-			} catch (Exception e) {
-				errors.append(e.getLocalizedMessage());
-				e.printStackTrace();
-			}
-			return redirect(locale, this, "TABLENAME=" + table);
-		}
-
-		String title = table + " " + Message.get(locale, "ADVANCED_OPTIONS");
-		parms.put("SERVICE", title);
-		return head(title,getScripts(con))
-				+ body(standardLayout(con, parms,
-					rightsOptionsForm(con, table, parms,errors.toString())
-					+ br()
-					+ link("permeagility.web.Table?TABLENAME=" + table, Message.get(locale, "BACK_TO_TABLE"))
-				));
+            String title = table + " " + Message.get(locale, "ADVANCED_OPTIONS");
+            parms.put("SERVICE", title);
+            return head(title,getScripts(con))
+                + body(standardLayout(con, parms,
+                        rightsOptionsForm(con, table, parms,errors.toString())
+                        + br()
+                        + link("permeagility.web.Table?TABLENAME=" + table, Message.get(locale, "BACK_TO_TABLE"))
+                ));
 	}
 
 	public String rightsOptionsForm(DatabaseConnection con, String table, HashMap<String, String> parms,String errors) {
-		StringBuilder currentRights = new StringBuilder();
-		List<String> rightsNames = new ArrayList<String>();
-		HashMap<String,Number> privs = Security.getTablePrivs(table);
+            StringBuilder currentRights = new StringBuilder();
+            List<String> rightsNames = new ArrayList<String>();
+            HashMap<String,Number> privs = Security.getTablePrivs(table);
 
-		for (String role : privs.keySet()) {
-			Number b = privs.get(role);
-			if (b != null) {
-				StringBuilder sb = new StringBuilder();
-				if (b.intValue() == 0) {
-					sb.append(Message.get(con.getLocale(), "PRIV_NONE"));
-				} else if (b.intValue() == PRIV_ALL) {
-						sb.append(Message.get(con.getLocale(), "PRIV_ALL"));
-				} else {
-					if (DEBUG) System.out.println("role="+role+" table="+table+" create="+(b.intValue() & PRIV_CREATE)+" read="+(b.intValue() & PRIV_READ)+" update="+(b.intValue() & PRIV_UPDATE)+" delete="+(b.intValue() & PRIV_DELETE));
-					if ((b.intValue() & PRIV_CREATE) > 0) {
-						sb.append(Message.get(con.getLocale(), "PRIV_CREATE"));
-					}
-					if ((b.intValue() & PRIV_READ) > 0) {
-						if (sb.length() > 0) { sb.append(", "); }
-						sb.append(Message.get(con.getLocale(), "PRIV_READ"));
-					}
-					if ((b.intValue() & PRIV_UPDATE) > 0) {
-						if (sb.length() > 0) { sb.append(", "); }
-						sb.append(Message.get(con.getLocale(), "PRIV_UPDATE"));
-					}
-					if ((b.intValue() & PRIV_DELETE) > 0) {
-						if (sb.length() > 0) { sb.append(", "); }
-						sb.append(Message.get(con.getLocale(), "PRIV_DELETE"));
-					}
-				}
-				currentRights.append(Message.get(con.getLocale(), "ROLE_CAN_PRIV", role,sb.toString())+br());
-			}
-		}
+            for (String role : privs.keySet()) {
+                Number b = privs.get(role);
+                if (b != null) {
+                    StringBuilder sb = new StringBuilder();
+                    if (b.intValue() == 0) {
+                        sb.append(Message.get(con.getLocale(), "PRIV_NONE"));
+                    } else if (b.intValue() == PRIV_ALL) {
+                        sb.append(Message.get(con.getLocale(), "PRIV_ALL"));
+                    } else {
+                        if (DEBUG) System.out.println("role="+role+" table="+table+" create="+(b.intValue() & PRIV_CREATE)+" read="+(b.intValue() & PRIV_READ)+" update="+(b.intValue() & PRIV_UPDATE)+" delete="+(b.intValue() & PRIV_DELETE));
+                        if ((b.intValue() & PRIV_CREATE) > 0) {
+                            sb.append(Message.get(con.getLocale(), "PRIV_CREATE"));
+                        }
+                        if ((b.intValue() & PRIV_READ) > 0) {
+                            if (sb.length() > 0) { sb.append(", "); }
+                            sb.append(Message.get(con.getLocale(), "PRIV_READ"));
+                        }
+                        if ((b.intValue() & PRIV_UPDATE) > 0) {
+                            if (sb.length() > 0) { sb.append(", "); }
+                            sb.append(Message.get(con.getLocale(), "PRIV_UPDATE"));
+                        }
+                        if ((b.intValue() & PRIV_DELETE) > 0) {
+                            if (sb.length() > 0) { sb.append(", "); }
+                            sb.append(Message.get(con.getLocale(), "PRIV_DELETE"));
+                        }
+                    }
+                    currentRights.append(Message.get(con.getLocale(), "ROLE_CAN_PRIV", role,sb.toString())+br());
+                }
+            }
 
-		rightsNames.add("NONE");
-		rightsNames.add("CREATE");
-		rightsNames.add("READ");
-		rightsNames.add("UPDATE");
-		rightsNames.add("DELETE");
-		rightsNames.add("ALL");
+            rightsNames.add("NONE");
+            rightsNames.add("CREATE");
+            rightsNames.add("READ");
+            rightsNames.add("UPDATE");
+            rightsNames.add("DELETE");
+            rightsNames.add("ALL");
 
-		return hidden("RIGHTS_OPTIONS", "YES") + errors
-				+ paragraph("banner",Message.get(con.getLocale(), "EXISTING_RIGHTS"))
-				+ currentRights.toString()
-				+ paragraph("banner",Message.get(con.getLocale(), "ADD_OR_REMOVE_RIGHT"))
-				+ createListFromCache("ROLESELECT", null, con, ROLES_LIST, null, false, null, true)
-				+ createList(con.getLocale(),"RIGHT", null, rightsNames, null, false, null, true)
-				+submitButton(Message.get(con.getLocale(), "GRANT_RIGHT"))
-				+submitButton(Message.get(con.getLocale(), "REVOKE_RIGHT"));
+            return hidden("RIGHTS_OPTIONS", "YES") + errors
+                + paragraph("banner",Message.get(con.getLocale(), "EXISTING_RIGHTS"))
+                + currentRights.toString()
+                + paragraph("banner",Message.get(con.getLocale(), "ADD_OR_REMOVE_RIGHT"))
+                + createListFromCache("ROLESELECT", null, con, ROLES_LIST, null, false, null, true)
+                + createList(con.getLocale(),"RIGHT", null, rightsNames, null, false, null, true)
+                + submitButton(con.getLocale(), "GRANT_RIGHT")
+                + submitButton(con.getLocale(), "REVOKE_RIGHT");
 	}
 
 	public static String password(String name, Object value, int size) {
     	return "<INPUT TYPE=\"PASSWORD\" NAME=\""+name+"\" VALUE=\""+(value==null ? "" : value)+"\" SIZE=\""+size+"\">";
     }
 
-	public static String getTypeName(Locale l, Integer i) {
-		OType type = OType.getById(i.byteValue());
-		if (type == OType.DOUBLE) {
-			return Message.get(l, "DATATYPE_FLOAT");
-		} else if (type == OType.LONG) {
-			return Message.get(l, "DATATYPE_INT");
-		} else if (type == OType.BOOLEAN) {
-			return Message.get(l, "DATATYPE_BOOLEAN");
-		} else if (type == OType.STRING) {
-			return Message.get(l, "DATATYPE_TEXT");
-		} else if (type == OType.DATETIME) {
-			return Message.get(l, "DATATYPE_DATETIME");
-		} else if (type == OType.DATE) {
-			return Message.get(l, "DATATYPE_DATE");
-		} else if (type == OType.CUSTOM) {
-			return Message.get(l, "DATATYPE_BLOB");
-		} else if (type == OType.DECIMAL) {
-			return Message.get(l, "DATATYPE_DECIMAL");
-		} else if (type == OType.LINK) {
-			return Message.get(l, "DATATYPE_LINK");
-		} else if (type == OType.LINKLIST) {
-			return Message.get(l, "DATATYPE_LINKLIST");
-		} else if (type == OType.LINKMAP) {
-			return Message.get(l, "DATATYPE_LINKMAP");
-		} else if (type == OType.LINKSET) {
-			return Message.get(l, "DATATYPE_LINKSET");
-		} else if (type == OType.LINKBAG) {
-			return "LinkBag (not supported)";
-		} else {
-			return (type.name());
-		}
-	}
+    public static String getTypeName(Locale l, Integer i) {
+        OType type = OType.getById(i.byteValue());
+        if (type == OType.DOUBLE) {
+                return Message.get(l, "DATATYPE_FLOAT");
+        } else if (type == OType.LONG) {
+                return Message.get(l, "DATATYPE_INT");
+        } else if (type == OType.BOOLEAN) {
+                return Message.get(l, "DATATYPE_BOOLEAN");
+        } else if (type == OType.STRING) {
+                return Message.get(l, "DATATYPE_TEXT");
+        } else if (type == OType.DATETIME) {
+                return Message.get(l, "DATATYPE_DATETIME");
+        } else if (type == OType.DATE) {
+                return Message.get(l, "DATATYPE_DATE");
+        } else if (type == OType.CUSTOM) {
+                return Message.get(l, "DATATYPE_BLOB");
+        } else if (type == OType.DECIMAL) {
+                return Message.get(l, "DATATYPE_DECIMAL");
+        } else if (type == OType.LINK) {
+                return Message.get(l, "DATATYPE_LINK");
+        } else if (type == OType.LINKLIST) {
+                return Message.get(l, "DATATYPE_LINKLIST");
+        } else if (type == OType.LINKMAP) {
+                return Message.get(l, "DATATYPE_LINKMAP");
+        } else if (type == OType.LINKSET) {
+                return Message.get(l, "DATATYPE_LINKSET");
+        } else if (type == OType.LINKBAG) {
+                return "LinkBag (not supported)";
+        } else {
+                return (type.name());
+        }
+    }
 
-	public boolean insertRowSQL(DatabaseConnection con, String table, HashMap<String, String> parms, StringBuilder errors) {
-		StringBuilder ins = new StringBuilder("INSERT INTO "+table+" SET ");
-		int colCount = 0;
-		ArrayList<String> blobList = new ArrayList<String>();
-		String comma = "";
-		for (OProperty column : con.getColumns(table)) {
-			Integer type = column.getType().getId();
-			String name = column.getName();
-			String value = parms.get(PARM_PREFIX+name);
-			if (DEBUG) System.out.println("InsertRowSQL: column "+name+" is a "+type+" and its value is "+value);
-			if (!isNullOrBlank(value)) {				
-				if (type == 0) {  // Boolean
-						ins.append(comma+name+" = "+(value.equals("on") ? "true" : "false"));
-						colCount++;	
-					
-				} else if (type == 1 || type == 2 || type == 3 || type == 17) {   // Number (int,long, etc...)
-					try {
-						long longValue = Long.parseLong(value);
-						ins.append(comma+name+" = "+longValue);
-						colCount++;	
-					} catch (Exception e) {
-						errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_NUMBER_VALUE",value)));
-						value = null;
-					}						
-					
-				} else if (type == 4 || type == 5 || type == 21) {  // Float - Double - Decimal
-					try {
-						double dubValue = Double.parseDouble(value);
-						ins.append(comma+name+" = "+dubValue);
-						colCount++;	
-					} catch (Exception e) {
-						errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_NUMBER_VALUE", value)));
-						value = null;
-					}
-					
-				} else if (type == 6) {  // Datetime
-					ins.append(comma+name+" = "+(value == null || value.equals("") ? "null" : "'"+value+"'"));
-					colCount++;	
-					
-				} else if (type == 7) {  // String 
-					ins.append(comma+name+" = "+wrapWithQuotes(value));
-					colCount++;	
-	
-				} else if (type == 20) {  // Binary/image (8 = binary, 20 = custom)
-					if (DEBUG) System.out.println("Adding "+name+" to blobList");
-					blobList.add(name);
-					
-				} else if (type >= 9 && type <= 12) {  // Embedded types
-					ins.append(comma+name+" = "+value+"");
-					colCount++;	
-	
-				} else if (type == 13) {  // Link
-					ins.append(comma+name+" = "+(value == null || value.equals("null") ? "" : "#")+value);
-					colCount++;	
-					
-				} else if (type == 14) { // LinkList
-					String[] newValues = {};
-					if (value != null) {  newValues = value.split(","); }
-					StringBuilder vs = new StringBuilder();
-					for (String nv : newValues) {
-						if (vs.length() > 0) vs.append(", ");
-						vs.append("#"+nv);
-					}
-					ins.append(comma+name+" = ["+vs.toString()+"]");
-					colCount++;	
+    public boolean insertRowSQL(DatabaseConnection con, String table, HashMap<String, String> parms, StringBuilder errors) {
+            StringBuilder ins = new StringBuilder("INSERT INTO "+table+" SET ");
+            int colCount = 0;
+            ArrayList<String> blobList = new ArrayList<String>();
+            String comma = "";
+            for (OProperty column : con.getColumns(table)) {
+                    Integer type = column.getType().getId();
+                    String name = column.getName();
+                    String value = parms.get(PARM_PREFIX+name);
+                    if (DEBUG) System.out.println("InsertRowSQL: column "+name+" is a "+type+" and its value is "+value);
+                    if (!isNullOrBlank(value)) {				
+                            if (type == 0) {  // Boolean
+                                            ins.append(comma+name+" = "+(value.equals("on") ? "true" : "false"));
+                                            colCount++;	
 
-				} else if (type == 15) { // Linkset
-					String[] newValues = {};
-					if (value != null) {  newValues = value.split(","); }
-					StringBuilder vs = new StringBuilder();
-					for (String nv : newValues) {
-						if (vs.length() > 0) vs.append(", ");
-						vs.append("#"+nv);
-					}
-					ins.append(comma+name+" = ["+vs.toString()+"]");
-					colCount++;	
+                            } else if (type == 1 || type == 2 || type == 3 || type == 17) {   // Number (int,long, etc...)
+                                    try {
+                                            long longValue = Long.parseLong(value);
+                                            ins.append(comma+name+" = "+longValue);
+                                            colCount++;	
+                                    } catch (Exception e) {
+                                            errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_NUMBER_VALUE",value)));
+                                            value = null;
+                                    }						
 
-				} else if (type == 16) { // LinkMap
-					String[] newValues = {};
-					if (value != null) {  newValues = splitCSV(value); }
-					StringBuilder vs = new StringBuilder();
-					for (String nv : newValues) {
-						if (vs.length() > 0) vs.append(", ");
-						String[] v = nv.split(":",2);
-						vs.append(v[0]+":#"+v[1]);
-					}
-					ins.append(comma+name+" = {"+vs.toString()+"}");
-					colCount++;	
+                            } else if (type == 4 || type == 5 || type == 21) {  // Float - Double - Decimal
+                                    try {
+                                            double dubValue = Double.parseDouble(value);
+                                            ins.append(comma+name+" = "+dubValue);
+                                            colCount++;	
+                                    } catch (Exception e) {
+                                            errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_NUMBER_VALUE", value)));
+                                            value = null;
+                                    }
 
-				} else if (type == 19) {  // Date
-					ins.append(comma+name+" = '"+value+"'");
-					colCount++;	
-					
-				} else {
-					errors.append(paragraph("error", Message.get(con.getLocale(),"UNKNOWN_FIELD_TYPE",""+type,name)));
-				}
-			}
-			if (colCount > 0) {
-				comma = ", ";
-			}
-		}
-		if (ins.toString().endsWith("SET ")) {
-			errors.append(paragraph("error",Message.get(con.getLocale(),"NOTHING_TO_INSERT")));
-			return false;
-		} else {
-			try {
-				if (DEBUG) System.out.println("insert sql = "+ins.toString());
-				Object rc = con.update(ins.toString());  // Do the update
-				if (rc != null && rc instanceof ODocument && blobList.size() > 0) {
-					updateBlobsSQL((ODocument)rc, table, blobList, parms, errors);
-				}
-				errors.append(paragraph("success", Message.get(con.getLocale(),"NEW_ROW_CREATED")+(rc != null)));
-				Server.tableUpdated(table);
-				DatabaseConnection.rowCountChanged(table);
-				return true;
-			} catch (Exception e) {
-				e.printStackTrace();
-				Throwable cause = e.getCause();
-				errors.append(paragraph("error", Message.get(con.getLocale(),"CANNOT_CREATE_ROW") + (cause != null ? cause.getMessage() : e.getMessage())));
-				return false;
-			}
-		}
-	}
+                            } else if (type == 6) {  // Datetime
+                                    ins.append(comma+name+" = "+(value == null || value.equals("") ? "null" : "'"+value+"'"));
+                                    colCount++;	
 
-       	public boolean updateRowSQL(DatabaseConnection con, String table, HashMap<String, String> parms, StringBuilder errors) {
-		if (DEBUG) System.out.println("In updateRow of table "+table);
-		StringBuilder setString = new StringBuilder();
-		ArrayList<String> extras  = new ArrayList<String>();
-		String update_id = parms.get("UPDATE_ID");
-		ArrayList<String> blobs = new ArrayList<String>();
-		if (update_id != null) {
-			QueryResult initrows = con.query("SELECT FROM #" + update_id);
-			if (initrows != null && initrows.size() == 1) {
-				ODocument updateRow = initrows.get(0);
-				Collection<OProperty> columns = con.getColumns(table);
-				for (OProperty column : columns) {
-					
-					String columnName = column.getName();
-					Integer type = column.getType().getId();
-					String newValue = parms.get(PARM_PREFIX+columnName);
-					if (newValue == null && !parms.containsKey(PARM_PREFIX+columnName)) {
-						continue;  // Don't update if not specified
-					}
-					if (DEBUG) System.out.println("updating "+columnName+" of type "+type+" with value "+newValue);
-					if (newValue != null) {
-						if (newValue.equals("null")) {
-							newValue = null;
-						}
-					}
-					if (type == 0) { // Boolean
-						Boolean oldval = updateRow.field(columnName);
-						boolean oldbool = false;
-						boolean newbool = false;
-						if (oldval != null) {
-							oldbool = oldval.booleanValue();
-						}
-						if (newValue != null) {
-							if (newValue.equalsIgnoreCase("on") || newValue.equalsIgnoreCase("true")
-									|| newValue.equalsIgnoreCase("yes")) {
-								newbool = true;
-							}
-						}
-						if (oldbool != newbool) {
-							if (setString.length() > 0) {
-								setString.append(", ");
-							}
-							setString.append(columnName + " = " + newbool);
-						}
-					} else if (type == 1 || type == 2 || type == 3) { // Whole number
-						Number originalValue = updateRow.field(columnName);
-						Number newVal = null;
-						if (newValue != null) {
-							try {
-								newVal = Long.parseLong(newValue);
-							} catch (Exception e) {
-								errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_NUMBER_VALUE",newValue)+" " + e.getMessage()));
-							}
-						}
-						if ((newValue != null && originalValue != null && newVal != null && !newVal.equals(originalValue)) 
-								  || (newValue == null && originalValue != null)
-								  || (originalValue == null && newValue != null)) {
-							if (setString.length() > 0) {
-								setString.append(", ");
-							}
-							setString.append(columnName + " = " + (newVal == null ? "null" : newValue));
-						}
-					} else if (type == 4 || type == 5) { // float, double
-						Double originalValue = updateRow.field(columnName);
-						Double newVal = null;
-						if (newValue != null) {
-							try {
-								newVal = Double.parseDouble(newValue);
-							} catch (Exception e) {
-								errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_READ_NUMBER_VALUE",newValue)+" " + e.getMessage()));
-							}
-						}
-						if ((newValue != null && originalValue != null && newVal != null && !newVal.equals(originalValue)) 
-								  || (newValue == null && originalValue != null)
-								  || (originalValue == null && newValue != null)) {
-							if (setString.length() > 0) {
-								setString.append(", ");
-							}
-							setString.append(columnName + " = " + (newVal == null ? "null" : newValue));
-						}
-					} else if (type == 21) { // decimal
-						BigDecimal originalValue = updateRow.field(columnName);
-						BigDecimal newVal = null;
-						if (newValue != null) {
-							try {
-								newVal = new BigDecimal(newValue);
-							} catch (Exception e) {
-								errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_READ_NUMBER_VALUE",newValue)+" "+e.getMessage()));
-							}
-						}
-						if ((newValue != null && originalValue != null && newVal != null && !newVal.equals(originalValue)) 
-								  || (newValue == null && originalValue != null)
-								  || (originalValue == null && newValue != null)) {
-							if (setString.length() > 0) {
-								setString.append(", ");
-							}
-							setString.append(columnName + " = " + (newVal == null ? "null" : newValue));
-						}
-					} else if (type == 6) {  // Datetime
-						Date originalValue = updateRow.field(columnName);
-						Date newDate = parseDate(con.getLocale(),newValue);
-						if (newValue != null && newDate == null) {
-							errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_DATE_VALUE",newValue)));							
-						} else {
-							
-							if (DEBUG) System.out.println("Updating Datetime "+(originalValue == null ? "" : originalValue.toString())+" to "+newDate);
-							if ((newValue != null && originalValue != null && !newDate.equals(originalValue)) 
-								  || (newValue == null && originalValue != null)
-								  || (originalValue == null && newValue != null)) {
-								if (setString.length() > 0) {
-									setString.append(", ");
-								}
-								setString.append(columnName + " = "+(newValue == null ? "null" : wrapWithQuotes(sqlDatetimeFormat.format(newDate))));
-							}	
-						}
-						
-					} else if (type == 7) { // String
-						String originalValue = updateRow.field(columnName);
-						if ((newValue != null && originalValue != null && !newValue.equals(originalValue)) 
-								  || (newValue == null && originalValue != null)
-								  || (originalValue == null && newValue != null)) {
-							if (columnName.toUpperCase().endsWith("PASSWORD") && (newValue == null || newValue.equals(""))) {
-								System.out.println("Not updating null password requested by user "+con.getUser());
-							} else {
-								if (setString.length() > 0) {
-									setString.append(", ");
-								}
-								setString.append(columnName + " = " + wrapWithQuotes(newValue));
-							}
-						}
-						
-					} else if (type == 20) {  // Blob
-						String blob_name = parms.get(PARM_PREFIX+columnName); 
-						if (blob_name != null && !blob_name.trim().equals("")) {
-							if (DEBUG) System.out.println("Updating BLOB");
-							blobs.add(columnName);
-						}
-						
-					} else if (type == 9 || type==10 || type==11 || type==12) { // Embedded types - treat like a string (without quotes) - user beware
-						Object originalValue = updateRow.field(columnName);
-						if ((newValue != null && originalValue != null && !newValue.equals(originalValue)) // They will always detect a change because the string is formatted differently
-								  || (newValue == null && originalValue != null)  // This could be considered a bug
-								  || (originalValue == null && newValue != null)) {
-							if (DEBUG) System.out.println("Embedded value changed");
-							if (setString.length() > 0) {
-								setString.append(", ");
-							}
-							setString.append(columnName + " = " + newValue);
-						}
-						
-					} else if (type == 13) { // Link
-						ODocument o = updateRow.field(columnName);
-						if (DEBUG) System.out.println("Updating Link "+(o == null ? "" : o.getIdentity().toString()));
-						String originalValue = (o == null ? null : o.getIdentity().toString().substring(1));
-						if ((newValue != null && originalValue != null && !newValue.equals(originalValue)) 
-							  || (newValue == null && originalValue != null)
-							  || (originalValue == null && newValue != null)) {
-							if (setString.length() > 0) {
-								setString.append(", ");
-							}
-							setString.append(columnName + " = "+(newValue == null ? "null" : "#"+newValue));
-						}
+                            } else if (type == 7) {  // String 
+                                    ins.append(comma+name+" = "+wrapWithQuotes(value));
+                                    colCount++;	
 
-					} else if (type == 14) { // LinkList (Ordered and can contain duplicates)
-						List<ODocument> o = updateRow.field(columnName);
-						if (DEBUG) System.out.println("Updating LinkList "+(o == null ? "" : o));
-						String[] newValues = {};
-						if (newValue != null && !newValue.trim().equals("")) {
-							newValues = newValue.split(",");
-						}
-						// Remove all from original list
-						if (o != null) {
-							for (ODocument d : o) {
-								if (d != null) {
-									extras.add("REMOVE "+columnName+" = "+d.getIdentity().toString());
-								}
-							}
-						}
-						// Add new list
-						for (String nv : newValues) {
-							extras.add("ADD "+columnName+" = #"+nv);
-						}
+                            } else if (type == 20) {  // Binary/image (8 = binary, 20 = custom)
+                                    if (DEBUG) System.out.println("Adding "+name+" to blobList");
+                                    blobList.add(name);
 
-					} else if (type == 15) { // Linkset
-						Set<ODocument> o = updateRow.field(columnName);
-						if (DEBUG) System.out.println("Updating LinkSet "+(o == null ? "" : o));
-						String[] newValues = {};
-						if (newValue != null && !newValue.trim().equals("")) {
-							newValues = newValue.split(",");
-						}
-						// Remove any from original list where not in new list
-						if (o != null) {
-							for (ODocument d : o) {
-								boolean found = false;
-								if (d != null) {
-									String id = d.getIdentity().toString().substring(1);
-									for (String nv : newValues) {
-										if (id.equals(nv)) { found = true; }
-									}
-									if (!found) { extras.add("REMOVE "+columnName+" = "+d.getIdentity().toString()); }
-								}
-							}
-						}
-						// Add any from new list where not in original list
-						for (String nv : newValues) {
-							boolean found = false;
-							if (o != null) {
-								for (ODocument d : o) {
-									if (d != null && d.getIdentity().toString().substring(1).equals(nv)) { found = true; }
-								}
-							}
-							if (!found) { extras.add("ADD "+columnName+" = #"+nv); }
-						}
-					} else if (type == 16) { // LinkMap
-						Map<String,ODocument> o = updateRow.field(columnName);
-						if (DEBUG) System.out.println("Updating LinkMap "+(o == null ? "" : o));
-						String[] newValues = {};
-						if (newValue != null && !newValue.trim().equals("")) {
-							newValues = splitCSV(newValue);
-						}
-						// Remove all from original list
-						if (o != null) {
-							for (String k : o.keySet()) {
-								extras.add("REMOVE "+columnName+" = '"+k+"'");
-							}
-						}
-						// Add all from new list
-						for (String nv : newValues) {
-							String[] v = nv.split(":",2);
-							try {
-								extras.add("PUT "+columnName+" = "+v[0]+",#"+v[1]);
-							} catch (ArrayIndexOutOfBoundsException e) {
-								System.out.println("Could not understand map field:"+nv);
-							}									
-						}
-					} else if (type == 19) {  // Date
-						Date originalValue = updateRow.field(columnName);
-						Date newDate = parseDate(con.getLocale(),newValue);
-						if (newValue != null && newDate == null) {
-							errors.append(paragraph("error", Message.get(con.getLocale(),"INVALID_DATE_VALUE",newValue)));							
-						} else {
-							if (DEBUG) System.out.println("Updating Date/Datetime "+(originalValue == null ? "" : originalValue.toString())+" to "+newDate);
-							if ((newValue != null && originalValue != null && !newDate.equals(originalValue)) 
-								  || (newValue == null && originalValue != null)
-								  || (originalValue == null && newValue != null)) {
-								if (setString.length() > 0) {
-									setString.append(", ");
-								}
-								setString.append(columnName + " = "+(newValue == null ? "null" : wrapWithQuotes(sqlDateFormat.format(newDate))));
-							}	
-						}
-					}
-				}
-				if ((setString.length() > 0 || extras.size() > 0 || blobs.size() > 0) && errors.length() == 0) {
-					try {
-						Object rc = 0;
-						if (setString.length() > 0) {
-							String updateStatement = "UPDATE #" + update_id + " SET " + setString.toString();
-							if (DEBUG) System.out.println("table update: "+updateStatement);
-							rc = con.update(updateStatement);
-						}
-						for (String extraUpdate : extras) {
-							if (DEBUG) System.out.println("table extraUpdate: "+extraUpdate);
-							rc = con.update("UPDATE #" + update_id +" "+ extraUpdate);							
-						}
-						if (blobs.size() > 0) {
-							updateBlobsSQL(con.get(update_id), table, blobs, parms, errors);
-						}
-						errors.append(paragraph("success", Message.get(con.getLocale(), "ROW_UPDATED",(rc==null?"null":"true"))));
-						Server.tableUpdated(table);
-						updateRow.reload();
-						return true;
-					} catch (Exception e) {
-						Throwable cause = e.getCause();
-						errors.append(paragraph("error", Message.get(con.getLocale(), "CANNOT_UPDATE") + (cause != null ? cause.getMessage() : e.getMessage())));
-						e.printStackTrace();
-						return false;
-					}
-				} else {
-					errors.append(paragraph("warning", Message.get(con.getLocale(),"NOTHING_TO_UPDATE")));
-					return false;
-				}
-			} else {
-				if (DEBUG) System.out.println("Error in permeagility.web.Table:getTableRowForm: Only one row may be returned by ID for editing");
-				errors.append(paragraph("error",Message.get(con.getLocale(),"ONLY_ONE_ROW_CAN_BE_EDITED")));
-				return false;
-			}
-		}
-		return false;
-	}
+                            } else if (type >= 9 && type <= 12) {  // Embedded types
+                                    ins.append(comma+name+" = "+value+"");
+                                    colCount++;	
 
-	public boolean updateBlobsSQL(ODocument doc, String table, ArrayList<String> blobList, HashMap<String, String> parms, StringBuilder errors) {
-		if (doc != null) {
-			for (String blob_name : blobList) {
-				String blob_temp_file = parms.get(PARM_PREFIX+blob_name);
-				String blob_file_name = parms.get(PARM_PREFIX+blob_name+"_FILENAME");
-				String blob_type = parms.get(PARM_PREFIX+blob_name+"_TYPE");
-				if (blob_temp_file != null && !blob_temp_file.trim().equals("")) {
-					if (DEBUG) System.out.println("Writing blob "+blob_file_name+" type:"+blob_type+" file:"+blob_temp_file);
-					ORecordBytes record = new ORecordBytes();
-					try {
-						record.fromInputStream(new FileInputStream(blob_temp_file));
-					} catch (IOException ioe) {
-						ioe.printStackTrace();
-					}
-					record.save();
-					doc.field(blob_name,record);
-					Thumbnail.createThumbnail(table, doc, blob_name);
-				}
-			}			
-			doc.save();
-		} else {
-			System.out.println("Table.updateBlobs() - document is null");
-		}
-		return true;
-	}
-	
-        public boolean deleteRowSQL(DatabaseConnection con, String table, HashMap<String, String> parms, StringBuilder errors) {
+                            } else if (type == 13) {  // Link
+                                    ins.append(comma+name+" = "+(value == null || value.equals("null") ? "" : "#")+value);
+                                    colCount++;	
 
+                            } else if (type == 14) { // LinkList
+                                    String[] newValues = {};
+                                    if (value != null) {  newValues = value.split(","); }
+                                    StringBuilder vs = new StringBuilder();
+                                    for (String nv : newValues) {
+                                            if (vs.length() > 0) vs.append(", ");
+                                            vs.append("#"+nv);
+                                    }
+                                    ins.append(comma+name+" = ["+vs.toString()+"]");
+                                    colCount++;	
+
+                            } else if (type == 15) { // Linkset
+                                    String[] newValues = {};
+                                    if (value != null) {  newValues = value.split(","); }
+                                    StringBuilder vs = new StringBuilder();
+                                    for (String nv : newValues) {
+                                            if (vs.length() > 0) vs.append(", ");
+                                            vs.append("#"+nv);
+                                    }
+                                    ins.append(comma+name+" = ["+vs.toString()+"]");
+                                    colCount++;	
+
+                            } else if (type == 16) { // LinkMap
+                                    String[] newValues = {};
+                                    if (value != null) {  newValues = splitCSV(value); }
+                                    StringBuilder vs = new StringBuilder();
+                                    for (String nv : newValues) {
+                                            if (vs.length() > 0) vs.append(", ");
+                                            String[] v = nv.split(":",2);
+                                            vs.append(v[0]+":#"+v[1]);
+                                    }
+                                    ins.append(comma+name+" = {"+vs.toString()+"}");
+                                    colCount++;	
+
+                            } else if (type == 19) {  // Date
+                                    ins.append(comma+name+" = '"+value+"'");
+                                    colCount++;	
+
+                            } else {
+                                    errors.append(paragraph("error", Message.get(con.getLocale(),"UNKNOWN_FIELD_TYPE",""+type,name)));
+                            }
+                    }
+                    if (colCount > 0) {
+                            comma = ", ";
+                    }
+            }
+            if (ins.toString().endsWith("SET ")) {
+                    errors.append(paragraph("error",Message.get(con.getLocale(),"NOTHING_TO_INSERT")));
+                    return false;
+            } else {
+                    try {
+                            if (DEBUG) System.out.println("insert sql = "+ins.toString());
+                            Object rc = con.update(ins.toString());  // Do the update
+                            if (rc != null && rc instanceof ODocument && blobList.size() > 0) {
+                                    updateBlobsSQL((ODocument)rc, table, blobList, parms, errors);
+                            }
+                            errors.append(paragraph("success", Message.get(con.getLocale(),"NEW_ROW_CREATED")+(rc != null)));
+                            Server.tableUpdated(table);
+                            DatabaseConnection.rowCountChanged(table);
+                            return true;
+                    } catch (Exception e) {
+                            e.printStackTrace();
+                            Throwable cause = e.getCause();
+                            errors.append(paragraph("error", Message.get(con.getLocale(),"CANNOT_CREATE_ROW") + (cause != null ? cause.getMessage() : e.getMessage())));
+                            return false;
+                    }
+            }
+    }
+
+    public boolean updateRowSQL(DatabaseConnection con, String table, HashMap<String, String> parms, StringBuilder errors) {
+            if (DEBUG) System.out.println("In updateRow of table "+table);
+            StringBuilder setString = new StringBuilder();
+            ArrayList<String> extras  = new ArrayList<String>();
             String update_id = parms.get("UPDATE_ID");
-		if (update_id != null) {
-			QueryResult initrows = con.query("SELECT FROM #" + update_id);
-			if (initrows != null && initrows.size() == 1) {
-				try {
-					String deleteStatement = "DELETE FROM #" + update_id;
-					if (DEBUG) System.out.println(deleteStatement);
-					Object rc = con.update(deleteStatement);
-					Thumbnail.deleteThumbnail(table, update_id);
-					if (DEBUG) System.out.println("After delete. RowCount=" + rc);
-					if (rc != null) {
-						errors.append(paragraph("success", Message.get(con.getLocale(), "ROW_DELETED") ));
-						Server.tableUpdated(table);
-						DatabaseConnection.rowCountChanged(table);
-						getCache().refreshContains(table);
-						return true;
-					} else {
-						errors.append(paragraph("error",
-								"Row was NOT deleted - it was possibly updated by someone else.  RowCount=" + rc));
-						return false;
-					}
-				} catch (Exception e) {
-					errors.append(paragraph("error", Message.get(con.getLocale(), "ROW_CANNOT_BE_DELETED")  + e.getMessage()));
-					return false;
-				}
-			} else {
-				if (DEBUG) System.out.println("Error in permeagility.web.Table:deleteRow: Only one row may be returned by ID for deleting");
-				errors.append(paragraph("error",Message.get(con.getLocale(), "ROW_CANNOT_BE_DELETED") + "Error in permeagility.web.Table:deleteRow: Only one row may be returned by ID for deleting"));
-				return false;
-			}
-		}
-		errors.append(paragraph("error",Message.get(con.getLocale(), "ROW_CANNOT_BE_DELETED") +" update_id is null?"));
-		return false;
-	}
+            ArrayList<String> blobs = new ArrayList<String>();
+            if (update_id != null) {
+                    QueryResult initrows = con.query("SELECT FROM #" + update_id);
+                    if (initrows != null && initrows.size() == 1) {
+                            ODocument updateRow = initrows.get(0);
+                            Collection<OProperty> columns = con.getColumns(table);
+                            for (OProperty column : columns) {
+
+                                    String columnName = column.getName();
+                                    Integer type = column.getType().getId();
+                                    String newValue = parms.get(PARM_PREFIX+columnName);
+                                    if (newValue == null && !parms.containsKey(PARM_PREFIX+columnName)) {
+                                            continue;  // Don't update if not specified
+                                    }
+                                    if (DEBUG) System.out.println("updating "+columnName+" of type "+type+" with value "+newValue);
+                                    if (newValue != null) {
+                                            if (newValue.equals("null")) {
+                                                    newValue = null;
+                                            }
+                                    }
+                                    if (type == 0) { // Boolean
+                                            Boolean oldval = updateRow.field(columnName);
+                                            boolean oldbool = false;
+                                            boolean newbool = false;
+                                            if (oldval != null) {
+                                                    oldbool = oldval.booleanValue();
+                                            }
+                                            if (newValue != null) {
+                                                    if (newValue.equalsIgnoreCase("on") || newValue.equalsIgnoreCase("true")
+                                                                    || newValue.equalsIgnoreCase("yes")) {
+                                                            newbool = true;
+                                                    }
+                                            }
+                                            if (oldbool != newbool) {
+                                                    if (setString.length() > 0) {
+                                                            setString.append(", ");
+                                                    }
+                                                    setString.append(columnName + " = " + newbool);
+                                            }
+                                    } else if (type == 1 || type == 2 || type == 3) { // Whole number
+                                            Number originalValue = updateRow.field(columnName);
+                                            Number newVal = null;
+                                            if (newValue != null) {
+                                                    try {
+                                                            newVal = Long.parseLong(newValue);
+                                                    } catch (Exception e) {
+                                                            errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_NUMBER_VALUE",newValue)+" " + e.getMessage()));
+                                                    }
+                                            }
+                                            if ((newValue != null && originalValue != null && newVal != null && !newVal.equals(originalValue)) 
+                                                              || (newValue == null && originalValue != null)
+                                                              || (originalValue == null && newValue != null)) {
+                                                    if (setString.length() > 0) {
+                                                            setString.append(", ");
+                                                    }
+                                                    setString.append(columnName + " = " + (newVal == null ? "null" : newValue));
+                                            }
+                                    } else if (type == 4 || type == 5) { // float, double
+                                            Double originalValue = updateRow.field(columnName);
+                                            Double newVal = null;
+                                            if (newValue != null) {
+                                                    try {
+                                                            newVal = Double.parseDouble(newValue);
+                                                    } catch (Exception e) {
+                                                            errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_READ_NUMBER_VALUE",newValue)+" " + e.getMessage()));
+                                                    }
+                                            }
+                                            if ((newValue != null && originalValue != null && newVal != null && !newVal.equals(originalValue)) 
+                                                              || (newValue == null && originalValue != null)
+                                                              || (originalValue == null && newValue != null)) {
+                                                    if (setString.length() > 0) {
+                                                            setString.append(", ");
+                                                    }
+                                                    setString.append(columnName + " = " + (newVal == null ? "null" : newValue));
+                                            }
+                                    } else if (type == 21) { // decimal
+                                            BigDecimal originalValue = updateRow.field(columnName);
+                                            BigDecimal newVal = null;
+                                            if (newValue != null) {
+                                                    try {
+                                                            newVal = new BigDecimal(newValue);
+                                                    } catch (Exception e) {
+                                                            errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_READ_NUMBER_VALUE",newValue)+" "+e.getMessage()));
+                                                    }
+                                            }
+                                            if ((newValue != null && originalValue != null && newVal != null && !newVal.equals(originalValue)) 
+                                                              || (newValue == null && originalValue != null)
+                                                              || (originalValue == null && newValue != null)) {
+                                                    if (setString.length() > 0) {
+                                                            setString.append(", ");
+                                                    }
+                                                    setString.append(columnName + " = " + (newVal == null ? "null" : newValue));
+                                            }
+                                    } else if (type == 6) {  // Datetime
+                                            Date originalValue = updateRow.field(columnName);
+                                            Date newDate = parseDate(con.getLocale(),newValue);
+                                            if (newValue != null && newDate == null) {
+                                                    errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_DATE_VALUE",newValue)));							
+                                            } else {
+
+                                                    if (DEBUG) System.out.println("Updating Datetime "+(originalValue == null ? "" : originalValue.toString())+" to "+newDate);
+                                                    if ((newValue != null && originalValue != null && !newDate.equals(originalValue)) 
+                                                              || (newValue == null && originalValue != null)
+                                                              || (originalValue == null && newValue != null)) {
+                                                            if (setString.length() > 0) {
+                                                                    setString.append(", ");
+                                                            }
+                                                            setString.append(columnName + " = "+(newValue == null ? "null" : wrapWithQuotes(sqlDatetimeFormat.format(newDate))));
+                                                    }	
+                                            }
+
+                                    } else if (type == 7) { // String
+                                            String originalValue = updateRow.field(columnName);
+                                            if ((newValue != null && originalValue != null && !newValue.equals(originalValue)) 
+                                                              || (newValue == null && originalValue != null)
+                                                              || (originalValue == null && newValue != null)) {
+                                                    if (columnName.toUpperCase().endsWith("PASSWORD") && (newValue == null || newValue.equals(""))) {
+                                                            System.out.println("Not updating null password requested by user "+con.getUser());
+                                                    } else {
+                                                            if (setString.length() > 0) {
+                                                                    setString.append(", ");
+                                                            }
+                                                            setString.append(columnName + " = " + wrapWithQuotes(newValue));
+                                                    }
+                                            }
+
+                                    } else if (type == 20) {  // Blob
+                                            String blob_name = parms.get(PARM_PREFIX+columnName); 
+                                            if (blob_name != null && !blob_name.trim().equals("")) {
+                                                    if (DEBUG) System.out.println("Updating BLOB");
+                                                    blobs.add(columnName);
+                                            }
+
+                                    } else if (type == 9 || type==10 || type==11 || type==12) { // Embedded types - treat like a string (without quotes) - user beware
+                                            Object originalValue = updateRow.field(columnName);
+                                            if ((newValue != null && originalValue != null && !newValue.equals(originalValue)) // They will always detect a change because the string is formatted differently
+                                                              || (newValue == null && originalValue != null)  // This could be considered a bug
+                                                              || (originalValue == null && newValue != null)) {
+                                                    if (DEBUG) System.out.println("Embedded value changed");
+                                                    if (setString.length() > 0) {
+                                                            setString.append(", ");
+                                                    }
+                                                    setString.append(columnName + " = " + newValue);
+                                            }
+
+                                    } else if (type == 13) { // Link
+                                            ODocument o = updateRow.field(columnName);
+                                            if (DEBUG) System.out.println("Updating Link "+(o == null ? "" : o.getIdentity().toString()));
+                                            String originalValue = (o == null ? null : o.getIdentity().toString().substring(1));
+                                            if ((newValue != null && originalValue != null && !newValue.equals(originalValue)) 
+                                                      || (newValue == null && originalValue != null)
+                                                      || (originalValue == null && newValue != null)) {
+                                                    if (setString.length() > 0) {
+                                                            setString.append(", ");
+                                                    }
+                                                    setString.append(columnName + " = "+(newValue == null ? "null" : "#"+newValue));
+                                            }
+
+                                    } else if (type == 14) { // LinkList (Ordered and can contain duplicates)
+                                            List<ODocument> o = updateRow.field(columnName);
+                                            if (DEBUG) System.out.println("Updating LinkList "+(o == null ? "" : o));
+                                            String[] newValues = {};
+                                            if (newValue != null && !newValue.trim().equals("")) {
+                                                    newValues = newValue.split(",");
+                                            }
+                                            // Remove all from original list
+                                            if (o != null) {
+                                                    for (ODocument d : o) {
+                                                            if (d != null) {
+                                                                    extras.add("REMOVE "+columnName+" = "+d.getIdentity().toString());
+                                                            }
+                                                    }
+                                            }
+                                            // Add new list
+                                            for (String nv : newValues) {
+                                                    extras.add("ADD "+columnName+" = #"+nv);
+                                            }
+
+                                    } else if (type == 15) { // Linkset
+                                            Set<ODocument> o = updateRow.field(columnName);
+                                            if (DEBUG) System.out.println("Updating LinkSet "+(o == null ? "" : o));
+                                            String[] newValues = {};
+                                            if (newValue != null && !newValue.trim().equals("")) {
+                                                    newValues = newValue.split(",");
+                                            }
+                                            // Remove any from original list where not in new list
+                                            if (o != null) {
+                                                    for (ODocument d : o) {
+                                                            boolean found = false;
+                                                            if (d != null) {
+                                                                    String id = d.getIdentity().toString().substring(1);
+                                                                    for (String nv : newValues) {
+                                                                            if (id.equals(nv)) { found = true; }
+                                                                    }
+                                                                    if (!found) { extras.add("REMOVE "+columnName+" = "+d.getIdentity().toString()); }
+                                                            }
+                                                    }
+                                            }
+                                            // Add any from new list where not in original list
+                                            for (String nv : newValues) {
+                                                    boolean found = false;
+                                                    if (o != null) {
+                                                            for (ODocument d : o) {
+                                                                    if (d != null && d.getIdentity().toString().substring(1).equals(nv)) { found = true; }
+                                                            }
+                                                    }
+                                                    if (!found) { extras.add("ADD "+columnName+" = #"+nv); }
+                                            }
+                                    } else if (type == 16) { // LinkMap
+                                            Map<String,ODocument> o = updateRow.field(columnName);
+                                            if (DEBUG) System.out.println("Updating LinkMap "+(o == null ? "" : o));
+                                            String[] newValues = {};
+                                            if (newValue != null && !newValue.trim().equals("")) {
+                                                    newValues = splitCSV(newValue);
+                                            }
+                                            // Remove all from original list
+                                            if (o != null) {
+                                                    for (String k : o.keySet()) {
+                                                            extras.add("REMOVE "+columnName+" = '"+k+"'");
+                                                    }
+                                            }
+                                            // Add all from new list
+                                            for (String nv : newValues) {
+                                                    String[] v = nv.split(":",2);
+                                                    try {
+                                                            extras.add("PUT "+columnName+" = "+v[0]+",#"+v[1]);
+                                                    } catch (ArrayIndexOutOfBoundsException e) {
+                                                            System.out.println("Could not understand map field:"+nv);
+                                                    }									
+                                            }
+                                    } else if (type == 19) {  // Date
+                                            Date originalValue = updateRow.field(columnName);
+                                            Date newDate = parseDate(con.getLocale(),newValue);
+                                            if (newValue != null && newDate == null) {
+                                                    errors.append(paragraph("error", Message.get(con.getLocale(),"INVALID_DATE_VALUE",newValue)));							
+                                            } else {
+                                                    if (DEBUG) System.out.println("Updating Date/Datetime "+(originalValue == null ? "" : originalValue.toString())+" to "+newDate);
+                                                    if ((newValue != null && originalValue != null && !newDate.equals(originalValue)) 
+                                                              || (newValue == null && originalValue != null)
+                                                              || (originalValue == null && newValue != null)) {
+                                                            if (setString.length() > 0) {
+                                                                    setString.append(", ");
+                                                            }
+                                                            setString.append(columnName + " = "+(newValue == null ? "null" : wrapWithQuotes(sqlDateFormat.format(newDate))));
+                                                    }	
+                                            }
+                                    }
+                            }
+                            if ((setString.length() > 0 || extras.size() > 0 || blobs.size() > 0) && errors.length() == 0) {
+                                    try {
+                                            Object rc = 0;
+                                            if (setString.length() > 0) {
+                                                    String updateStatement = "UPDATE #" + update_id + " SET " + setString.toString();
+                                                    if (DEBUG) System.out.println("table update: "+updateStatement);
+                                                    rc = con.update(updateStatement);
+                                            }
+                                            for (String extraUpdate : extras) {
+                                                    if (DEBUG) System.out.println("table extraUpdate: "+extraUpdate);
+                                                    rc = con.update("UPDATE #" + update_id +" "+ extraUpdate);							
+                                            }
+                                            if (blobs.size() > 0) {
+                                                    updateBlobsSQL(con.get(update_id), table, blobs, parms, errors);
+                                            }
+                                            errors.append(paragraph("success", Message.get(con.getLocale(), "ROW_UPDATED",(rc==null?"null":"true"))));
+                                            Server.tableUpdated(table);
+                                            updateRow.reload();
+                                            return true;
+                                    } catch (Exception e) {
+                                            Throwable cause = e.getCause();
+                                            errors.append(paragraph("error", Message.get(con.getLocale(), "CANNOT_UPDATE") + (cause != null ? cause.getMessage() : e.getMessage())));
+                                            e.printStackTrace();
+                                            return false;
+                                    }
+                            } else {
+                                    errors.append(paragraph("warning", Message.get(con.getLocale(),"NOTHING_TO_UPDATE")));
+                                    return false;
+                            }
+                    } else {
+                            if (DEBUG) System.out.println("Error in permeagility.web.Table:getTableRowForm: Only one row may be returned by ID for editing");
+                            errors.append(paragraph("error",Message.get(con.getLocale(),"ONLY_ONE_ROW_CAN_BE_EDITED")));
+                            return false;
+                    }
+            }
+            return false;
+    }
+
+    public boolean updateBlobsSQL(ODocument doc, String table, ArrayList<String> blobList, HashMap<String, String> parms, StringBuilder errors) {
+            if (doc != null) {
+                    for (String blob_name : blobList) {
+                            String blob_temp_file = parms.get(PARM_PREFIX+blob_name);
+                            String blob_file_name = parms.get(PARM_PREFIX+blob_name+"_FILENAME");
+                            String blob_type = parms.get(PARM_PREFIX+blob_name+"_TYPE");
+                            if (blob_temp_file != null && !blob_temp_file.trim().equals("")) {
+                                    if (DEBUG) System.out.println("Writing blob "+blob_file_name+" type:"+blob_type+" file:"+blob_temp_file);
+                                    ORecordBytes record = new ORecordBytes();
+                                    try {
+                                            record.fromInputStream(new FileInputStream(blob_temp_file));
+                                    } catch (IOException ioe) {
+                                            ioe.printStackTrace();
+                                    }
+                                    record.save();
+                                    doc.field(blob_name,record);
+                                    Thumbnail.createThumbnail(table, doc, blob_name);
+                            }
+                    }			
+                    doc.save();
+            } else {
+                    System.out.println("Table.updateBlobs() - document is null");
+            }
+            return true;
+    }
+
+    public boolean deleteRowSQL(DatabaseConnection con, String table, HashMap<String, String> parms, StringBuilder errors) {
+
+        String update_id = parms.get("UPDATE_ID");
+            if (update_id != null) {
+                    QueryResult initrows = con.query("SELECT FROM #" + update_id);
+                    if (initrows != null && initrows.size() == 1) {
+                            try {
+                                    String deleteStatement = "DELETE FROM #" + update_id;
+                                    if (DEBUG) System.out.println(deleteStatement);
+                                    Object rc = con.update(deleteStatement);
+                                    Thumbnail.deleteThumbnail(table, update_id);
+                                    if (DEBUG) System.out.println("After delete. RowCount=" + rc);
+                                    if (rc != null) {
+                                            errors.append(paragraph("success", Message.get(con.getLocale(), "ROW_DELETED") ));
+                                            Server.tableUpdated(table);
+                                            DatabaseConnection.rowCountChanged(table);
+                                            getCache().refreshContains(table);
+                                            return true;
+                                    } else {
+                                            errors.append(paragraph("error",
+                                                            "Row was NOT deleted - it was possibly updated by someone else.  RowCount=" + rc));
+                                            return false;
+                                    }
+                            } catch (Exception e) {
+                                    errors.append(paragraph("error", Message.get(con.getLocale(), "ROW_CANNOT_BE_DELETED")  + e.getMessage()));
+                                    return false;
+                            }
+                    } else {
+                            if (DEBUG) System.out.println("Error in permeagility.web.Table:deleteRow: Only one row may be returned by ID for deleting");
+                            errors.append(paragraph("error",Message.get(con.getLocale(), "ROW_CANNOT_BE_DELETED") + "Error in permeagility.web.Table:deleteRow: Only one row may be returned by ID for deleting"));
+                            return false;
+                    }
+            }
+            errors.append(paragraph("error",Message.get(con.getLocale(), "ROW_CANNOT_BE_DELETED") +" update_id is null?"));
+            return false;
+    }
         
 }

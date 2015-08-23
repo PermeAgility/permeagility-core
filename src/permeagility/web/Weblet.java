@@ -581,6 +581,10 @@ public abstract class Weblet {
 		return "<textarea name=\"" + n + "\" rows=\"" + rows + "\" cols=\"" + cols + "\" READONLY >" + (s == null ? "" : s) + "</textarea>";
 	}
 
+      	public String submitButton(Locale l, String s) {
+            return button("SUBMIT", s, Message.get(l,s));
+	}
+
 	public String submitButton(String s) {
 		return submitButton("SUBMIT", s);
 	}
@@ -590,9 +594,9 @@ public abstract class Weblet {
 	}
 
 	public String button(String name, String value, String text) {
-		return "<BUTTON " + (isReadOnly() ? "DISABLED" : "") + "  CLASS=\"button\" NAME=\"" + name + "\" VALUE=\"" + value
-//		+ "\" ONCLICK='if (!this.submitted) { this.submitted = true; return true; } else return false;'>"
-		+ "\">" + text + "</BUTTON>";
+		return "<button " + (isReadOnly() ? "DISABLED" : "") + "  class=\"button\" name=\"" + name + "\" value=\"" + value + "\""
+//                + " onclick='if (!this.submitted) { this.submitted = true; return true; } else return false;'>"
+		+ "\">" + text + "</button>";
 	}
 
 	public String deleteButton() {
@@ -1209,8 +1213,7 @@ public abstract class Weblet {
 		return createListFromTable(name, initial, con, table, null, true, null, true);
 	}
 
-	public static String createList(Locale locale, String name, String initial, List<String> names, String attributes, boolean allowNull,
-			String classname, boolean enabled) {
+	public static String createList(Locale locale, String name, String initial, List<String> names, String attributes, boolean allowNull, String classname, boolean enabled) {
 		StringBuilder sb = new StringBuilder(1024);
 		sb.append("<SELECT " 
 				+ (enabled ? "" : "DISABLED") 
@@ -1236,20 +1239,24 @@ public abstract class Weblet {
 		return sb.toString();
 	}
 
-	public static String selectList(String name, List<String> selected, List<String> names, List<String> values, Locale l, String Class, int size) {
-		if (selected == null) {
-			selected = new Vector<String>();
-		}
+	public static String selectList(Locale l, String name, String selected, List<String> names, List<String> values, String attributes, boolean allowNull, String classname, boolean enabled) {
 		StringBuilder sb = new StringBuilder(1024);
-		sb.append("<SELECT NAME=\"" + name + "\" CLASS=\"" + Class + "\" SIZE=\"" + size + "\" MULTIPLE>\n");
-		for (int i = 0; i < names.size(); i++) {
-			if (selected.indexOf((String) names.get(i)) == -1) {
-				sb.append("<OPTION VALUE=\"" + (String) values.get(i) + "\">" + (String) names.get(i) + "</OPTION>\n");
+		sb.append("<select " 
+				+ (enabled ? "" : "DISABLED") 
+				+ (classname != null ? " class=\"" + classname + "\"" : "") 
+				+ " name=\"" + name + "\" " 
+				+ (attributes != null ? attributes : "") + ">\n");
+		if (allowNull) {
+			sb.append("<option value=null>" + Message.get(l,"OPTION_NONE")+"</option>");
+		}
+                for (int i = 0; i < names.size(); i++) {
+			if (selected != null && values.get(i).equals(selected)) {
+				sb.append("<option SELECTED value=\"" + values.get(i) + "\">" + names.get(i) + "</option>\n");
 			} else {
-				sb.append("<OPTION SELECTED VALUE=\"" + (String) values.get(i) + "\">" + (String) names.get(i) + "</OPTION>\n");
+				sb.append("<option value=\"" + values.get(i) + "\">" + names.get(i) + "</option>\n");
 			}
 		}
-		sb.append("</SELECT>\n");
+		sb.append("</select>\n");
 		return sb.toString();
 	}
 

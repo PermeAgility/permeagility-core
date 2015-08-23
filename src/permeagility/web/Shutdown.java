@@ -16,13 +16,13 @@ public class Shutdown extends Weblet {
 		parms.put("SERVICE",service);
 		StringBuilder errors = new StringBuilder();
 		
-		if (parms.get("SUBMIT") != null && parms.get("SUBMIT").equals(Message.get(con.getLocale(),"CANCEL"))) {
+		if (parms.get("SUBMIT") != null && parms.get("SUBMIT").equals("CANCEL")) {
 			return redirect(con.getLocale(),"");
 //					head("Redirect")
 //			+ bodyOnLoad("Redirecting...", "window.location.href='/';");
     	}
     
-		if (parms.get("SUBMIT") == null || !parms.get("SUBMIT").equals(Message.get(con.getLocale(),"CONFIRM_SHUTDOWN"))) {
+		if (parms.get("SUBMIT") == null || !parms.get("SUBMIT").equals("CONFIRM_SHUTDOWN")) {
 	    	return head(service)+
 		    standardLayout(con, parms,
 		    	errors
@@ -31,9 +31,9 @@ public class Shutdown extends Weblet {
 	    			hidden("SHUTDOWN",parms.get("SHUTDOWN"))
 	    			+paragraph(Message.get(con.getLocale(),"SHUTDOWN_CONFIRM_MESSAGE"))
 	    			+paragraph(checkbox("WITH_RESTART",false)+"&nbsp;"+Message.get(con.getLocale(),"SHUTDOWN_RESTART"))
-	    			+submitButton(Message.get(con.getLocale(),"CONFIRM_SHUTDOWN"))
+	    			+submitButton(con.getLocale(),"CONFIRM_SHUTDOWN")
 	    			+"&nbsp;&nbsp;&nbsp;&nbsp;"
-	    			+submitButton(Message.get(con.getLocale(),"CANCEL"))
+	    			+submitButton(con.getLocale(),"CANCEL")
 		        )
 		    );
 		} else {

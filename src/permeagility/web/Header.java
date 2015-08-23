@@ -42,7 +42,7 @@ public class Header extends Weblet {
 				  table("data",
 					row(column("label",Message.get(con.getLocale(),"USER_LABEL"))+column(input("USERNAME","")))
 					+row(column("label",Message.get(con.getLocale(),"PASSWORD_LABEL"))+column(password(null)))
-					+row(column("")+column(submitButton(Message.get(con.getLocale(),"LOGIN_BUTTON_TEXT"))))
+					+row(column("")+column(submitButton(con.getLocale(),"LOGIN_BUTTON_TEXT")))
 					+row(columnSpan(2,link("permeagility.web.UserRequest",Message.get(con.getLocale(), "REQUEST_LOGIN"))))
 				))
 				+ (parms.get("USERNAME") == null ? "" : color("red",bold(Message.get(con.getLocale(), "INVALID_USER_OR_PASSWORD"))))

@@ -104,7 +104,7 @@ public class Setup {
 			checkCreatePrivilege(con,"guest",ResourceGeneric.DATABASE,null,2,installMessages);
 			checkCreatePrivilege(con,"guest",ResourceGeneric.COMMAND,null,2,installMessages);
 			checkCreatePrivilege(con,"guest",ResourceGeneric.SCHEMA,null,2,installMessages);
-			checkCreatePrivilege(con,"guest",ResourceGeneric.CLUSTER,"*",2,installMessages);
+			checkCreatePrivilege(con,"guest",ResourceGeneric.CLUSTER,null,2,installMessages);
 			checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,"columns",2,installMessages);
 			checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,"article",2,installMessages);
 			checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,"style",2,installMessages);
@@ -394,6 +394,9 @@ public class Setup {
 			mCount += checkCreateMessage(con, loc, "PLUS_VERSION", "Plus Version");
 			mCount += checkCreateMessage(con, loc, "PLUS_SETUP", "Setup");
 			mCount += checkCreateMessage(con, loc, "PLUS_DESCRIPTION", "Description");
+			mCount += checkCreateMessage(con, loc, "PLUS_INSTALL", "Install");
+			mCount += checkCreateMessage(con, loc, "PLUS_REMOVE", "Remove");
+			mCount += checkCreateMessage(con, loc, "PLUS_UPGRADE", "Upgrade");
 			mCount += checkCreateMessage(con, loc, "VISUILITY", "Visuility");
 						
 			if (mCount > 0) {

@@ -56,7 +56,7 @@ public class Login extends Weblet {
 						) +
 						row(
 							column(40,null)
-							+column(60,submitButton(Message.get(locale,"LOGIN_BUTTON_TEXT")))
+							+column(60,submitButton(locale,"LOGIN_BUTTON_TEXT"))
 						)
 					)
 				)
@@ -64,7 +64,7 @@ public class Login extends Weblet {
 				+Message.getLocaleSelector(locale, parms)	
 				+br()
 				+ link("permeagility.web.UserRequest",Message.get(locale, "REQUEST_LOGIN"))+br() 
-				+paragraph("&copy;2014 <A HREF=http://www.permeagility.com>PermeAgility Incorporated</A>")+"\n"
+				+paragraph("&copy;2015 <A HREF=http://www.permeagility.com>PermeAgility Incorporated</A>")+"\n"
 			,"self.focus(); document.LOGIN.USERNAME.focus();");
 	} 
 	

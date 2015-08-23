@@ -41,14 +41,14 @@ public class Merge extends Table {
 		// Process update of work tables
 		if (updateId != null && submit != null) {
 			System.out.println("update_id="+updateId);
-			if (submit.equals(Message.get(con.getLocale(), "DELETE"))) {
+			if (submit.equals("DELETE")) {
 				if (deleteRow(con, tableName, parms, errors)) {
 					submit = null;
 				} else {
 					return head("Could not delete")
 							+ body(standardLayout(con, parms, getTableRowForm(con, tableName, parms) + errors.toString()));
 				}
-			} else if (submit.equals(Message.get(con.getLocale(), "UPDATE"))) {
+			} else if (submit.equals("UPDATE")) {
 				System.out.println("In updating row");
 				if (updateRow(con, tableName, parms, errors)) {
 					submit = null;
@@ -64,7 +64,7 @@ public class Merge extends Table {
 		}
 
 		// Create a SQL import directly - set the created date
-		if (submit != null && submit.equals(Message.get(con.getLocale(), "CREATE_ROW"))) {
+		if (submit != null && submit.equals("CREATE_ROW")) {
 			parms.put(PARM_PREFIX+"created", formatDate(con.getLocale(), new java.util.Date(), "yyyy-MM-dd HH:mm:ss"));
 			boolean inserted = insertRow(con,tableName,parms,errors);
 			if (!inserted) {
@@ -195,7 +195,7 @@ public class Merge extends Table {
 						paragraph("banner", Message.get(con.getLocale(), "CREATE_ROW"))
 						+hidden("TABLENAME", PlusSetup.MERGE_TABLE)
 						+getTableRowFields(con, PlusSetup.MERGE_TABLE, parms, "name,fromTable,toTable,fromKey,toKey")
-						+submitButton(Message.get(con.getLocale(), "CREATE_ROW"))) 
+						+submitButton(con.getLocale(), "CREATE_ROW")) 
 					: "")
 				+sb.toString()
 			));
