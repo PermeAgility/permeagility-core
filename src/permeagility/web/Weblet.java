@@ -23,7 +23,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
-import java.util.Vector;
 
 import permeagility.util.DatabaseConnection;
 import permeagility.util.QueryCache;
@@ -683,12 +682,12 @@ public abstract class Weblet {
 
 	public static String getDateControlScript(Locale locale) {
 //		System.out.println("Getting date control script for locale "+locale.getLanguage());
-// TODO: May need more intelligence here to ensure the locale has a file for JS Calendar ( or just replace the whole thing)
-		return 
-		   "<link rel=\"stylesheet\" type=\"text/css\" href=\"../js/jscalendar-1.0/calendar-"+DATE_CONTROL_STYLE+".css\" title=\"Date Control\" />\n"
-		  +"<script type=\"text/javascript\" src=\"../js/jscalendar-1.0/calendar.js\"></script>\n"
-		  +"<script type=\"text/javascript\" src=\"../js/jscalendar-1.0/lang/calendar-"+locale.getLanguage()+".js\"></script>\n"
-		  +"<script type=\"text/javascript\" src=\"../js/jscalendar-1.0/calendar-setup.js\"></script>\n";
+//              TODO: May need more intelligence here to ensure the locale has a file for JS Calendar ( or just replace the whole thing)
+            return 
+               "<link rel=\"stylesheet\" type=\"text/css\" href=\"../js/jscalendar-1.0/calendar-"+DATE_CONTROL_STYLE+".css\" title=\"Date Control\" />\n"
+              +"<script type=\"text/javascript\" src=\"../js/jscalendar-1.0/calendar.js\"></script>\n"
+              +"<script type=\"text/javascript\" src=\"../js/jscalendar-1.0/lang/calendar-"+locale.getLanguage()+".js\"></script>\n"
+              +"<script type=\"text/javascript\" src=\"../js/jscalendar-1.0/calendar-setup.js\"></script>\n";
 	}
 
 	public static String getColorControlScript() {
@@ -698,35 +697,34 @@ public abstract class Weblet {
 	public static String EDITOR_THEME = "night";
 	
 	public static String getCodeEditorScript() {
-		return "<link rel=\"stylesheet\" type=\"text/css\" href=\"../js/codemirror/lib/codemirror.css\" />\n"
-			+"<link rel=\"stylesheet\" type=\"text/css\" href=\"../js/codemirror/theme/"+EDITOR_THEME+".css\" />\n"
-			+"<link rel=\"stylesheet\" type=\"text/css\" href=\"../js/codemirror/addon/hint/show-hint.css\" />\n"
-			+"<link rel=\"stylesheet\" type=\"text/css\" href=\"../js/codemirror/addon/dialog/dialog.css\" />\n"
-			+"<link rel=\"stylesheet\" type=\"text/css\" href=\"../js/codemirror/addon/tern/tern.css\" />\n"
-			+ "<script type=\"text/javascript\" src=\"../js/codemirror/lib/codemirror.js\"></script>\n"
-			+ "<script type=\"text/javascript\" src=\"../js/codemirror/mode/javascript/javascript.js\"></script>\n"
-			+ "<script type=\"text/javascript\" src=\"../js/codemirror/mode/css/css.js\"></script>\n"
-			+ "<script type=\"text/javascript\" src=\"../js/codemirror/addon/dialog/dialog.js\"></script>\n"
-			+ "<script type=\"text/javascript\" src=\"../js/codemirror/addon/tern/tern.js\"></script>\n"
-			+ "<script type=\"text/javascript\" src=\"../js/codemirror/addon/hint/show-hint.js\"></script>\n"
-			+ "<script type=\"text/javascript\" src=\"../js/codemirror/addon/hint/javascript-hint.js\"></script>\n"
-			+ "<script type=\"text/javascript\" src=\"../js/codemirror/addon/hint/css-hint.js\"></script>\n"
-			+ "<script type=\"text/javascript\" src=\"../js/codemirror/addon/lint/lint.js\"></script>\n"
-			+ "<script type=\"text/javascript\" src=\"../js/codemirror/addon/lint/javascript-lint.js\"></script>\n"
-			+ "<script type=\"text/javascript\" src=\"../js/codemirror/addon/lint/css-lint.js\"></script>\n"
-			+ "<script type=\"text/javascript\" src=\"../js/codemirror/addon/selection/active-line.js\"></script>\n"
-			+ "<script type=\"text/javascript\" src=\"../js/codemirror/addon/edit/matchbrackets.js\"></script>\n";
+            return "<link rel=\"stylesheet\" type=\"text/css\" href=\"../js/codemirror/lib/codemirror.css\" />\n"
+                +"<link rel=\"stylesheet\" type=\"text/css\" href=\"../js/codemirror/theme/"+EDITOR_THEME+".css\" />\n"
+                +"<link rel=\"stylesheet\" type=\"text/css\" href=\"../js/codemirror/addon/hint/show-hint.css\" />\n"
+                +"<link rel=\"stylesheet\" type=\"text/css\" href=\"../js/codemirror/addon/dialog/dialog.css\" />\n"
+                +"<link rel=\"stylesheet\" type=\"text/css\" href=\"../js/codemirror/addon/tern/tern.css\" />\n"
+                + "<script type=\"text/javascript\" src=\"../js/codemirror/lib/codemirror.js\"></script>\n"
+                + "<script type=\"text/javascript\" src=\"../js/codemirror/mode/javascript/javascript.js\"></script>\n"
+                + "<script type=\"text/javascript\" src=\"../js/codemirror/mode/css/css.js\"></script>\n"
+                + "<script type=\"text/javascript\" src=\"../js/codemirror/addon/dialog/dialog.js\"></script>\n"
+                + "<script type=\"text/javascript\" src=\"../js/codemirror/addon/tern/tern.js\"></script>\n"
+                + "<script type=\"text/javascript\" src=\"../js/codemirror/addon/hint/show-hint.js\"></script>\n"
+                + "<script type=\"text/javascript\" src=\"../js/codemirror/addon/hint/javascript-hint.js\"></script>\n"
+                + "<script type=\"text/javascript\" src=\"../js/codemirror/addon/hint/css-hint.js\"></script>\n"
+                + "<script type=\"text/javascript\" src=\"../js/codemirror/addon/lint/lint.js\"></script>\n"
+                + "<script type=\"text/javascript\" src=\"../js/codemirror/addon/lint/javascript-lint.js\"></script>\n"
+                + "<script type=\"text/javascript\" src=\"../js/codemirror/addon/lint/css-lint.js\"></script>\n"
+                + "<script type=\"text/javascript\" src=\"../js/codemirror/addon/selection/active-line.js\"></script>\n"
+                + "<script type=\"text/javascript\" src=\"../js/codemirror/addon/edit/matchbrackets.js\"></script>\n";
 	}
 
 	public String getCodeEditorControl(String formName, String controlName, String initialValue, String mode) {
-		return "<textarea id=\""+controlName+"\" name=\""+controlName+"\">"+(initialValue==null ? "" : initialValue)+"</textarea>\n"
-				+" <script>\n"
-				+ "var "+controlName+"Editor = CodeMirror.fromTextArea(document.getElementById(\""+controlName+"\")"
-				+ ", { lineNumbers: true, mode: \""+mode+"\""
-						+ ", theme: \""+EDITOR_THEME+"\", matchBrackets: true, extraKeys: {\"Ctrl-Space\": \"autocomplete\"}"
-						+ ", viewportMargin: Infinity });\n"
-				+ "</script>\n";
-				
+            return "<textarea id=\""+controlName+"\" name=\""+controlName+"\">"+(initialValue==null ? "" : initialValue)+"</textarea>\n"
+                +" <script>\n"
+                + "var "+controlName+"Editor = CodeMirror.fromTextArea(document.getElementById(\""+controlName+"\")"
+                + ", { lineNumbers: true, mode: \""+mode+"\""
+                                + ", theme: \""+EDITOR_THEME+"\", matchBrackets: true, extraKeys: {\"Ctrl-Space\": \"autocomplete\"}"
+                                + ", viewportMargin: Infinity });\n"
+                + "</script>\n";				
 	}
 
 	public int countLines(String string) {
@@ -748,38 +746,38 @@ public abstract class Weblet {
 	int dateControlCount = 0;
 
 	public String getDateControl(String formName, String controlName, String initialValue) {
-		dateControlCount++;
-		String varName = "dateControl" + dateControlCount;
-		return "<input type=\"text\" name=\""+controlName+"\" id=\""+varName+"\" value=\""+initialValue+"\" /></td>\n"
-				+"<td><img src=\"/js/jscalendar-1.0/img.gif\" id=\""+varName+"_TRIG"+"\" style=\"cursor: pointer; z-index: 1000;\" title=\"Date selector\"\n"
-		        +" onmouseover=\"this.style.background='red';\" onmouseout=\"this.style.background=''\" />\n"
-		        +"<script type=\"text/javascript\">\n"
-		        +"Calendar.setup({\n"
-		        +" inputField : \""+varName+"\",\n"
-		        +" ifFormat   : \""+DATE_CONTROL_FORMAT+"\",\n"
-		        +" button     : \""+varName+"_TRIG"+"\",\n"
-		        +(initialValue==null ? "" : " date : new Date(\""+initialValue+"\"),\n")
-		        //+" singleClick : true\n"
-				+"});\n"
-				+"</script>\n";
+            dateControlCount++;
+            String varName = "dateControl" + dateControlCount;
+            return "<input type=\"text\" name=\""+controlName+"\" id=\""+varName+"\" value=\""+initialValue+"\" /></td>\n"
+                +"<td><img src=\"/js/jscalendar-1.0/img.gif\" id=\""+varName+"_TRIG"+"\" style=\"cursor: pointer; z-index: 1000;\" title=\"Date selector\"\n"
+                +" onmouseover=\"this.style.background='red';\" onmouseout=\"this.style.background=''\" />\n"
+                +"<script type=\"text/javascript\">\n"
+                +"Calendar.setup({\n"
+                +" inputField : \""+varName+"\",\n"
+                +" ifFormat   : \""+DATE_CONTROL_FORMAT+"\",\n"
+                +" button     : \""+varName+"_TRIG"+"\",\n"
+                +(initialValue==null ? "" : " date : new Date(\""+initialValue+"\"),\n")
+                //+" singleClick : true\n"
+                +"});\n"
+                +"</script>\n";
 	}
 
 	public String getDateTimeControl(String formName, String controlName, String initialValue) {
-		dateControlCount++;
-		String varName = "dateControl" + dateControlCount;
-		return "<input type=\"text\" name=\""+controlName+"\" id=\""+varName+"\" value=\""+initialValue+"\" />\n"
-				+"<img src=\"/js/jscalendar-1.0/img.gif\" id=\""+varName+"_TRIG"+"\" style=\"cursor: pointer; z-index: 1000;\" title=\"Date selector\"\n"
-		        +" onmouseover=\"this.style.background='red';\" onmouseout=\"this.style.background=''\" />\n"
-		        +"<script type=\"text/javascript\">\n"
-		        +"Calendar.setup({\n"
-		        +" inputField : \""+varName+"\"\n"
-		        +" ,ifFormat   : \""+DATE_CONTROL_FORMAT+" "+TIME_CONTROL_FORMAT+"\"\n"
-		        +" ,showsTime   : true\n"
-		        +" ,button     : \""+varName+"_TRIG"+"\"\n"
-		        //+" singleClick : true\n"
-		        +(initialValue==null ? "" : ", date : new Date(\""+initialValue+"\")\n")
-				+"});\n"
-				+"</script>\n";
+            dateControlCount++;
+            String varName = "dateControl" + dateControlCount;
+            return "<input type=\"text\" name=\""+controlName+"\" id=\""+varName+"\" value=\""+initialValue+"\" />\n"
+                +"<img src=\"/js/jscalendar-1.0/img.gif\" id=\""+varName+"_TRIG"+"\" style=\"cursor: pointer; z-index: 1000;\" title=\"Date selector\"\n"
+                +" onmouseover=\"this.style.background='red';\" onmouseout=\"this.style.background=''\" />\n"
+                +"<script type=\"text/javascript\">\n"
+                +"Calendar.setup({\n"
+                +" inputField : \""+varName+"\"\n"
+                +" ,ifFormat   : \""+DATE_CONTROL_FORMAT+" "+TIME_CONTROL_FORMAT+"\"\n"
+                +" ,showsTime   : true\n"
+                +" ,button     : \""+varName+"_TRIG"+"\"\n"
+                //+" singleClick : true\n"
+                +(initialValue==null ? "" : ", date : new Date(\""+initialValue+"\")\n")
+                +"});\n"
+                +"</script>\n";
 	}
 
     public static String multiSelectList(String name, List<String> names, List<String> values, List<String> tooltips, Locale l) {
@@ -794,27 +792,27 @@ public abstract class Weblet {
 
     /** Build a list of checkboxes based on a query  */
     public static String multiCheckboxList(String name, QueryResult qr, Locale l, Set<ODocument> picked) {
-	    Vector<String> names = new Vector<String>(qr.size());
-	    Vector<String> values = new Vector<String>(qr.size());
-	    Vector<String> tooltips = new Vector<String>(qr.size());
-	    Vector<String> checks = new Vector<String>(qr.size());
-	    for(ODocument row : qr.get()) {
-	    	String rid = row.field("rid");
-	    	if (rid == null) {
-	    		rid = row.getIdentity().toString().substring(1);
-	    	}
-	    	values.add(rid);
-	    	names.add((String)row.field("name"));
-	    	checks.add((picked != null && picked.contains(row) ? "Y" : null));
-	    }
-	    return multiCheckboxList(name, names, values, tooltips, checks, l);
+        List<String> names = new ArrayList<>(qr.size());
+        List<String> values = new ArrayList<>(qr.size());
+        List<String> tooltips = new ArrayList<>(qr.size());
+        List<String> checks = new ArrayList<>(qr.size());
+        for(ODocument row : qr.get()) {
+            String rid = row.field("rid");
+            if (rid == null) {
+                rid = row.getIdentity().toString().substring(1);
+            }
+            values.add(rid);
+            names.add((String)row.field("name"));
+            checks.add((picked != null && picked.contains(row) ? "Y" : null));
+        }
+        return multiCheckboxList(name, names, values, tooltips, checks, l);
     }
 
     public static String multiCheckboxListWithGoto(String name, String table, QueryResult qr, Locale l, Set<ODocument> picked) {
-	    Vector<String> names = new Vector<String>(qr.size());
-	    Vector<String> values = new Vector<String>(qr.size());
-	    Vector<String> tooltips = new Vector<String>(qr.size());
-	    Vector<String> checks = new Vector<String>(qr.size());
+	    List<String> names = new ArrayList<>(qr.size());
+	    List<String> values = new ArrayList<>(qr.size());
+	    List<String> tooltips = new ArrayList<>(qr.size());
+	    List<String> checks = new ArrayList<>(qr.size());
 	    for(ODocument row : qr.get()) {
 	    	String rid = row.field("rid");
 	    	if (rid == null) {
@@ -854,100 +852,100 @@ public abstract class Weblet {
     }
 
     public String linkSetControl(DatabaseConnection con, String name, String table, QueryResult qr, Locale l, Set<ODocument> picked) {
-	    Vector<String> names = new Vector<String>(qr.size());
-	    Vector<String> values = new Vector<String>(qr.size());
-	    Vector<String> tooltips = new Vector<String>(qr.size());
-	    Vector<String> checks = new Vector<String>(qr.size());
-	    for(ODocument row : qr.get()) {
-	    	String rid = row.field("rid");
-	    	if (rid == null) {
-	    		rid = row.getIdentity().toString();
-	    	}
-	    	if (rid.startsWith("#")) rid = rid.substring(1);
-	    	//System.out.println("adding rid "+rid);
-	    	values.add(rid);
-	    	names.add(toJSONString(getDescriptionFromDocument(con, row)));
-	    	tooltips.add(toJSONString((String)row.field("tooltip")));
-	    	boolean pick = false;
-	    	if (picked != null) { // Find in the list of picked, hope it isn't long
-	    		for (Object p : picked) {
-	    			ORID id = null;
-	    			if (p == null) {
-	    				
-	    			} else if (p instanceof ORecordId) {
-	    				id = ((ORecordId)p).getIdentity();
-	    			} else {  // Assume ODocument
-	    				id = ((ODocument)p).getIdentity();
-	    			}
-	    			if (id != null && id.toString().substring(1).equals(rid)) {
-	    				pick = true;
-	    			}
-	    		}
-	    	}
-	    	checks.add((pick ? "true" : "false"));
-	    }
-	    return getLinkSet(name, table, names, values, tooltips, checks, l);
+        List<String> names = new ArrayList<>(qr.size());
+        List<String> values = new ArrayList<>(qr.size());
+        List<String> tooltips = new ArrayList<>(qr.size());
+        List<String> checks = new ArrayList<>(qr.size());
+        for(ODocument row : qr.get()) {
+            String rid = row.field("rid");
+            if (rid == null) {
+                rid = row.getIdentity().toString();
+            }
+            if (rid.startsWith("#")) rid = rid.substring(1);
+            //System.out.println("adding rid "+rid);
+            values.add(rid);
+            names.add(toJSONString(getDescriptionFromDocument(con, row)));
+            tooltips.add(toJSONString((String)row.field("tooltip")));
+            boolean pick = false;
+            if (picked != null) { // Find in the list of picked, hope it isn't long
+                for (Object p : picked) {
+                    ORID id = null;
+                    if (p == null) {
+
+                    } else if (p instanceof ORecordId) {
+                            id = ((ORecordId)p).getIdentity();
+                    } else {  // Assume ODocument
+                            id = ((ODocument)p).getIdentity();
+                    }
+                    if (id != null && id.toString().substring(1).equals(rid)) {
+                            pick = true;
+                    }
+                }
+            }
+            checks.add((pick ? "true" : "false"));
+        }
+        return getLinkSet(name, table, names, values, tooltips, checks, l);
     }
     
-	  public String getLinkSet(String name, String table, List<String> names, List<String> values, List<String> tooltips, List<String> checks, Locale l) {   
-		StringBuilder result = new StringBuilder();
-		result.append("<div ng-controller=\"LinkSetControl\" ng-init=\"values=[\n");
-		for (int i=0; i<names.size(); i++) {
-			if (i > 0) { result.append(","); }
-			result.append("{ name: '"+names.get(i)+"', rid: '"+values.get(i)+"', active:"+checks.get(i)+" }\n");
-		}
-		result.append("]\">\n");
-		result.append("<ul>\n");
-		result.append("  <li ng-tooltip=\""+Message.get(l, "USE_CONTROLS_TO_CHANGE")+"\" ng-repeat=\"v in values | filter: { active: true }\">\n");
-		result.append("    {{v.name}}&nbsp;&nbsp;&nbsp;\n");
-		result.append("    <a title=\""+Message.get(l, "CLICK_TO_DELETE")+"\" ng-click=\"toggleActive(v)\">&times;</a>\n");
-		result.append("    <a target=\"_blank\" HREF=\"permeagility.web.Table?TABLENAME="+table+"&EDIT_ID={{v.rid}}\">"+Message.get(l, "GOTO_ROW")+"</a>\n");
-		result.append("  </li>\n");
-		result.append("</ul>\n");
-		result.append(Message.get(l,"ADD_OR_REMOVE")+"&nbsp;");
-		result.append("  <select ng-model=\"selValue\" ng-options=\"v.name for v in values\" ng-change=\"toggleActive(selValue)\">\n");
-		result.append("    <option value=\"\">"+Message.get(l, "OPTION_NONE")+"</option>\n");
-		result.append("      </select>\n");
-		result.append("<input class=\"text\" type=\"hidden\" name=\""+name+"\"  value=\"{{resultList()}}\"/>\n");  // TYPE=\"hidden\"
-		result.append("</div>\n");
+    public String getLinkSet(String name, String table, List<String> names, List<String> values, List<String> tooltips, List<String> checks, Locale l) {   
+        StringBuilder result = new StringBuilder();
+        result.append("<div ng-controller=\"LinkSetControl\" ng-init=\"values=[\n");
+        for (int i=0; i<names.size(); i++) {
+                if (i > 0) { result.append(","); }
+                result.append("{ name: '"+names.get(i)+"', rid: '"+values.get(i)+"', active:"+checks.get(i)+" }\n");
+        }
+        result.append("]\">\n");
+        result.append("<ul>\n");
+        result.append("  <li ng-tooltip=\""+Message.get(l, "USE_CONTROLS_TO_CHANGE")+"\" ng-repeat=\"v in values | filter: { active: true }\">\n");
+        result.append("    {{v.name}}&nbsp;&nbsp;&nbsp;\n");
+        result.append("    <a title=\""+Message.get(l, "CLICK_TO_DELETE")+"\" ng-click=\"toggleActive(v)\">&times;</a>\n");
+        result.append("    <a target=\"_blank\" HREF=\"permeagility.web.Table?TABLENAME="+table+"&EDIT_ID={{v.rid}}\">"+Message.get(l, "GOTO_ROW")+"</a>\n");
+        result.append("  </li>\n");
+        result.append("</ul>\n");
+        result.append(Message.get(l,"ADD_OR_REMOVE")+"&nbsp;");
+        result.append("  <select ng-model=\"selValue\" ng-options=\"v.name for v in values\" ng-change=\"toggleActive(selValue)\">\n");
+        result.append("    <option value=\"\">"+Message.get(l, "OPTION_NONE")+"</option>\n");
+        result.append("      </select>\n");
+        result.append("<input class=\"text\" type=\"hidden\" name=\""+name+"\"  value=\"{{resultList()}}\"/>\n");  // TYPE=\"hidden\"
+        result.append("</div>\n");
   	return result.toString();
   }
 
 	public String linkListControl(DatabaseConnection con, String name, String table, QueryResult qr, Locale l, List<ODocument> picked) {
-		if (qr == null) {
-			return paragraph("error","Cannot produce list for table "+table+" query is empty");
-		}
-		HashMap<String,Integer> listMap = new HashMap<String,Integer>();  // for keeping counts of objects LinkList can have duplicates
-		Vector<String> names = new Vector<String>(qr.size());
-	    Vector<String> values = new Vector<String>(qr.size());
-	    Vector<String> tooltips = new Vector<String>(qr.size());
-	    Vector<String> checks = new Vector<String>(qr.size());
-	    Vector<String> listnames = new Vector<String>(qr.size());
-	    Vector<String> listvalues = new Vector<String>(qr.size());
-	    Vector<String> listtooltips = new Vector<String>(qr.size());
-	    Vector<String> listchecks = new Vector<String>(qr.size());
+            if (qr == null) {
+                    return paragraph("error","Cannot produce list for table "+table+" query is empty");
+            }
+            HashMap<String,Integer> listMap = new HashMap<>();  // for keeping counts of objects LinkList can have duplicates
+            List<String> names = new ArrayList<>(qr.size());
+	    List<String> values = new ArrayList<>(qr.size());
+	    List<String> tooltips = new ArrayList<>(qr.size());
+	    List<String> checks = new ArrayList<>(qr.size());
+	    List<String> listnames = new ArrayList<>(qr.size());
+	    List<String> listvalues = new ArrayList<>(qr.size());
+	    List<String> listtooltips = new ArrayList<>(qr.size());
+	    List<String> listchecks = new ArrayList<>(qr.size());
 	    if (picked != null) {
-		    for(ODocument pick : picked) {
-		    	if (pick != null) {
-			    	String rid = pick.field("rid");
-			    	if (rid == null) {
-			    		rid = pick.getIdentity().toString();
-			    	}
-			    	if (rid.startsWith("#")) rid = rid.substring(1);
-			    	listvalues.add(rid);
-			    	listnames.add(toJSONString(getDescriptionFromDocument(con, pick)));
-			    	listtooltips.add(toJSONString((String)pick.field("tooltip")));
-			    	Integer active = listMap.get(rid);
-			    	if (active == null) {
-			    		active = new Integer(1);
-			    	} else {
-			    		active = new Integer(active.intValue()+1);
-			    	}
-			    	//System.out.println("Adding to listValues: "+rid+" active="+active);
-			    	listMap.put(rid, active);	    	
-			    	listchecks.add(active.toString());
-		    	}
-		    }
+                for(ODocument pick : picked) {
+                    if (pick != null) {
+                        String rid = pick.field("rid");
+                        if (rid == null) {
+                                rid = pick.getIdentity().toString();
+                        }
+                        if (rid.startsWith("#")) rid = rid.substring(1);
+                        listvalues.add(rid);
+                        listnames.add(toJSONString(getDescriptionFromDocument(con, pick)));
+                        listtooltips.add(toJSONString((String)pick.field("tooltip")));
+                        Integer active = listMap.get(rid);
+                        if (active == null) {
+                                active = new Integer(1);
+                        } else {
+                                active = new Integer(active.intValue()+1);
+                        }
+                        //System.out.println("Adding to listValues: "+rid+" active="+active);
+                        listMap.put(rid, active);	    	
+                        listchecks.add(active.toString());
+                    }
+                }
 	    }
 	    for(ODocument row : qr.get()) {
 	    	String rid = row.field("rid");
@@ -970,72 +968,72 @@ public abstract class Weblet {
 	}
 
 	public String getLinkList(String name, String table, List<String> names, List<String> values, List<String> tooltips, List<String> checks, List<String> listnames, List<String> listvalues, List<String> listtooltips, List<String> listchecks, Locale l) {   
-		StringBuilder result = new StringBuilder();
-		result.append("<div ng-controller=\"LinkListControl\" ng-init=\"values=[\n");
-		for (int i=0; i<names.size(); i++) {
-			if (i > 0) { result.append(","); }
-			result.append("{ name: '"+names.get(i)+"', rid: '"+values.get(i)+"', active:"+checks.get(i)+" }\n");
-		}
-		result.append("];\n listValues=[");
-		for (int i=0; i<listnames.size(); i++) {
-			if (i > 0) { result.append(","); }
-			result.append("{ name: '"+listnames.get(i)+"', rid: '"+listvalues.get(i)+"', active:"+listchecks.get(i)+" }\n");
-		}
-		result.append("];\">\n");
-		result.append("<ol>\n");
-		result.append("  <li ng-tooltip=\""+Message.get(l, "USE_CONTROLS_TO_CHANGE")+"\" ng-repeat=\"v in listValues\">\n");
-		result.append("    <a title=\""+Message.get(l, "CLICK_TO_MOVE_UP")+"\" ng-click=\"up(v)\">&#x2191;</a>\n");
-		result.append("    <a title=\""+Message.get(l, "CLICK_TO_MOVE_DOWN")+"\" ng-click=\"down(v)\">&#x2193;</a>\n");
-		result.append("    {{v.name}}&nbsp;&nbsp;&nbsp;\n");
-		result.append("    <a title=\""+Message.get(l, "CLICK_TO_DELETE")+"\" ng-click=\"delete(v)\">&times;</a>\n");
-		result.append("    <a target=\"_blank\" HREF=\"permeagility.web.Table?TABLENAME="+table+"&EDIT_ID={{v.rid}}\">"+Message.get(l, "GOTO_ROW")+"</a>\n");
-		result.append("  </li>\n");
-		result.append("</ol>\n");
-		result.append(Message.get(l, "ADD_ITEM")+"&nbsp;");
-		result.append("  <select ng-model=\"selValue\" ng-options=\"v.name for v in values\" ng-change=\"selected(selValue)\">\n");
-		result.append("    <option value=\"\">"+Message.get(l, "OPTION_NONE")+"</option>\n");
-		result.append("      </select>\n");
-		result.append("<input class=\"text\" type=\"hidden\" name=\""+name+"\"  value=\"{{resultList()}}\"/>\n");  // TYPE=\"hidden\"
-//		result.append("<INPUT CLASS=\"text\" NAME=\""+name+"\"  VALUE=\"{{resultList()}}\"/>\n"); 
-		result.append("</div>\n");
-		return result.toString();
+            StringBuilder result = new StringBuilder();
+            result.append("<div ng-controller=\"LinkListControl\" ng-init=\"values=[\n");
+            for (int i=0; i<names.size(); i++) {
+                    if (i > 0) { result.append(","); }
+                    result.append("{ name: '"+names.get(i)+"', rid: '"+values.get(i)+"', active:"+checks.get(i)+" }\n");
+            }
+            result.append("];\n listValues=[");
+            for (int i=0; i<listnames.size(); i++) {
+                    if (i > 0) { result.append(","); }
+                    result.append("{ name: '"+listnames.get(i)+"', rid: '"+listvalues.get(i)+"', active:"+listchecks.get(i)+" }\n");
+            }
+            result.append("];\">\n");
+            result.append("<ol>\n");
+            result.append("  <li ng-tooltip=\""+Message.get(l, "USE_CONTROLS_TO_CHANGE")+"\" ng-repeat=\"v in listValues\">\n");
+            result.append("    <a title=\""+Message.get(l, "CLICK_TO_MOVE_UP")+"\" ng-click=\"up(v)\">&#x2191;</a>\n");
+            result.append("    <a title=\""+Message.get(l, "CLICK_TO_MOVE_DOWN")+"\" ng-click=\"down(v)\">&#x2193;</a>\n");
+            result.append("    {{v.name}}&nbsp;&nbsp;&nbsp;\n");
+            result.append("    <a title=\""+Message.get(l, "CLICK_TO_DELETE")+"\" ng-click=\"delete(v)\">&times;</a>\n");
+            result.append("    <a target=\"_blank\" HREF=\"permeagility.web.Table?TABLENAME="+table+"&EDIT_ID={{v.rid}}\">"+Message.get(l, "GOTO_ROW")+"</a>\n");
+            result.append("  </li>\n");
+            result.append("</ol>\n");
+            result.append(Message.get(l, "ADD_ITEM")+"&nbsp;");
+            result.append("  <select ng-model=\"selValue\" ng-options=\"v.name for v in values\" ng-change=\"selected(selValue)\">\n");
+            result.append("    <option value=\"\">"+Message.get(l, "OPTION_NONE")+"</option>\n");
+            result.append("      </select>\n");
+            result.append("<input class=\"text\" type=\"hidden\" name=\""+name+"\"  value=\"{{resultList()}}\"/>\n");  // TYPE=\"hidden\"
+//          result.append("<INPUT CLASS=\"text\" NAME=\""+name+"\"  VALUE=\"{{resultList()}}\"/>\n"); 
+            result.append("</div>\n");
+            return result.toString();
 	}
 
 	public String linkMapControl(DatabaseConnection con, String name, String table, QueryResult qr, Locale l, Map<String,ODocument> picked) {
-		HashMap<String,Integer> listMap = new HashMap<String,Integer>();  // for keeping counts of objects LinkList can have duplicates
-	    Vector<String> names = new Vector<String>(qr.size());
-	    Vector<String> values = new Vector<String>(qr.size());
-	    Vector<String> tooltips = new Vector<String>(qr.size());
-	    Vector<String> checks = new Vector<String>(qr.size());
-	    Vector<String> listmaps = new Vector<String>(qr.size());
-	    Vector<String> listnames = new Vector<String>(qr.size());
-	    Vector<String> listvalues = new Vector<String>(qr.size());
-	    Vector<String> listtooltips = new Vector<String>(qr.size());
-	    Vector<String> listchecks = new Vector<String>(qr.size());
+            HashMap<String,Integer> listMap = new HashMap<>();  // for keeping counts of objects LinkList can have duplicates
+	    List<String> names = new ArrayList<>(qr.size());
+	    List<String> values = new ArrayList<>(qr.size());
+	    List<String> tooltips = new ArrayList<>(qr.size());
+	    List<String> checks = new ArrayList<>(qr.size());
+	    List<String> listmaps = new ArrayList<>(qr.size());
+	    List<String> listnames = new ArrayList<>(qr.size());
+	    List<String> listvalues = new ArrayList<>(qr.size());
+	    List<String> listtooltips = new ArrayList<>(qr.size());
+	    List<String> listchecks = new ArrayList<>(qr.size());
 	    if (picked != null) {
 	    	for (String key : picked.keySet()) {
-	    		ODocument pick = picked.get(key);
-	    		if (pick != null) {
-	    			String rid = pick.field("rid");
-	    			if (rid == null) {
-	    				rid = pick.getIdentity().toString();
-	    			}
-			    	if (rid.startsWith("#")) rid = rid.substring(1);
-	    			listmaps.add(key);
-	    			listvalues.add(rid);
-			    	listnames.add(toJSONString(getDescriptionFromDocument(con, pick)));
-			    	listtooltips.add(toJSONString((String)pick.field("tooltip")));
-			    	Integer active = listMap.get(rid);
-			    	if (active == null) {
-			    		active = new Integer(1);
-			    	} else {
-			    		active = new Integer(active.intValue()+1);
-			    	}
-			    	//System.out.println("Adding to listValues: "+rid+" active="+active);
-			    	listMap.put(rid, active);	    	
-			    	listchecks.add(active.toString());
-	    		}
-		    }
+                    ODocument pick = picked.get(key);
+                    if (pick != null) {
+                        String rid = pick.field("rid");
+                        if (rid == null) {
+                            rid = pick.getIdentity().toString();
+                        }
+                        if (rid.startsWith("#")) rid = rid.substring(1);
+                        listmaps.add(key);
+                        listvalues.add(rid);
+                        listnames.add(toJSONString(getDescriptionFromDocument(con, pick)));
+                        listtooltips.add(toJSONString((String)pick.field("tooltip")));
+                        Integer active = listMap.get(rid);
+                        if (active == null) {
+                            active = new Integer(1);
+                        } else {
+                            active = new Integer(active.intValue()+1);
+                        }
+                        //System.out.println("Adding to listValues: "+rid+" active="+active);
+                        listMap.put(rid, active);	    	
+                        listchecks.add(active.toString());
+                    }
+                }
 	    }
 	    for(ODocument row : qr.get()) {
 	    	String rid = row.field("rid");
@@ -1058,84 +1056,84 @@ public abstract class Weblet {
 	}
 
 	public String getLinkMap(String name, String table, List<String> names, List<String> values, List<String> tooltips, List<String> checks, List<String> listmaps, List<String> listnames, List<String> listvalues, List<String> listtooltips, List<String> listchecks, Locale l) {   
-		StringBuilder result = new StringBuilder();
-		result.append("<div ng-controller=\"LinkMapControl\" ng-init=\"values=[\n");
-		for (int i=0; i<names.size(); i++) {
-			if (i > 0) { result.append(","); }
-			result.append("{ name: '"+names.get(i)+"', rid: '"+values.get(i)+"', active:"+checks.get(i)+" }\n");
-		}
-		result.append("];\n listValues=[");
-		for (int i=0; i<listnames.size(); i++) {
-			if (i > 0) { result.append(","); }
-			result.append("{ name: '"+listnames.get(i)+"', rid: '"+listvalues.get(i)+"', map:'"+listmaps.get(i)+"', active:"+listchecks.get(i)+" }\n");
-		}
-		result.append("];\">\n");
-		result.append(" <ol>\n");
-		result.append("  <li ng-tooltip=\""+Message.get(l, "USE_CONTROLS_TO_CHANGE")+"\" ng-repeat=\"v in listValues\">\n");
-		result.append("<a title=\""+Message.get(l, "CLICK_TO_MOVE_UP")+"\" ng-click=\"up(v)\">&#x2191;</a>&nbsp;");
-		result.append("<a title=\""+Message.get(l, "CLICK_TO_MOVE_DOWN")+"\" ng-click=\"down(v)\">&#x2193;</a>&nbsp;");
-		result.append("<input class=\"text\" name=\"map\" ng-model=\"v.map\" SIZE=20  VALUE=\"{{v.map}}\"/>&nbsp;");
-		result.append("{{v.name}}&nbsp;&nbsp;&nbsp;");
-		result.append("  <a title=\""+Message.get(l, "CLICK_TO_DELETE")+"\" ng-click=\"delete(v)\">&times;</a>\n");
-		result.append("  <a target=\"_blank\" HREF=\"permeagility.web.Table?TABLENAME="+table+"&EDIT_ID={{v.rid}}\">"+Message.get(l, "GOTO_ROW")+"</a>\n");
-		result.append("  </li>\n");
-		result.append(" </ol>\n");
-		result.append(Message.get(l, "ADD_ITEM")+"&nbsp;");
-		result.append("  <select ng-model=\"selValue\" ng-options=\"v.name for v in values\" ng-change=\"selected(selValue)\">\n");
-		result.append("    <option value=\"\">"+Message.get(l, "OPTION_NONE")+"</option>\n");
-		result.append("  </select>\n");
-		result.append("<input class=\"text\" type=\"hidden\" name=\""+name+"\" value=\"{{resultList()}}\"/>\n");  // TYPE=\"hidden\"
+            StringBuilder result = new StringBuilder();
+            result.append("<div ng-controller=\"LinkMapControl\" ng-init=\"values=[\n");
+            for (int i=0; i<names.size(); i++) {
+                    if (i > 0) { result.append(","); }
+                    result.append("{ name: '"+names.get(i)+"', rid: '"+values.get(i)+"', active:"+checks.get(i)+" }\n");
+            }
+            result.append("];\n listValues=[");
+            for (int i=0; i<listnames.size(); i++) {
+                    if (i > 0) { result.append(","); }
+                    result.append("{ name: '"+listnames.get(i)+"', rid: '"+listvalues.get(i)+"', map:'"+listmaps.get(i)+"', active:"+listchecks.get(i)+" }\n");
+            }
+            result.append("];\">\n");
+            result.append(" <ol>\n");
+            result.append("  <li ng-tooltip=\""+Message.get(l, "USE_CONTROLS_TO_CHANGE")+"\" ng-repeat=\"v in listValues\">\n");
+            result.append("<a title=\""+Message.get(l, "CLICK_TO_MOVE_UP")+"\" ng-click=\"up(v)\">&#x2191;</a>&nbsp;");
+            result.append("<a title=\""+Message.get(l, "CLICK_TO_MOVE_DOWN")+"\" ng-click=\"down(v)\">&#x2193;</a>&nbsp;");
+            result.append("<input class=\"text\" name=\"map\" ng-model=\"v.map\" SIZE=20  VALUE=\"{{v.map}}\"/>&nbsp;");
+            result.append("{{v.name}}&nbsp;&nbsp;&nbsp;");
+            result.append("  <a title=\""+Message.get(l, "CLICK_TO_DELETE")+"\" ng-click=\"delete(v)\">&times;</a>\n");
+            result.append("  <a target=\"_blank\" HREF=\"permeagility.web.Table?TABLENAME="+table+"&EDIT_ID={{v.rid}}\">"+Message.get(l, "GOTO_ROW")+"</a>\n");
+            result.append("  </li>\n");
+            result.append(" </ol>\n");
+            result.append(Message.get(l, "ADD_ITEM")+"&nbsp;");
+            result.append("  <select ng-model=\"selValue\" ng-options=\"v.name for v in values\" ng-change=\"selected(selValue)\">\n");
+            result.append("    <option value=\"\">"+Message.get(l, "OPTION_NONE")+"</option>\n");
+            result.append("  </select>\n");
+            result.append("<input class=\"text\" type=\"hidden\" name=\""+name+"\" value=\"{{resultList()}}\"/>\n");  // TYPE=\"hidden\"
 //		result.append("<INPUT CLASS=\"text\" NAME=\""+name+"\"  VALUE=\"{{resultList()}}\"/>\n"); 
-		result.append("</div>\n");
-		return result.toString();
+            result.append("</div>\n");
+            return result.toString();
 	}
 	
 	public static String createListFromCache(String name, String initial, DatabaseConnection con, String query) {
-		return createListFromCache(name, initial, con, query, null, true, null, true);
+            return createListFromCache(name, initial, con, query, null, true, null, true);
 	}
 
 	public static String createListFromCache(String name, String initial, DatabaseConnection con, String query
 			, String attributes, boolean allowNull, String classname, boolean enabled) {
-		QueryResult qr = queryCache.getResult(con, query);
-		StringBuilder sb = new StringBuilder(1024);
-		sb.append("<SELECT " + (enabled ? "" : "DISABLED") + (classname != null ? " CLASS=\"" + classname + "\"" : "") + " NAME=\""
-				+ name + "\" " + (attributes != null ? attributes : "") + ">\n");
-		if (initial == null && allowNull) {
-			sb.append("<OPTION SELECTED VALUE=null>" + "Select" + "\n");
-		} else if (allowNull) {
-			sb.append("<OPTION VALUE=null>"+Message.get(con.getLocale(), "OPTION_NONE")+"\n");
-		}
-		if (qr != null) {
-			for (ODocument item : qr.get()) {
-				String id = item.getIdentity().toString();
-				if (item.field("rid") != null) {
-					String d = item.field("rid");
-					if (d != null) {
-						id = d;
-					}
-				}
-		    	if (id.startsWith("#")) id = id.substring(1);
-				String itemname = null;
-				itemname = item.field("name");
-				if (itemname == null) {
-					itemname = item.field("Name");					
-				}
-				if (itemname == null && item.fields()>0) {
-					itemname = item.field(item.fieldNames()[1]).toString();
-				}
-				sb.append("<OPTION ");
-				if (initial != null && initial.equals(id)) {
-					sb.append("SELECTED ");
-				}
-				sb.append(" VALUE=\"");
-				sb.append(id);
-				sb.append("\">");
-				sb.append(itemname == null ? id : itemname);
-				sb.append("\n");
-			}
-		}
-		sb.append("</SELECT>\n");
-		return sb.toString();
+            QueryResult qr = queryCache.getResult(con, query);
+            StringBuilder sb = new StringBuilder(1024);
+            sb.append("<SELECT " + (enabled ? "" : "DISABLED") + (classname != null ? " CLASS=\"" + classname + "\"" : "") + " NAME=\""
+                            + name + "\" " + (attributes != null ? attributes : "") + ">\n");
+            if (initial == null && allowNull) {
+                sb.append("<OPTION SELECTED VALUE=null>" + "Select" + "\n");
+            } else if (allowNull) {
+                sb.append("<OPTION VALUE=null>"+Message.get(con.getLocale(), "OPTION_NONE")+"\n");
+            }
+            if (qr != null) {
+                for (ODocument item : qr.get()) {
+                    String id = item.getIdentity().toString();
+                    if (item.field("rid") != null) {
+                        String d = item.field("rid");
+                        if (d != null) {
+                            id = d;
+                        }
+                    }
+                if (id.startsWith("#")) id = id.substring(1);
+                    String itemname = null;
+                    itemname = item.field("name");
+                    if (itemname == null) {
+                        itemname = item.field("Name");					
+                    }
+                    if (itemname == null && item.fields()>0) {
+                        itemname = item.field(item.fieldNames()[1]).toString();
+                    }
+                    sb.append("<OPTION ");
+                    if (initial != null && initial.equals(id)) {
+                        sb.append("SELECTED ");
+                    }
+                    sb.append(" VALUE=\"");
+                    sb.append(id);
+                    sb.append("\">");
+                    sb.append(itemname == null ? id : itemname);
+                    sb.append("\n");
+                }
+            }
+            sb.append("</SELECT>\n");
+            return sb.toString();
 	}
 
 	public static String getQueryForTable(DatabaseConnection con, String table) {
