@@ -352,7 +352,11 @@ public class Table extends Weblet {
                             errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_NUMBER_VALUE", value)));
                         }					
                     } else if (type == 6) {  // Datetime
+                        try {
                             newDoc.field(name,value,column.getType());
+                        } catch (Exception e) {
+                            errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_DATE_VALUE", value)));                            
+                        }
                     } else if (type == 7) {  // String
                         newDoc.field(name,value);
                     } else if (type == 20) {  // Binary/image (8 = binary, 20 = custom)
@@ -1624,9 +1628,9 @@ public class Table extends Weblet {
                 + paragraph(Message.get(locale, "DROP_COLUMN") + " " 
                         + createListFromCache("COLUMN_TO_DROP", (parms != null ? parms.get("COLUMN_TO_DROP") : ""), con,
                                         "SELECT name as rid, name FROM (SELECT expand(properties) FROM (select expand(classes) from metadata:schema) where name = '" + table + "') ORDER BY name") 
-                        + confirmButton(Message.get(locale, "DROP_COLUMN_BUTTON"), Message.get(locale, "DROP_COLUMN")))
+                        + confirmButton(locale,"DROP_COLUMN_BUTTON", "DROP_COLUMN"))
                 + paragraph(Message.get(locale, "DROP_TABLE") + " " + table + "   "
-                        + confirmButton(Message.get(locale, "DROP_TABLE_BUTTON"), Message.get(locale, "DROP_TABLE_CONFIRM")));
+                        + confirmButton(locale, "DROP_TABLE_BUTTON", "DROP_TABLE_CONFIRM"));
 	}
 
 	public String rightsOptions(DatabaseConnection con, String table, HashMap<String, String> parms) {

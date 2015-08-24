@@ -585,40 +585,22 @@ public abstract class Weblet {
             return button("SUBMIT", s, Message.get(l,s));
 	}
 
-	public String submitButton(String s) {
-		return submitButton("SUBMIT", s);
-	}
-	
-	public String submitButton(String n, String s) {
-		return "<input " + (isReadOnly() ? "DISABLED" : "") + " class=\"submit\" type=\"SUBMIT\" name=\"" + n + "\" value=\"" + s + "\">";
-	}
-
 	public String button(String name, String value, String text) {
-		return "<button " + (isReadOnly() ? "DISABLED" : "") + "  class=\"button\" name=\"" + name + "\" value=\"" + value + "\""
-//                + " onclick='if (!this.submitted) { this.submitted = true; return true; } else return false;'>"
-		+ "\">" + text + "</button>";
-	}
-
-	public String deleteButton() {
-		return deleteButton(Locale.getDefault(), Message.get(Locale.getDefault(), "DELETE"));
-	}
-
-	public String deleteButton(String s) {
-		return deleteButton(Locale.getDefault(), s);
+		return "<button " + (isReadOnly() ? "DISABLED" : "") + " class=\"button\" name=\"" + name + "\" value=\"" + value + "\">" + text + "</button>";
 	}
 
 	public String deleteButton(Locale locale) {
-		return deleteButton(locale, Message.get(locale,"DELETE"));
+		return confirmButton(locale, "DELETE", "DELETE_MESSAGE");
 	}
 
-	public String deleteButton(Locale locale, String s) {
-		return "<input " + (isReadOnly() ? "DISABLED" : "") + " type=\"SUBMIT\" name=\"SUBMIT\" value=\"" + s
-		+ "\" OnClick=\"javascript:if (confirm('" + Message.get(locale, "DELETE_MESSAGE") + "')) return true; else return false; \">";
+	public String deleteButton(Locale locale, String confirm) {
+            return confirmButton(locale, "DELETE", confirm);
 	}
-
-	public String confirmButton(String s, String c) {
-		return "<input " + (isReadOnly() ? "DISABLED" : "") + " type=\"SUBMIT\" name=\"SUBMIT\" value=\"" + s
-				+ "\" OnClick=\"javascript:if (confirm('" + c + "')) return true; else return false; \">";
+        
+       	public String confirmButton(Locale l, String text, String confirm) {
+		return "<button " + (isReadOnly() ? "DISABLED" : "") + "  class=\"button\" name=\"SUBMIT\" value=\"" + text + "\""
+                + " onclick=\"javascript:if (confirm('" + Message.get(l, confirm) + "')) return true; else return false; \">"
+		+ Message.get(l,text) + "</button>";
 	}
 
 	public String resetButton(String n, String v) {

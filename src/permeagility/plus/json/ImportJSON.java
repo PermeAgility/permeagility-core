@@ -89,7 +89,7 @@ public class ImportJSON extends Weblet {
 					+row(column("label","or paste here:")+column(textArea("FROM_TEXT",parms.get("FROM_TEXT"),30,100)))
 					+row(column("label","Table to create")+column(input("TO_TABLE",toTable)+" will be turned to camelCase"))
 				//	+row(column("label","Replace if exists")+column(checkbox("REPLACE",false)+" will fail if table exists unless replace is checked"))
-					+row(column("")+column(submitButton("GO", "Go")+" load it"))
+					+row(column("")+column(submitButton(con.getLocale(),"GO")+" load it"))
 			)));
 		}
 		return head("Import JSON") + body(standardLayout(con, parms, errors.toString()+sb.toString()));

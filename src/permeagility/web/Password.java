@@ -33,15 +33,13 @@ public class Password extends Weblet {
 		}
 		
 		return errors
-			+form("PASSCHANGE",hidden("CHANGE","CHANGE")+
-			     table("CHGPASS",
-				   row(columnSpan(2,paragraph("banner",Message.get(con.getLocale(),"CHANGE_PASSWORD_FOR",con.getUser()))))+
-				   row(column("label",Message.get(con.getLocale(),"CURRENT_PASSWORD"))+column(password("CURRENTPASS","")))+
-				   row(column("label",Message.get(con.getLocale(),"NEW_PASSWORD"))+column(password("NEWPASS","")))+
-				   row(column("label",Message.get(con.getLocale(),"CONFIRM_PASSWORD"))+column(password("CONFIRMPASS","")))+
-				   row(column("")+column(submitButton("SUBMIT",Message.get(con.getLocale(),"SUBMIT_BUTTON"))))
-				  )
-			);
+                    +form("PASSCHANGE",hidden("CHANGE","CHANGE") + table("CHGPASS",
+                        row(columnSpan(2,paragraph("banner",Message.get(con.getLocale(),"CHANGE_PASSWORD_FOR",con.getUser()))))+
+                        row(column("label",Message.get(con.getLocale(),"CURRENT_PASSWORD"))+column(password("CURRENTPASS","")))+
+                        row(column("label",Message.get(con.getLocale(),"NEW_PASSWORD"))+column(password("NEWPASS","")))+
+                        row(column("label",Message.get(con.getLocale(),"CONFIRM_PASSWORD"))+column(password("CONFIRMPASS","")))+
+                        row(column("")+column(submitButton(con.getLocale(),"SUBMIT_BUTTON")))
+                    ));
     }
     
     public static String password(String name, Object value) {

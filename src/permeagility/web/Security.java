@@ -18,6 +18,7 @@ import permeagility.util.QueryResult;
 
 public class Security {
 
+    public static boolean DEBUG = false;
     public static Date securityRefreshTime = new Date();
     private static final ConcurrentHashMap<String,Object[]> userRoles = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<String,HashMap<String,Number>> userRules = new ConcurrentHashMap<>();
@@ -48,7 +49,7 @@ public class Security {
                         String n = qr.getStringValue(i, "name");
                         Object[] roles = qr.getLinkSetValue(i,"roles");
                         if (roles != null) {
-                                if (Server.DEBUG) System.out.println("Adding security key "+n+" - "+roles.length);
+                                if (DEBUG) System.out.println("Adding security key "+n+" - "+roles.length);
                                 entryCount++;
                                 userRoles.put(n, roles);
                         }
@@ -62,7 +63,7 @@ public class Security {
                         String n = qr.getStringValue(i, "classname");
                         Object[] roles = qr.getLinkSetValue(i,"_allowRead");
                         if (n != null && roles != null) {
-                                if (Server.DEBUG) System.out.println("Adding security key "+n);
+                                if (DEBUG) System.out.println("Adding security key "+n);
                                 entryCount++;
                                 keyRoles.put(n, roles);
                         }
@@ -73,7 +74,7 @@ public class Security {
             for (String user : userRoles.keySet()) {
                 // User object rules are compiled into a simple HashMap<String,Byte>
                 Object[] roles = userRoles.get(user);  // I believe these are ODocuments or ORecordIds
-                ArrayList<Set<ORule>> rules = new ArrayList<Set<ORule>>();  // To hold the rules
+                ArrayList<Set<ORule>> rules = new ArrayList<>();  // To hold the rules
                 for (Object role : roles) {
                     ODocument r;
                     if (role instanceof ORecordId) {
@@ -83,26 +84,26 @@ public class Security {
                     }
                     Security.getRoleRules(new ORole(r),rules);				
                 }
-                if (Server.DEBUG) System.out.println(user+" rules="+rules);
+                if (DEBUG) System.out.println(user+" rules="+rules);
                 // Collapse the rules into a single HashMap 
-                HashMap<String,Number> newRules = new HashMap<String,Number>();
+                HashMap<String,Number> newRules = new HashMap<>();
                 for (Set<ORule> m : rules) {
                     for (ORule rule : m) {
                         ResourceGeneric rg = rule.getResourceGeneric();
                         if (rg != null) {
-                            if (Server.DEBUG) System.out.println("ResourceGeneric="+rg.getName()+" priv="+rule.getAccess());
+                            if (DEBUG) System.out.println("ResourceGeneric="+rg.getName()+" priv="+rule.getAccess());
                             newRules.put(rg.getName(), rule.getAccess());
                         }
                         Map<String,Byte> spec = rule.getSpecificResources();
                         for (String res : spec.keySet()) {
                             String resource = res;
                             Number newPriv = spec.get(res);
-                            if (Server.DEBUG) System.out.println("Resource="+resource+" newPriv="+newPriv+" generic="+rule.getResourceGeneric());
+                            if (DEBUG) System.out.println("Resource="+resource+" newPriv="+newPriv+" generic="+rule.getResourceGeneric());
                             newRules.put(resource, newPriv);
                         }
                     }
                 }
-                if (Server.DEBUG) System.out.println(user+" newRules="+newRules);
+                if (DEBUG) System.out.println(user+" newRules="+newRules);
                 userRules.put(user, newRules);
             }
         } catch (Exception e) {
@@ -191,7 +192,7 @@ public class Security {
             }
         }
 
-        if (Server.DEBUG) {
+        if (DEBUG) {
             for (String n : newRules.keySet()) {
                 System.out.println("Security.getTablePriv: rule="+n+" access="+newRules.get(n));
             }
@@ -201,17 +202,17 @@ public class Security {
         Number o;
         o = newRules.get(ResourceGeneric.BYPASS_RESTRICTED.getName()); 
         if (o != null) {
-            if (Server.DEBUG) System.out.println("Security.getTablePriv: Found "+ResourceGeneric.BYPASS_RESTRICTED.getName()+"="+o);
+            if (DEBUG) System.out.println("Security.getTablePriv: Found "+ResourceGeneric.BYPASS_RESTRICTED.getName()+"="+o);
             priv |= o.intValue();
         }
         o = newRules.get(ResourceGeneric.CLASS.getName());
         if (o != null) {
-            if (Server.DEBUG) System.out.println("Security.getTablePriv: Found "+ResourceGeneric.CLASS.getName()+"="+o);
+            if (DEBUG) System.out.println("Security.getTablePriv: Found "+ResourceGeneric.CLASS.getName()+"="+o);
             priv |= o.intValue();
         }
         o = newRules.get(table.toLowerCase());
         if (o != null) {
-            if (Server.DEBUG) System.out.println("Security.getTablePriv: Found database.class."+table.toLowerCase()+"="+o);
+            if (DEBUG) System.out.println("Security.getTablePriv: Found database.class."+table.toLowerCase()+"="+o);
             priv |= o.intValue();
         }
         return priv;
@@ -224,7 +225,7 @@ public class Security {
                 return cmap;
             }
         }
-        if (Server.DEBUG) System.out.println("Retrieving privs for table "+table);
+        if (DEBUG) System.out.println("Retrieving privs for table "+table);
         HashMap<String,Number> map = new HashMap<>();
         DatabaseConnection con = Server.getServerConnection();	
         for (ODocument role : con.getSecurity().getAllRoles()) {
@@ -233,18 +234,18 @@ public class Security {
             getRoleRules(new ORole(role),rules);
             for (Set<ORule> rs : rules) {
                 for (ORule rule : rs) {
-                    if (Server.DEBUG) System.out.println("getTablePrivs: rule="+roleName+" "+rule.getSpecificResources()+": "+rule.getAccess());
+                    if (DEBUG) System.out.println("getTablePrivs: rule="+roleName+" "+rule.getSpecificResources()+": "+rule.getAccess());
                     if (rule.containsSpecificResource(table.toLowerCase())) {
                         Byte access = rule.getSpecificResources().get(table.toLowerCase());
-                        if (Server.DEBUG) System.out.println("getTablePrivs: specific "+roleName+" "+rule.toString()+": "+access);
+                        if (DEBUG) System.out.println("getTablePrivs: specific "+roleName+" "+rule.toString()+": "+access);
                         map.put(roleName, access);
                     } else if (rule.getResourceGeneric() == ResourceGeneric.CLASS) {
-                        if (Server.DEBUG) System.out.println("getTablePrivs: all classes: "+roleName+" "+rule.getAccess());
+                        if (DEBUG) System.out.println("getTablePrivs: all classes: "+roleName+" "+rule.getAccess());
                         if (rule.getAccess() != null) {
                                 map.put(roleName, rule.getAccess());
                         }
                     } else if (rule.getResourceGeneric() == ResourceGeneric.BYPASS_RESTRICTED) {
-                        if (Server.DEBUG) System.out.println("getTablePrivs: all classes: "+roleName+" "+rule.getAccess());
+                        if (DEBUG) System.out.println("getTablePrivs: all classes: "+roleName+" "+rule.getAccess());
                         if (rule.getAccess() != null) {
                                 map.put(roleName, rule.getAccess());
                         }
