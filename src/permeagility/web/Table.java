@@ -578,13 +578,12 @@ public class Table extends Weblet {
                         if (newValue != null && newDate == null) {
                             errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_DATE_VALUE",newValue)));							
                         } else {
-
-                                if (DEBUG) System.out.println("Updating Datetime "+(originalValue == null ? "" : originalValue.toString())+" to "+newDate);
-                                if ((newValue != null && originalValue != null && !newDate.equals(originalValue)) 
-                                    || (newValue == null && originalValue != null)
-                                    || (originalValue == null && newValue != null)) {
-                                        updateRow.field(columnName,newDate);
-                                }	
+                            if (DEBUG) System.out.println("Updating Datetime "+(originalValue == null ? "" : originalValue.toString())+" to "+newDate);
+                            if ((newValue != null && originalValue != null && !newDate.equals(originalValue)) 
+                                || (newValue == null && originalValue != null)
+                                || (originalValue == null && newValue != null)) {
+                                    updateRow.field(columnName,newDate);
+                            }	
                         }
                     } else if (type == 7) { // String
                         String originalValue = updateRow.field(columnName);
