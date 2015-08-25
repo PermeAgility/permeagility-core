@@ -1,3 +1,4 @@
 This file is present to force log messages to console during development. 
 
-If you remove this file, the system will automatically create a log directory and store log files in there.
+If you remove this file, the system will automatically create a log directory 
+and store log files in there with a datetime-coded filename.
