@@ -30,6 +30,8 @@ import com.orientechnologies.orient.core.record.impl.ODocument;
 import com.orientechnologies.orient.core.record.impl.ORecordBytes;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 
 import permeagility.util.DatabaseConnection;
 import permeagility.util.QueryResult;
@@ -574,7 +576,7 @@ public class Table extends Weblet {
                         }
                     } else if (type == 6) {  // Datetime
                         Date originalValue = updateRow.field(columnName);
-                        Date newDate = parseDate(con.getLocale(),newValue);
+                        Date newDate = parseDatetime(con.getLocale(),newValue);
                         if (newValue != null && newDate == null) {
                             errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_DATE_VALUE",newValue)));							
                         } else {
@@ -943,14 +945,14 @@ public class Table extends Weblet {
                 return row(label + column(
                     getDateTimeControl(formName, PARM_PREFIX+name, 
                         (initialValue != null && initialValue instanceof Date 
-                                ? formatDate(con.getLocale(),(Date)initialValue,Message.get(con.getLocale(), "DATE_FORMAT")+" "+Message.get(con.getLocale(), "TIME_FORMAT")) 
+                                ? formatDatetime(con.getLocale(),(Date)initialValue) 
                                 : "")
                     )));
             // Date
             } else if (type == 19) { 
                 return row(label + column(getDateControl(formName, PARM_PREFIX+name, 
                 (initialValue != null && initialValue instanceof Date 
-                        ? formatDate(con.getLocale(),(Date)initialValue,Message.get(con.getLocale(), "DATE_FORMAT")) 
+                        ? formatDate(con.getLocale(),(Date)initialValue,DATE_FORMAT) 
                         : "")
                 )));
             // Password (String)
@@ -1421,7 +1423,7 @@ public class Table extends Weblet {
             } else if (columnType == 4 || columnType == 5) {   // OrientDB float, double
                     sb.append(column("number", ""+(d.field(columnName) == null ? "" : formatNumber(con.getLocale(),(Number)d.field(columnName),FLOAT_FORMAT))));
             } else if (columnType == 6) {  // OrientDB Datetime
-                    sb.append(column(""+(d.field(columnName) == null ? "" : formatDate(con.getLocale(),(Date)d.field(columnName),Message.get(con.getLocale(), "DATE_FORMAT")+' '+Message.get(con.getLocale(), "TIME_FORMAT")))));
+                    sb.append(column(""+(d.field(columnName) == null ? "" : formatDatetime(con.getLocale(),(Date)d.field(columnName)))));
             } else if (columnType == 7) {  // String
                     if (columnName.toUpperCase().endsWith("COLOR") 
                             || columnName.toUpperCase().endsWith("COLOUR")) {
@@ -1507,7 +1509,7 @@ public class Table extends Weblet {
             } else if (columnType == 18) {  // Transient
                     sb.append(column("transient"));
             } else if (columnType == 19) {  // OrientDB Date
-                    sb.append(column(""+(d.field(columnName) == null ? "" : formatDate(con.getLocale(),(Date)d.field(columnName),Message.get(con.getLocale(), "DATE_FORMAT")))));
+                    sb.append(column(""+(d.field(columnName) == null ? "" : formatDate(con.getLocale(),(Date)d.field(columnName)))));
             } else if (columnType == 21) {   // OrientDB Decimal
                     Number num = (Number)d.field(columnName);
                     String formatted = (num == null ? "" : formatNumber(con.getLocale(),num,FLOAT_FORMAT));
@@ -2248,4 +2250,8 @@ public class Table extends Weblet {
             return false;
     }
         
+    public static DateFormat sqlDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+    public static DateFormat sqlDatetimeFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+    
 }

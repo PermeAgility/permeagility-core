@@ -65,7 +65,7 @@ public class Merge extends Table {
 
 		// Create a SQL import directly - set the created date
 		if (submit != null && submit.equals("CREATE_ROW")) {
-			parms.put(PARM_PREFIX+"created", formatDate(con.getLocale(), new java.util.Date(), "yyyy-MM-dd HH:mm:ss"));
+			parms.put(PARM_PREFIX+"created", formatDate(con.getLocale(), new java.util.Date()));
 			boolean inserted = insertRow(con,tableName,parms,errors);
 			if (!inserted) {
 				errors.append(paragraph("error","Could not insert"));

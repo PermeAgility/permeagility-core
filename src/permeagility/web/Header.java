@@ -30,7 +30,7 @@ public class Header extends Weblet {
             +div("headeruser",getHeaderUser(con,parms))
 			+div("headertitle",Message.get(locale,"HEADER_TITLE"))
 			+div("headerservice",(serviceName == null ? "" : serviceName))
-			+div("headertime",Message.get(locale,"DATE_LABEL")+"&nbsp;"+formatDate(locale,new Date(),Message.get(locale,"DATE_FORMAT")));
+			+div("headertime",Message.get(locale,"DATE_LABEL")+"&nbsp;"+formatDate(locale,new Date()));
 	}
 
 	public String getHeaderUser(DatabaseConnection con, HashMap<String,String> parms) {

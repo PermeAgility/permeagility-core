@@ -62,7 +62,7 @@ public class Translate extends Table {
 
 		// Create a SQL import directly - set the created date
 		if (submit != null && submit.equals(Message.get(con.getLocale(), "CREATE_ROW"))) {
-			parms.put(PARM_PREFIX+"created", formatDate(con.getLocale(), new java.util.Date(), "yyyy-MM-dd HH:mm:ss"));
+			parms.put(PARM_PREFIX+"created", formatDate(con.getLocale(), new java.util.Date()));
 			boolean inserted = insertRow(con,tableName,parms,errors);
 			if (!inserted) {
 				errors.append(paragraph("error","Could not insert"));
@@ -135,25 +135,14 @@ public class Translate extends Table {
 							if (newMessage != null && replace == false) {
 								continue;
 							}
-							if (messageName.equals("DATE_FORMAT") || messageName.equals("TIME_FORMAT")) {
-								// Copy them straight over unless they exist - don't replace with a translation - ever
-								if (newMessage == null) {
-									newMessage = con.create(Setup.TABLE_MESSAGE);
-									newMessage.field("name",messageName);
-									newMessage.field("description",m.field("description").toString());
-									newMessage.field("locale",newLocale);
-									newMessage.save();
-								}
-							} else {
-								String fromText = m.field("description");
-								String originalText = fromText;
-								fromText = fromText.replace("{0}", "0").replace("{1}", "1").replace("{2}", "2").replace("{3}", "3");
-								String newText = translate(fromLocale, toLocale, sb, fromText, email);
-								if (newText != null) {
-									updateMessage(con, messageName, originalText, newText, newLocale);
-								}
-								translateCount++;
-							}
+                                                        String fromText = m.field("description");
+                                                        String originalText = fromText;
+                                                        fromText = fromText.replace("{0}", "0").replace("{1}", "1").replace("{2}", "2").replace("{3}", "3");
+                                                        String newText = translate(fromLocale, toLocale, sb, fromText, email);
+                                                        if (newText != null) {
+                                                                updateMessage(con, messageName, originalText, newText, newLocale);
+                                                        }
+                                                        translateCount++;
 						}
 					}
 					
