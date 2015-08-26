@@ -501,7 +501,7 @@ public class Setup {
             Setup.checkCreateColumn(con, pickValuesTable, "values", OType.STRING, installMessages);
 
             if (pickValuesTable.count() == 0) {
-                con.create(TABLE_PICKVALUES).field("name","OUser.status").field("values","ACTIVE,INACTIVE").save();				
+                con.create(TABLE_PICKVALUES).field("name","OUser.status").field("values","ACTIVE,SUSPENDED").save();				
                 con.create(TABLE_PICKVALUES).field("name","OFunction.language").field("values","javascript").save();
                 con.create(TABLE_PICKVALUES).field("name","style.editorTheme").field("values","default,3024-day,3024-night,ambiance-mobile,ambiance,base16-dark,base16-light,blackboard,cobalt,colorforth,eclipse,elegant,erlang-dark,lesser-dark,mbo,mdn-like,midnight,monokai,neat,neo,night,paraiso-dark,paraiso-light,pastel-on-dark,rubyblue,solarized,the-matrix,tomorrow-night-bright,tomorrow-night-eighties,twilight,vibrant-ink,xq-dark,xq-light,zenburn").save();
             }
@@ -1125,7 +1125,7 @@ public class Setup {
 "#headerservice { font-size: 1em; position: absolute; top: 50px; left: 100px; }\n" +
 "#headertime { font-size: 0.75em; position: absolute; top: 20px; right: 5px; }\n" +
 "#headeruser { font-size: 0.75em; position: absolute; top: 40px; right: 5px; }\n" +
-"#service { position: absolute; top: 80px;  left: 5px; right: 5px; display: inline-block;}\n" +
+"#service { position: absolute; top: 80px;  left: 5px; right: 5px; bottom: 0px; display: inline-block;}\n" +
 ".label { color: black; }\n" +
 "td.label { text-align: right; vertical-align: middle; font-size: small; \n" +
 "  color: white; font-weight: bold;\n" +

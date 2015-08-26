@@ -1693,7 +1693,7 @@ public class Table extends Weblet {
                 if (b != null) {
                     StringBuilder sb = new StringBuilder();
                     if (b.intValue() == 0) {
-                        sb.append(Message.get(con.getLocale(), "PRIV_NONE"));
+                        //sb.append(Message.get(con.getLocale(), "PRIV_NONE"));
                     } else if (b.intValue() == PRIV_ALL) {
                         sb.append(Message.get(con.getLocale(), "PRIV_ALL"));
                     } else {
@@ -1714,7 +1714,9 @@ public class Table extends Weblet {
                             sb.append(Message.get(con.getLocale(), "PRIV_DELETE"));
                         }
                     }
-                    currentRights.append(Message.get(con.getLocale(), "ROLE_CAN_PRIV", role,sb.toString())+br());
+                    if (sb.length()>0) {
+                        currentRights.append(Message.get(con.getLocale(), "ROLE_CAN_PRIV", role,sb.toString())+br());
+                    }
                 }
             }
 
@@ -1735,7 +1737,7 @@ public class Table extends Weblet {
                 + submitButton(con.getLocale(), "REVOKE_RIGHT");
 	}
 
-	public static String password(String name, Object value, int size) {
+    public static String password(String name, Object value, int size) {
     	return "<INPUT TYPE=\"PASSWORD\" NAME=\""+name+"\" VALUE=\""+(value==null ? "" : value)+"\" SIZE=\""+size+"\">";
     }
 

@@ -9,7 +9,8 @@ d3.selection.prototype.last = function() {
 
 // Database model and data viewer
 var TOP_MARGIN = 50;
-var h = $("#service").height() - TOP_MARGIN, w = $("#service").width();
+var h = $("#service").height() - TOP_MARGIN;
+var w = $("#service").width();
 d3.select("#service").style("cursor", "default");
 var svg = d3.select("#service").attr("visuilityBuild",true).append("svg").attr("width", w).attr("height", h);
 
