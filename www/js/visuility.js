@@ -84,11 +84,11 @@ var links = [], nodes = [];
 var LINK_SIZE = 25;
 
 // This will come from outside later but hardcoded for now
-var nodeSizes = { "control": { "width":20, "maxheight":15, "minheight":20, "corner": 20, "color": "#ccc", "controls":"" } 
+var nodeTypes = { "control": { "width":20, "maxheight":15, "minheight":15, "corner": 20, "color": "#ccc", "controls":"", "offset":"topleft" } 
                  ,"table": { "width":80, "maxheight":20, "minheight":5, "corner": 0, "color": "cyan", "controls":"x,r,c" }
-                 ,"row": { "width":30, "maxheight":20, "minheight":5, "corner": 10, "color": "yellow", "controls":"x,t,c,d" }
-                 ,"column": { "width":90, "maxheight":20, "minheight":12, "corner": 5, "color": "orange", "controls":"x,t" }
-                 ,"data": { "width":90, "maxheight":20, "minheight":5, "corner": 15, "color": "lightgreen", "controls":"x,r,c,t" }
+                 ,"row": { "width":30, "maxheight":20, "minheight":5, "corner": 10, "color": "yellow", "controls":"x,t,c,d", "offset":"right" }
+                 ,"column": { "width":90, "maxheight":20, "minheight":5, "corner": 5, "color": "orange", "controls":"x,t", "offset":"bottom" }
+                 ,"data": { "width":90, "maxheight":20, "minheight":5, "corner": 15, "color": "lightgreen", "controls":"x,r,c,t", "offset":"right" }
                 };
 
 // Download the given text to a file directly from the browser (not supported in all)
@@ -241,7 +241,7 @@ function dblclickNode(d) {
 // Send keystroke as char to each selected node
 d3.select("body").on("keydown", function() {
      var key = String.fromCharCode(d3.event.keyCode);
-     if (key != "") {
+     if (key !== "") {
         // Pop text
         svg.append("text").attr("x","5").attr("y","30").style("font-size","20px")
             .text("Doing: " + String.fromCharCode(d3.event.keyCode) )  
@@ -259,7 +259,7 @@ function clickNode(d) {
     var detail = d.id.substr(d.id.indexOf(".")+1);
     var selectedNodes = d3.selectAll(".selected");
     
-    if (d.type == "control") {
+    if (d.type === "control") {
         d3.selectAll(".selected").each( function (d,i) {
   		  executeControl(d, detail);
         } );
@@ -280,11 +280,11 @@ function clickNode(d) {
 function executeControl(d, detail) {
       var delCount = 0;
       var srcId = d.id; 
-      while (srcId.split(".")[0] == "control") {
+      while (srcId.split(".")[0] === "control") {
         srcId = findParent(srcId);
       }
   	  detail = detail.toLowerCase().substring(0,1);
-      if (detail == "r") {  // Roll up the rows
+      if (detail === "r") {  // Roll up the rows
         var lastNode;
         while(r = findChild(srcId,"row")) {
           if (lastNode) delCount += removeNode(lastNode);
@@ -292,10 +292,10 @@ function executeControl(d, detail) {
           srcId = r;
         }
         if (lastNode) delCount += removeNode(lastNode);
-        if (delCount == 0) {  // There were none, so get some
+        if (delCount === 0) {  // There were none, so get some
 	      getMore("TABLE",srcId.split(".")[1],detail);
         }
-      } else if (detail == "c") {  // Roll up the columns
+      } else if (detail === "c") {  // Roll up the columns
         var lastNode;
         while(r = findChild(srcId,"column")) {
           if (lastNode) delCount += removeNode(lastNode);
@@ -303,10 +303,10 @@ function executeControl(d, detail) {
           srcId = r;
         }
         if (lastNode) delCount += removeNode(lastNode);
-        if (delCount == 0) {  // There were none, so get some
+        if (delCount === 0) {  // There were none, so get some
 	      getMore("TABLE",srcId.split(".")[1],detail);
         }
-      } else if (detail == "d") {  // Roll up the data
+      } else if (detail === "d") {  // Roll up the data
         var lastNode;
         while(r = findChild(srcId,"data")) {
           if (lastNode) delCount += removeNode(lastNode);
@@ -314,13 +314,13 @@ function executeControl(d, detail) {
           srcId = r;
         }
         if (lastNode) delCount += removeNode(lastNode);
-        if (delCount == 0) {  // There were none, so get some
+        if (delCount === 0) {  // There were none, so get some
 	      getMore("ROW",srcId.split(".")[1],detail);
         }
-      } else if (detail == "x") {  // Remove the node
+      } else if (detail === "x") {  // Remove the node
         removeControls();
 		removeNode(srcId);
-      } else if (detail == "x*") {  // Remove the nodes in a multiselect
+      } else if (detail === "x*") {  // Remove the nodes in a multiselect
         removeControls();
         selectedNodes.each( function(d) { removeNode(d.id); } );
       } else {
@@ -328,10 +328,10 @@ function executeControl(d, detail) {
       }  
 }
 
-function updateControls(d) {  // Using controls attribute in nodeSizes structure
+function updateControls(d) {  // Using controls attribute in nodeTypes structure
   removeControls();
   var selectedNodes = d3.selectAll(".selected");
-  var controls = nodeSizes[d.type].controls.split(",");
+  var controls = nodeTypes[d.type].controls.split(",");
   var target = d.id;
   var newLinks = [];
   for (var i=0, len = controls.length; i < len; i++) {
@@ -346,7 +346,7 @@ function updateControls(d) {  // Using controls attribute in nodeSizes structure
 function findParent(id) {
   var i = 0;
   while(i<links.length) {
-    if (links[i].sourceId == id) {
+    if (links[i].sourceId === id) {
       return links[i].targetId;
     } else i++;
   }          
@@ -356,13 +356,13 @@ function findParent(id) {
 function findChild(id, type) {
    var i = 0;
    while(i<links.length) {
-    if (links[i].targetId == id) {
+    if (links[i].targetId === id) {
       if (type) {
-        if (links[i].sourceId.split(".")[0] == type) {
+        if (links[i].source.type === type) {
           return links[i].sourceId;
         }
       } else {
-        return link[i].sourceId;
+        return links[i].sourceId;
       }
     }
     i++;
@@ -373,14 +373,14 @@ function removeControls() {
   // Remove all control links
   var i = 0;
   while(i<links.length) {
-    if (links[i].sourceId.split(".")[0] == "control") {
+    if (links[i].source.type === "control") {
       links.splice(i,1);
     } else i++;
   }
   // Remove all control nodes
   var i = 0;
   while(i<nodes.length) {
-    if (nodes[i].type == "control") {
+    if (nodes[i].type === "control") {
       nodes.splice(i,1);
     } else i++;
   }
@@ -393,7 +393,7 @@ function removeNode(id) {
   // Remove all links
   var i = 0;
   while(i<links.length) {
-    if (links[i].targetId == id || links[i].sourceId == id) {
+    if (links[i].targetId === id || links[i].sourceId === id) {
       links.splice(i,1);
       delCount++;
     } else i++;
@@ -401,7 +401,7 @@ function removeNode(id) {
   // Remove all control nodes
   var i = 0;
   while(i<nodes.length) {
-    if (nodes[i].id == id) {
+    if (nodes[i].id === id) {
       nodes.splice(i,1);
       delCount++;
     } else i++;
@@ -424,15 +424,15 @@ function getMore(type,key,detail) {
 	  }
 	  // Show that we have completed the retrieval of all related nodes for this node by growing to full height
       nodeSVG.each( function( d, i) {
-      if (d.id == id) {
-         d3.select(this).select("rect").transition().duration(900)
-		    .attr("width", function(d) { return d.textWidth ? d.textWidth+10 : nodeSizes[d.type].width; })
-			.attr("height", function(d) { return nodeSizes[d.type].maxheight; });
-		if (selectedNodes[0].length == 0) {
-			d3.select(this).classed("selected",true);
-			updateControls(d);
-		}
-	  }
+        if (d.id === id) {
+           d3.select(this).select("rect").transition().duration(900)
+                .attr("width", function(d) { return d.textWidth ? d.textWidth+10 : nodeTypes[d.type].width; })
+                    .attr("height", function(d) { return nodeTypes[d.type].maxheight; });
+                  if (selectedNodes[0].length === 0) {
+                    d3.select(this).classed("selected",true);
+                    updateControls(d);
+                  }
+            }
    });
   });
 }
@@ -463,7 +463,7 @@ function handleData(newlinks, newnodes) {
     	var nodeMap = nodes ? nodes.map(function(d) { return d.id; }) : undefined;
   		for (var i = 0, c = newnodes.length; i<c; i++) {
 		    var ni = nodeMap ? nodeMap.indexOf(newnodes[i].id) : -1;
-    	    if (ni == -1) {
+    	    if (ni === -1) {
     	    	addNode(newnodes[i], null);
     	    }
 		}
@@ -473,57 +473,71 @@ function handleData(newlinks, newnodes) {
 // Checks whether node already exists in nodes or not
 function addNode(node, otherNode) {
 	var i = nodes.map(function(d) { return d.id; }).indexOf(node.id);
-	if (i == -1) {
-		node.type = node.id.split(".")[0];
-        if (otherNode)	{
-          	if (otherNode.id.split(".")[0] == "control" || node.type == "control") {
-			    node.x = otherNode.x - 10;
-		    	node.y = otherNode.y - 5;              
-            } else {
-                // TODO: need to be more intelligent here
-			    node.x = otherNode.x + 25;
-		    	node.y = otherNode.y + 25;
+	if (i === -1) {
+            node.type = node.id.split(".")[0];
+            if (otherNode)	{
+                if (nodeTypes[node.type].offset) node.parent = otherNode;                        
+                node.fixed = true;  // Must hold its position when it arrives
             }
-            node.fixed = true;  // Must hold its position when it arrives
-        }
-		nodes.push(node);
-		return node;
+            nodes.push(node);
+            return node;
 	} else {
       	//nodes[i] = node;  // Replace the node doesnt work unless change the id
         // update the node??? // TODO: update the node data
-		return nodes[i];
+            return nodes[i];
 	}
 }
 
 // Checks whether link already exists in links or not
 function addLink(link) {
 	if (links.map(function(d) { 
-      		return d.source.id+"-"+d.target.id; 
-    	}).indexOf(link.source.id+"-"+link.target.id) == -1
-		&& links.map(function(d) { 
-      		return d.target.id+"-"+d.source.id; 
-    	}).indexOf(link.source.id+"-"+link.target.id) == -1)
-		links.push(link);
+            return d.source.id+"-"+d.target.id; 
+    	}).indexOf(link.source.id+"-"+link.target.id) === -1
+            && links.map(function(d) { 
+                return d.target.id+"-"+d.source.id; 
+    	}).indexOf(link.source.id+"-"+link.target.id) === -1)
+            links.push(link);
 }
 
 function tick() {
+    // Update relative positioned objects
     nodeSVG.selectAll("rect")
+            .each(function(d) {
+        var offset = nodeTypes[d.type].offset;
+        if (offset === "top" && d.parent) {
+            d.x = d.parent.x;
+            d.y = d.parent.y - nodeTypes[d.type].maxheight/2 - nodeTypes[d.parent.type].maxheight/2;
+        }
+        if (offset === "topleft" && d.parent) {
+            d.x = d.parent.x - d.parent.textWidth/2 - nodeTypes[d.type].width/2;
+            d.y = d.parent.y - nodeTypes[d.type].maxheight;
+        }
+        if (offset === "bottom" && d.parent) {
+            d.x = d.parent.x;
+            d.y = d.parent.y + nodeTypes[d.type].maxheight/2 + nodeTypes[d.parent.type].maxheight/2;
+        }
+        if (offset === "right" && d.parent) {
+            d.x = d.parent.x + d.parent.textWidth/2+nodeTypes[d.type].width;
+            d.y = d.parent.y;
+        }
+        if (offset === "left" && d.parent) {
+            d.x = d.parent.x - d.parent.textWidth/2-nodeTypes[d.type].width;
+            d.y = d.parent.y;
+        }        
+      })
         .attr("x", function(d) { 
-    		var cw = d3.select(this).attr("width")/2;  // center heightwise
-    		return Math.max(-cw, Math.min(w - cw, d.x - cw));  // Keep rect in view
-  		})
-		.attr("y", function(d) {
-    		var ch = d3.select(this).attr("height")/2;  // center heightwise
-    		return Math.max(-ch, Math.min(h - ch, d.y - ch));  // Keep rect in view
-  		});
+            var cw = d3.select(this).attr("width")/2;  // center widthwise
+            return Math.max(-cw, Math.min(w - cw, d.x - cw));  // Keep rect in view
+        })
+        .attr("y", function(d) {
+            var ch = d3.select(this).attr("height")/2;  // center heightwise
+            return Math.max(-ch, Math.min(h - ch, d.y - ch));  // Keep rect in view
+        });
 
-  	linkSVG.attr("x1", function(d) {return d.source.x;})
-			.attr("y1", function(d) {return d.source.y;})
-			.attr("x2", function(d) {return d.target.x;})
-			.attr("y2", function(d) {return d.target.y;});
+    linkSVG.attr("x1", function(d) {return d.source.x;}).attr("y1", function(d) {return d.source.y;})
+            .attr("x2", function(d) {return d.target.x;}).attr("y2", function(d) {return d.target.y;});
 
-    nodeSVG.selectAll("text")
-        .attr("transform", function(d) {return "translate("+d.x+","+d.y+")"; });
+    nodeSVG.selectAll("text").attr("transform", function(d) {return "translate("+d.x+","+d.y+")"; });
 }
 
 function splitLines(text) {
@@ -563,48 +577,54 @@ var linkSVG = svg.select(".links").selectAll(".link"),
 var force = d3.layout.force()
     .nodes(nodes)
     .links(links)
-    .size([w, h])
+    .size([w, h - TOP_MARGIN])
     .linkDistance(function(d) { 
-      if (d.source.weight > 2 && d.source.weight > 2) return 100;
-      if (d.targetId.split(".")[0] == "control") return 5;
-      if (d.sourceId.split(".")[0] == "control") return 25;
-      if (d.sourceId.split(".")[0] == "column") return 20;
-      if (d.sourceId.split(".")[0] == "row") return 50;
-      if (d.targetId.split(".")[0] == "row") return 70;
-      if (d.sourceId.split(".")[0] == "data") return 20;
-	  return 100;
-      //if (d.distance) return d.distance*LINK_SIZE; else return LINK_SIZE; 
+        if (d.source.type === "table") return 150;
+        if (d.target.type === "control") return 5;
+        if (d.source.type === "control") return 25;
+        if (d.source.type === "column") return 20;
+        if (d.source.type === "row") return 50;
+        if (d.target.type === "row") return 70;
+        if (d.source.type === "data") return 20;
+        return 100;
     })
-    .charge(-150)
-    .gravity(0.03)
+    .charge(function(d,i) {
+        if (nodeTypes[d.type].offset) {  // relative positioned objects have no charge
+            return -10;
+        } else {
+            return -100;
+        }
+    })
+    .gravity(0.01)
+    .friction(0.4)
     .on("tick", tick);
 
 function update() {
-	// enter, update and exit
-	force.start();
+    // enter, update and exit
+    force.start();
   
-	linkSVG = linkSVG.data(force.links(), function(d) { return d.source.id+"-"+d.target.id; });
-	linkSVG.enter()  
+    linkSVG = linkSVG.data(force.links(), function(d) { return d.source.id+"-"+d.target.id; });
+    linkSVG.enter()  
       .append("line")
-      .filter( function(d) { return d.source.id.split(".")[0] != "control"; })
+      .filter( function(d) { if (nodeTypes[d.source.type].offset) return false; else return true; })
       .attr("class", "link")
       .attr("stroke-width", 2)
       .attr("marker-end", "url(#triangle)");
-	linkSVG.exit().remove();
+    linkSVG.exit().remove();
 
 	nodeSVG = nodeSVG.data(force.nodes(), function(d) { return d.id; });
 
     var nodeGroup = nodeSVG.enter().append("g");  // Must create group for rect and text
 
     nodeGroup.append("rect")
-    	   .attr("rx", function(d) { return nodeSizes[d.type].corner; })
-    	   .attr("ry", function(d) { return nodeSizes[d.type].corner; })
+    	   .attr("rx", function(d) { return nodeTypes[d.type].corner; })
+    	   .attr("ry", function(d) { return nodeTypes[d.type].corner; })
 		   .attr("class", "node")
 		   .attr("width", 1)
 		   .attr("height", 1)
 		   .attr("stroke-width", 2)
 		   .attr("fill", function(d) {
-				return nodeSizes[d.type].color;
+				return nodeTypes[d.type].color;
 		   });
 
   	nodeGroup.append("text")
@@ -612,11 +632,11 @@ function update() {
 		.attr("text-anchor", "middle")
         .attr("opacity", 0)
         .text(function (d) { 
-      		var i=d.id.indexOf("."); 
-      		if (d.id.substr(0,i) == "control") {
-              return d.id.substr(i+1,20+i);
+            var i=d.id.indexOf("."); 
+            if (d.type === "control") {
+                return d.id.substr(i+1,20+i);
             } else {
-	      	  return d.name ? d.name.substring(0,20) : d.id.substr(0,i)+"\n"+d.id.substr(i+1,20+i); 
+	      	return d.name ? d.name.substring(0,20) : d.id.substr(0,i)+"\n"+d.id.substr(i+1,20+i); 
             }
     	})
         .call(splitLines)
@@ -635,9 +655,9 @@ function update() {
 
   nodeGroup.selectAll("rect")
         .transition().duration(900)
-		   .attr("width", function(d) { return d.textWidth ? d.textWidth+10 : nodeSizes[d.type].width; })
-      	   .attr("height", function(d) { return nodeSizes[d.type].minheight; })
-           .each(function(d) { d.fixed = false; });  // Then position is released
+	   .attr("width", function(d) { return d.textWidth ? d.textWidth+10 : nodeTypes[d.type].width; })
+      	   .attr("height", function(d) { return nodeTypes[d.type].minheight; })
+           .each(function(d) { if (nodeTypes[d.type].offset) d.fixed = true; else d.fixed = false; });
     
    nodeSVG.exit().select("rect").transition().duration(500)
    		.attr("opacity",0).attr("width",0).attr("height",0);	
