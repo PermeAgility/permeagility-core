@@ -169,10 +169,10 @@ public class Server extends Thread {
 				}
 			}
 		}
-		
+		ServerSocket ss = null;
 		try {
 			System.out.println("Opening HTTP_PORT "  + HTTP_PORT);
-			ServerSocket ss = new ServerSocket(HTTP_PORT);  // Do this before init in case already bound
+			ss = new ServerSocket(HTTP_PORT);  // Do this before init in case already bound
 			if (initializeServer()) {   
 				// Add shutdown hook
 				Runtime.getRuntime().addShutdownHook(new Thread() {
@@ -195,7 +195,7 @@ public class Server extends Thread {
 			} else {
 				System.out.println("Failed to initialize server");
 			}
-			ss.close();
+			//ss.close();
 		} catch (BindException b) {
 			System.err.println("***\n*** Exit condition: \n***"+b.getMessage());
 			viewPage("");  // Fire up the browser - server is probably already up
@@ -204,13 +204,17 @@ public class Server extends Thread {
 			System.err.println("***\n*** Exit condition: \n***"+e.getClass().getName()+":"+e.getMessage());
 			exit(-1);
 		} finally {
-			System.out.println("Server Stopped");
-			exit(0);
+                    if (ss != null) {
+                        try {  ss.close();  } catch (Exception e) { e.printStackTrace();  }
+                    } 
+                    System.out.println("Server Stopped");
+                    exit(0);
 		}
 	}
 		
 	public static void exit(int returnCode) {
 		System.out.println("Server exit with status "+returnCode);
+                
 		System.exit(returnCode);
 	}
 	
@@ -592,9 +596,13 @@ public class Server extends Thread {
 						if (Security.authorized(userdb.getUser(),className)) {
 							if (DEBUG) System.out.println("User "+userdb.getUser()+" is allowed to use "+className);								
 						} else {
+                                                    if (userdb.getUser().equals("admin") && className.equals("permeagility.web.Query")) { 
+                                                        // Allow admin to use Query tool if something needs to be fixed with security or the database
+                                                    } else {
 							System.out.println("User "+userdb.getUser()+" is attempting to use "+className+" without authorization");
 							parms.put("SECURITY_VIOLATION","You are not authorized to access "+className);
 							className = HOME_CLASS;							
+                                                    }
 						}
 					}
 					// Instantiate the requested class and use it
@@ -1032,8 +1040,8 @@ public class Server extends Thread {
 					String restore = getLocalSetting("restore", null);
 					database.createLocal((restore == null ? DEFAULT_DBFILE : restore));  // New database will default to password given in local setting
 					database.fillPool();
-					if (restore != null) {
-						setLocalSetting("restore",null);
+					if (database.getPooledCount() > 0 && restore != null) {
+						setLocalSetting("restore",null);  // Clear restore only if successful
 					}
 				} else {
 					System.out.println("***\n*** Exit condition: couldn't connect to remote as server, please add server OUser with admin role - Exiting.\n***");
