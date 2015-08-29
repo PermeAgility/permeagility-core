@@ -321,6 +321,8 @@ public class Table extends Weblet {
 						+"&nbsp;&nbsp;&nbsp;"
 						+popupForm("ADVANCEDOPTIONS", null, Message.get(locale, "ADVANCED_TABLE_OPTIONS"),null,"NEWCOLUMNNAME", advancedOptionsForm(con,table,parms,""))
 						: "") // isDBA switch
+                                        +"&nbsp;&nbsp;&nbsp;"
+					+link("permeagility.web.Visuility?TYPE=table&NAME="+table,"<i>V</i>")    
 					+ br() 
 					+ errors.toString()
 					+ br()

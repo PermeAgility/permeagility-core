@@ -86,8 +86,8 @@ var LINK_SIZE = 25;
 // This will come from outside later but hardcoded for now
 var nodeTypes = { "control": { "width":20, "maxheight":15, "minheight":15, "corner": 20, "color": "#ccc", "controls":"", "offset":"topleft" } 
                  ,"table": { "width":80, "maxheight":18, "minheight":5, "corner": 0, "color": "cyan", "controls":"x,r,c" }
-                 ,"row": { "width":30, "maxheight":13, "minheight":5, "corner": 10, "color": "yellow", "controls":"x,t,c,d", "offset":"right" }
-                 ,"column": { "width":90, "maxheight":13, "minheight":5, "corner": 5, "color": "orange", "controls":"x,t", "offset":"bottom" }
+                 ,"row": { "width":30, "maxheight":13, "minheight":5, "corner": 10, "color": "yellow", "controls":"x,t,c,d", "offset":"bottom" }
+                 ,"column": { "width":90, "maxheight":13, "minheight":5, "corner": 5, "color": "orange", "controls":"x,t", "offset":"right" }
                  ,"data": { "width":90, "maxheight":13, "minheight":5, "corner": 15, "color": "lightgreen", "controls":"x,r,c,t", "offset":"right" }
                 };
 
@@ -224,6 +224,21 @@ function updateLinkVisibility() {
 function dragstart(d) {
   svg.selectAll("rect.selection").remove();
   d3.select(this).classed('fixed', d.fixed = true);
+}
+
+function dragmove(d, i) {
+    // If the node is positioned offset to parent, push the drag to the parent
+    if (nodeTypes[d.type].offset) {
+        while (d.parent.type===d.type) {
+            d = d.parent;
+        }
+        d = d.parent;
+    }
+    d.px += d3.event.dx;
+    d.py += d3.event.dy;
+    d.x += d3.event.dx;
+    d.y += d3.event.dy; 
+    tick(); // this is the key to make it work together with updating both px,py,x,y on d !
 }
 
 function dragend(d) {
@@ -521,7 +536,7 @@ function tick() {
                 d.x = d.parent.x + nodeTypes[d.type].maxheight * 2;
                 d.y = d.parent.y;
             } else {
-                d.x = d.parent.x + d.parent.textWidth;
+                d.x = d.parent.x + d.parent.textWidth/2.0;
                 d.y = d.parent.y - 15;
             }
         }
@@ -539,8 +554,8 @@ function tick() {
             return Math.max(-ch, Math.min(h - ch, d.y - ch));  // Keep rect in view
         })
         .attr("transform", function(d) {
-            if (d.type === "row") {
-                return "rotate(-30 "+d.x+" "+d.y+")";
+            if (nodeTypes[d.type].offset === "right") {
+                return "rotate(30 "+d.x+" "+d.y+")";
             } else {
                 return;
             }
@@ -550,8 +565,8 @@ function tick() {
             .attr("x2", function(d) {return d.target.x;}).attr("y2", function(d) {return d.target.y;});
 
     nodeSVG.selectAll("text").attr("transform", function(d) {
-        if (d.type === "row") {
-            return "translate("+d.x+","+d.y+")rotate(-30 "+0+" "+0+")"; 
+        if (nodeTypes[d.type].offset === "right") {
+            return "translate("+d.x+","+d.y+")rotate(30 "+0+" "+0+")"; 
         } else {
             return "translate("+d.x+","+d.y+")";             
         }
@@ -671,7 +686,7 @@ function update() {
   		   .on("mousemove", function(d) { 
     					if (d3.event.defaultPrevented) return; // ignore drag
 						selectRectMouseMove(); })
-           .call(force.drag().on('dragstart', dragstart).on('dragend', dragend));
+           .call(force.drag().on('dragstart', dragstart).on('drag',dragmove).on('dragend', dragend));
 
   nodeGroup.selectAll("rect")
         .transition().duration(900)

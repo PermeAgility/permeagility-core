@@ -698,6 +698,10 @@ public abstract class Weblet {
             return "<script src=\"../js/"+name+"\"></script>\n";
     }
 
+    public static String makeScript(String script) {
+            return "<script>"+script+"</script>\n";
+    }
+
     public String getColorControl(String formName, String controlName, String initialValue) {
             return "<input name='"+controlName+"' class='color' value='"+initialValue+"'>";
     }
