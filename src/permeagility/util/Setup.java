@@ -196,9 +196,6 @@ public class Setup {
             Message.initialize(con);
 
             int mCount = 0;
-//            // These first ones are pretty special as Data format and type format are universally needed but locale specific
-//            mCount += checkCreateMessage(con, loc, "DATE_FORMAT", "yyyy-MM-dd");
-//            mCount += checkCreateMessage(con, loc, "TIME_FORMAT", "hh:mm:ss");
 
             // These are the data types that can be used
             mCount += checkCreateMessage(con, loc, "DATATYPE_FLOAT", "Floating point number (double)");

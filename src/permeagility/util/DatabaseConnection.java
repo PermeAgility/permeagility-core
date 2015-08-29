@@ -163,7 +163,7 @@ public class DatabaseConnection {
     	if (expression == null) { return null; }
        	lastAccess = System.currentTimeMillis();
         c.activateOnCurrentThread();
-    	List<ODocument> result = c.query(new OSQLSynchQuery<ODocument>(expression));
+    	List<ODocument> result = c.query(new OSQLSynchQuery<>(expression));
     	return new QueryResult(result);
     }
 
@@ -173,7 +173,7 @@ public class DatabaseConnection {
     	if (expression == null) { return null; }
        	lastAccess = System.currentTimeMillis();
        	c.activateOnCurrentThread();
-    	List<ODocument> result = c.query(new OSQLSynchQuery<ODocument>(expression));
+    	List<ODocument> result = c.query(new OSQLSynchQuery<>(expression));
     	if (result != null && result.size() > 0) {
     		return result.get(0);
     	} else {
@@ -231,7 +231,7 @@ public class DatabaseConnection {
 	 * returns an empty list if table not found
 	 */
 	public Collection<OProperty> getColumns(String table, String columnOverride) {
-		ArrayList<OProperty> result = new ArrayList<OProperty>();
+		ArrayList<OProperty> result = new ArrayList<>();
 		
 		// Original list of columns
 		OSchema schema = getSchema();
@@ -253,7 +253,7 @@ public class DatabaseConnection {
 			String list = (columnOverride == null ? columnList.getStringValue(0, "columnList") : columnOverride);
 			String columnNames[] = list.split(",");
 			if (columnNames.length > 0 ) {
-				ArrayList<OProperty> newList = new ArrayList<OProperty>();
+				ArrayList<OProperty> newList = new ArrayList<>();
 				for (String name : columnNames) {
 					name = name.trim();
 					if (name.equals("-")) {

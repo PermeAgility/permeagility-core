@@ -104,12 +104,21 @@ public class Table extends Weblet {
 		String pagest = parms.get("PAGE");
 		String sourceTable = parms.get("SOURCETABLENAME");
 		if (isNullOrBlank(table)) {
+                    if (parms.containsKey("EDIT_ID")) {
+                        ODocument d = con.get(parms.get("EDIT_ID"));
+                        if (d != null) {
+                            table = d.getClassName();
+                        } else {
+                            return redirect(locale, "permeagility.web.Schema");                            
+                        }
+                    } else {
 			return redirect(locale, "permeagility.web.Schema");
+                    }
 		}
 
 		String prettyTable = Message.get(locale,"TABLE_"+table);
 		if (table != null && ("TABLE_"+table).equals(prettyTable)) {  // No translation
-			prettyTable = makeCamelCasePretty( parms.get("TABLENAME"));
+			prettyTable = makeCamelCasePretty(table);
 		}
 		String title = Message.get(locale, "TABLE_EDITOR", table != null ? prettyTable : "None");
 		parms.put("SERVICE", title);

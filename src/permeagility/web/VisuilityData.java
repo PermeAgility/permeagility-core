@@ -83,9 +83,11 @@ public class VisuilityData extends Download {
                 int rowCount = 0;
                 for (ODocument row : rows.get()) {
                     rowCount++;
+                    String desc = Weblet.getDescriptionFromDocument(con, row);
                     nodes.append(nodeComma+"{ \"id\":\"row."+row.getIdentity().toString().substring(1)+"\""
-                        + ",\"name\":\""+row.getIdentity().toString()+"\""
-                        + ",\"description\":\""+Weblet.getDescriptionFromDocument(con, row)+"\""
+//                        + ",\"name\":\""+row.getIdentity().toString().substring(1)+"\""
+                        + ",\"name\":\""+(desc != null ? desc : row.getIdentity().toString().substring(1))+"\""
+                        + ",\"description\":\""+table+" "+row.getIdentity().toString().substring(1)+" "+desc+"\""
                         + ", \"count\":"+rowCount
                         + " }");
                     nodeComma = "\n,";

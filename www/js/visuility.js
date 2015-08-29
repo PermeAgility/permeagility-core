@@ -85,10 +85,10 @@ var LINK_SIZE = 25;
 
 // This will come from outside later but hardcoded for now
 var nodeTypes = { "control": { "width":20, "maxheight":15, "minheight":15, "corner": 20, "color": "#ccc", "controls":"", "offset":"topleft" } 
-                 ,"table": { "width":80, "maxheight":20, "minheight":5, "corner": 0, "color": "cyan", "controls":"x,r,c" }
-                 ,"row": { "width":30, "maxheight":20, "minheight":5, "corner": 10, "color": "yellow", "controls":"x,t,c,d", "offset":"right" }
-                 ,"column": { "width":90, "maxheight":20, "minheight":5, "corner": 5, "color": "orange", "controls":"x,t", "offset":"bottom" }
-                 ,"data": { "width":90, "maxheight":20, "minheight":5, "corner": 15, "color": "lightgreen", "controls":"x,r,c,t", "offset":"right" }
+                 ,"table": { "width":80, "maxheight":18, "minheight":5, "corner": 0, "color": "cyan", "controls":"x,r,c" }
+                 ,"row": { "width":30, "maxheight":13, "minheight":5, "corner": 10, "color": "yellow", "controls":"x,t,c,d", "offset":"right" }
+                 ,"column": { "width":90, "maxheight":13, "minheight":5, "corner": 5, "color": "orange", "controls":"x,t", "offset":"bottom" }
+                 ,"data": { "width":90, "maxheight":13, "minheight":5, "corner": 15, "color": "lightgreen", "controls":"x,r,c,t", "offset":"right" }
                 };
 
 // Download the given text to a file directly from the browser (not supported in all)
@@ -222,7 +222,7 @@ function updateLinkVisibility() {
 }
 
 function dragstart(d) {
-  svg.selectAll( "rect.selection").remove();
+  svg.selectAll("rect.selection").remove();
   d3.select(this).classed('fixed', d.fixed = true);
 }
 
@@ -230,12 +230,12 @@ function dragend(d) {
   d3.select(this).transition().delay(1000).each(function(d) { d.fixed = false; });
 }
 
-// Need to do something more here - Open a window on the table or row?
 function dblclickNode(d) {
-//  d3.select(this).classed('fixed', d.fixed = false);
-//    d3.select(this).selectAll("tspan").transition()
-//        .duration(750)
-//        .style('fill', 'white');
+    if (d.type === "table") {
+        window.open("permeagility.web.Table?TABLENAME="+d.name, '_blank');
+    } else if (d.type === "row") {
+        window.open("permeagility.web.Table?EDIT_ID="+d.description.split(" ")[1], '_blank');
+    }
 }
 
 // Send keystroke as char to each selected node
@@ -419,7 +419,7 @@ function getMore(type,key,detail) {
 	    handleData(data.links, data.nodes);
 	    update();
 	  } else {
-		  tooltip.show("no data: "+data.error,1000);
+		  tooltip.show("no data: "+(data ? data.error : "No Error"),1000);
 	  	return;
 	  }
 	  // Show that we have completed the retrieval of all related nodes for this node by growing to full height
@@ -477,7 +477,7 @@ function addNode(node, otherNode) {
             node.type = node.id.split(".")[0];
             if (otherNode)	{
                 if (nodeTypes[node.type].offset) node.parent = otherNode;                        
-                node.fixed = true;  // Must hold its position when it arrives
+                //node.fixed = true;  // Must hold its position when it arrives
             }
             nodes.push(node);
             return node;
@@ -514,11 +514,16 @@ function tick() {
         }
         if (offset === "bottom" && d.parent) {
             d.x = d.parent.x;
-            d.y = d.parent.y + nodeTypes[d.type].maxheight/2 + nodeTypes[d.parent.type].maxheight/2;
+            d.y = d.parent.y + nodeTypes[d.parent.type].maxheight;
         }
         if (offset === "right" && d.parent) {
-            d.x = d.parent.x + d.parent.textWidth/2+nodeTypes[d.type].width;
-            d.y = d.parent.y;
+            if (d.parent.type === d.type) {
+                d.x = d.parent.x + nodeTypes[d.type].maxheight * 2;
+                d.y = d.parent.y;
+            } else {
+                d.x = d.parent.x + d.parent.textWidth;
+                d.y = d.parent.y - 15;
+            }
         }
         if (offset === "left" && d.parent) {
             d.x = d.parent.x - d.parent.textWidth/2-nodeTypes[d.type].width;
@@ -532,14 +537,28 @@ function tick() {
         .attr("y", function(d) {
             var ch = d3.select(this).attr("height")/2;  // center heightwise
             return Math.max(-ch, Math.min(h - ch, d.y - ch));  // Keep rect in view
+        })
+        .attr("transform", function(d) {
+            if (d.type === "row") {
+                return "rotate(-30 "+d.x+" "+d.y+")";
+            } else {
+                return;
+            }
         });
 
     linkSVG.attr("x1", function(d) {return d.source.x;}).attr("y1", function(d) {return d.source.y;})
             .attr("x2", function(d) {return d.target.x;}).attr("y2", function(d) {return d.target.y;});
 
-    nodeSVG.selectAll("text").attr("transform", function(d) {return "translate("+d.x+","+d.y+")"; });
+    nodeSVG.selectAll("text").attr("transform", function(d) {
+        if (d.type === "row") {
+            return "translate("+d.x+","+d.y+")rotate(-30 "+0+" "+0+")"; 
+        } else {
+            return "translate("+d.x+","+d.y+")";             
+        }
+        
+    });
 }
-
+          
 function splitLines(text) {
   text.each(function(d) {
     var text = d3.select(this),
@@ -588,15 +607,16 @@ var force = d3.layout.force()
         if (d.source.type === "data") return 20;
         return 100;
     })
+    .linkStrength(0.01)
     .charge(function(d,i) {
         if (nodeTypes[d.type].offset) {  // relative positioned objects have no charge
             return -10;
         } else {
-            return -100;
+            return -150;
         }
     })
     .gravity(0.01)
-    .friction(0.4)
+    .friction(0.5)
     .on("tick", tick);
 
 function update() {
@@ -656,8 +676,8 @@ function update() {
   nodeGroup.selectAll("rect")
         .transition().duration(900)
 	   .attr("width", function(d) { return d.textWidth ? d.textWidth+10 : nodeTypes[d.type].width; })
-      	   .attr("height", function(d) { return nodeTypes[d.type].minheight; })
-           .each(function(d) { if (nodeTypes[d.type].offset) d.fixed = true; else d.fixed = false; });
+      	   .attr("height", function(d) { return nodeTypes[d.type].minheight; });
+//           .each(function(d) { if (nodeTypes[d.type].offset) d.fixed = true; else d.fixed = false; });
     
    nodeSVG.exit().select("rect").transition().duration(500)
    		.attr("opacity",0).attr("width",0).attr("height",0);	

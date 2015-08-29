@@ -12,11 +12,10 @@ To build from source you must have Java 1.8+ and maven installed.  Then type:
 
 Libraries will be downloaded, java files compiled, selftest will run, and a deployment jar 
 file will be created in the target directory.  Deploy the jar file to a directory 
-where you want the server to run in and double click it or type: 
+where you want the server to run and double click it or type: 
 
     java -jar permeagility-_version_.jar
 
-An eclipse project is also configured, just import the project as a maven project using eclipse.  
 Main class is: <b>permeagility.web.Server</b>
 
 Server Arguments: <b>[port] [db] [-selftest]</b>
