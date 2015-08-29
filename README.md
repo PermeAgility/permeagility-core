@@ -37,12 +37,11 @@ Login to the server using admin/admin, writer/writer, or reader/reader
 <br>
 &copy; 2015 PermeAgility Incorporated
 
-Licensed under Eclipse Public License http://www.eclipse.org/legal/epl-v10.html
-
+Licensed under Apache License 2.0  http://www.apache.org/licenses/LICENSE-2.0
 
 Includes other components and copyrights: (Database and JavaScript Components)
 
-OrientDB - http://www.orientechnologies.com/orientdb/ (version 2.1)  License: Apache2
+OrientDB - http://www.orientechnologies.com/orientdb/ (version 2.1)  License: Apache 2.0
 JQuery - http://jquery.org/license (version 2.1.3)  License: MIT
 AngularJs - Google, Inc. http://angularjs.org (version 1.3.8)  License: MIT
 D3.js - Mike Bostock, http://d3js.org (version 3.5)  License: BSD
