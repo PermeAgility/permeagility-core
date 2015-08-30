@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 // Foundational stuff
 d3.selection.prototype.first = function() {
   return d3.select(this[0][0]);
@@ -104,7 +103,7 @@ var LINK_SIZE = 25;
 var nodeTypes = { "control": { "width":20, "maxheight":15, "minheight":15, "corner": 20, "color": "#ccc", "controls":"", "offset":"topleft" } 
                  ,"table": { "width":80, "maxheight":18, "minheight":5, "corner": 0, "color": "cyan", "controls":"x,r,c" }
                  ,"row": { "width":30, "maxheight":13, "minheight":5, "corner": 10, "color": "yellow", "controls":"x,t,c,d", "offset":"bottom" }
-                 ,"column": { "width":90, "maxheight":13, "minheight":5, "corner": 5, "color": "orange", "controls":"x,t", "offset":"right" }
+                 ,"column": { "width":90, "maxheight":13, "minheight":5, "corner": 5, "color": "orange", "controls":"x,t", "offset":"topright" }
                  ,"data": { "width":90, "maxheight":13, "minheight":5, "corner": 15, "color": "lightgreen", "controls":"x,r,c,t", "offset":"right" }
                 };
 
@@ -245,12 +244,7 @@ function dragstart(d) {
 
 function dragmove(d, i) {
     // If the node is positioned offset to parent, push the drag to the parent
-    if (nodeTypes[d.type].offset) {
-        while (d.parent.type===d.type) {
-            d = d.parent;
-        }
-        d = d.parent;
-    }
+    while (d.parent) { d = d.parent; }  // Go to the top parent
     d.px += d3.event.dx;
     d.py += d3.event.dy;
     d.x += d3.event.dx;
@@ -266,7 +260,7 @@ function dblclickNode(d) {
     if (d.type === "table") {
         window.open("permeagility.web.Table?TABLENAME="+d.name, '_blank');
     } else if (d.type === "row") {
-        window.open("permeagility.web.Table?EDIT_ID="+d.description.split(" ")[1], '_blank');
+        window.open("permeagility.web.Table?EDIT_ID="+d.id.split(".")[1], '_blank');
     }
 }
 
@@ -419,6 +413,18 @@ function removeControls() {
   update();  // Clear removed stuff
 }
   
+function releaseChain(node) {  // Free a chain of offset nodes
+    var n = node;
+    var i = 0;
+    while(i<links.length) {
+        if (links[i].targetId === n.id && links[i].source.parent === n) {
+            links[i].source.parent = null;
+            n = links[i].source;  // new node
+            i = 0;  // start again
+        } else i++;
+    }    
+}
+
 function removeNode(id) {
   //alert("removing node "+id);
   var delCount = 0;
@@ -426,7 +432,11 @@ function removeNode(id) {
   var i = 0;
   while(i<links.length) {
     if (links[i].targetId === id || links[i].sourceId === id) {
+      var s = links[i].source;
+      var t = links[i].target;
+      t.parent = null;
       links.splice(i,1);
+      if (s.type !== t.type) releaseChain(s);
       delCount++;
     } else i++;
   }
@@ -472,96 +482,108 @@ function getMore(type,key,detail) {
 function handleData(newlinks, newnodes) {
     var newNodeMap = newnodes ? newnodes.map(function(d) { return d.id; }) : undefined;
     var nodeMap = nodes ? nodes.map(function(d) { return d.id; }) : undefined;
+    if (newnodes) {  // Single unlinked nodes should show as well
+//        var nodeMap = nodes ? nodes.map(function(d) { return d.id; }) : undefined;
+        for (var i = 0, c = newnodes.length; i<c; i++) {
+            var ni = nodeMap ? nodeMap.indexOf(newnodes[i].id) : -1;
+            if (ni === -1) {
+                addNode(newnodes[i], null);
+            }
+        }
+    }
+    nodeMap = nodes ? nodes.map(function(d) { return d.id; }) : undefined; // Update the node map
     if (newlinks) {
-	  	for (var i = 0, c = newlinks.length; i<c; i++) {
-			var sourceNode = {id: newlinks[i].sourceId};
-			var targetNode = {id: newlinks[i].targetId};
-		    var si = nodeMap ? nodeMap.indexOf(sourceNode.id) : -1;
-		    var ti = nodeMap ? nodeMap.indexOf(targetNode.id) : -1;
-		    var nsi = newNodeMap ? newNodeMap.indexOf(sourceNode.id) : -1;
-		    var nti = newNodeMap ? newNodeMap.indexOf(targetNode.id) : -1;
-	        if (nsi > -1) sourceNode = newnodes[nsi];
-	        if (nti > -1) targetNode = newnodes[nti];
-	        targetNode = addNode(targetNode, null);
-			sourceNode = addNode(sourceNode, targetNode);
-	        var dist = newlinks[i].distance;
-	        if (!dist) dist = 1;
-			addLink({source: sourceNode, target: targetNode
-	                 , sourceId: newlinks[i].sourceId, targetId: newlinks[i].targetId
-	                 , distance: dist});
-		}
+        for (var i = 0, c = newlinks.length; i<c; i++) {
+            var sourceNode = {id: newlinks[i].sourceId};
+            var targetNode = {id: newlinks[i].targetId};
+            var si = nodeMap ? nodeMap.indexOf(sourceNode.id) : -1;
+            var ti = nodeMap ? nodeMap.indexOf(targetNode.id) : -1;
+            var nsi = newNodeMap ? newNodeMap.indexOf(sourceNode.id) : -1;
+            var nti = newNodeMap ? newNodeMap.indexOf(targetNode.id) : -1;
+            if (nsi > -1) sourceNode = newnodes[nsi];
+            if (nti > -1) targetNode = newnodes[nti];
+            targetNode = addNode(targetNode, null);
+            sourceNode = addNode(sourceNode, targetNode);
+            var dist = newlinks[i].distance;
+            if (!dist) dist = 1;
+            addLink({source: sourceNode, target: targetNode
+             , sourceId: newlinks[i].sourceId, targetId: newlinks[i].targetId
+             , distance: dist});
 	}
-	if (newnodes) {  // Single unlinked nodes should show as well
-    	var nodeMap = nodes ? nodes.map(function(d) { return d.id; }) : undefined;
-  		for (var i = 0, c = newnodes.length; i<c; i++) {
-		    var ni = nodeMap ? nodeMap.indexOf(newnodes[i].id) : -1;
-    	    if (ni === -1) {
-    	    	addNode(newnodes[i], null);
-    	    }
-		}
-	}
+    }
 }
 
 // Checks whether node already exists in nodes or not
 function addNode(node, otherNode) {
-	var i = nodes.map(function(d) { return d.id; }).indexOf(node.id);
-	if (i === -1) {
-            node.type = node.id.split(".")[0];
-            if (otherNode)	{
-                if (nodeTypes[node.type].offset) node.parent = otherNode;                        
-                //node.fixed = true;  // Must hold its position when it arrives
-            }
-            nodes.push(node);
-            return node;
-	} else {
-      	//nodes[i] = node;  // Replace the node doesnt work unless change the id
+    var i = nodes.map(function(d) { return d.id; }).indexOf(node.id);
+    if (i === -1) {
+        node.type = node.id.split(".")[0];
+        if (otherNode && nodeTypes[node.type].offset) node.parent = otherNode;                        
+        //node.fixed = true;  // Must hold its position when it arrives
+        nodes.push(node);
+        return node;
+    } else {
+        //nodes[i] = node;  // Replace the node doesnt work unless change the id
         // update the node??? // TODO: update the node data
-            return nodes[i];
-	}
+        if (otherNode && nodeTypes[nodes[i].type].offset && !nodes[i].parent) {
+            nodes[i].parent = otherNode;
+        }
+        return nodes[i];
+    }
 }
 
 // Checks whether link already exists in links or not
 function addLink(link) {
-	if (links.map(function(d) { 
-            return d.source.id+"-"+d.target.id; 
-    	}).indexOf(link.source.id+"-"+link.target.id) === -1
-            && links.map(function(d) { 
-                return d.target.id+"-"+d.source.id; 
-    	}).indexOf(link.source.id+"-"+link.target.id) === -1)
-            links.push(link);
+    var linkMap = links.map(function(d) { return d.source.id+"-"+d.target.id; });
+    if (linkMap.indexOf(link.source.id+"-"+link.target.id) === -1
+     && linkMap.indexOf(link.target.id+"-"+link.source.id) === -1) {
+        console.log("added link "+link.sourceId+"-"+link.targetId);
+        links.push(link);
+    }
 }
 
 function tick() {
     // Update relative positioned objects
     nodeSVG.selectAll("rect")
-            .each(function(d) {
-        var offset = nodeTypes[d.type].offset;
-        if (offset === "top" && d.parent) {
-            d.x = d.parent.x;
-            d.y = d.parent.y - nodeTypes[d.type].maxheight/2 - nodeTypes[d.parent.type].maxheight/2;
-        }
-        if (offset === "topleft" && d.parent) {
-            d.x = d.parent.x - d.parent.textWidth/2 - nodeTypes[d.type].width/2;
-            d.y = d.parent.y - nodeTypes[d.type].maxheight;
-        }
-        if (offset === "bottom" && d.parent) {
-            d.x = d.parent.x;
-            d.y = d.parent.y + nodeTypes[d.parent.type].maxheight;
-        }
-        if (offset === "right" && d.parent) {
-            if (d.parent.type === d.type) {
-                d.x = d.parent.x + nodeTypes[d.type].maxheight * 2;
-                d.y = d.parent.y;
-            } else {
-                d.x = d.parent.x + d.parent.textWidth/2.0;
-                d.y = d.parent.y - 15;
+        .each(function(d) {
+            var offset = nodeTypes[d.type].offset;
+            if (offset === "top" && d.parent) {
+                d.x = d.parent.x;
+                d.y = d.parent.y - nodeTypes[d.type].maxheight/2 - nodeTypes[d.parent.type].maxheight/2;
             }
-        }
-        if (offset === "left" && d.parent) {
-            d.x = d.parent.x - d.parent.textWidth/2-nodeTypes[d.type].width;
-            d.y = d.parent.y;
-        }        
-      })
+            if (offset === "topleft" && d.parent) {
+                //d.x = d.parent.x - d.parent.textWidth/2 - nodeTypes[d.type].width/2;
+                //d.y = d.parent.y - nodeTypes[d.type].maxheight;
+                if (d.parent.type === d.type) {
+                    d.x = d.parent.x - nodeTypes[d.type].maxheight;
+                    d.y = d.parent.y - 10;
+                } else {
+                    d.x = d.parent.x - d.parent.textWidth/2.0;
+                    d.y = d.parent.y - 15;
+                }
+            }
+            if (offset === "bottom" && d.parent) {
+                d.x = d.parent.x;
+                d.y = d.parent.y + nodeTypes[d.parent.type].maxheight;
+            }
+            if (offset === "topright" && d.parent) {
+                if (d.parent.type === d.type) {
+                    d.x = d.parent.x + nodeTypes[d.type].maxheight;
+                    d.y = d.parent.y - 10;
+                } else {
+                    d.x = d.parent.x + d.parent.textWidth/2.0;
+                    d.y = d.parent.y - 15;
+                }
+            }
+            if (offset === "right" && d.parent) {
+                d.x = d.parent.x + d.parent.textWidth/2 + d.textWidth/2 + 5;
+                d.y = d.parent.y;
+            }
+            if (offset === "left" && d.parent) {
+                d.x = d.parent.x - d.parent.textWidth/2 - d.textWidth/2 - 5;
+                d.y = d.parent.y;
+            }        
+        })
         .attr("x", function(d) { 
             var cw = d3.select(this).attr("width")/2;  // center widthwise
             return Math.max(-cw, Math.min(w - cw, d.x - cw));  // Keep rect in view
@@ -571,7 +593,9 @@ function tick() {
             return Math.max(-ch, Math.min(h - ch, d.y - ch));  // Keep rect in view
         })
         .attr("transform", function(d) {
-            if (nodeTypes[d.type].offset === "right") {
+            if (nodeTypes[d.type].offset === "topleft") {
+                return "rotate(-30 "+d.x+" "+d.y+")";
+            } else if (nodeTypes[d.type].offset === "topright") {
                 return "rotate(30 "+d.x+" "+d.y+")";
             } else {
                 return;
@@ -582,7 +606,9 @@ function tick() {
             .attr("x2", function(d) {return d.target.x;}).attr("y2", function(d) {return d.target.y;});
 
     nodeSVG.selectAll("text").attr("transform", function(d) {
-        if (nodeTypes[d.type].offset === "right") {
+        if (nodeTypes[d.type].offset === "topleft") {
+            return "translate("+d.x+","+d.y+")rotate(-30 "+0+" "+0+")"; 
+        } else if (nodeTypes[d.type].offset === "topright") {
             return "translate("+d.x+","+d.y+")rotate(30 "+0+" "+0+")"; 
         } else {
             return "translate("+d.x+","+d.y+")";             
@@ -658,30 +684,28 @@ function update() {
     linkSVG = linkSVG.data(force.links(), function(d) { return d.source.id+"-"+d.target.id; });
     linkSVG.enter()  
       .append("line")
-      .filter( function(d) { if (nodeTypes[d.source.type].offset) return false; else return true; })
+      .filter( function(d) { if (d.source.type === "control" || nodeTypes[d.target.type].offset && d.target.parent) return false; else return true; })
       .attr("class", "link")
       .attr("stroke-width", 2)
       .attr("marker-end", "url(#triangle)");
     linkSVG.exit().remove();
 
-	nodeSVG = nodeSVG.data(force.nodes(), function(d) { return d.id; });
+    nodeSVG = nodeSVG.data(force.nodes(), function(d) { return d.id; });
 
     var nodeGroup = nodeSVG.enter().append("g");  // Must create group for rect and text
 
     nodeGroup.append("rect")
-    	   .attr("rx", function(d) { return nodeTypes[d.type].corner; })
-    	   .attr("ry", function(d) { return nodeTypes[d.type].corner; })
-		   .attr("class", "node")
-		   .attr("width", 1)
-		   .attr("height", 1)
-		   .attr("stroke-width", 2)
-		   .attr("fill", function(d) {
-				return nodeTypes[d.type].color;
-		   });
+        .attr("rx", function(d) { return nodeTypes[d.type].corner; })
+        .attr("ry", function(d) { return nodeTypes[d.type].corner; })
+        .attr("class", "node")
+        .attr("width", 1)
+        .attr("height", 1)
+        .attr("stroke-width", 2)
+        .attr("fill", function(d) { return nodeTypes[d.type].color; });
 
-  	nodeGroup.append("text")
-  	    .attr("class", "nodeTitle")
-		.attr("text-anchor", "middle")
+    nodeGroup.append("text")
+        .attr("class", "nodeTitle")
+        .attr("text-anchor", "middle")
         .attr("opacity", 0)
         .text(function (d) { 
             var i=d.id.indexOf("."); 
@@ -696,14 +720,16 @@ function update() {
     	    .attr("opacity", 1);
              
   nodeGroup.on('click', clickNode)
-           .on('dblclick', dblclickNode)
-  		   .on("mouseup", function(d) { 
-    				    if (d3.event.defaultPrevented) return; // ignore drag
-						selectRectEnd(); })
-  		   .on("mousemove", function(d) { 
-    					if (d3.event.defaultPrevented) return; // ignore drag
-						selectRectMouseMove(); })
-           .call(force.drag().on('dragstart', dragstart).on('drag',dragmove).on('dragend', dragend));
+        .on('dblclick', dblclickNode)
+            .on("mouseup", function(d) { 
+                if (d3.event.defaultPrevented) return; // ignore drag
+                selectRectEnd(); 
+            })
+            .on("mousemove", function(d) { 
+                if (d3.event.defaultPrevented) return; // ignore drag
+                selectRectMouseMove(); 
+            })
+        .call(force.drag().on('dragstart', dragstart).on('drag',dragmove).on('dragend', dragend));
 
   nodeGroup.selectAll("rect")
         .transition().duration(900)

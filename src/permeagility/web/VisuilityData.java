@@ -24,6 +24,8 @@ import permeagility.util.QueryResult;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OProperty;
 import com.orientechnologies.orient.core.record.impl.ODocument;
+import java.util.List;
+import java.util.Set;
 
 public class VisuilityData extends Download {
 
@@ -45,16 +47,16 @@ public class VisuilityData extends Download {
             String detail = parms.get("DETAIL");
 
             try {
-                    if ("ROW".equals(type) && id != null && !id.equals("")) {
+                    if ("ROW".equalsIgnoreCase(type) && id != null && !id.equals("")) {
                             System.out.println("Build ROW view "+id);
                             return getRow(con,id,detail);
-                    } else if ("TABLE".equals(type) && id != null && !id.equals("")) {
+                    } else if ("TABLE".equalsIgnoreCase(type) && id != null && !id.equals("")) {
                             return getTable(con,id,detail);
-                    } else if ("COLUMN".equals(type) && id != null && !id.equals("")) {
+                    } else if ("COLUMN".equalsIgnoreCase(type) && id != null && !id.equals("")) {
                             return getColumn(con,id,detail);
-                    } else if ("DATA".equals(type) && id != null && !id.equals("")) {
+                    } else if ("DATA".equalsIgnoreCase(type) && id != null && !id.equals("")) {
                             return getData(con,id,detail);
-                    } else if ("SET".equals(type) && id != null && !id.equals("")) {
+                    } else if ("SET".equalsIgnoreCase(type) && id != null && !id.equals("")) {
                             return getSet(con,id,detail);
                     }	
             } catch(Exception e) {
@@ -237,13 +239,14 @@ public class VisuilityData extends Download {
         StringBuilder links = new StringBuilder();
         String linkComma = "";
         String nodeComma = "";
-        ODocument viewDoc = con.get("#"+id);
+        ODocument viewDoc = con.get(id);
         if (viewDoc == null) {
             return ("Could not retrieve row using id:"+id).getBytes();
         } else {
             String classname = viewDoc.getClassName();
             Collection<OProperty> cols = con.getColumns(classname);
-            nodes.append("{ \"id\": \"row."+id+"\", \"name\":\""+classname+id+"\" }");
+            nodes.append("{ \"id\": \"row."+id+"\", \"name\":\""+Weblet.getDescriptionFromDocument(con, viewDoc)+"\" }");
+            nodeComma = "\n,";
             String columnTarget = "table."+classname;  // For stringing columns together in order
             String dataTarget = "row."+id;  // For stringing data columns together in order
             int colCount = 0;
@@ -252,19 +255,56 @@ public class VisuilityData extends Download {
                 Object colData = viewDoc.field(colName);
                 if (colData instanceof ODocument) {
                     ODocument ld = (ODocument)colData;
-                    colData = ld.getIdentity().toString().substring(1);
+                    String refId = ld.getIdentity().toString().substring(1);
+                    String docName = Weblet.getDescriptionFromDocument(con, ld);
                     // Should be a link to the other row
-                    nodes.append(nodeComma+"{ \"id\":\"row."+ld.getIdentity().toString().substring(1)+"\""
-                            + ",\"name\":\""+ld.getIdentity().toString()+"\""
-                            + ",\"description\":\""+Weblet.getDescriptionFromDocument(con, ld)+"\""
+                    nodes.append(nodeComma+"{ \"id\":\"row."+refId+"\""
+                            + ",\"name\":\""+docName+"\""
+                            + ",\"description\":\""+refId+" "+docName+"\""
                     //	+ ", \"count\":"+rowCount
                             + " }");
                     nodeComma = "\n,";
-                    links.append(linkComma+"{ \"targetId\":\"row."+ld.getIdentity().toString().substring(1)+"\""
-                            +", \"sourceId\":\"row."+viewDoc.getIdentity().toString().substring(1)+"\""
+                    links.append(linkComma+"{ \"targetId\":\"row."+refId+"\""
+                            +", \"sourceId\":\"row."+id+"\""
             //		+ ", \"count\":"+rowCount
                             +" }");
                     linkComma = "\n,";
+                } else if (colData instanceof Set) {
+                    Set<ODocument> set = (Set<ODocument>)colData;
+                    for (ODocument ld : set) {
+                        String refId = ld.getIdentity().toString().substring(1);
+                        String docName = Weblet.getDescriptionFromDocument(con, ld);
+                        // Should be a link to the other row
+                        nodes.append(nodeComma+"{ \"id\":\"row."+refId+"\""
+                                + ",\"name\":\""+docName+"\""
+                                + ",\"description\":\""+refId+" "+docName+"\""
+                        //	+ ", \"count\":"+rowCount
+                                + " }");
+                        nodeComma = "\n,";
+                        links.append(linkComma+"{ \"targetId\":\"row."+refId+"\""
+                                +", \"sourceId\":\"row."+id+"\""
+                //		+ ", \"count\":"+rowCount
+                                +" }");
+                        linkComma = "\n,";
+                    }
+                } else if (colData instanceof List) {
+                    List<ODocument> set = (List<ODocument>)colData;
+                    for (ODocument ld : set) {
+                        String refId = ld.getIdentity().toString().substring(1);
+                        String docName = Weblet.getDescriptionFromDocument(con, ld);
+                        // Should be a link to the other row
+                        nodes.append(nodeComma+"{ \"id\":\"row."+refId+"\""
+                                + ",\"name\":\""+docName+"\""
+                                + ",\"description\":\""+refId+" "+docName+"\""
+                        //	+ ", \"count\":"+rowCount
+                                + " }");
+                        nodeComma = "\n,";
+                        links.append(linkComma+"{ \"targetId\":\"row."+refId+"\""
+                                +", \"sourceId\":\"row."+id+"\""
+                //		+ ", \"count\":"+rowCount
+                                +" }");
+                        linkComma = "\n,";
+                    }
                 } else {   // Data - D
                     if (detail != null && detail.equalsIgnoreCase("D")) {
                         if (colData != null) {

@@ -22,14 +22,14 @@ public class Visuility extends Weblet {
     public String getPage(DatabaseConnection con, java.util.HashMap<String,String> parms) {
         parms.put("SERVICE", Message.get(con.getLocale(), "VISUILITY"));
         String type = parms.get("TYPE");
-        String name = parms.get("NAME");
+        String id = parms.get("ID");
         return 	
             head(Message.get(con.getLocale(), "VISUILITY"),getScript("d3.js"))+
             body(standardLayout(con, parms,  
                 Schema.getTableSelector(con)
                 +"<button style=\"position: fixed; bottom: 0px;\" id=\"save_as_svg\" download=\"view.svg\">to SVG</button>"
                 +getScript("visuility.js")
-                +(type != null && name != null ? makeScript("getMore('"+type+"','"+name+"')") : "")
+                +(type != null && id != null ? makeScript("getMore('"+type+"','"+id+"')") : "")
             ));
     }
 

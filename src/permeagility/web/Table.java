@@ -316,28 +316,28 @@ public class Table extends Weblet {
 		
 		// Make the result
 		return head(title, getScripts(con))
-				+ body(standardLayout(con, parms,  
-					link(this.getClass().getName(),"&lt;"+Message.get(locale,"ALL_TABLES"))
-					+"&nbsp;&nbsp;&nbsp;"
-					+((Security.getTablePriv(con, table) & PRIV_CREATE) > 0 ? popupForm("CREATE_NEW_ROW",null,Message.get(locale,"NEW_ROW"),null,"NAME",
-							paragraph("banner",Message.get(locale, "CREATE_ROW"))
-							+getTableRowFields(con, table, parms)
-							+center(submitButton(locale, "CREATE_ROW"))) : "")
-					+"&nbsp;&nbsp;&nbsp;"
-					+(Security.isDBA(con) ?
-						popupForm("NEWCOLUMN", null, Message.get(locale, "ADD_COLUMN"),null,"NEWCOLUMNNAME", newColumnForm(con))
-						+"&nbsp;&nbsp;&nbsp;"
-						+popupForm("RIGHTSOPTIONS", null, Message.get(locale, "TABLE_RIGHTS_OPTIONS"),null,"XXX", rightsOptionsForm(con,table,parms,""))
-						+"&nbsp;&nbsp;&nbsp;"
-						+popupForm("ADVANCEDOPTIONS", null, Message.get(locale, "ADVANCED_TABLE_OPTIONS"),null,"NEWCOLUMNNAME", advancedOptionsForm(con,table,parms,""))
-						: "") // isDBA switch
-                                        +"&nbsp;&nbsp;&nbsp;"
-					+link("permeagility.web.Visuility?TYPE=table&NAME="+table,"<i>V</i>")    
-					+ br() 
-					+ errors.toString()
-					+ br()
-					+ ((Security.getTablePriv(con, table) & PRIV_READ) > 0 ? getTable(con, table, page) : paragraph(Message.get(locale,"NO_PERMISSION_TO_VIEW")))
-				));
+                    + body(standardLayout(con, parms,  
+                        link(this.getClass().getName(),"&lt;"+Message.get(locale,"ALL_TABLES"))
+                        +"&nbsp;&nbsp;&nbsp;"
+                        +((Security.getTablePriv(con, table) & PRIV_CREATE) > 0 ? popupForm("CREATE_NEW_ROW",null,Message.get(locale,"NEW_ROW"),null,"NAME",
+                                        paragraph("banner",Message.get(locale, "CREATE_ROW"))
+                                        +getTableRowFields(con, table, parms)
+                                        +center(submitButton(locale, "CREATE_ROW"))) : "")
+                        +"&nbsp;&nbsp;&nbsp;"
+                        +(Security.isDBA(con) ?
+                                popupForm("NEWCOLUMN", null, Message.get(locale, "ADD_COLUMN"),null,"NEWCOLUMNNAME", newColumnForm(con))
+                                +"&nbsp;&nbsp;&nbsp;"
+                                +popupForm("RIGHTSOPTIONS", null, Message.get(locale, "TABLE_RIGHTS_OPTIONS"),null,"XXX", rightsOptionsForm(con,table,parms,""))
+                                +"&nbsp;&nbsp;&nbsp;"
+                                +popupForm("ADVANCEDOPTIONS", null, Message.get(locale, "ADVANCED_TABLE_OPTIONS"),null,"NEWCOLUMNNAME", advancedOptionsForm(con,table,parms,""))
+                                : "") // isDBA switch
+                        +"&nbsp;&nbsp;&nbsp;"
+                        +link("permeagility.web.Visuility?TYPE=table&ID="+table,"<i>V</i>")    
+                        + br() 
+                        + errors.toString()
+                        + br()
+                        + ((Security.getTablePriv(con, table) & PRIV_READ) > 0 ? getTable(con, table, page) : paragraph(Message.get(locale,"NO_PERMISSION_TO_VIEW")))
+                    ));
 	}
 
 	// Clear all the dataTypes from the list if a message or locale has changed - called by Server
@@ -844,6 +844,7 @@ public class Table extends Weblet {
 
 		String formName = (edit_id == null ? "NEWROW" : "UPDATEROW");
 		return (con.getUser().equals("guest") ? "" : link(this.getClass().getName()+"?TABLENAME="+table,Message.get(con.getLocale(), "ALL_ROWS_IN_TABLE",makeCamelCasePretty(table))))
+                        + "&nbsp;&nbsp;" + link("permeagility.web.Visuility?TYPE=row&ID="+edit_id,"<i>V</i>")    
 			+ getLinkTrail(con, parms.get("SOURCETABLENAME"),parms.get("SOURCEEDIT_ID")) 
 			+ paragraph("banner", (edit_id == null ? Message.get(con.getLocale(), "CREATE_ROW") 
 					: Message.get(con.getLocale(), "UPDATE") + "&nbsp;" + makeCamelCasePretty(table)))
