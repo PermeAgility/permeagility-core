@@ -562,7 +562,7 @@ function addLink(link) {
     if (linkMap.indexOf(link.source.id+"-"+link.target.id) === -1
      && linkMap.indexOf(link.target.id+"-"+link.source.id) === -1) {
          if (!link.source.parent && nodeTypes[link.source.type].offset && link.chain) link.source.parent = link.target;                        
-        console.log("added link "+link.sourceId+"-"+link.targetId);
+        //console.log("added link "+link.sourceId+"-"+link.targetId);
         links.push(link);
     }
 }
