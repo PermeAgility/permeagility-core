@@ -23,21 +23,23 @@ import permeagility.util.QueryResult;
 
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OProperty;
+import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 import java.util.List;
 import java.util.Set;
+import java.util.Stack;
+import static permeagility.web.Table.PRIV_READ;
+import static permeagility.web.Table.SHOW_ALL_RELATED_TABLES;
 
 public class VisuilityData extends Download {
 
+    public static boolean DEBUG = false;
+    
     @Override
-    public String getContentType() {
-            return "application/json";
-    }
+    public String getContentType() { return "application/json";  }
 
     @Override
-    public String getContentDisposition() {
-            return "inline; filename=\"data.json\"";
-    }
+    public String getContentDisposition() { return "inline; filename=\"data.json\""; }
 
     @Override
     public byte[] getBytes(DatabaseConnection con, HashMap<String, String> parms) {
@@ -45,25 +47,30 @@ public class VisuilityData extends Download {
             String type = parms.get("TYPE");
             String id = parms.get("ID");
             String detail = parms.get("DETAIL");
-
+            if (DEBUG) System.out.println("VisuilityData: TYPE="+type+" ID="+id+" DETAIL="+detail);
+            
             try {
-                    if ("ROW".equalsIgnoreCase(type) && id != null && !id.equals("")) {
-                            System.out.println("Build ROW view "+id);
-                            return getRow(con,id,detail);
-                    } else if ("TABLE".equalsIgnoreCase(type) && id != null && !id.equals("")) {
-                            return getTable(con,id,detail);
-                    } else if ("COLUMN".equalsIgnoreCase(type) && id != null && !id.equals("")) {
-                            return getColumn(con,id,detail);
-                    } else if ("DATA".equalsIgnoreCase(type) && id != null && !id.equals("")) {
-                            return getData(con,id,detail);
-                    } else if ("SET".equalsIgnoreCase(type) && id != null && !id.equals("")) {
-                            return getSet(con,id,detail);
-                    }	
+                if ( id != null && !id.equals("")) {
+                    if ("ROW".equalsIgnoreCase(type)) {
+                        return getRow(con,id,detail);
+                    } else if ("TABLE".equalsIgnoreCase(type)) {
+                        return getTable(con,id,detail);
+                    } else if ("COLUMN".equalsIgnoreCase(type)) {
+                        return getColumn(con,id,detail);
+                    } else if ("DATA".equalsIgnoreCase(type)) {
+                        return getData(con,id,detail);
+                    } else if ("SET".equalsIgnoreCase(type)) {
+                        return getSet(con,id,detail);
+                    } else {
+                        return ("{ \"error\": \"Unknown type: "+type+"\"}").getBytes();			            
+                    }
+                } else {
+                    return ("{ \"error\": \""+"ID not specified"+"\"}").getBytes();			                    
+                }
             } catch(Exception e) {
                     e.printStackTrace();
                     return ("{ \"error\": \""+e.getMessage()+"\"}").getBytes();			
             }
-            return ("{ \"error\": \"Unknown type: "+type+"\"}").getBytes();			
     }
 
     private byte[] getTable(DatabaseConnection con, String table, String detail) {
@@ -71,20 +78,16 @@ public class VisuilityData extends Download {
             StringBuilder links = new StringBuilder();
             String linkComma = "";
             String nodeComma = "";
-            System.out.println("Build TABLE node & links for  "+table);
 
-            nodes.append("{ \"id\": \"table."+table+"\", \"name\":\""+table+"\" }");
+            nodes.append("{ \"id\": \"table."+table+"\", \"name\":\""+table+"\", \"description\":\"table "+table+"\" }");
             nodeComma = "\n,";
 
             // Related tables
-            int relCount = 0;
             for (OClass c : con.getSchema().getClasses()) {
                     for (OProperty p : c.properties()) {
                             if (p.getLinkedClass() != null && p.getLinkedClass().getName().equals(table)) {
-                                    relCount++;
                                     nodes.append(nodeComma+"{ \"id\":\"table."+c.getName()+"\""
-                                                    + ",\"name\":\""+c.getName()+"\""
-                                                    + ", \"count\":"+relCount
+                                                    + ",\"name\":\""+c.getName()+"\", \"description\":\"table "+c.getName()+"\""
                                                     + " }");
                                     nodeComma = "\n,";
                                     links.append(linkComma+"{ \"targetId\": \"table."+table+"\", \"sourceId\":\"table."+c.getName()+"\" }");
@@ -110,7 +113,7 @@ public class VisuilityData extends Download {
                     nodeComma = "\n,";
                     links.append(linkComma+"{ \"targetId\":\""+rowTarget+"\""
                         +", \"sourceId\":\"row."+row.getIdentity().toString().substring(1)+"\""
-                        + ", \"count\":"+rowCount
+                        + ", \"chain\": true, \"count\":"+rowCount
                         +" }");
                     linkComma = "\n,";
                     rowTarget = "row."+row.getIdentity().toString().substring(1);
@@ -121,27 +124,24 @@ public class VisuilityData extends Download {
             Collection<OProperty> cols = con.getColumns(table);
             String columnTarget = "table."+table;
             int colCount = 0;
-            relCount = 0;
             columnTarget = "table."+table+"";
             for (OProperty col : cols) {
                 colCount++;
                 if (detail != null && detail.equalsIgnoreCase("C") && !col.getName().startsWith("_")) {
                     nodes.append(nodeComma+"{ \"id\":\"column."+table+"."+col.getName()+"\""
-                        + ",\"name\":\""+col.getName()+"\""
+                        + ",\"name\":\""+col.getName()+"\", \"description\":\"column "+table+"."+col.getName()+" "+col.getType().name()+"\""
                         + ", \"count\":"+colCount
                         + " }");
                     nodeComma = "\n,";
-                    links.append(linkComma+"{ \"targetId\": \""+columnTarget+"\", \"sourceId\":\"column."+table+"."+col.getName()+"\" }");
+                    links.append(linkComma+"{ \"targetId\": \""+columnTarget+"\", \"sourceId\":\"column."+table+"."+col.getName()+"\", \"chain\": true }");
                     linkComma = "\n,";
                     columnTarget = "column."+table+"."+col.getName();
                 }
                 // Connect to a table if the property is a relationship
                 String lc = col.getLinkedClass() != null ? col.getLinkedClass().getName() : null; 
                 if (lc != null) {
-                    relCount++;
                     nodes.append(nodeComma+"{ \"id\":\"table."+lc+"\""
-                        + ",\"name\":\""+lc+"\""
-                        + ", \"count\":"+relCount
+                        + ",\"name\":\""+lc+"\", \"description\":\"table "+lc+"\""
                         + " }");
                     nodeComma = "\n,";
                     links.append(linkComma+"{ \"sourceId\": \"table."+table+"\", \"targetId\":\"table."+lc+"\" }");
@@ -157,10 +157,9 @@ public class VisuilityData extends Download {
         StringBuilder links = new StringBuilder();
         String linkComma = "";
         String nodeComma = "";
-        System.out.println("Build COLUMN node & links for "+table);
 
-        nodes.append("{ \"id\": \"column."+table+"\", \"name\":\""+table+"\" }");
-        nodeComma = "\n,";
+        //nodes.append("{ \"id\": \"column."+table+"\", \"name\":\""+table+"\" }");
+        //nodeComma = "\n,";
 
         // Related tables
         int relCount = 0;
@@ -169,7 +168,7 @@ public class VisuilityData extends Download {
                 if (p.getLinkedClass() != null && p.getLinkedClass().getName().equals(table)) {
                     relCount++;
                     nodes.append(nodeComma+"{ \"id\":\"table."+c.getName()+"\""
-                        + ",\"name\":\""+c.getName()+"\""
+                        + ",\"name\":\""+c.getName()+"\", \"description\":\"table "+c.getName()+"\""
                         + ", \"count\":"+relCount
                         + " }");
                     nodeComma = "\n,";
@@ -204,27 +203,24 @@ public class VisuilityData extends Download {
         Collection<OProperty> cols = con.getColumns(table);
         String columnTarget = "table."+table;
         int colCount = 0;
-        relCount = 0;
         columnTarget = "table."+table+"";
         for (OProperty col : cols) {
             colCount++;
             if (detail != null && detail.equalsIgnoreCase("C")) {
                 nodes.append(nodeComma+"{ \"id\":\"column."+table+"."+col.getName()+"\""
-                    + ",\"name\":\""+col.getName()+"\""
+                    + ",\"name\":\""+col.getName()+"\", \"description\":\"column "+table+"."+col.getName()+" "+col.getType().name()+"\""
                     + ", \"count\":"+colCount
                     + " }");
                 nodeComma = "\n,";
-                links.append(linkComma+"{ \"targetId\": \""+columnTarget+"\", \"sourceId\":\"column."+table+"."+col.getName()+"\" }");
+                links.append(linkComma+"{ \"targetId\": \""+columnTarget+"\", \"sourceId\":\"column."+table+"."+col.getName()+"\", \"chain\": true }");
                 linkComma = "\n,";
                 columnTarget = "column."+table+"."+col.getName();
             }
             // Connect to a table if the property is a relationship
             String lc = col.getLinkedClass() != null ? col.getLinkedClass().getName() : null; 
             if (lc != null) {
-                relCount++;
                 nodes.append(nodeComma+"{ \"id\":\"table."+lc+"\""
-                    + ",\"name\":\""+lc+"\""
-                    + ", \"count\":"+relCount
+                    + ",\"name\":\""+lc+"\", \"description\":\"table "+lc+"\""
                     + " }");
                 nodeComma = "\n,";
                 links.append(linkComma+"{ \"sourceId\": \"table."+table+"\", \"targetId\":\"table."+lc+"\" }");
@@ -245,9 +241,21 @@ public class VisuilityData extends Download {
         } else {
             String classname = viewDoc.getClassName();
             Collection<OProperty> cols = con.getColumns(classname);
-            nodes.append("{ \"id\": \"row."+id+"\", \"name\":\""+Weblet.getDescriptionFromDocument(con, viewDoc)+"\" }");
+            String classDesc = Weblet.getDescriptionFromDocument(con, viewDoc);
+            nodes.append("{ \"id\": \"row."+id+"\", \"name\":\""+classDesc+"\""
+                    +", \"description\":\"row "+id+" "+classname+" "+classDesc+"\" }");
             nodeComma = "\n,";
-            String columnTarget = "table."+classname;  // For stringing columns together in order
+            if (detail != null && detail.equalsIgnoreCase("T")) {
+                // Make a table node for the row
+                String table = viewDoc.getClassName();
+                nodes.append(nodeComma+"{ \"id\":\"table."+table+"\""
+                    + ",\"name\":\""+table+"\", \"description\":\"table "+table+"\""
+                    + " }");
+                nodeComma = "\n,";
+                // and link it to row
+                links.append(linkComma+"{ \"sourceId\": \"row."+id+"\", \"targetId\":\"table."+table+"\" }");
+                linkComma = "\n,";
+            }
             String dataTarget = "row."+id;  // For stringing data columns together in order
             int colCount = 0;
             for (OProperty col : cols) {
@@ -260,13 +268,11 @@ public class VisuilityData extends Download {
                     // Should be a link to the other row
                     nodes.append(nodeComma+"{ \"id\":\"row."+refId+"\""
                             + ",\"name\":\""+docName+"\""
-                            + ",\"description\":\""+refId+" "+docName+"\""
-                    //	+ ", \"count\":"+rowCount
+                            + ",\"description\":\"row "+refId+" "+ld.getClassName()+" "+docName+"\""
                             + " }");
                     nodeComma = "\n,";
                     links.append(linkComma+"{ \"targetId\":\"row."+refId+"\""
                             +", \"sourceId\":\"row."+id+"\""
-            //		+ ", \"count\":"+rowCount
                             +" }");
                     linkComma = "\n,";
                 } else if (colData instanceof Set) {
@@ -277,13 +283,11 @@ public class VisuilityData extends Download {
                         // Should be a link to the other row
                         nodes.append(nodeComma+"{ \"id\":\"row."+refId+"\""
                                 + ",\"name\":\""+docName+"\""
-                                + ",\"description\":\""+refId+" "+docName+"\""
-                        //	+ ", \"count\":"+rowCount
+                                + ",\"description\":\"row "+refId+" "+ld.getClassName()+" "+docName+"\""
                                 + " }");
                         nodeComma = "\n,";
                         links.append(linkComma+"{ \"targetId\":\"row."+refId+"\""
                                 +", \"sourceId\":\"row."+id+"\""
-                //		+ ", \"count\":"+rowCount
                                 +" }");
                         linkComma = "\n,";
                     }
@@ -295,13 +299,11 @@ public class VisuilityData extends Download {
                         // Should be a link to the other row
                         nodes.append(nodeComma+"{ \"id\":\"row."+refId+"\""
                                 + ",\"name\":\""+docName+"\""
-                                + ",\"description\":\""+refId+" "+docName+"\""
-                        //	+ ", \"count\":"+rowCount
+                                + ",\"description\":\"row "+refId+" "+ld.getClassName()+" "+docName+"\""
                                 + " }");
                         nodeComma = "\n,";
                         links.append(linkComma+"{ \"targetId\":\"row."+refId+"\""
                                 +", \"sourceId\":\"row."+id+"\""
-                //		+ ", \"count\":"+rowCount
                                 +" }");
                         linkComma = "\n,";
                     }
@@ -310,19 +312,63 @@ public class VisuilityData extends Download {
                         if (colData != null) {
                             colData = colData.toString().replace("\r","").replace("\n","<BR>").replace("\\","\\\\").replace("'","\\u0027").replace("<","&lt;").replace(">","&gt;");
                         }
-                        colCount++;
                         nodes.append(nodeComma+"{ \"id\":\"data."+id+"."+colName+"\""
                             + ",\"name\":\""+colData+"\""
-                            + ", \"count\":"+colCount
+                            + ",\"description\":\"data "+id+"."+colName+"\""
                             + " }");
                         nodeComma = "\n,";
-                        links.append(linkComma+"{ \"sourceId\":\"data."+id+"."+colName+"\", \"targetId\":\""+dataTarget+"\", \"count\":"+colCount+"}");
+                        links.append(linkComma+"{ \"sourceId\":\"data."+id+"."+colName+"\", \"targetId\":\""+dataTarget+"\", \"chain\": true, \"count\":"+colCount+"}");
                         linkComma = "\n, ";
-                        columnTarget = "column."+classname+"."+colName;
                         dataTarget = "data."+id+"."+colName;
                     }
                 }
             }
+            
+            Stack<String> tables = new Stack<>();
+            Stack<String> columns = new Stack<>();
+            Stack<OType> types = new Stack<>();
+
+            for (OClass c : con.getSchema().getClasses()) {
+                for (OProperty p : c.properties()) {
+                    if (p.getLinkedClass() != null && p.getLinkedClass().getName().equals(classname)) {
+                        if (SHOW_ALL_RELATED_TABLES || (Security.getTablePriv(con, c.getName()) & PRIV_READ) > 0) {
+                            tables.push(c.getName());
+                            columns.push(p.getName());
+                            types.push(p.getType());
+                        }
+                    }
+                }
+            }
+            while (!tables.empty()) {
+                String relTable = tables.pop();
+                String col = columns.pop();
+                OType fkType = types.pop();
+                String operator;
+                if ((Security.getTablePriv(con, relTable) & PRIV_READ) > 0) {
+                    if (fkType == OType.LINKLIST || fkType == OType.LINKSET || fkType == OType.LINKBAG) {
+                        operator = "contains";
+                    } else if (fkType == OType.LINKMAP) {
+                        operator = "constainsvalue";
+                    } else {
+                        operator = "=";
+                    }
+                    String query = "SELECT FROM " + relTable + " WHERE "+col+" "+operator+" #"+id;
+                    if (DEBUG) System.out.println("related query="+query);
+                    QueryResult rel = con.query(query);
+                    for (ODocument rd : rel.get()) {
+                        String relId = rd.getIdentity().toString().substring(1);
+                        String relName = Weblet.getDescriptionFromDocument(con, rd);
+                        nodes.append(nodeComma+"{ \"id\":\"row."+relId+"\""
+                            + ",\"name\":\""+relName+"\""
+                            + ",\"description\":\"row "+relId+" "+relTable+" "+relName+"\""
+                            + " }");
+                        nodeComma = "\n,";
+                        links.append(linkComma+"{ \"sourceId\":\"row."+relId+"\", \"targetId\":\"row."+id+"\" }");
+                        linkComma = "\n,";
+                    }
+                }
+            }
+            
             return assembleResult(nodes,links);
         }
     }
@@ -332,7 +378,7 @@ public class VisuilityData extends Download {
         StringBuilder links = new StringBuilder();
         String linkComma = "";
         String nodeComma = "";
-        System.out.println("Build DATA node & links for "+id);
+        System.out.println("Not implemented: Build DATA node & links for "+id);
 
         return assembleResult(nodes,links);
     }
@@ -342,7 +388,7 @@ public class VisuilityData extends Download {
         StringBuilder links = new StringBuilder();
         String linkComma = "";
         String nodeComma = "";
-        System.out.println("Build SET node & links for "+id);
+        System.out.println("Not implemented: Build SET node & links for "+id);
 
         return assembleResult(nodes,links);		
     }
@@ -350,8 +396,7 @@ public class VisuilityData extends Download {
     public byte[] assembleResult(StringBuilder nodes, StringBuilder links) {
         return links.length() == 0 && nodes.length() == 0
             ? "{ \"nodes\": [ ],  \"links\": [ ] }".getBytes() 
-            : ("{ "
-                    + "\n\"nodes\": [ "+nodes.toString()+" ]"
+            : ("{ " + "\n\"nodes\": [ "+nodes.toString()+" ]"
                     + "\n, \"links\": [ "+links.toString()+" ]"
             + " }").getBytes();
     }

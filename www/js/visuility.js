@@ -45,11 +45,29 @@ var tooltip = d3.select('body')
     .style('opacity',0)
     .style('pointer-events','none')
     .text('a simple tooltip');
+
 tooltip.show = function(text,duration) {
-        tooltip.text(text);
-		tooltip.transition("alertShow").duration(100).style('visibility','visible').style('opacity', 0.9);
-		tooltip.transition("alertFade").duration(duration).delay(500).style("opacity",0);
-}
+        tooltip.style('bottom', h/3*2 + 'px')
+            .style('left', w/2 - w/10 +'px')
+            .style('right', w/2 - w/10 +'px')
+            .text(text);
+        tooltip.transition("alertShow").duration(100).style('visibility','visible').style('opacity', 0.9);
+        tooltip.transition("alertFade").duration(duration).delay(500).style("opacity",0);
+};
+
+tooltip.showAt = function(text,x,y) {
+        tooltip.style('left', x +'px')
+            .style('top', y + 'px')
+            .style('width', 250 +'px')
+            .style('height', 50 + 'px')
+            .text(text);
+            tooltip.transition("tipShow").duration(100).style('visibility','visible').style('opacity', 0.75);
+            //tooltip.transition("tipFade").duration(500).delay(3000).style("opacity",0);
+};
+
+tooltip.hide = function() {
+    tooltip.style("visibility","hidden");
+};
 
 // Underlay to capture click and drag on the diagram background
 svg.append("rect")
@@ -102,9 +120,9 @@ var LINK_SIZE = 25;
 // This will come from outside later but hardcoded for now
 var nodeTypes = { "control": { "width":20, "maxheight":15, "minheight":15, "corner": 20, "color": "#ccc", "controls":"", "offset":"topleft" } 
                  ,"table": { "width":80, "maxheight":18, "minheight":5, "corner": 0, "color": "cyan", "controls":"x,r,c" }
-                 ,"row": { "width":30, "maxheight":13, "minheight":5, "corner": 10, "color": "yellow", "controls":"x,t,c,d", "offset":"bottom" }
-                 ,"column": { "width":90, "maxheight":13, "minheight":5, "corner": 5, "color": "orange", "controls":"x,t", "offset":"topright" }
-                 ,"data": { "width":90, "maxheight":13, "minheight":5, "corner": 15, "color": "lightgreen", "controls":"x,r,c,t", "offset":"right" }
+                 ,"row": { "width":30, "maxheight":13, "minheight":5, "corner": 10, "color": "yellow", "controls":"x,t,d", "offset":"bottom" }
+                 ,"column": { "width":90, "maxheight":13, "minheight":5, "corner": 5, "color": "orange", "controls":"x", "offset":"topright" }
+                 ,"data": { "width":90, "maxheight":13, "minheight":5, "corner": 15, "color": "lightgreen", "controls":"x", "offset":"right" }
                 };
 
 // Download the given text to a file directly from the browser (not supported in all)
@@ -297,9 +315,9 @@ function clickNode(d) {
           d3.select(this).classed("selected", true);
       }
       updateControls(d);
-      if (!d3.event.shiftKey) {
-        getMore(d.type,d.id.substr(d.id.indexOf(".")+1));
-	  }
+        if (!d3.event.shiftKey) {
+            getMore(d.type,d.id.substr(d.id.indexOf(".")+1));
+        }
    }
 }
 
@@ -309,8 +327,8 @@ function executeControl(d, detail) {
       while (srcId.split(".")[0] === "control") {
         srcId = findParent(srcId);
       }
-  	  detail = detail.toLowerCase().substring(0,1);
-      if (detail === "r") {  // Roll up the rows
+      detail = detail.toLowerCase().substring(0,1);
+      if (detail === "r" && d.type === "table") {  // Roll up the rows
         var lastNode;
         while(r = findChild(srcId,"row")) {
           if (lastNode) delCount += removeNode(lastNode);
@@ -321,7 +339,7 @@ function executeControl(d, detail) {
         if (delCount === 0) {  // There were none, so get some
 	      getMore("TABLE",srcId.split(".")[1],detail);
         }
-      } else if (detail === "c") {  // Roll up the columns
+      } else if (detail === "c" && d.type === "table") {  // Roll up the columns
         var lastNode;
         while(r = findChild(srcId,"column")) {
           if (lastNode) delCount += removeNode(lastNode);
@@ -332,7 +350,7 @@ function executeControl(d, detail) {
         if (delCount === 0) {  // There were none, so get some
 	      getMore("TABLE",srcId.split(".")[1],detail);
         }
-      } else if (detail === "d") {  // Roll up the data
+      } else if (detail === "d" && d.type === "row") {  // Roll up the data
         var lastNode;
         while(r = findChild(srcId,"data")) {
           if (lastNode) delCount += removeNode(lastNode);
@@ -343,12 +361,14 @@ function executeControl(d, detail) {
         if (delCount === 0) {  // There were none, so get some
 	      getMore("ROW",srcId.split(".")[1],detail);
         }
+      } else if (detail === "t" && d.type === "row") {  // Get table
+	      getMore("ROW",srcId.split(".")[1],detail);
       } else if (detail === "x") {  // Remove the node
-        removeControls();
-		removeNode(srcId);
+            removeControls();
+            removeNode(srcId);
       } else if (detail === "x*") {  // Remove the nodes in a multiselect
-        removeControls();
-        selectedNodes.each( function(d) { removeNode(d.id); } );
+            removeControls();
+            selectedNodes.each( function(d) { removeNode(d.id); } );
       } else {
 		  //alert("Control pressed\nid="+srcId+" detail="+detail);
       }  
@@ -362,7 +382,7 @@ function updateControls(d) {  // Using controls attribute in nodeTypes structure
   var newLinks = [];
   for (var i=0, len = controls.length; i < len; i++) {
   	var newSourceId = "control."+controls[i]+(selectedNodes[0].length > 1 ? "*" : "");
-  	newLinks.push({targetId: target, sourceId: newSourceId });
+  	newLinks.push({targetId: target, sourceId: newSourceId, chain: true });
   	target = newSourceId;
   }
   if (newLinks.length > 0) handleData(newLinks);
@@ -453,6 +473,7 @@ function removeNode(id) {
 }
 
 function getMore(type,key,detail) {
+   //tooltip.show("Getting more",1000);  // for testing the tooltip
    if (detail) detail="&DETAIL="+detail; else detail="";
    var id = type.toLowerCase()+"."+key;
    var selectedNodes = d3.selectAll(".selected");
@@ -508,7 +529,7 @@ function handleData(newlinks, newnodes) {
             if (!dist) dist = 1;
             addLink({source: sourceNode, target: targetNode
              , sourceId: newlinks[i].sourceId, targetId: newlinks[i].targetId
-             , distance: dist});
+             , distance: dist, chain: newlinks[i].chain});
 	}
     }
 }
@@ -518,16 +539,19 @@ function addNode(node, otherNode) {
     var i = nodes.map(function(d) { return d.id; }).indexOf(node.id);
     if (i === -1) {
         node.type = node.id.split(".")[0];
-        if (otherNode && nodeTypes[node.type].offset) node.parent = otherNode;                        
-        //node.fixed = true;  // Must hold its position when it arrives
+//        if (otherNode && nodeTypes[node.type].offset) node.parent = otherNode;                        
+        if (nodes.length === 0) {  // first one goes in center
+            node.x = w/2; node.px = node.x;
+            node.y = h/2; node.py = node.y;
+        }
         nodes.push(node);
         return node;
     } else {
         //nodes[i] = node;  // Replace the node doesnt work unless change the id
         // update the node??? // TODO: update the node data
-        if (otherNode && nodeTypes[nodes[i].type].offset && !nodes[i].parent) {
-            nodes[i].parent = otherNode;
-        }
+//        if (otherNode && nodeTypes[nodes[i].type].offset && !nodes[i].parent) {
+//            nodes[i].parent = otherNode;
+//        }
         return nodes[i];
     }
 }
@@ -537,6 +561,7 @@ function addLink(link) {
     var linkMap = links.map(function(d) { return d.source.id+"-"+d.target.id; });
     if (linkMap.indexOf(link.source.id+"-"+link.target.id) === -1
      && linkMap.indexOf(link.target.id+"-"+link.source.id) === -1) {
+         if (!link.source.parent && nodeTypes[link.source.type].offset && link.chain) link.source.parent = link.target;                        
         console.log("added link "+link.sourceId+"-"+link.targetId);
         links.push(link);
     }
@@ -656,25 +681,25 @@ var force = d3.layout.force()
     .links(links)
     .size([w, h - TOP_MARGIN])
     .linkDistance(function(d) { 
-        if (d.source.type === "table") return 150;
-        if (d.target.type === "control") return 5;
-        if (d.source.type === "control") return 25;
-        if (d.source.type === "column") return 20;
-        if (d.source.type === "row") return 50;
-        if (d.target.type === "row") return 70;
-        if (d.source.type === "data") return 20;
-        return 100;
+       // if (d.source.type === "table") return 150;
+       // if (d.target.type === "control") return 5;
+       // if (d.source.type === "control") return 25;
+       // if (d.source.type === "column") return 20;
+       // if (d.source.type === "row") return 100;
+       // if (d.target.type === "row") return 100;
+       // if (d.source.type === "data") return 20;
+        return w/4;
     })
     .linkStrength(0.01)
     .charge(function(d,i) {
-        if (nodeTypes[d.type].offset) {  // relative positioned objects have no charge
+        if (nodeTypes[d.type].offset) {  // relative positioned objects have very little charge
             return -10;
         } else {
             return -150;
         }
     })
     .gravity(0.01)
-    .friction(0.5)
+    .friction(0.01)
     .on("tick", tick);
 
 function update() {
@@ -684,7 +709,7 @@ function update() {
     linkSVG = linkSVG.data(force.links(), function(d) { return d.source.id+"-"+d.target.id; });
     linkSVG.enter()  
       .append("line")
-      .filter( function(d) { if (d.source.type === "control" || nodeTypes[d.target.type].offset && d.target.parent) return false; else return true; })
+      .filter( function(d) { if (d.source.type === "control" || d.chain) return false; else return true; })
       .attr("class", "link")
       .attr("stroke-width", 2)
       .attr("marker-end", "url(#triangle)");
@@ -721,22 +746,23 @@ function update() {
              
   nodeGroup.on('click', clickNode)
         .on('dblclick', dblclickNode)
-            .on("mouseup", function(d) { 
-                if (d3.event.defaultPrevented) return; // ignore drag
-                selectRectEnd(); 
-            })
-            .on("mousemove", function(d) { 
-                if (d3.event.defaultPrevented) return; // ignore drag
-                selectRectMouseMove(); 
-            })
+        .on("mouseup", function(d) { 
+            if (d3.event.defaultPrevented) return; // ignore drag
+            selectRectEnd(); 
+        })
+        .on("mousemove", function(d) { 
+            if (d3.event.defaultPrevented) return; // ignore drag
+            selectRectMouseMove(); 
+        })
+        .on("mouseover", function(d) { if (d.description) tooltip.showAt(d.description, d3.event.x+15, d3.event.y+10); })
+        .on("mouseout", function(d) { if (d.description) tooltip.hide(); })
         .call(force.drag().on('dragstart', dragstart).on('drag',dragmove).on('dragend', dragend));
 
   nodeGroup.selectAll("rect")
         .transition().duration(900)
 	   .attr("width", function(d) { return d.textWidth ? d.textWidth+10 : nodeTypes[d.type].width; })
       	   .attr("height", function(d) { return nodeTypes[d.type].minheight; });
-//           .each(function(d) { if (nodeTypes[d.type].offset) d.fixed = true; else d.fixed = false; });
-    
+   
    nodeSVG.exit().select("rect").transition().duration(500)
    		.attr("opacity",0).attr("width",0).attr("height",0);	
    nodeSVG.exit().select("text").transition().duration(500).attr("opacity",0);	

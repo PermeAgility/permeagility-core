@@ -1177,7 +1177,7 @@ public class Table extends Weblet {
                 int priv = Security.getTablePriv(con, table);
                 //System.out.println("Privilege on table "+table+" for user "+con.getUser()+" = "+priv);
 
-                HashMap<String,String> fkParms = new HashMap<String,String>();
+                HashMap<String,String> fkParms = new HashMap<>();
                 fkParms.put("FORCE_"+fkColumn, edit_id);
 
                 String hiddenFields = hidden("TABLENAME", relTable)
