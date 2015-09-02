@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+/* global d3 */
+
 // Foundational stuff
 d3.selection.prototype.first = function() {
   return d3.select(this[0][0]);
