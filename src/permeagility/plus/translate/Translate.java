@@ -25,7 +25,6 @@ import java.util.Set;
 import permeagility.util.DatabaseConnection;
 import permeagility.util.QueryResult;
 import permeagility.util.Setup;
-import permeagility.web.Message;
 import permeagility.web.Server;
 import permeagility.web.Table;
 
@@ -47,12 +46,11 @@ public class Translate extends Table {
 		String updateId = parms.get("UPDATE_ID");
 		String run = parms.get("RUN");
 		String tableName = parms.get("TABLENAME");
-		String go = parms.get("GO");
 
 		// Process update of work tables
 		if (updateId != null && submit != null) {
 			System.out.println("update_id="+updateId);
-			if (submit.equals(Message.get(con.getLocale(), "DELETE"))) {
+			if (submit.equals("DELETE")) {
 				// TODO: Need to delete all messages, etc for a locale before deleting locale
 				if (deleteRow(con, tableName, parms, errors)) {
 					submit = null;
@@ -60,7 +58,7 @@ public class Translate extends Table {
 					return head("Could not delete")
 							+ body(standardLayout(con, parms, getTableRowForm(con, tableName, parms) + errors.toString()));
 				}
-			} else if (submit.equals(Message.get(con.getLocale(), "UPDATE"))) {
+			} else if (submit.equals("UPDATE")) {
 				System.out.println("In updating row");
 				if (updateRow(con, tableName, parms, errors)) {
 					submit = null;
@@ -76,7 +74,7 @@ public class Translate extends Table {
 		}
 
 		// Create a SQL import directly - set the created date
-		if (submit != null && submit.equals(Message.get(con.getLocale(), "CREATE_ROW"))) {
+		if (submit != null && submit.equals("CREATE_ROW")) {
 			parms.put(PARM_PREFIX+"created", formatDate(con.getLocale(), new java.util.Date()));
 			boolean inserted = insertRow(con,tableName,parms,errors);
 			if (!inserted) {
@@ -93,7 +91,7 @@ public class Translate extends Table {
 		if (run != null) {
 			ODocument fromLocale = con.get(run);
 			String toLocale = parms.get("TO_LOCALE");
-			if (toLocale == null || fromLocale == null || go == null) {
+			if (toLocale == null || fromLocale == null || submit == null || !submit.equals("GO")) {
 				sb.append(paragraph("banner","New locale messages to generate"));
 				sb.append(form(table("layout", hidden("RUN",run)
 						+row(column("")+column(credit))
