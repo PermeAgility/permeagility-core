@@ -73,40 +73,43 @@ public class Table extends Weblet {
 	static ConcurrentHashMap<Locale,ArrayList<String>> dataTypeNames = new ConcurrentHashMap<Locale,ArrayList<String>>();
 	static ConcurrentHashMap<Locale,ArrayList<String>> dataTypeValues = new ConcurrentHashMap<Locale,ArrayList<String>>();
 	
-	
+	private void setUpDataTypes(Locale locale) {
+            ArrayList<String> names = new ArrayList<String>();
+            ArrayList<String> values = new ArrayList<String>();
+            names.add(Message.get(locale, "DATATYPE_TEXT"));
+            names.add(Message.get(locale, "DATATYPE_FLOAT"));
+            names.add(Message.get(locale, "DATATYPE_INT"));
+            names.add(Message.get(locale, "DATATYPE_DECIMAL"));  
+            names.add(Message.get(locale, "DATATYPE_DATE"));  // Calendar
+            names.add(Message.get(locale, "DATATYPE_DATETIME")); // Calendar and time
+            names.add(Message.get(locale, "DATATYPE_BOOLEAN"));   // Checkbox
+            names.add(Message.get(locale, "DATATYPE_LINK"));    // PickList
+            names.add(Message.get(locale, "DATATYPE_LINKSET"));  // Link Set control
+            names.add(Message.get(locale, "DATATYPE_LINKLIST")); // Link List control
+            names.add(Message.get(locale, "DATATYPE_LINKMAP"));  // Link map control
+            names.add(Message.get(locale, "DATATYPE_BLOB"));  // Image (with thumbnail)
+            values.add("DATATYPE_TEXT");
+            values.add("DATATYPE_FLOAT");
+            values.add("DATATYPE_INT");
+            values.add("DATATYPE_DECIMAL");  
+            values.add("DATATYPE_DATE");  // Calendar
+            values.add("DATATYPE_DATETIME"); // Calendar and time
+            values.add("DATATYPE_BOOLEAN");   // Checkbox
+            values.add("DATATYPE_LINK");    // PickList
+            values.add("DATATYPE_LINKSET");  // Link Set control
+            values.add("DATATYPE_LINKLIST"); // Link List control
+            values.add("DATATYPE_LINKMAP");  // Link map control
+            values.add("DATATYPE_BLOB"); // Image (with thumbnail)
+            dataTypeNames.put(locale,names);
+            dataTypeValues.put(locale,values);
+        }
+
 	public String getPage(DatabaseConnection con, java.util.HashMap<String, String> parms) {
 		Locale locale = con.getLocale();
 		
 		// Make sure data type names are set up for this locale
 		if (dataTypeNames.get(locale) == null) {
-			ArrayList<String> names = new ArrayList<String>();
-			ArrayList<String> values = new ArrayList<String>();
-			names.add(Message.get(locale, "DATATYPE_TEXT"));
-			names.add(Message.get(locale, "DATATYPE_FLOAT"));
-			names.add(Message.get(locale, "DATATYPE_INT"));
-			names.add(Message.get(locale, "DATATYPE_DECIMAL"));  
-			names.add(Message.get(locale, "DATATYPE_DATE"));  // Calendar
-			names.add(Message.get(locale, "DATATYPE_DATETIME")); // Calendar and time
-			names.add(Message.get(locale, "DATATYPE_BOOLEAN"));   // Checkbox
-			names.add(Message.get(locale, "DATATYPE_LINK"));    // PickList
-			names.add(Message.get(locale, "DATATYPE_LINKSET"));  // Link Set control
-			names.add(Message.get(locale, "DATATYPE_LINKLIST")); // Link List control
-			names.add(Message.get(locale, "DATATYPE_LINKMAP"));  // Link map control
-			names.add(Message.get(locale, "DATATYPE_BLOB"));  // Image (with thumbnail)
-			values.add("DATATYPE_TEXT");
-			values.add("DATATYPE_FLOAT");
-			values.add("DATATYPE_INT");
-			values.add("DATATYPE_DECIMAL");  
-			values.add("DATATYPE_DATE");  // Calendar
-			values.add("DATATYPE_DATETIME"); // Calendar and time
-			values.add("DATATYPE_BOOLEAN");   // Checkbox
-			values.add("DATATYPE_LINK");    // PickList
-			values.add("DATATYPE_LINKSET");  // Link Set control
-			values.add("DATATYPE_LINKLIST"); // Link List control
-			values.add("DATATYPE_LINKMAP");  // Link map control
-			values.add("DATATYPE_BLOB"); // Image (with thumbnail)
-			dataTypeNames.put(locale,names);
-			dataTypeValues.put(locale,values);
+                    setUpDataTypes(locale);
 		}
 				
 		String submit = parms.get("SUBMIT");
@@ -1215,6 +1218,10 @@ public class Table extends Weblet {
 
 	public String newColumnForm(DatabaseConnection con) {
             Locale l = con.getLocale();
+            if (dataTypeNames.get(l) == null) {
+                setUpDataTypes(l);
+            }
+
             String show = "ng-show=\"NEWDATATYPE == 'DATATYPE_LINK' || NEWDATATYPE == 'DATATYPE_LINKLIST' || NEWDATATYPE == 'DATATYPE_LINKSET' || NEWDATATYPE == 'DATATYPE_LINKMAP' \"";
             return
                 paragraph("banner",Message.get(l, "NEW_COLUMN"))
