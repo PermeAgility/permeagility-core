@@ -667,7 +667,7 @@ public abstract class Weblet {
 
     public static String getCodeEditorScript() {
         return "<link rel=\"stylesheet\" type=\"text/css\" href=\"../js/codemirror/lib/codemirror.css\" />\n"
-            +"<link rel=\"stylesheet\" type=\"text/css\" href=\"../js/codemirror/theme/"+EDITOR_THEME+".css\" />\n"
+            +(EDITOR_THEME != null && !EDITOR_THEME.equals("default") ? "<link rel=\"stylesheet\" type=\"text/css\" href=\"../js/codemirror/theme/"+EDITOR_THEME+".css\" />\n" : "")
             +"<link rel=\"stylesheet\" type=\"text/css\" href=\"../js/codemirror/addon/hint/show-hint.css\" />\n"
             +"<link rel=\"stylesheet\" type=\"text/css\" href=\"../js/codemirror/addon/dialog/dialog.css\" />\n"
             +"<link rel=\"stylesheet\" type=\"text/css\" href=\"../js/codemirror/addon/tern/tern.css\" />\n"
