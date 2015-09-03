@@ -23,111 +23,207 @@ import permeagility.web.Weblet;
 
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OProperty;
-import com.orientechnologies.orient.core.metadata.schema.OSchema;
 import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.orientechnologies.orient.core.record.impl.ODocument;
+import java.net.URL;
+import java.util.ArrayList;
+import permeagility.util.QueryResult;
 
 public class ImportJSON extends Weblet {
 
-	public String getPage(DatabaseConnection con, HashMap<String, String> parms) {
-	
-		StringBuilder sb = new StringBuilder();
-		StringBuilder errors = new StringBuilder();
+    public String getPage(DatabaseConnection con, HashMap<String, String> parms) {
 
-		String submit = parms.get("SUBMIT");
-		String run = parms.get("RUN");
-		String fromURL = parms.get("FROM_URL");
-		String fromText = parms.get("FROM_TEXT");
-		String toTable = parms.get("TO_TABLE");
-		String replace = parms.get("REPLACE");
-		String go = parms.get("GO");
-		
-		OSchema schema = con.getSchema();
-		
-		if (go != null) {
-			if (fromText != null && !fromText.equals("")) {
-				errors.append(paragraph("Using pasted text"));
-				JSONObject jo = new JSONObject(fromText);
-//				errors.append(paragraph("Got jo:"+jo.toString()));
-				JSONArray names = jo.names();
-				for (int i=0; i<names.length(); i++) {
-					Object o = names.get(i);
-					if (o instanceof JSONObject) {
-						JSONObject jo2 = (JSONObject)o;
-						errors.append(paragraph("Got jo2:"+o.toString()));								
-					} else {
-						errors.append(paragraph("Got jo2:"+o.getClass().getName()+":"+o.toString()));		
-						OClass oclass = null;
-						if (toTable != null && !toTable.equals("")) {
-							String ccTable = makePrettyCamelCase(toTable);
-							sb.append("Creating table "+toTable+" with name "+ccTable);
-							oclass = Setup.checkCreateTable(schema, ccTable, errors);							
-						}
-						JSONArray array = jo.getJSONArray((String)o);
-						for (int j=0; j<array.length(); j++) {
-							Object ac = array.get(j);
-							errors.append(paragraph("Array["+j+"]="+ac.getClass().getName()+":"+ac.toString()));	
-							if (ac instanceof JSONObject) {
-								ODocument doc = null;
-								if (oclass != null) {
-									doc = con.create(oclass.getName());
-								}
-								JSONObject acjo = (JSONObject)ac;
-								JSONArray fields = acjo.names();
-								for (int f=0; f<fields.length();f++) {
-									String colName = fields.getString(f);
-									String ccColName = makePrettyCamelCase(colName);
-									Object val = acjo.get(colName);
-									OProperty oproperty = null;
-									errors.append(paragraph(colName+" is a "+val.getClass().getName()+" and its value is "+val));
-									if (oclass != null) {
-										oproperty = Setup.checkCreateColumn(con, oclass, ccColName, determineOTypeFromClassName(val.getClass().getName()), errors);
-									}
-									if (doc != null && oproperty != null) {
-										doc.field(ccColName,val);
-									}
-								}	
-								if (doc != null) {
-									doc.save();
-								}
-							}
-						}
-					}
-				}
-			
-			}
-			
-		} else {
-			sb.append(paragraph("banner","Import JSON to a table"));
-			sb.append(form(table("layout", hidden("RUN",run)
-					+row(column("label","From URL")+column(input("FROM_URL",parms.get("FROM_URL"))))
-					+row(column("label","or paste here:")+column(textArea("FROM_TEXT",parms.get("FROM_TEXT"),30,100)))
-					+row(column("label","Table to create")+column(input("TO_TABLE",toTable)+" will be turned to camelCase"))
-				//	+row(column("label","Replace if exists")+column(checkbox("REPLACE",false)+" will fail if table exists unless replace is checked"))
-					+row(column("")+column(submitButton(con.getLocale(),"GO")+" load it"))
-			)));
-		}
-		return head("Import JSON") + body(standardLayout(con, parms, errors.toString()+sb.toString()));
-	}
-	
-	
-	/** Determine the best lossless OrientDB representation 
-	 * of the given java classname (fully qualified) of an object given in a result set 
-	 * (not necessarily the most efficient storage or what you expect) 
-	 * Note: This is a good candidate to be a general utility function but this is the only place it is used right now*/
-	public OType determineOTypeFromClassName(String className) {
-		OType otype = OType.STRING;  // Default
-		if (className.equals("java.math.BigDecimal")) {
-			otype = OType.DECIMAL;
-		} else if (className.equals("java.util.Date")) {
-			otype = OType.DATETIME;
-		} else if (className.equals("java.lang.Double")) {
-			otype = OType.DOUBLE;
-		} else if (className.equals("java.lang.Integer")) {
-			otype = OType.INTEGER;
-		}
-		//System.out.println(className+" becomes "+otype);
-		return otype;
-	}
+        StringBuilder sb = new StringBuilder();
+        StringBuilder errors = new StringBuilder();
+
+        String submit = parms.get("SUBMIT");
+        boolean run = (submit != null && submit.equals("GO"));
+        String fromURL = parms.get("FROM_URL");
+        String fromText = parms.get("FROM_TEXT");
+        String toTable = parms.get("TO_TABLE");
+
+        if (submit != null) {
+            JSONObject jo = null;
+            if (fromURL != null && !fromURL.isEmpty()) {
+                errors.append(paragraph("Using URL: "+fromURL));
+                try {            
+                    URL tURL = new URL(fromURL);
+                    Object o = tURL.getContent();
+                    if (o != null) {
+                        fromText = o.toString();
+                    }
+                } catch (Exception e) {
+                    errors.append(paragraph("error","Nothing to parse. error="+e.getMessage()));
+                    e.printStackTrace();
+                }
+            }
+            boolean parseSuccess = false;
+            HashMap<String, HashMap<String,String>> classes = new HashMap<>();
+            if (fromText == null || fromText.isEmpty()) {
+                errors.append(paragraph("error","Nothing to parse"));
+            } else {
+                try {
+                    jo = new JSONObject(fromText.replace("\\u0022", "\""));
+                    ODocument doc;
+                    doc = importObject(parms, run, con, toTable, jo, errors, classes);
+                    parseSuccess = true;
+                    if (run) errors.append(paragraph("success","Successfully parsed and imported "+toTable));                    
+                } catch (Exception e) {
+                    errors.append(paragraph("error","Error parsing JSON:"+e.getMessage()));
+                    e.printStackTrace();
+                }
+            }
+            if (!run && parseSuccess) {
+                // Dump the class information and import options
+                for (String cname : classes.keySet()) {
+                    HashMap<String,String> map = classes.get(cname);
+                    // Do the null "" column first as this is about the table
+                    for (String column : map.keySet()) {
+                        if (column.equals("")) sb.append(map.get(column));
+                    }
+                    ArrayList fields = new ArrayList(map.keySet());
+                    sb.append("Use this field as a primary key "+createList(con.getLocale(), "KEY_FOR_"+cname, null, fields, null, true, null, true));
+                    
+                    // then do the columns in the table
+                    for (String column : map.keySet()) {
+                        if (!column.equals("")) sb.append(map.get(column));
+                    }
+                }
+                sb.append(hidden("FROM_TEXT",fromText.replace("\"","\\u0022")));
+                sb.append(hidden("TO_TABLE",toTable));
+                sb.append(submitButton(con.getLocale(), "GO"));
+            }
+        } else {
+            sb.append(table("layout", 
+                     row(column("label", "From URL") + column(input("FROM_URL", parms.get("FROM_URL"))))
+                    + row(column("label", "or paste here:") + column(textArea("FROM_TEXT", parms.get("FROM_TEXT"), 30, 100)))
+                    + row(column("label", "Table to create") + column(input("TO_TABLE", toTable) + " will be turned to camelCase"))
+                    //	+row(column("label","Replace if exists")+column(checkbox("REPLACE",false)+" will fail if table exists unless replace is checked"))
+                    + row(column("") + column(submitButton(con.getLocale(), "PREVIEW")))
+            ));
+        }
+        return head("Import JSON") + body(standardLayout(con, parms, 
+                paragraph("banner", "Import JSON to a table")
+                +form(sb.toString() + errors.toString())
+            ));
+    }
+
+    /* Import a JSON Object as a Document */
+    public ODocument importObject(HashMap<String,String> parms, boolean run, DatabaseConnection con, String classname, JSONObject acjo, StringBuilder errors, HashMap<String,HashMap<String,String>> classes) {
+        OClass oclass = null;
+        ODocument doc = null;
+        String keycol = parms.get("KEY_FOR_"+classname);
+        if (keycol != null && (keycol.isEmpty() || keycol.equals("null"))) keycol = null;
+        String keyval = null;  // Hold a key value for resolution against a primary key
+        
+        if (classname != null && !classname.isEmpty()) {
+            if (run) {
+                String ccTable = makePrettyCamelCase(classname);
+                oclass = Setup.checkCreateTable(con.getSchema(), classname, errors);
+            } else {
+                if (!classes.containsKey(classname)) {
+                 classes.put(classname, new HashMap<>());                    
+                 classes.get(classname).put("",paragraph("Table will be created called "+input("TABLE_FOR_"+classname,classname)));
+                }
+            }
+        }
+        if (oclass != null && doc == null) {
+           doc = con.create(oclass.getName());
+        }
+        JSONArray fields = acjo.names();
+        for (int f = 0; fields != null && f < fields.length(); f++) {
+            String colName = fields.getString(f);
+            Object val = acjo.get(colName);  // get the value before changing the name to an identifier
+            if (colName.startsWith("@")) colName = colName.substring(1);
+            colName = makePrettyCamelCase(colName);
+            if (keycol != null && colName.equals(keycol)) {  // capture the key value
+                keyval = val.toString();
+            }
+            if (val instanceof JSONArray) {
+                classes.get(classname).put(colName,paragraph("Column " + input("COLUMN_"+classname+"_"+colName,colName) + " is an array and it will be a LINKLIST"));
+                JSONArray array = (JSONArray)val;
+                for (int j = 0; j < array.length(); j++) {
+                    Object ac = array.get(j);
+                    errors.append(paragraph("Array[" + j + "]=" + ac.getClass().getName() + ":" + ac.toString()));
+                    if (ac instanceof JSONObject) {
+                        ODocument d;
+                        d = importObject(parms, run, con, array.getString(j), (JSONObject)acjo, errors, classes);
+                    }
+                }
+            } else if (val instanceof JSONObject) {
+                if (run) {
+                    ODocument subdoc = importObject(parms, run, con, colName, (JSONObject)val, errors, classes);
+                    if (subdoc != null && doc != null) {
+                        OProperty oproperty = null;
+                        if (oclass != null) {
+                            oproperty = Setup.checkCreateColumn(con, oclass, colName, OType.LINK, subdoc.getSchemaClass(), errors);
+                        }
+                        if (oproperty != null) {
+                            doc.field(colName, subdoc);
+                        }
+                    }
+                } else {
+                    classes.get(classname).put(colName,paragraph("Column " + input("COLUMN_"+classname+"_"+colName,colName) + " is an object and it will be a LINK"));
+                    ODocument subdoc = importObject(parms, run, con, colName, (JSONObject)val, errors, classes);
+                }
+            } else {
+                if (run) {
+                    OProperty oproperty = null;
+                    if (oclass != null) {
+                        oproperty = Setup.checkCreateColumn(con, oclass, colName, determineOTypeFromClassName(val.getClass().getName()), errors);
+                    }
+                    if (doc != null && oproperty != null) {
+                        doc.field(colName, val);
+                    }
+                } else {
+                    classes.get(classname).put(colName,paragraph("Column "+input("COLUMN_"+classname+"_"+colName,colName)
+                            +" of type " + val.getClass().getName() 
+                            + " will be a "+determineOTypeFromClassName(val.getClass().getName())
+                    ));                    
+                }
+            }
+        }
+        if (doc != null) {
+            if (keycol != null) {
+                if (keyval != null) {
+                    QueryResult qr = con.query("SELECT FROM "+doc.getClassName()+" WHERE "+keycol+" = "+wrapWithQuotes(keyval));
+                    if (qr.size() == 0) {
+                        errors.append(paragraph("Did not resolve reference SELECT FROM "+doc.getClassName()+" WHERE "+keycol+"="+wrapWithQuotes(keyval)));
+                        doc.save();
+                    } else {
+                        errors.append(paragraph("Resolved reference to "+doc.getClassName()+" using "+keycol+"="+keyval));
+                        doc.delete();
+                        return qr.get(0);
+                    }        
+                } else {
+                    errors.append(paragraph("error", "Could not resolve key value from "+keycol+" in "+classname));                    
+                }                
+            } else {
+                doc.save();
+            }
+        }
+        return doc;
+    }
+    /**
+     * Determine the best lossless OrientDB representation of the given java classname (fully qualified) of an object given in a result set (not necessarily the most efficient storage or what you expect) Note: This is a good candidate to be a general utility function but this is the only place it is used right now
+     */
+    public OType determineOTypeFromClassName(String className) {
+        OType otype = OType.STRING;  // Default
+        if (className.endsWith("JSONObject$Null")) {
+            otype = OType.STRING;
+        } else if (className.endsWith("JSONObject")) {
+            otype = OType.LINK;
+        } else if (className.equals("java.math.BigDecimal")) {
+            otype = OType.DECIMAL;
+        } else if (className.equals("java.util.Date")) {
+            otype = OType.DATETIME;
+        } else if (className.equals("java.lang.Double")) {
+            otype = OType.DOUBLE;
+        } else if (className.equals("java.lang.Integer")) {
+            otype = OType.INTEGER;
+        }
+        //System.out.println(className+" becomes "+otype);
+        return otype;
+    }
 
 }
