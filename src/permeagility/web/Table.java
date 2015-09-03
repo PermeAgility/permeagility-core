@@ -1484,13 +1484,18 @@ public class Table extends Weblet {
                     }
                     sb.append(column(stringvalue));
             } else if (columnType == 13) {  // Link
-                    ODocument l = d.field(columnName);
                     String desc = "";
-                    if (l != null) {
-                            desc = getDescriptionFromDocument(con, l);
-                            if (desc == null) {
-                                    desc = (String)l.field("name");
-                            }
+                    try {
+                        ODocument l = d.field(columnName);
+                        if (l != null) {
+                                desc = getDescriptionFromDocument(con, l);
+                                if (desc == null) {
+                                        desc = (String)l.field("name");
+                                }
+                        }
+                    } catch (Exception e) {
+                        System.out.println("A null ODocument link was found in "+columnName+" of "+d.getIdentity().toString());
+                        desc = "!";
                     }
                     sb.append(column(desc == null ? "null" : desc));
             } else if (columnType == 14) {  // LinkList
