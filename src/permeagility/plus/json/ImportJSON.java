@@ -25,9 +25,11 @@ import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OProperty;
 import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.orientechnologies.orient.core.record.impl.ODocument;
+import java.io.InputStream;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 import permeagility.util.QueryResult;
 
 public class ImportJSON extends Weblet {
@@ -52,8 +54,10 @@ public class ImportJSON extends Weblet {
                 try {            
                     URL tURL = new URL(fromURL);
                     Object o = tURL.getContent();
-                    if (o != null) {
-                        fromText = o.toString();
+                    System.out.println("Received from: "+tURL.getQuery()+" content="+o);
+                    
+                    if (o != null && o instanceof InputStream) {
+                        fromText = new Scanner((InputStream)o,"UTF-8").useDelimiter("\\A").next();
                     }
                 } catch (Exception e) {
                     errors.append(paragraph("error","Nothing to parse. error="+e.getMessage()));
@@ -101,7 +105,6 @@ public class ImportJSON extends Weblet {
                      row(column("label", "From URL") + column(input("FROM_URL", parms.get("FROM_URL"))))
                     + row(column("label", "or paste here:") + column(textArea("FROM_TEXT", parms.get("FROM_TEXT"), 30, 100)))
                     + row(column("label", "Table to create") + column(input("TO_TABLE", toTable) + " will be turned to camelCase"))
-                    //	+row(column("label","Replace if exists")+column(checkbox("REPLACE",false)+" will fail if table exists unless replace is checked"))
                     + row(column("") + column(submitButton(con.getLocale(), "PREVIEW")))
             ));
         }
