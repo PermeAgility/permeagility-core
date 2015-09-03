@@ -27,9 +27,12 @@ import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.List;
 import permeagility.util.QueryResult;
 
 public class ImportJSON extends Weblet {
+    
+    public static boolean DEBUG = false;
 
     public String getPage(DatabaseConnection con, HashMap<String, String> parms) {
 
@@ -139,17 +142,33 @@ public class ImportJSON extends Weblet {
             if (keycol != null && colName.equals(keycol)) {  // capture the key value
                 keyval = val.toString();
             }
-            if (val instanceof JSONArray) {
-                classes.get(classname).put(colName,paragraph("Column " + input("COLUMN_"+classname+"_"+colName,colName) + " is an array and it will be a LINKLIST"));
+            if (val instanceof JSONArray) {                
                 JSONArray array = (JSONArray)val;
+                List<ODocument> docList = new ArrayList<>();
                 for (int j = 0; j < array.length(); j++) {
                     Object ac = array.get(j);
-                    errors.append(paragraph("Array[" + j + "]=" + ac.getClass().getName() + ":" + ac.toString()));
+                    if (DEBUG) System.out.println("Array[" + j + "]=" + ac.getClass().getName() + ":" + ac.toString());
                     if (ac instanceof JSONObject) {
-                        ODocument d;
-                        d = importObject(parms, run, con, array.getString(j), (JSONObject)acjo, errors, classes);
+                        if (run) {
+                            ODocument subdoc;
+                            subdoc = importObject(parms, run, con, colName, (JSONObject)ac, errors, classes);
+                            OProperty oproperty = null;
+                            if (oclass != null && subdoc != null) {
+                                oproperty = Setup.checkCreateColumn(con, oclass, colName, OType.LINKLIST, subdoc.getSchemaClass(), errors);
+                            }
+                            if (oproperty != null && subdoc != null) {
+                                docList.add(subdoc);
+                            }
+                        } else {
+                            classes.get(classname).put(colName,paragraph("Column " + input("COLUMN_"+classname+"_"+colName,colName) + " is an array and it will be a LINKLIST"));
+                            importObject(parms, run, con, colName, (JSONObject)ac, errors, classes);                            
+                        }
                     }
                 }
+                if (run && doc != null && docList.size() > 0) {
+                    doc.field(colName, docList);
+                }
+
             } else if (val instanceof JSONObject) {
                 if (run) {
                     ODocument subdoc = importObject(parms, run, con, colName, (JSONObject)val, errors, classes);
@@ -222,7 +241,7 @@ public class ImportJSON extends Weblet {
         } else if (className.equals("java.lang.Integer")) {
             otype = OType.INTEGER;
         }
-        //System.out.println(className+" becomes "+otype);
+        if (DEBUG) System.out.println(className+" becomes "+otype);
         return otype;
     }
 
