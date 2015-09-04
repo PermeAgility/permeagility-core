@@ -54,8 +54,7 @@ public class ImportJSON extends Weblet {
                 try {            
                     URL tURL = new URL(fromURL);
                     Object o = tURL.getContent();
-                    System.out.println("Received from: "+tURL.getQuery()+" content="+o);
-                    
+                    if (DEBUG) System.out.println("Received from: "+tURL.getQuery()+" content="+o);
                     if (o != null && o instanceof InputStream) {
                         fromText = new Scanner((InputStream)o,"UTF-8").useDelimiter("\\A").next();
                     }
@@ -116,6 +115,11 @@ public class ImportJSON extends Weblet {
 
     /* Import a JSON Object as a Document */
     public ODocument importObject(HashMap<String,String> parms, boolean run, DatabaseConnection con, String classname, JSONObject acjo, StringBuilder errors, HashMap<String,HashMap<String,String>> classes) {
+        String originalClassName = classname;
+        String newClassName = parms.get("TABLE_FOR_"+classname);
+        if (newClassName != null && !newClassName.isEmpty()) {
+            classname = newClassName;
+        }
         OClass oclass = null;
         ODocument doc = null;
         String keycol = parms.get("KEY_FOR_"+classname);
@@ -142,6 +146,12 @@ public class ImportJSON extends Weblet {
             Object val = acjo.get(colName);  // get the value before changing the name to an identifier
             if (colName.startsWith("@")) colName = colName.substring(1);
             colName = makePrettyCamelCase(colName);
+            String originalColName = colName;
+            String newColName = parms.get("COLUMN_"+classname+"_"+colName);
+            if (newColName != null && !newColName.isEmpty()) {
+                if (keycol != null && keycol.equals(colName)) keycol = newColName;
+                colName = newColName;
+            }
             if (keycol != null && colName.equals(keycol)) {  // capture the key value
                 keyval = val.toString();
             }
