@@ -25,6 +25,8 @@ import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OProperty;
 import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.orientechnologies.orient.core.record.impl.ODocument;
+import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.ArrayList;
@@ -36,6 +38,7 @@ public class ImportJSON extends Weblet {
     
     public static boolean DEBUG = false;
 
+    @Override
     public String getPage(DatabaseConnection con, HashMap<String, String> parms) {
 
         StringBuilder sb = new StringBuilder();
@@ -44,6 +47,7 @@ public class ImportJSON extends Weblet {
         String submit = parms.get("SUBMIT");
         boolean run = (submit != null && submit.equals("GO"));
         String fromURL = parms.get("FROM_URL");
+        String fromFile = parms.get("FROM_FILE");
         String fromText = parms.get("FROM_TEXT");
         String toTable = parms.get("TO_TABLE");
 
@@ -62,7 +66,54 @@ public class ImportJSON extends Weblet {
                     errors.append(paragraph("error","Nothing to parse. error="+e.getMessage()));
                     e.printStackTrace();
                 }
+            } else if (fromFile != null && !fromFile.isEmpty()) {
+                if (DEBUG) System.out.println("Using File: "+fromFile);
+                errors.append(paragraph("Using File: "+fromFile));
+                try { 
+                    FileInputStream fis = new FileInputStream(fromFile);
+      //              ByteArrayInputStream bis = new ByteArrayInputStream(bytes.toStream());
+                    StringBuilder content_type = new StringBuilder();
+                    if (fis.available() > 0) {
+                            int binc = fis.read();
+                            do {
+                                    content_type.append((char)binc);
+                                    binc = fis.read();
+                            } while (binc != 0x00 && fis.available() > 0);
+                    }
+                    errors.append(paragraph("ContentType: "+content_type));
+                    StringBuilder content_filename = new StringBuilder();
+                    if (fis.available() > 0) {
+                            int binc = fis.read();
+                            do {
+                                    content_filename.append((char)binc);
+                                    binc = fis.read();
+                            } while (binc != 0x00 && fis.available() > 0);
+                    }
+                    errors.append(paragraph("ContentFilename: "+content_filename));
+                   // type.append(content_type);
+                   // file.append(content_filename);
+                    ByteArrayOutputStream content = new ByteArrayOutputStream();
+                    if (DEBUG) System.out.println("Reading content: available="+fis.available());
+                    int avail;
+                    int binc;
+                    while ((binc = fis.read()) != -1 && (avail = fis.available()) > 0) {
+                            content.write(binc);
+                            byte[] buf = new byte[avail];
+                            int br = fis.read(buf);
+                            if (br > 0) {
+                                    content.write(buf,0,br);
+                            }
+                    }
+                    if (content.size() > 0) {
+                        fromText = content.toString();
+                        if (DEBUG) System.out.println("content="+fromText);
+                    }
+                } catch (Exception e) {
+                    errors.append(paragraph("error","Nothing to parse. error="+e.getMessage()));
+                    e.printStackTrace();
+                }
             }
+
             boolean parseSuccess = false;
             HashMap<String, HashMap<String,String>> classes = new HashMap<>();
             if (fromText == null || fromText.isEmpty()) {
@@ -102,6 +153,7 @@ public class ImportJSON extends Weblet {
         } else {
             sb.append(table("layout", 
                      row(column("label", "From URL") + column(input("FROM_URL", parms.get("FROM_URL"))))
+                    + row(column("label", "From File") + column(fileInput("FROM_FILE")))
                     + row(column("label", "or paste here:") + column(textArea("FROM_TEXT", parms.get("FROM_TEXT"), 30, 100)))
                     + row(column("label", "Table to create") + column(input("TO_TABLE", toTable) + " will be turned to camelCase"))
                     + row(column("") + column(submitButton(con.getLocale(), "PREVIEW")))
@@ -115,6 +167,7 @@ public class ImportJSON extends Weblet {
 
     /* Import a JSON Object as a Document */
     public ODocument importObject(HashMap<String,String> parms, boolean run, DatabaseConnection con, String classname, JSONObject acjo, StringBuilder errors, HashMap<String,HashMap<String,String>> classes) {
+        if (DEBUG) System.out.println("importObject.JSONObject="+acjo.getClass().getName());
         String originalClassName = classname;
         String newClassName = parms.get("TABLE_FOR_"+classname);
         if (newClassName != null && !newClassName.isEmpty()) {
@@ -136,6 +189,8 @@ public class ImportJSON extends Weblet {
                  classes.get(classname).put("",paragraph("Table will be created called "+input("TABLE_FOR_"+classname,classname)));
                 }
             }
+        } else {
+            classname = originalClassName;
         }
         if (oclass != null && doc == null) {
            doc = con.create(oclass.getName());
@@ -154,6 +209,7 @@ public class ImportJSON extends Weblet {
             }
             if (keycol != null && colName.equals(keycol)) {  // capture the key value
                 keyval = val.toString();
+                if (DEBUG) System.out.println("keyval="+keyval);
             }
             if (val instanceof JSONArray) {                
                 JSONArray array = (JSONArray)val;
@@ -173,7 +229,10 @@ public class ImportJSON extends Weblet {
                                 docList.add(subdoc);
                             }
                         } else {
-                            classes.get(classname).put(colName,paragraph("Column " + input("COLUMN_"+classname+"_"+colName,colName) + " is an array and it will be a LINKLIST"));
+                            if (DEBUG) System.out.println("className="+classname+" colName="+colName);
+                            if (classes.containsKey(classname)) {  // must be at the top level
+                                classes.get(classname).put(colName,paragraph("Column " + input("COLUMN_"+classname+"_"+colName,colName) + " is an array and it will be a LINKLIST"));
+                            }
                             importObject(parms, run, con, colName, (JSONObject)ac, errors, classes);                            
                         }
                     }
@@ -185,12 +244,13 @@ public class ImportJSON extends Weblet {
             } else if (val instanceof JSONObject) {
                 if (run) {
                     ODocument subdoc = importObject(parms, run, con, colName, (JSONObject)val, errors, classes);
+                    if (DEBUG) System.out.println("importObject.subdoc="+subdoc);
                     if (subdoc != null && doc != null) {
                         OProperty oproperty = null;
                         if (oclass != null) {
                             oproperty = Setup.checkCreateColumn(con, oclass, colName, OType.LINK, subdoc.getSchemaClass(), errors);
                         }
-                        if (oproperty != null) {
+                        if (oproperty != null && !subdoc.isEmpty()) {
                             doc.field(colName, subdoc);
                         }
                     }
@@ -204,7 +264,8 @@ public class ImportJSON extends Weblet {
                     if (oclass != null) {
                         oproperty = Setup.checkCreateColumn(con, oclass, colName, determineOTypeFromClassName(val.getClass().getName()), errors);
                     }
-                    if (doc != null && oproperty != null) {
+                    if (doc != null && oproperty != null && val != null && !val.toString().equals("null")) {
+                        if (DEBUG) System.out.println("importObject.Setting field "+colName+" to "+val);
                         doc.field(colName, val);
                     }
                 } else {
@@ -217,8 +278,10 @@ public class ImportJSON extends Weblet {
         }
         if (doc != null) {
             if (keycol != null) {
-                if (keyval != null) {
-                    QueryResult qr = con.query("SELECT FROM "+doc.getClassName()+" WHERE "+keycol+" = "+wrapWithQuotes(keyval));
+                if (keyval != null && !keyval.equals("null")) {
+                    String q = "SELECT FROM "+doc.getClassName()+" WHERE "+keycol+" = "+wrapWithQuotes(keyval);
+                    if (DEBUG) System.out.println("Resolving "+keycol+" with "+q);
+                    QueryResult qr = con.query(q);
                     if (qr.size() == 0) {
                         errors.append(paragraph("Did not resolve reference SELECT FROM "+doc.getClassName()+" WHERE "+keycol+"="+wrapWithQuotes(keyval)));
                         doc.save();
@@ -228,7 +291,8 @@ public class ImportJSON extends Weblet {
                         return qr.get(0);
                     }        
                 } else {
-                    errors.append(paragraph("error", "Could not resolve key value from "+keycol+" in "+classname));                    
+                    errors.append(paragraph("error", "Could not resolve key value "+keyval+" from "+keycol+" in "+classname));
+                    return null;
                 }                
             } else {
                 doc.save();
@@ -242,7 +306,7 @@ public class ImportJSON extends Weblet {
     public OType determineOTypeFromClassName(String className) {
         OType otype = OType.STRING;  // Default
         if (className.endsWith("JSONObject$Null")) {
-            otype = OType.STRING;
+            otype = OType.LINK;
         } else if (className.endsWith("JSONObject")) {
             otype = OType.LINK;
         } else if (className.equals("java.math.BigDecimal")) {

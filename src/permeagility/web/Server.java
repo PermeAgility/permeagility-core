@@ -660,13 +660,13 @@ public class Server extends Thread {
 						// Do after to allow content-disposition to be dynamic if necessary
 				    	content_type = downloadlet.getContentType();
 				    	content_disposition = downloadlet.getContentDisposition();
-					} else {
+				    } else {
 				    	System.out.println(file+" is not a proper class");
 				    }
-					if (DEBUG) System.out.println("---------------------" + className+" generated in "+(System.currentTimeMillis()-startTime)+" ms -------------------------");
-					os.write(getHeader(content_type, theData.length, newCookieValue, content_disposition, keep_alive).getBytes());
-					os.write(theData);
-					os.flush();
+                                    if (DEBUG) System.out.println("---------------------" + className+" generated in "+(System.currentTimeMillis()-startTime)+" ms -------------------------");
+                                    os.write(getHeader(content_type, theData.length, newCookieValue, content_disposition, keep_alive).getBytes());
+                                    os.write(theData);
+                                    os.flush();
 				} catch (SocketException se) {  // Connection broken
 					System.out.println("Exception:"+se);
 					is.close();

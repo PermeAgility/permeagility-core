@@ -26,7 +26,6 @@ import java.util.Locale;
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 
-import permeagility.util.Database;
 import permeagility.util.DatabaseConnection;
 import permeagility.util.QueryResult;
 import permeagility.util.Setup;
@@ -43,12 +42,6 @@ public class Thumbnail {
 	public static int THUMBNAIL_MEDIUM_WIDTH = 640;
 	public static int THUMBNAIL_MEDIUM_HEIGHT = 480;
 	
-//	static Database database;
-
-//	public static void setDatabase(Database d) {
-//		database = d;
-//	}
-
 	public static String getThumbnailLink(Locale locale, String tid, String description) {
 		if (description.startsWith("image")) {
 			return "<IMG SRC=\"../thumbnail?SIZE=SMALL&ID=" + tid + "\" >\n"

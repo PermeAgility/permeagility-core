@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+/* global angular */
+
 var app = angular.module('permeagility', []);
 
 // When an input has a directive text-build 

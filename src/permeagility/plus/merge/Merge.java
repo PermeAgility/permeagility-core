@@ -49,7 +49,6 @@ public class Merge extends Table {
         String updateId = parms.get("UPDATE_ID");
         String run = parms.get("RUN");
         String tableName = parms.get("TABLENAME");
-        String go = parms.get("GO");
 
         // Process update of work tables
         if (updateId != null && submit != null) {
@@ -194,7 +193,7 @@ public class Merge extends Table {
             try {
                 parms.put("SERVICE", "Merge: Setup/Select merge path");
                 sb.append(paragraph("banner", "Merge paths"));
-                sb.append(getTable(con, parms, PlusSetup.MERGE_TABLE, "SELECT FROM " + PlusSetup.MERGE_TABLE, null, 0, "button(RUN:Run), name, fromTable, toTable, created, executed"));
+                sb.append(getTable(con, parms, PlusSetup.MERGE_TABLE, "SELECT FROM " + PlusSetup.MERGE_TABLE, null, 0, "button_RUN_Run, name, fromTable, toTable, created, executed"));
             } catch (Exception e) {
                 e.printStackTrace();
                 sb.append("Error retrieving import patterns: " + e.getMessage());
