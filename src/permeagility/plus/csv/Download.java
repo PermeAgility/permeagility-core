@@ -13,12 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package permeagility.plus.json;
+package permeagility.plus.csv;
 
-import com.orientechnologies.orient.core.metadata.schema.OProperty;
 import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.orientechnologies.orient.core.record.impl.ODocument;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
@@ -30,26 +28,19 @@ import permeagility.web.Weblet;
  *
  * @author glenn
  */
-
-
 public class Download extends permeagility.web.Download {
 
     @Override
-    public String getContentType() { return "application/json"; }
+    public String getContentType() { return "text/csv"; }
 
     @Override
-    public String getContentDisposition() { return "inline; filename=\"data.json\""; }
+    public String getContentDisposition() { return "inline; filename=\"data.csv\""; }
 
     @Override
     public byte[] getBytes(DatabaseConnection con, HashMap<String, String> parms) {
         StringBuilder sb = new StringBuilder();
         String fromTable = parms.get("FROMTABLE");
         String fromSQL = parms.get("SQL");
-        String callback = parms.get("CALLBACK");
-        if (callback != null && callback.isEmpty()) { callback = null; }
-        
-        int depth = -1;  // unlimited is the default
-        try { depth = Integer.parseInt(parms.get("DEPTH")); } catch (Exception e) {}  // It will either parse or not
 
         if ((fromTable == null || fromTable.isEmpty()) && (fromSQL == null || fromSQL.isEmpty())) {
             return null;
@@ -59,15 +50,22 @@ public class Download extends permeagility.web.Download {
                     fromSQL = "SELECT FROM "+fromTable;
                 }
                 QueryResult qr = con.query(fromSQL);
-                if (callback != null) { sb.append(callback+"("); }
-                sb.append("{ \""+(fromTable==null ? "data" : fromTable)+"\":[ ");
-                String comma = "";
-                for (ODocument d : qr.get()) {
-                    sb.append(comma+exportDocument(con, d, depth, 0));
-                    comma = ", \n";
+                String[] columns = null;
+                // Get first document for columns
+                if (qr.size() > 0) {
+                    String comma = "";
+                    ODocument firstDoc = qr.get(0);
+                    columns = firstDoc.fieldNames();               
+                    for (String p : columns) {
+                        sb.append(comma);
+                        sb.append(p);
+                        comma = ",";
+                    }
+                    sb.append("\n");
                 }
-                sb.append(" ] }");
-                if (callback != null) { sb.append(")"); }
+                for (ODocument d : qr.get()) {
+                    sb.append(exportDocument(con, d, columns)+"\n");
+                }
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -75,69 +73,55 @@ public class Download extends permeagility.web.Download {
         return sb.toString().getBytes(Weblet.charset);
     }
     
-    String exportDocument(DatabaseConnection con, ODocument d, int maxLevel, int level) {
+    String exportDocument(DatabaseConnection con, ODocument d, String[] columns) {
         StringBuilder sb = new StringBuilder();
         String comma = "";
-        sb.append("{");
-        Collection<OProperty> columns = con.getColumns(d.getClassName());
-        for (OProperty p : columns) {
-            OType t = p.getType();
+        for (String p : columns) {
+            OType t = d.fieldType(p);
             sb.append(comma);
             if (t == OType.LINK) {
-                ODocument ld = (ODocument)d.field(p.getName());
+                ODocument ld = (ODocument)d.field(p);
                 if (ld == null) {
-                    sb.append("\""+p.getName()+"\":null");                    
-                } else if (level < maxLevel) {
-                    sb.append("\""+p.getName()+"\":"+exportDocument(con, ld , maxLevel, level+1));
                 } else {
-                    sb.append("\""+p.getName()+"\":\""+ld.getIdentity().toString().substring(1)+"\"");                    
+                    sb.append(ld.getIdentity().toString().substring(1));                    
                 }
             } else if (t == OType.LINKSET) {
-                Set<ODocument> set = d.field(p.getName());
+                Set<ODocument> set = d.field(p);
                 String lcomma = "";
-                sb.append("\""+p.getName()+"\": [");
                 if (set != null) {
                     for (ODocument sd : set) {
-                        if (level < maxLevel) {
-                            sb.append(lcomma+exportDocument(con, sd, maxLevel, level+1));
-                        } else {
-                            sb.append(lcomma+"\""+sd.getIdentity().toString().substring(1)+"\"");                    
+                        if (sd != null) {
+                            sb.append(lcomma+sd.getIdentity().toString().substring(1));                    
+                            lcomma = "/";
                         }
-                        lcomma = ", \n";
                     }
                 }
-                sb.append("] ");
             } else if (t == OType.LINKLIST) {
-                List<ODocument> set = d.field(p.getName());
+                List<ODocument> set = d.field(p);
                 String lcomma = "";
-                sb.append("\""+p.getName()+"\": [");
                 if (set != null) {
                     for (ODocument sd : set) {
-                        if (level < maxLevel) {
-                            sb.append(lcomma+exportDocument(con, sd, maxLevel, level+1));
-                        } else {
-                            sb.append(lcomma+"\""+sd.getIdentity().toString().substring(1)+"\"");                    
+                        if (sd != null) {
+                            sb.append(lcomma+sd.getIdentity().toString().substring(1));                    
                         }
-                        lcomma = ", \n";
+                        lcomma = "/";
                     }
                 }
-                sb.append("] ");
             } else if (t == OType.DATE || t == OType.DATETIME) {
-                sb.append("\""+p.getName()+"\":\""+d.field(p.getName())+"\"");
+                sb.append(""+d.field(p));
             } else if (t == OType.EMBEDDED || t == OType.EMBEDDEDLIST || t == OType.EMBEDDEDMAP || t == OType.EMBEDDEDSET) {
-                sb.append("\""+p.getName()+"\":\""+d.field(p.getName())+"\"");                
+                sb.append("\""+d.field(p)+"\"");                
             } else if (t == OType.STRING) {
-                String content = d.field(p.getName());
+                String content = d.field(p);
                 if (content != null && !content.isEmpty()) {
                     content = content.replace("\"","\\\"").replace("\\s","\\u005cs").replace("\t","\\t").replace("\r","\\r").replace("\n","\\n");
                 }
-                sb.append("\""+p.getName()+"\":\""+(content == null ? "" : content)+"\"");                
+                sb.append("\""+(content == null ? "" : content)+"\"");                
             } else {
-                sb.append("\""+p.getName()+"\":"+d.field(p.getName()));
+                sb.append(""+d.field(p));
             }
-            comma = ", \n";
+            comma = ",";
         }
-        sb.append("}");
         return sb.toString();
     }
 

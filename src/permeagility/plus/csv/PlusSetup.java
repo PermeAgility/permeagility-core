@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package permeagility.plus.json;
+package permeagility.plus.csv;
 
 import java.util.HashMap;
 
@@ -25,15 +25,15 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 	public static boolean INSTALLED = false;  // Set via constant to complete installation
 	public static String INSTALLED_VERSION = "0";  // Set via constant to complete installation
 		
-	public static String MENU_CLASS_IMP = "permeagility.plus.json.ImportJSON";
-	public static String MENU_CLASS_EXP = "permeagility.plus.json.ExportJSON";
-	public static String MENU_CLASS_DATA = "permeagility.plus.json.Download";
+	public static String MENU_CLASS_IMP = "permeagility.plus.csv.ImportCSV";
+	public static String MENU_CLASS_EXP = "permeagility.plus.csv.ExportCSV";
+	public static String MENU_CLASS_DATA = "permeagility.plus.csv.Download";
 	
 	@Override
-        public String getName() { return "plus JSON"; }
+        public String getName() { return "plus CSV"; }
 	
         @Override
-        public String getInfo() { return "Import/Export JSON data"; }
+        public String getInfo() { return "Import/Export CSV data"; }
 	
         @Override
         public String getVersion() { return "0.1.0"; }
@@ -62,9 +62,9 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 		// No tables
 		
                 // Menu items
-		Setup.createMenuItem(con,"ImportJSON","Import JSON into a table",MENU_CLASS_IMP,parms.get("MENU"),parms.get("ROLES"));	
-		Setup.createMenuItem(con,"ExportJSON","Export JSON from table or SQL",MENU_CLASS_EXP,parms.get("MENU"),parms.get("ROLES"));	
-		Setup.createMenuItem(con,"JSON Download","Download JSON data",MENU_CLASS_DATA,null,parms.get("ROLES"));	// Not on the menu
+		Setup.createMenuItem(con,"ImportCSV","Import CSV into a table",MENU_CLASS_IMP,parms.get("MENU"),parms.get("ROLES"));	
+		Setup.createMenuItem(con,"ExportCSV","Export CSV from table or SQL",MENU_CLASS_EXP,parms.get("MENU"),parms.get("ROLES"));	
+		Setup.createMenuItem(con,"CSV Download","Download CSV data",MENU_CLASS_DATA,null,parms.get("ROLES"));	// Not on the menu
 
 		setPlusInstalled(con, this.getClass().getName(), getInfo(), getVersion());
 		INSTALLED = true;

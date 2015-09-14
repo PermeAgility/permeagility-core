@@ -34,8 +34,8 @@ public class PlusClassLoader extends URLClassLoader {
 	
 	private static ClassLoader instance = null;  // There can only be one and it can only be loaded once
 	
-	private static ArrayList<String> modules = new ArrayList<String>();
-	private static String builtins[] = { "plus-translate", "plus-merge", "plus-json" }; //, "plus-visuility"
+	private static ArrayList<String> modules = new ArrayList<>();
+	private static final String builtins[] = { "plus-translate", "plus-merge", "plus-json", "plus-csv" }; //, "plus-visuility"
 	
 	public PlusClassLoader(URL[] urls) {
 		super(urls);
@@ -48,7 +48,7 @@ public class PlusClassLoader extends URLClassLoader {
 		for (String m : builtins) {  // add builtins to the module list
 			modules.add(m);			
 		}
-		ArrayList<URL> urls = new ArrayList<URL>();
+		ArrayList<URL> urls = new ArrayList<>();
 		File d = new File(PLUS_DIRECTORY);
 		if (!d.exists()) {
 			d.mkdir();
@@ -79,7 +79,7 @@ public class PlusClassLoader extends URLClassLoader {
 	}
 
 	public static List<String> getModules() {
-		return new ArrayList<String>(modules);   // Return a copy to protect the list
+		return new ArrayList<>(modules);   // Return a copy to protect the list
 	}
 	
 }

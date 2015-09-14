@@ -13,28 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package permeagility.plus.json;
+package permeagility.plus.csv;
 
 import java.util.HashMap;
 import permeagility.util.DatabaseConnection;
 import permeagility.web.Weblet;
 import permeagility.web.Schema;
 
-public class ExportJSON extends Weblet {
+public class ExportCSV extends Weblet {
     
     @Override
     public String getPage(DatabaseConnection con, HashMap<String, String> parms) {
-         return head("Export JSON") + body(standardLayout(con, parms, 
-                paragraph("banner", "Export JSON from a table")
+         return head("Export CSV") + body(standardLayout(con, parms, 
+                paragraph("banner", "Export CSV from a table")
                 +table("layout", 
                     row(column("label", "From Table") + column(Schema.getTableSelector(con,"selectedTable")))
                    + row(column("label", "or use SQL") + column(ngTextArea("sql")))
-                   + row(column("label", "Depth") + column(ngInput("depth")))
-                   + row(column("label", "With callback") + column(ngInput("callback")))
-                   + row(column("") + column("<a href=\"/permeagility.plus.json.Download?FROMTABLE={{selectedTable.table}}&CALLBACK={{callback}}&SQL={{sql}}&DEPTH={{depth}}\" download=\"data.json\"><button>Download</button></a>"))
+                   + row(column("") + column("<a href=\"/permeagility.plus.csv.Download?FROMTABLE={{selectedTable.table}}&SQL={{sql}}\" download=\"data.csv\"><button>Download</button></a>"))
                 )
                 + br()
-                + xSmall("/permeagility.plus.json.Download?FROMTABLE={{selectedTable.table}}&CALLBACK={{callback}}&SQL={{sql}}&DEPTH={{depth}}")
+                + xSmall("/permeagility.plus.csv.Download?FROMTABLE={{selectedTable.table}}&SQL={{sql}}")
         ));
     }
 }
