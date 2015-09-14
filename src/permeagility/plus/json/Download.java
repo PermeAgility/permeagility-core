@@ -15,10 +15,8 @@
  */
 package permeagility.plus.json;
 
-import com.orientechnologies.orient.core.metadata.schema.OProperty;
 import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.orientechnologies.orient.core.record.impl.ODocument;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
@@ -79,23 +77,23 @@ public class Download extends permeagility.web.Download {
         StringBuilder sb = new StringBuilder();
         String comma = "";
         sb.append("{");
-        Collection<OProperty> columns = con.getColumns(d.getClassName());
-        for (OProperty p : columns) {
-            OType t = p.getType();
+        String[] columns = d.fieldNames();
+        for (String p : columns) {
+            OType t = d.fieldType(p);
             sb.append(comma);
             if (t == OType.LINK) {
-                ODocument ld = (ODocument)d.field(p.getName());
+                ODocument ld = (ODocument)d.field(p);
                 if (ld == null) {
-                    sb.append("\""+p.getName()+"\":null");                    
+                    sb.append("\""+p+"\":null");                    
                 } else if (level < maxLevel) {
-                    sb.append("\""+p.getName()+"\":"+exportDocument(con, ld , maxLevel, level+1));
+                    sb.append("\""+p+"\":"+exportDocument(con, ld , maxLevel, level+1));
                 } else {
-                    sb.append("\""+p.getName()+"\":\""+ld.getIdentity().toString().substring(1)+"\"");                    
+                    sb.append("\""+p+"\":\""+ld.getIdentity().toString().substring(1)+"\"");                    
                 }
             } else if (t == OType.LINKSET) {
-                Set<ODocument> set = d.field(p.getName());
+                Set<ODocument> set = d.field(p);
                 String lcomma = "";
-                sb.append("\""+p.getName()+"\": [");
+                sb.append("\""+p+"\": [");
                 if (set != null) {
                     for (ODocument sd : set) {
                         if (level < maxLevel) {
@@ -108,9 +106,9 @@ public class Download extends permeagility.web.Download {
                 }
                 sb.append("] ");
             } else if (t == OType.LINKLIST) {
-                List<ODocument> set = d.field(p.getName());
+                List<ODocument> set = d.field(p);
                 String lcomma = "";
-                sb.append("\""+p.getName()+"\": [");
+                sb.append("\""+p+"\": [");
                 if (set != null) {
                     for (ODocument sd : set) {
                         if (level < maxLevel) {
@@ -123,17 +121,17 @@ public class Download extends permeagility.web.Download {
                 }
                 sb.append("] ");
             } else if (t == OType.DATE || t == OType.DATETIME) {
-                sb.append("\""+p.getName()+"\":\""+d.field(p.getName())+"\"");
+                sb.append("\""+p+"\":\""+d.field(p)+"\"");
             } else if (t == OType.EMBEDDED || t == OType.EMBEDDEDLIST || t == OType.EMBEDDEDMAP || t == OType.EMBEDDEDSET) {
-                sb.append("\""+p.getName()+"\":\""+d.field(p.getName())+"\"");                
+                sb.append("\""+p+"\":\""+d.field(p)+"\"");                
             } else if (t == OType.STRING) {
-                String content = d.field(p.getName());
+                String content = d.field(p);
                 if (content != null && !content.isEmpty()) {
                     content = content.replace("\"","\\\"").replace("\\s","\\u005cs").replace("\t","\\t").replace("\r","\\r").replace("\n","\\n");
                 }
-                sb.append("\""+p.getName()+"\":\""+(content == null ? "" : content)+"\"");                
+                sb.append("\""+p+"\":\""+(content == null ? "" : content)+"\"");                
             } else {
-                sb.append("\""+p.getName()+"\":"+d.field(p.getName()));
+                sb.append("\""+p+"\":"+d.field(p));
             }
             comma = ", \n";
         }
