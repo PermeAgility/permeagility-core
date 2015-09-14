@@ -276,7 +276,7 @@ public class Query extends Weblet {
                 Integer cType = col.getType().getId();
                 String cClass = col.getLinkedClass() != null ? col.getLinkedClass().getName() : null;
                 if (columnInit.length()>0) columnInit.append(", ");
-                columnInit.append("{ table:'"+tName+"', column:'"+cName+"', type:'"+(cType == null ? "" : Table.getTypeName(con.getLocale(),cType))+(cClass == null ? "" : " to "+cClass)+"'}");
+                columnInit.append("{ table:'"+tName+"', column:'"+cName+"', type:'"+Message.get(con.getLocale(),Table.getTypeName(cType))+(cClass == null ? "" : " to "+cClass)+"'}");
             }
         }
 
