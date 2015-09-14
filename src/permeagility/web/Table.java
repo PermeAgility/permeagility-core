@@ -70,12 +70,12 @@ public class Table extends Weblet {
 	public static final int PRIV_ALL = 15;
 
 	// Need to store the data type names by locale and don't want to generate it every time so this is a cache
-	static ConcurrentHashMap<Locale,ArrayList<String>> dataTypeNames = new ConcurrentHashMap<Locale,ArrayList<String>>();
-	static ConcurrentHashMap<Locale,ArrayList<String>> dataTypeValues = new ConcurrentHashMap<Locale,ArrayList<String>>();
+	static ConcurrentHashMap<Locale,ArrayList<String>> dataTypeNames = new ConcurrentHashMap<>();
+	static ConcurrentHashMap<Locale,ArrayList<String>> dataTypeValues = new ConcurrentHashMap<>();
 	
-	private void setUpDataTypes(Locale locale) {
-            ArrayList<String> names = new ArrayList<String>();
-            ArrayList<String> values = new ArrayList<String>();
+	private static void setUpDataTypes(Locale locale) {
+            ArrayList<String> names = new ArrayList<>();
+            ArrayList<String> values = new ArrayList<>();
             names.add(Message.get(locale, "DATATYPE_TEXT"));
             names.add(Message.get(locale, "DATATYPE_FLOAT"));
             names.add(Message.get(locale, "DATATYPE_INT"));
@@ -107,11 +107,6 @@ public class Table extends Weblet {
 	public String getPage(DatabaseConnection con, java.util.HashMap<String, String> parms) {
 		Locale locale = con.getLocale();
 		
-		// Make sure data type names are set up for this locale
-		if (dataTypeNames.get(locale) == null) {
-                    setUpDataTypes(locale);
-		}
-				
 		String submit = parms.get("SUBMIT");
 		String table = parms.get("TABLENAME");
 		String pagest = parms.get("PAGE");
@@ -1218,14 +1213,10 @@ public class Table extends Weblet {
 
 	public String newColumnForm(DatabaseConnection con) {
             Locale l = con.getLocale();
-            if (dataTypeNames.get(l) == null) {
-                setUpDataTypes(l);
-            }
-
             String show = "ng-show=\"NEWDATATYPE == 'DATATYPE_LINK' || NEWDATATYPE == 'DATATYPE_LINKLIST' || NEWDATATYPE == 'DATATYPE_LINKSET' || NEWDATATYPE == 'DATATYPE_LINKMAP' \"";
             return
                 paragraph("banner",Message.get(l, "NEW_COLUMN"))
-                + selectList(l,"NEWDATATYPE", "DATATYPE_TEXT", dataTypeNames.get(l), dataTypeValues.get(l), "ng-model=\"NEWDATATYPE\"", false, null, true)
+                + getDatatypeList(l,"NEWDATATYPE","DATATYPE_TEXT", "ng-model=\"NEWDATATYPE\" ng-init=\"NEWDATATYPE='DATATYPE_TEXT'\"")
                 + createListFromCache("NEWTABLEREF", null, con, TABLE_REF_LIST, show, false, null, true)
                 + br()
                 + input("NEWCOLUMNNAME", "")
@@ -1233,6 +1224,11 @@ public class Table extends Weblet {
                 + center(submitButton(l, "NEW_COLUMN"));
 	}
 	
+        public static String getDatatypeList(Locale l, String name, String selected, String options) {
+            if (dataTypeNames.get(l) == null) { setUpDataTypes(l); }
+            return selectList(l, name, selected, dataTypeNames.get(l), dataTypeValues.get(l), options, false, null, true);
+        }
+        
 	/** Get the EDIT_ID from the parms, get the document and populate the parms with the document's field data */
 	public HashMap<String, String> getTableRowParameters(DatabaseConnection con, String schema, String table, HashMap<String, String> parms) {
             if (DEBUG) System.out.println("getTableRowParameters: Getting row and injecting into parameters");

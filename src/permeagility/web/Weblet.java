@@ -1225,8 +1225,8 @@ public abstract class Weblet {
                     sb.append("<option value=null>" + Message.get(l,"OPTION_NONE")+"</option>");
             }
             for (int i = 0; i < names.size(); i++) {
-                    if (selected != null && values.get(i).equals(selected)) {
-                            sb.append("<option SELECTED value=\"" + values.get(i) + "\">" + names.get(i) + "</option>\n");
+                    if (selected != null && selected.equals(values.get(i))) {
+                            sb.append("<option value=\"" + values.get(i) + "\" SELECTED=\"selected\">" + names.get(i) + "</option>\n");
                     } else {
                             sb.append("<option value=\"" + values.get(i) + "\">" + names.get(i) + "</option>\n");
                     }
