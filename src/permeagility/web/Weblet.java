@@ -713,7 +713,6 @@ public abstract class Weblet {
     public String getCodeEditorControl(String formName, String controlName, String initialValue, String mode) {
         return "<textarea id=\""+controlName+"\" name=\""+controlName+"\">"+(initialValue==null ? "" : initialValue)+"</textarea>\n"
             +" <script>\n"
-//            + (mode != null && mode.equals("sql") ? "CodeMirror.defineMime(\"text/x-sql\", \"sql\");\n" : "")
             + "var "+controlName+"Editor = CodeMirror.fromTextArea(document.getElementById(\""+controlName+"\")\n"
             + ", { lineNumbers: true, mode: \""+mode+"\""
                             + ", theme: \""+EDITOR_THEME+"\", matchBrackets: true, extraKeys: {\"Ctrl-Space\": \"autocomplete\"}"
