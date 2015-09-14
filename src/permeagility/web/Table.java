@@ -1771,36 +1771,68 @@ public class Table extends Weblet {
     	return "<INPUT TYPE=\"PASSWORD\" NAME=\""+name+"\" VALUE=\""+(value==null ? "" : value)+"\" SIZE=\""+size+"\">";
     }
 
-    public static String getTypeName(Locale l, Integer i) {
+    public static String getTypeName(Integer i) {
         OType type = OType.getById(i.byteValue());
         if (type == OType.DOUBLE) {
-                return Message.get(l, "DATATYPE_FLOAT");
+                return "DATATYPE_FLOAT";
         } else if (type == OType.LONG) {
-                return Message.get(l, "DATATYPE_INT");
+                return "DATATYPE_INT";
         } else if (type == OType.BOOLEAN) {
-                return Message.get(l, "DATATYPE_BOOLEAN");
+                return "DATATYPE_BOOLEAN";
         } else if (type == OType.STRING) {
-                return Message.get(l, "DATATYPE_TEXT");
+                return "DATATYPE_TEXT";
         } else if (type == OType.DATETIME) {
-                return Message.get(l, "DATATYPE_DATETIME");
+                return "DATATYPE_DATETIME";
         } else if (type == OType.DATE) {
-                return Message.get(l, "DATATYPE_DATE");
+                return "DATATYPE_DATE";
         } else if (type == OType.CUSTOM) {
-                return Message.get(l, "DATATYPE_BLOB");
+                return "DATATYPE_BLOB";
         } else if (type == OType.DECIMAL) {
-                return Message.get(l, "DATATYPE_DECIMAL");
+                return "DATATYPE_DECIMAL";
         } else if (type == OType.LINK) {
-                return Message.get(l, "DATATYPE_LINK");
+                return "DATATYPE_LINK";
         } else if (type == OType.LINKLIST) {
-                return Message.get(l, "DATATYPE_LINKLIST");
+                return "DATATYPE_LINKLIST";
         } else if (type == OType.LINKMAP) {
-                return Message.get(l, "DATATYPE_LINKMAP");
+                return "DATATYPE_LINKMAP";
         } else if (type == OType.LINKSET) {
-                return Message.get(l, "DATATYPE_LINKSET");
+                return "DATATYPE_LINKSET";
         } else if (type == OType.LINKBAG) {
                 return "LinkBag (not supported)";
         } else {
                 return (type.name());
+        }
+    }
+
+    public static OType getOTypeFromName(String name) {
+        if (name == null || name.isEmpty()) {
+            return OType.STRING;
+        } else if (name.equals("DATATYPE_FLOAT")) {
+            return OType.DOUBLE;
+        } else if (name.equals("DATATYPE_INT")) {
+            return OType.LONG;
+        } else if (name.equals("DATATYPE_BOOLEAN")) {
+            return OType.BOOLEAN;
+        } else if (name.equals("DATATYPE_TEXT")) {
+            return OType.STRING;
+        } else if (name.equals("DATATYPE_DATETIME")) {
+            return OType.DATETIME;
+        } else if (name.equals("DATATYPE_DATE")) {
+            return OType.DATE;
+        } else if (name.equals("DATATYPE_BLOB")) {
+            return OType.CUSTOM;
+        } else if (name.equals("DATATYPE_DECIMAL")) {
+            return OType.DECIMAL;
+        } else if (name.equals("DATATYPE_LINK")) {
+            return OType.LINK;
+        } else if (name.equals("DATATYPE_LINKLIST")) {
+            return OType.LINKLIST;
+        } else if (name.equals("DATATYPE_LINKSET")) {
+            return OType.LINKSET;
+        } else if (name.equals("DATATYPE_LINKMAP")) {
+            return OType.LINKMAP;
+        } else {
+            return OType.STRING;
         }
     }
 
