@@ -982,10 +982,22 @@ public class Table extends Weblet {
             } else if (type == 7 && (name.toUpperCase().endsWith("COLOR") || name.toUpperCase().endsWith("COLOUR"))) {
                 if (DEBUG) System.out.println("Doing color field "+initialValues);
                 return row(label + column(getColorControl(formName,PARM_PREFIX+name,(String)initialValue)));
+            // SQL (String)
+            } else if (type == 7 && name.toUpperCase().endsWith("SQL")) {
+                    if (DEBUG) System.out.println("Doing SQL Editor field "+name);
+                    return row(label + column(getCodeEditorControl(formName,PARM_PREFIX+name,(String)initialValue,"text/x-sql")));
+            // JSON (String)
+            } else if (type == 7 && name.toUpperCase().endsWith("JSON")) {
+                    if (DEBUG) System.out.println("Doing JSON Editor field "+name);
+                    return row(label + column(getCodeEditorControl(formName,PARM_PREFIX+name,(String)initialValue,"application/json")));
+            // Script-R (String)
+            } else if (type == 7 && name.toUpperCase().endsWith("RSCRIPT")) {
+                    if (DEBUG) System.out.println("Doing R Code Editor field "+name);
+                    return row(label + column(getCodeEditorControl(formName,PARM_PREFIX+name,(String)initialValue,"text/x-rsrc")));
             // Script-Javascript (String)
             } else if (type == 7 && (name.toUpperCase().endsWith("SCRIPT") || name.toUpperCase().endsWith("CODE"))) {
                     if (DEBUG) System.out.println("Doing Javascript Code Editor field "+name);
-                    return row(label + column(getCodeEditorControl(formName,PARM_PREFIX+name,(String)initialValue,"javascript")));
+                    return row(label + column(getCodeEditorControl(formName,PARM_PREFIX+name,(String)initialValue,"text/javascript")));
             // Style-CSS (String)
             } else if (type == 7 && (name.toUpperCase().endsWith("STYLE"))) {
                     if (DEBUG) System.out.println("Doing CSS Code Editor field "+initialValues);

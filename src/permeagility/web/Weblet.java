@@ -696,6 +696,8 @@ public abstract class Weblet {
             + "<script type=\"text/javascript\" src=\"../js/codemirror/lib/codemirror.js\"></script>\n"
             + "<script type=\"text/javascript\" src=\"../js/codemirror/mode/javascript/javascript.js\"></script>\n"
             + "<script type=\"text/javascript\" src=\"../js/codemirror/mode/css/css.js\"></script>\n"
+            + "<script type=\"text/javascript\" src=\"../js/codemirror/mode/r/r.js\"></script>\n"
+            + "<script type=\"text/javascript\" src=\"../js/codemirror/mode/sql/sql.js\"></script>\n"
             + "<script type=\"text/javascript\" src=\"../js/codemirror/addon/dialog/dialog.js\"></script>\n"
             + "<script type=\"text/javascript\" src=\"../js/codemirror/addon/tern/tern.js\"></script>\n"
             + "<script type=\"text/javascript\" src=\"../js/codemirror/addon/hint/show-hint.js\"></script>\n"
@@ -711,7 +713,8 @@ public abstract class Weblet {
     public String getCodeEditorControl(String formName, String controlName, String initialValue, String mode) {
         return "<textarea id=\""+controlName+"\" name=\""+controlName+"\">"+(initialValue==null ? "" : initialValue)+"</textarea>\n"
             +" <script>\n"
-            + "var "+controlName+"Editor = CodeMirror.fromTextArea(document.getElementById(\""+controlName+"\")"
+//            + (mode != null && mode.equals("sql") ? "CodeMirror.defineMime(\"text/x-sql\", \"sql\");\n" : "")
+            + "var "+controlName+"Editor = CodeMirror.fromTextArea(document.getElementById(\""+controlName+"\")\n"
             + ", { lineNumbers: true, mode: \""+mode+"\""
                             + ", theme: \""+EDITOR_THEME+"\", matchBrackets: true, extraKeys: {\"Ctrl-Space\": \"autocomplete\"}"
                             + ", viewportMargin: Infinity });\n"
