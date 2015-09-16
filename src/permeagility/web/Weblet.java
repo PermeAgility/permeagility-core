@@ -454,7 +454,7 @@ public abstract class Weblet {
     public static String hidden(String n, Object value) { return hidden(n, value, ""); }
 
     public static String hidden(String n, Object value, String options) {
-            return "<input type=\"HIDDEN\" name=\"" + n + "\""  + (value == null ? "" : "value=\""+value+"\"") + (options == null ? "" : options) +">";
+            return "<input type=\"HIDDEN\" name=\"" + n + "\""  + (value == null ? "" : " value=\""+value+"\"") + (options == null ? "" : options) +">";
     }
 
     public static String TEXT_INPUT_OPTIONS = "spellcheck=\"false\"";  // Clear this to enable spell checking, add to this to add options to textual input fields
