@@ -69,7 +69,7 @@ public class D3Builder extends Table {
             try {
                 parms.put("SERVICE", "View: Setup view");
                 sb.append(paragraph("banner", "Select View"));
-                sb.append(getTable(con, parms, PlusSetup.TABLE, "SELECT FROM " + PlusSetup.TABLE, null, 0, "name, description, button(VIEW:View),-"));
+                sb.append(getTable(con, parms, PlusSetup.TABLE, "SELECT FROM " + PlusSetup.TABLE, null, 0, "name, description, button_VIEW_View),-"));
             } catch (Exception e) {
                 e.printStackTrace();
                 sb.append("Error retrieving table: " + e.getMessage());
