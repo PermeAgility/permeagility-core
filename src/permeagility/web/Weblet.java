@@ -1085,54 +1085,6 @@ public abstract class Weblet {
         return result.toString();
     }
 
-    public static String createListFromCache(String name, String initial, DatabaseConnection con, String query) {
-        return createListFromCache(name, initial, con, query, null, true, null, true);
-    }
-
-    public static String createListFromCache(String name, String initial, DatabaseConnection con, String query
-                    , String attributes, boolean allowNull, String classname, boolean enabled) {
-        QueryResult qr = queryCache.getResult(con, query);
-        StringBuilder sb = new StringBuilder(1024);
-        sb.append("<SELECT " + (enabled ? "" : "DISABLED") + (classname != null ? " CLASS=\"" + classname + "\"" : "") + " NAME=\""
-                        + name + "\" " + (attributes != null ? attributes : "") + ">\n");
-        if (initial == null && allowNull) {
-            sb.append("<OPTION SELECTED VALUE=null>" + "Select" + "\n");
-        } else if (allowNull) {
-            sb.append("<OPTION VALUE=null>"+Message.get(con.getLocale(), "OPTION_NONE")+"\n");
-        }
-        if (qr != null) {
-            for (ODocument item : qr.get()) {
-                String id = item.getIdentity().toString();
-                if (item.field("rid") != null) {
-                    String d = item.field("rid");
-                    if (d != null) {
-                        id = d;
-                    }
-                }
-            if (id.startsWith("#")) id = id.substring(1);
-                String itemname = null;
-                itemname = item.field("name");
-                if (itemname == null) {
-                    itemname = item.field("Name");					
-                }
-                if (itemname == null && item.fields()>0) {
-                    itemname = item.field(item.fieldNames()[1]).toString();
-                }
-                sb.append("<OPTION ");
-                if (initial != null && initial.equals(id)) {
-                    sb.append("SELECTED ");
-                }
-                sb.append(" VALUE=\"");
-                sb.append(id);
-                sb.append("\">");
-                sb.append(itemname == null ? id : itemname);
-                sb.append("\n");
-            }
-        }
-        sb.append("</SELECT>\n");
-        return sb.toString();
-    }
-
     public static String getQueryForTable(DatabaseConnection con, String table) {
             String query = "SELECT FROM "+table;
             QueryResult lists = getCache().getResult(con, "SELECT tablename, query FROM "+Setup.TABLE_PICKLIST+" WHERE tablename='"+table+"'");
@@ -1140,11 +1092,6 @@ public abstract class Weblet {
                     return lists.getStringValue(0, "query");
             }
             return query;
-    }
-
-    public static String createListFromTable(String name, String initial, DatabaseConnection con, String table, String onChange,
-                    boolean allowNull, String classname, boolean enabled) {
-            return createListFromCache(name, initial, con, getQueryForTable(con,table),onChange, allowNull, classname, enabled);
     }
 
     /** Prepare a string value for insertion into a JSON document (convert \ to \\ and ' to \') */
@@ -1190,6 +1137,59 @@ public abstract class Weblet {
         return createListFromTable(name, initial, con, table, null, true, null, true);
     }
 
+    public static String createListFromTable(String name, String initial, DatabaseConnection con, String table, String onChange,
+                boolean allowNull, String classname, boolean enabled) {
+        return createListFromCache(name, initial, con, getQueryForTable(con,table),onChange, allowNull, classname, enabled);
+    }
+
+    public static String createListFromCache(String name, String initial, DatabaseConnection con, String query) {
+        return createListFromCache(name, initial, con, query, null, true, null, true);
+    }
+
+    public static String createListFromCache(String name, String initial, DatabaseConnection con, String query
+                    , String attributes, boolean allowNull, String classname, boolean enabled) {
+        QueryResult qr = queryCache.getResult(con, query);
+        StringBuilder sb = new StringBuilder(1024);
+        sb.append("<SELECT " + (enabled ? "" : "DISABLED") + (classname != null ? " CLASS=\"" + classname + "\"" : "") + " NAME=\""
+                        + name + "\" " + (attributes != null ? attributes : "") + ">\n");
+        if (initial == null && allowNull) {
+            sb.append("<OPTION SELECTED=\"yes\" VALUE=null>" + "Select" + "\n");
+        } else if (allowNull) {
+            sb.append("<OPTION VALUE=null>"+Message.get(con.getLocale(), "OPTION_NONE")+"\n");
+        }
+        if (qr != null) {
+            for (ODocument item : qr.get()) {
+                String id = item.getIdentity().toString();
+                if (item.field("rid") != null) {
+                    String d = item.field("rid");
+                    if (d != null) {
+                        id = d;
+                    }
+                }
+            if (id.startsWith("#")) id = id.substring(1);
+                String itemname = null;
+                itemname = item.field("name");
+                if (itemname == null) {
+                    itemname = item.field("Name");					
+                }
+                if (itemname == null && item.fields()>0) {
+                    itemname = item.field(item.fieldNames()[1]).toString();
+                }
+                sb.append("<OPTION ");
+                if (initial != null && (initial.equals(id) || initial.equals(itemname))) {
+                    sb.append("SELECTED=\"yes\" ");
+                }
+                sb.append(" VALUE=\"");
+                sb.append(id);
+                sb.append("\">");
+                sb.append(itemname == null ? id : itemname);
+                sb.append("\n");
+            }
+        }
+        sb.append("</SELECT>\n");
+        return sb.toString();
+    }
+
     public static String createList(Locale locale, String name, String initial, List<String> names, String attributes, boolean allowNull, String classname, boolean enabled) {
         StringBuilder sb = new StringBuilder(1024);
         sb.append("<SELECT " 
@@ -1198,7 +1198,7 @@ public abstract class Weblet {
             + " NAME=\"" + name + "\" " 
             + (attributes != null ? attributes : "") + ">\n");
         if (initial == null && allowNull) {
-            sb.append("<OPTION SELECTED VALUE=null>" + "Select" + "\n");
+            sb.append("<OPTION SELECTED=\"yes\" VALUE=null>" + "Select" + "\n");
         } else if (allowNull) {
             sb.append("<OPTION VALUE=null>" + Message.get(locale,"OPTION_NONE"));
         }
@@ -1206,7 +1206,7 @@ public abstract class Weblet {
             for (String item : names) {
                 sb.append("<OPTION ");
                 if (initial != null && item.equals(initial)) {
-                    sb.append("SELECTED ");
+                    sb.append("SELECTED=\"yes\" ");
                 }
                 sb.append(">");
                 sb.append(item);
@@ -1228,7 +1228,7 @@ public abstract class Weblet {
             }
             for (int i = 0; i < names.size(); i++) {
                     if (selected != null && selected.equals(values.get(i))) {
-                            sb.append("<option value=\"" + values.get(i) + "\" SELECTED=\"selected\">" + names.get(i) + "</option>\n");
+                            sb.append("<option value=\"" + values.get(i) + "\" SELECTED=\"yes\">" + names.get(i) + "</option>\n");
                     } else {
                             sb.append("<option value=\"" + values.get(i) + "\">" + names.get(i) + "</option>\n");
                     }

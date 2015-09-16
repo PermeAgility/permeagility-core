@@ -28,7 +28,7 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 	public static String MENU_CLASS_IMP = "permeagility.plus.json.ImportJSON";
 	public static String MENU_CLASS_EXP = "permeagility.plus.json.ExportJSON";
 	public static String MENU_CLASS_DATA = "permeagility.plus.json.Download";
-	
+                
 	@Override
         public String getName() { return "plus JSON"; }
 	

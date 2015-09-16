@@ -137,6 +137,7 @@ public class Setup {
                     con.create(TABLE_TABLEGROUP).field("name","Application").field("tables","columns,constant,locale,pickList,pickValues,menu,menuItem,message,style,tableGroup,userRequest,auditTrail,-thumbnail").field("_allowRead", adminRoles.toArray()).save();
                     con.create(TABLE_TABLEGROUP).field("name","System").field("tables","ORole,OUser,OFunction,OSchedule,-ORIDs,-E,-V,-_studio").field("_allowRead", adminRoles.toArray()).save();
                     con.create(TABLE_TABLEGROUP).field("name","News").field("tables","article").field("_allowRead", allRoles.toArray()).save();
+                    con.create(TABLE_TABLEGROUP).field("name","Plus").field("tables","").field("_allowRead", allRoles.toArray()).save();
             }
 
             System.out.print(TABLE_THUMBNAIL+" ");

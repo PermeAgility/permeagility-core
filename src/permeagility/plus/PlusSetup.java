@@ -54,7 +54,7 @@ public abstract class PlusSetup extends Weblet {
     public String getAddForm(DatabaseConnection con) {
         return "TableGroup "+createListFromTable("TABLEGROUP", "Plus", con, "tableGroup")
                 +" or "+input("NEW_TABLEGROUP","")
-                +"<br>Add to menu"+createListFromTable("MENU", "", con, "menu")
+                +"<br>Add to menu"+createListFromTable("MENU", "", con, "menu",null, false, null, true)
                 +"<br>Roles: "+linkSetControl(con, "ROLES", "OIdentity", getCache().getResult(con,getQueryForTable(con, "OIdentity")), con.getLocale(), null);
     }
 

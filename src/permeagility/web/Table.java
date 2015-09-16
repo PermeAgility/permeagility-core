@@ -178,7 +178,7 @@ public class Table extends Weblet {
 								)
 							));					
 				}
-			}else if (submit.equals("DELETE")) {
+			} else if (submit.equals("DELETE")) {
 				if (DEBUG) System.out.println("************ Deleting row");
 					if (deleteRow(con, table, parms, errors)) {
 						parms.remove("EDIT_ID");
@@ -348,6 +348,68 @@ public class Table extends Weblet {
 		return getDateControlScript(con.getLocale())+getColorControlScript()+getCodeEditorScript()+getScript("d3.js");
 	}
 	
+        public String processSubmit(DatabaseConnection con, HashMap<String,String> parms, String tableName, StringBuilder errors) {
+            Locale locale = con.getLocale();
+            String submit = parms.get("SUBMIT");
+            String editId = parms.get("EDIT_ID");
+            String updateId = parms.get("EDIT_ID");
+
+            // Show edit form if row selected for edit
+            if (editId != null && submit == null) {
+                return head("Edit", getScripts(con))
+                        + body(standardLayout(con, parms, getTableRowForm(con, tableName, parms)));
+            }
+
+            if (submit == null || submit.isEmpty()) {
+                return null;
+            }
+            
+
+            if (submit.equals("CREATE_ROW")) {
+                boolean inserted = insertRow(con, tableName, parms, errors);
+                if (!inserted) {
+                    errors.append(paragraph("error", "Could not insert"));
+                } else {
+                    submit = null;
+                }
+            }
+            
+            // Process update of work tables
+            if (updateId != null && submit != null) {
+                System.out.println("update_id=" + updateId);
+                if (submit.equals("COPY")) {
+                    parms.put("EDIT_ID", parms.get("UPDATE_ID"));
+                    return head("Copy",getScripts(con))
+                        + body(standardLayout(con, parms, 
+                            errors.toString()
+                            +form("NEWROW","#",
+                                paragraph("banner",Message.get(locale, "COPY")+"&nbsp;"+makeCamelCasePretty(tableName))
+                                +getTableRowFields(con, tableName, parms)
+                                +center(submitButton(locale,"CREATE_ROW")+submitButton(locale,"CANCEL"))
+                            )
+                        ));
+                } else if (submit.equals("DELETE")) {
+                    if (deleteRow(con, tableName, parms, errors)) {
+                        submit = null;
+                    } else {
+                        return head("Could not delete", getDateControlScript(con.getLocale()) + getColorControlScript())
+                                + body(standardLayout(con, parms, getTableRowForm(con, tableName, parms) + errors.toString()));
+                    }
+                } else if (submit.equals("UPDATE")) {
+                    System.out.println("In updating row");
+                    if (updateRow(con, tableName, parms, errors)) {
+                    } else {
+                        return head("Could not update", getDateControlScript(con.getLocale()) + getColorControlScript())
+                                + body(standardLayout(con, parms, getTableRowForm(con, tableName, parms) + errors.toString()));
+                    }
+                }
+                // Cancel is assumed
+                parms.remove("EDIT_ID");
+                parms.remove("UPDATE_ID");
+            }
+            return null;
+        }
+        
 	public boolean insertRow(DatabaseConnection con, String table, HashMap<String, String> parms, StringBuilder errors) {
             ODocument newDoc = con.create(table);
             for (OProperty column : con.getColumns(table)) {
@@ -883,7 +945,7 @@ public class Table extends Weblet {
             String edit_id = (parms != null ? parms.get("EDIT_ID") : null);
             ODocument initialValues = null;
             if (edit_id != null) {
-                QueryResult initrows = con.query("SELECT * FROM #" + edit_id);
+                QueryResult initrows = con.query("SELECT FROM #" + edit_id);
                 if (initrows != null && initrows.size() == 1) {
                     initialValues = initrows.get(0);
                 } else {
@@ -1619,9 +1681,9 @@ public class Table extends Weblet {
                         } else {
                                 String colToDrop = parms.get("COLUMN_TO_DROP");
                                 try {
+                                        Object ret = con.update("UPDATE "+table+" REMOVE "+colToDrop);  // Otherwise, column actually remains in the data
                                         OClass c = con.getSchema().getClass(table);
                                         c.dropProperty(colToDrop);
-                                        Object ret = con.update("UPDATE "+table+" REMOVE "+colToDrop);  // Otherwise, column actually remains in the data
                                         errors.append(paragraph("success", "Data for column removed:"+ret));						
                                         Setup.removeColumnFromColumns(con, table, colToDrop);
                                         Server.tableUpdated("metadata:schema");

@@ -73,7 +73,7 @@ public class Download extends permeagility.web.Download {
         return sb.toString().getBytes(Weblet.charset);
     }
     
-    String exportDocument(DatabaseConnection con, ODocument d, int maxLevel, int level) {
+    public static String exportDocument(DatabaseConnection con, ODocument d, int maxLevel, int level) {
         StringBuilder sb = new StringBuilder();
         String comma = "";
         sb.append("{");

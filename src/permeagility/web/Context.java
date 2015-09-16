@@ -87,7 +87,7 @@ public class Context extends Weblet {
                 Class<?> classOf = Class.forName( setupClassName, true, PlusClassLoader.get() );
                 Object classInstance = classOf.newInstance();
                 if (classInstance instanceof PlusSetup) {
-                            StringBuilder errors = new StringBuilder();
+                    StringBuilder errors = new StringBuilder();
                     PlusSetup plusSetup = (PlusSetup)classInstance;
                     boolean installed = plusSetup.isInstalled();
                     if (submit != null && module != null && module.equals(m)) {

@@ -49,7 +49,6 @@ public class ImportJSON extends Weblet {
         String fromURL = parms.get("FROM_URL");
         String fromFile = parms.get("FROM_FILE");
         String fromText = parms.get("FROM_TEXT");
-        String toTable = parms.get("TO_TABLE");
 
         if (submit != null) {
             JSONObject jo = null;
@@ -122,9 +121,9 @@ public class ImportJSON extends Weblet {
                 try {
                     jo = new JSONObject(fromText.replace("\\u0022", "\""));
                     ODocument doc;
-                    doc = importObject(parms, run, con, toTable, jo, errors, classes);
+                    doc = importObject(parms, run, con, parms.get("TABLE_FOR_"), jo, errors, classes);
                     parseSuccess = true;
-                    if (run) errors.append(paragraph("success","Successfully parsed and imported "+toTable));                    
+                    if (run) errors.append(paragraph("success","Successfully parsed and imported "+parms.get("TABLE_FOR_")));                    
                 } catch (Exception e) {
                     errors.append(paragraph("error","Error parsing JSON:"+e.getMessage()));
                     e.printStackTrace();
@@ -147,7 +146,6 @@ public class ImportJSON extends Weblet {
                     }
                 }
                 sb.append(hidden("FROM_TEXT",fromText.replace("\"","\\u0022")));
-                sb.append(hidden("TO_TABLE",toTable));
                 sb.append(submitButton(con.getLocale(), "GO"));
             }
         } else {
@@ -155,7 +153,6 @@ public class ImportJSON extends Weblet {
                      row(column("label", "From URL") + column(input("FROM_URL", parms.get("FROM_URL"))))
                     + row(column("label", "From File") + column(fileInput("FROM_FILE")))
                     + row(column("label", "or paste here:") + column(textArea("FROM_TEXT", parms.get("FROM_TEXT"), 30, 100)))
-                    + row(column("label", "Table to create") + column(input("TO_TABLE", toTable) + " will be turned to camelCase"))
                     + row(column("") + column(submitButton(con.getLocale(), "PREVIEW")))
             ));
         }
