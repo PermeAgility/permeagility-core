@@ -392,14 +392,14 @@ public class Table extends Weblet {
                     if (deleteRow(con, tableName, parms, errors)) {
                         submit = null;
                     } else {
-                        return head("Could not delete", getDateControlScript(con.getLocale()) + getColorControlScript())
+                        return head("Could not delete", getScripts(con))
                                 + body(standardLayout(con, parms, getTableRowForm(con, tableName, parms) + errors.toString()));
                     }
                 } else if (submit.equals("UPDATE")) {
                     System.out.println("In updating row");
                     if (updateRow(con, tableName, parms, errors)) {
                     } else {
-                        return head("Could not update", getDateControlScript(con.getLocale()) + getColorControlScript())
+                        return head("Could not update", getScripts(con))
                                 + body(standardLayout(con, parms, getTableRowForm(con, tableName, parms) + errors.toString()));
                     }
                 }
