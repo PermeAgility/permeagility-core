@@ -106,6 +106,9 @@ public class Context extends Weblet {
                     }
                     String inVersion = plusSetup.getInstalledVersion(con, plusSetup.getClass().getName());
                     String plusVersion = plusSetup.getVersion();
+                    if (inVersion == null) {
+                        installed = false;
+                    }
                     String act = (installed ? (plusVersion.compareTo(inVersion)>0 ? "PLUS_UPGRADE" : "PLUS_REMOVE") : "PLUS_INSTALL");
                     plusList.append(row("data",
                         column(m)
