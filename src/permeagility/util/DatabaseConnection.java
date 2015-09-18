@@ -47,7 +47,8 @@ public class DatabaseConnection {
 	ODatabaseDocumentTx c = null;
 	long lastAccess = System.currentTimeMillis();
 	
-	private static ConcurrentHashMap<String,Long> tableCountCache = new ConcurrentHashMap<String,Long>();
+        // Row counts are shared by all users
+	private static ConcurrentHashMap<String,Long> tableCountCache = new ConcurrentHashMap<>();
 	
 	protected DatabaseConnection(Database _db, ODatabaseDocumentTx _c) {
 		db = _db;
@@ -64,6 +65,15 @@ public class DatabaseConnection {
 	public boolean isConnected() {
 		return c != null;
 	}
+        
+        // The NewConnection functions are for thread processes that need another connection after the user has moved on from this one
+        public DatabaseConnection getNewConnection() {
+            return db.getConnection();
+        }
+        
+        public void freeNewConnection(DatabaseConnection con) {
+            db.freeConnection(con);
+        }
 	
 	/** Verification of password when changing password */
 	public boolean isPassword(String pass) {
