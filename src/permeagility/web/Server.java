@@ -47,6 +47,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.orientechnologies.orient.core.OConstants;
 import com.orientechnologies.orient.core.record.impl.ODocument;
+import java.net.URLEncoder;
 
 import permeagility.util.Browser;
 import permeagility.util.ConstantOverride;
@@ -621,6 +622,7 @@ public class Server extends Thread {
 				    
 				    if (classInstance instanceof Weblet) {
 				    	parms.put("REQUESTED_CLASS_NAME", className);
+				    	parms.put("COOKIE_VALUE", cookieValue);
 				    	Weblet weblet = (Weblet)classInstance;
 				    	if (DEBUG) System.out.println("LOADING HTML PAGE="+className+" PARAMETER="+parms.toString());
 						DatabaseConnection con = null;
@@ -872,7 +874,7 @@ public class Server extends Thread {
 			//"Cache-Control: no-cache\r\n"+
 			"Content-length: " + size + "\r\n"+
 			"Content-type: " + ct + "\r\n"+
-			(ct.startsWith("image") ? "Content-disposition: inline; filename=" : "Content-disposition: attachment; filename=" ) + fn + "\r\n"+
+			(ct.startsWith("image") || ct.endsWith("pdf") ? "Content-disposition: inline; filename=\"" : "Content-disposition: attachment; filename=\"" ) + fn +  "\"\r\n"+
 			"\r\n";
 		if (DEBUG) System.out.println("RESPONSEHEADER="+responseHeader);
 		return responseHeader;
