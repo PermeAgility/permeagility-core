@@ -47,7 +47,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.orientechnologies.orient.core.OConstants;
 import com.orientechnologies.orient.core.record.impl.ODocument;
-import java.net.URLEncoder;
 
 import permeagility.util.Browser;
 import permeagility.util.ConstantOverride;
@@ -102,15 +101,15 @@ public class Server extends Thread {
 	private static String SETTINGS_FILE = "init.pa";
 	private static Properties localSettings = new Properties();
 
-	static ConcurrentHashMap<String,String> sessions = new ConcurrentHashMap<String,String>(); // Cookie (user+random) -> username
-	static ConcurrentHashMap<String,Locale> sessionsLocale = new ConcurrentHashMap<String,Locale>(); // Cookie (user+random) -> locale
-	static ConcurrentHashMap<String,Database> sessionsDB = new ConcurrentHashMap<String,Database>();  // username -> Database pool
+	static ConcurrentHashMap<String,String> sessions = new ConcurrentHashMap<>(); // Cookie (user+random) -> username
+	static ConcurrentHashMap<String,Locale> sessionsLocale = new ConcurrentHashMap<>(); // Cookie (user+random) -> locale
+	static ConcurrentHashMap<String,Database> sessionsDB = new ConcurrentHashMap<>();  // username -> Database pool
 	
-	private static ConcurrentHashMap<String,byte[]> transientImages = new ConcurrentHashMap<String,byte[]>();
-	private static ConcurrentHashMap<String,Date> transientImageDates = new ConcurrentHashMap<String,Date>();
-	private static ConcurrentHashMap<String,String> transientImageTypes = new ConcurrentHashMap<String,String>();
+	private static ConcurrentHashMap<String,byte[]> transientImages = new ConcurrentHashMap<>();
+	private static ConcurrentHashMap<String,Date> transientImageDates = new ConcurrentHashMap<>();
+	private static ConcurrentHashMap<String,String> transientImageTypes = new ConcurrentHashMap<>();
 
-	private static ConcurrentHashMap<String,List<String>> pickValues = new ConcurrentHashMap<String,List<String>>();
+	private static ConcurrentHashMap<String,List<String>> pickValues = new ConcurrentHashMap<>();
 	
 	private static DatabaseHook databaseHook = null;
 	private static ClassLoader plusClassLoader;
@@ -156,10 +155,10 @@ public class Server extends Thread {
 		if (System.console()==null) {
 			System.out.println("Console is null - logging System.out and System.err to file");
 			File logDir = new File("log");
-			if (logDir == null || !logDir.exists()) {
+			if (!logDir.exists()) {
 				System.out.println("Log directory does not exist - will be created");
 			}
-			if (logDir != null && !logDir.isDirectory()) {
+			if (!logDir.isDirectory()) {
 				boolean success = logDir.mkdir();
 				if (success) {
 					System.out.println("Log directory created");
@@ -168,7 +167,7 @@ public class Server extends Thread {
 					System.out.println("Log directory could not be created - cannot store logs");					
 				}
 			}
-			if (logDir != null && logDir.isDirectory()) {
+			if (logDir.isDirectory()) {
 				SimpleDateFormat dateTimeFormat = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault());
 				String logFilename = "pa_"+dateTimeFormat.format(new Date())+".log";
 				try {
@@ -338,7 +337,7 @@ public class Server extends Thread {
 				}
 				
 				// Get URL encoded parameters and put in HashMap
-				HashMap<String,String> parms = new HashMap<String,String>();
+				HashMap<String,String> parms = new HashMap<>();
 				parms.put("HTTP_METHOD",method);
 				while (st2.hasMoreTokens()) {
 					String string2 = st2.nextToken("&");
@@ -540,7 +539,7 @@ public class Server extends Thread {
 										
 					// Set locale if specified
 					if (userdb != null) {
-						if (parms.containsKey("LOCALE") && userdb != null) {
+						if (parms.containsKey("LOCALE")) {
 							if (DEBUG) System.out.println("Setting locale to "+parms.get("LOCALE"));
 							Locale l = Message.getLocale(parms.get("LOCALE"));
 							if (l != null) {
@@ -563,7 +562,7 @@ public class Server extends Thread {
 					if (userdb != null && file.startsWith("/log/") && userdb.getUser().equals("admin")) {
 						if (DEBUG) System.out.println("Looking for log "+file);
 						File logfile = new File(file.substring(1));
-						if (logfile != null && logfile.exists()) {
+						if (logfile.exists()) {
 							InputStream iis = new FileInputStream(logfile);
 							theData = new byte[iis.available()];
 							int bytesread = iis.read(theData);
@@ -618,7 +617,7 @@ public class Server extends Thread {
 					}
 					// Instantiate the requested class and use it
 					Class<?> classOf = Class.forName( className, true, plusClassLoader );
-				    Object classInstance = classOf.newInstance();
+                                        Object classInstance = classOf.newInstance();
 				    
 				    if (classInstance instanceof Weblet) {
 				    	parms.put("REQUESTED_CLASS_NAME", className);
@@ -666,8 +665,12 @@ public class Server extends Thread {
 				    	System.out.println(file+" is not a proper class");
 				    }
                                     if (DEBUG) System.out.println("---------------------" + className+" generated in "+(System.currentTimeMillis()-startTime)+" ms -------------------------");
-                                    os.write(getHeader(content_type, theData.length, newCookieValue, content_disposition, keep_alive).getBytes());
-                                    os.write(theData);
+                                    if (parms.containsKey("RESPONSE_REDIRECT")) {
+                                        os.write(getRedirectHeader(parms).getBytes());
+                                    } else {
+                                        os.write(getHeader(content_type, theData.length, newCookieValue, content_disposition, keep_alive).getBytes());
+                                        os.write(theData);
+                                    }
                                     os.flush();
 				} catch (SocketException se) {  // Connection broken
 					System.out.println("Exception:"+se);
@@ -847,6 +850,16 @@ public class Server extends Thread {
 		return responseHeader;
 	}
 
+        /** Return Redirect header */
+	public String getRedirectHeader(HashMap<String,String> parms) {
+		String responseHeader = "HTTP/1.1 303 See other\r\n"
+			+"Location: " + parms.get("RESPONSE_REDIRECT") + "\r\n"
+       			+"Content-length: 0\r\n"   // Because Firefox is too stupid to understand the redirect without this
+                        +"\r\n";
+		if (DEBUG) System.out.println("RESPONSEHEADER="+responseHeader);
+		return responseHeader;
+	}
+
 	/* Get header for images */
 	public String getImageHeader(String ct, int size, boolean keep_alive) {
 		String responseHeader = "HTTP/1.1 200 OK\r\n"+
@@ -911,7 +924,6 @@ public class Server extends Thread {
 		return database.getClientVersion();
 	}
 	
-
 	/** Get the mime content type based on the filename */
 	public String getContentType(String name) {
 		if (name.endsWith(".html") || name.endsWith(".htm")) return "text/html";

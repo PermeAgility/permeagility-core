@@ -169,7 +169,7 @@ public class BackupRestore extends Weblet {
                     };
 
                     restore_thread.start();
-                    return redirect(con.getLocale(),"/");
+                    return redirect(parms, "/");
             } else {
                 return head(service)+
                 standardLayout(con, parms,

@@ -194,24 +194,19 @@ public abstract class Weblet {
             + "<body onload=init()>\n" + br() + br() + "<center><img src=\"../images/hourglass.gif\"></center>" + "</body>\n";
     }
 
-    public String redirect(Locale locale, Object object, String parms) {
-            return redirect(locale, object.getClass().getName(), parms);
+    public String redirect(HashMap<String,String> parms, Object object) {
+        return redirect(parms, object.getClass().getName(), null);
     }
 
-    public String redirect(Locale locale, Object object) {
-            return redirect(locale, object.getClass().getName(), null);
+    public String redirect(HashMap<String,String> parms, Object object, String parameters) {
+        return redirect(parms, object.getClass().getName()+(parameters != null ? "?"+parameters : ""));
     }
 
-    public String redirect(Locale locale, String target) {
-            return redirect(locale, target, null);
+    public String redirect(HashMap<String,String> parms, String target) {
+        parms.put("RESPONSE_REDIRECT", target);
+        return null;
     }
-
-    public String redirect(Locale locale, String classname, String parms) {
-            return head(Message.get(locale, "REDIRECT"))
-                            + bodyOnLoad(Message.get(locale, "REDIRECT")
-                                    , "window.location.href='"+classname+(parms != null && !parms.equals("") ? "?"+parms : "")+"';");
-
-    }
+        
     public static String image(String s) { return "<img src=\"../images/" + s + "\">\n"; }
     public static String image(String c, String s) { return "<img class=\"" + c + "\" src=\"../images/" + s + "\">\n"; }
 

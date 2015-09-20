@@ -81,10 +81,10 @@ public class Table extends Weblet {
                         if (d != null) {
                             table = d.getClassName();
                         } else {
-                            return redirect(locale, "permeagility.web.Schema");                            
+                            return redirect(parms,"permeagility.web.Schema");                            
                         }
                     } else {
-			return redirect(locale, "permeagility.web.Schema");
+			return redirect(parms, "permeagility.web.Schema");
                     }
 		}
 
@@ -224,16 +224,16 @@ public class Table extends Weblet {
                             newSourceId = "";
                         }
                     }
-                    return redirect(locale, this, "TABLENAME=" + oldTable + "&EDIT_ID=" + oldId
+                    return redirect(parms, this, "TABLENAME=" + oldTable + "&EDIT_ID=" + oldId
                                     +(!oldTable.equals(newSourceTable) && !oldId.equals(newSourceId) ? "&SOURCETABLENAME=" + newSourceTable + "&SOURCEEDIT_ID=" + newSourceId : ""));
                 } else {
-                    return redirect(locale, this, "TABLENAME=" + table);
+                    return redirect(parms, this, "TABLENAME=" + table);
                 }
             }            
             // Process create action
             if (submit.equals("CREATE_ROW")) {
                 if (insertRow(con, table, parms, errors)) {
-                    return redirect(locale, this, "TABLENAME=" + table);
+                    return redirect(parms, this, "TABLENAME=" + table);
                 } else {
                     errors.append(paragraph("error", "Could not insert"));
                     return head("Insert",getScripts(con))
@@ -262,7 +262,7 @@ public class Table extends Weblet {
                     ));
                 } else if (submit.equals("DELETE")) {
                     if (deleteRow(con, table, parms, errors)) {
-                        return redirect(locale, this, "TABLENAME=" + table);
+                        return redirect(parms, this, "TABLENAME=" + table);
                     } else {
                         return head("Could not delete", getScripts(con))
                                 + body(standardLayout(con, parms, getTableRowForm(con, table, parms) + errors.toString()));
@@ -270,7 +270,7 @@ public class Table extends Weblet {
                 } else if (submit.equals("UPDATE")) {
                     if (DEBUG) System.out.println("In updating row");
                     if (updateRow(con, table, parms, errors)) {
-                        return redirect(locale, this, "TABLENAME=" + table);
+                        return redirect(parms, this, "TABLENAME=" + table);
                     } else {
                         return head("Could not update", getScripts(con))
                                 + body(standardLayout(con, parms, getTableRowForm(con, table, parms) + errors.toString()));
@@ -754,7 +754,7 @@ public class Table extends Weblet {
 	public String getTableRowForm(DatabaseConnection con, String table, HashMap<String, String> parms) {
 		String edit_id = parms.get("EDIT_ID");
 		
-		if (table == null) return paragraph("error","null passed to table row form");
+		if (table == null) return paragraph("error","null table passed to table row form");
 		
 		// Cannot view abstract class directly - redirect to the actual record's class
 		OClass tclass = con.getSchema().getClass(table);
@@ -1014,7 +1014,7 @@ public class Table extends Weblet {
             } else if (type == 12) {  
                 String val = (initialValue == null ? "" : initialValue.toString());
                 // convert val to JSON format for editing directly
-                if (initialValue != null) {
+                if (initialValue != null && initialValue instanceof Map) {
                     StringBuilder sb = new StringBuilder();
                     sb.append("{\n");
                     @SuppressWarnings("unchecked")
@@ -1512,7 +1512,7 @@ public class Table extends Weblet {
                                         con.update("UPDATE columns SET name='"+newtable+"' WHERE name='"+table+"'");
                                         table = newtable;
                                         Server.tableUpdated("metadata:schema");
-                                        return redirect(locale, this, "TABLENAME=" + table);
+                                        return redirect(parms, this, "TABLENAME=" + table);
                                 } catch (Exception e) {
                                         errors.append(paragraph("error", e.getMessage()));
                                 }
@@ -1535,7 +1535,7 @@ public class Table extends Weblet {
                                                 }								
                                         }
                                         Server.tableUpdated("metadata:schema");
-                                        return redirect(locale, this, "TABLENAME=" + table);
+                                        return redirect(parms, this, "TABLENAME=" + table);
                                 } catch (Exception e) {
                                         errors.append(paragraph("error", e.getMessage()));
                                 }
@@ -1552,7 +1552,7 @@ public class Table extends Weblet {
                                         errors.append(paragraph("success", "Data for column removed:"+ret));						
                                         Setup.removeColumnFromColumns(con, table, colToDrop);
                                         Server.tableUpdated("metadata:schema");
-                                        return redirect(locale, this, "TABLENAME=" + table);
+                                        return redirect(parms, this, "TABLENAME=" + table);
                                 } catch (Exception e) {
                                         errors.append(paragraph("error", e.getMessage()));
                                 }
@@ -1566,7 +1566,7 @@ public class Table extends Weblet {
                                         d.save();
                                 }
                                 DatabaseConnection.rowCountChanged(table);
-                                return redirect(locale, this);
+                                return redirect(parms, this);
                         } catch (Exception e) {
                                 errors.append(paragraph("error", e.getMessage()));
                         }
@@ -1623,7 +1623,7 @@ public class Table extends Weblet {
                     errors.append(e.getLocalizedMessage());
                     e.printStackTrace();
                 }
-                return redirect(locale, this, "TABLENAME=" + table);
+                return redirect(parms, this, "TABLENAME=" + table);
             }
             if (submit != null && submit.equals("REVOKE_RIGHT")) {
                 if (DEBUG) System.out.println("Revoking right ");
@@ -1639,7 +1639,7 @@ public class Table extends Weblet {
                     errors.append(e.getLocalizedMessage());
                     e.printStackTrace();
                 }
-                return redirect(locale, this, "TABLENAME=" + table);
+                return redirect(parms, this, "TABLENAME=" + table);
             }
 
             String title = table + " " + Message.get(locale, "ADVANCED_OPTIONS");

@@ -27,10 +27,8 @@ public class Shutdown extends Weblet {
 		StringBuilder errors = new StringBuilder();
 		
 		if (parms.get("SUBMIT") != null && parms.get("SUBMIT").equals("CANCEL")) {
-			return redirect(con.getLocale(),"");
-//					head("Redirect")
-//			+ bodyOnLoad("Redirecting...", "window.location.href='/';");
-    	}
+			return redirect(parms,"/");
+        	}
     
 		if (parms.get("SUBMIT") == null || !parms.get("SUBMIT").equals("CONFIRM_SHUTDOWN")) {
 	    	return head(service)+
@@ -51,12 +49,12 @@ public class Shutdown extends Weblet {
 				Server.restore_lockout = true;
 				int exitCode = parms.get("WITH_RESTART") != null ? 1 : 0;
 				try {
-					return redirect(con.getLocale(),"");
+					return redirect(parms, "/");
 				} catch (Exception e) {
 				} finally {
 					Server.exit(exitCode);
 				}
-				return redirect(con.getLocale(),"");
+				return redirect(parms,"/");
 		}
     }
 
