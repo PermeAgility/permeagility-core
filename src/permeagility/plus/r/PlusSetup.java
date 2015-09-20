@@ -54,6 +54,9 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 		Setup.checkCreateColumn(con,table, "name", OType.STRING, errors);
 		Setup.checkCreateColumn(con,table, "description", OType.STRING, errors);
 		Setup.checkCreateColumn(con,table, "RScript", OType.STRING, errors);
+		Setup.checkCreateColumn(con,table, "status", OType.STRING, errors);
+		Setup.checkCreateColumn(con,table, "textResult", OType.STRING, errors);
+		Setup.checkCreateColumn(con,table, "PDFResult", OType.CUSTOM, errors);
 		
 		Setup.createMenuItem(con,getName(),getInfo(),MENU_CLASS,parms.get("MENU"),parms.get("ROLES"));	
 		Setup.createMenuItem(con,getName(),getInfo(),DATA_CLASS,null,parms.get("ROLES"));	

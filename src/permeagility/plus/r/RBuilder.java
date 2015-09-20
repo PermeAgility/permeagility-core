@@ -40,7 +40,7 @@ import permeagility.web.Thumbnail;
 public class RBuilder extends Table {
 
     // Processes in progress by RScript ID containing RScript id and process
-    static ConcurrentHashMap<String,ConcurrentHashMap<String,Process>> processes = new ConcurrentHashMap<>();
+    static ConcurrentHashMap<String,Process> processes = new ConcurrentHashMap<>();
 
     @Override
     public String getPage(DatabaseConnection con, HashMap<String, String> parms) {
@@ -50,28 +50,52 @@ public class RBuilder extends Table {
         Locale locale = con.getLocale();
 
         String run = parms.get("RUN");
-        String view = parms.get("VIEW");
+        String viewText = parms.get("VIEWTEXT");
+        String viewPDF = parms.get("VIEWPDF");
         String tableName = PlusSetup.TABLE;
 
+        // Handle data editing using the default table behaviour
         String update = processSubmit(con, parms, tableName, errors);
-        if (update != null) {
-            return update;
-        }
+        if (update != null) { return update; }
         
-        if (view != null) {
-            StringBuilder desc = new StringBuilder();
-            String tid = Thumbnail.getThumbnailId(tableName, view, "PDFResult", desc);
-            return head("R Builder - result view", getScripts(con) )
-                + body(standardLayout(con, parms,
-                    "<object data=\"http://localhost:1999/thumbnail?SIZE=FULL&ID="+tid+"\" width=\"100%\" height=\"100%\">"
-                        +"<a href=\"/thumbnail?SIZE=FULL&ID="+tid+"\">Click to download "+desc.toString()+"</a> "
-                   +"</object>"     
-            ));
+        if (viewText != null) {
+            if (processes.get(viewText) != null) {
+                errors.append(paragraph("warning","Process is still running"));
+            } else {
+                ODocument doc = con.get(viewText);
+                if (doc == null) {
+                    errors.append(paragraph("error","View text - document is null"));
+                } else {
+                    String textResult = doc.field("textResult");
+                    if (textResult == null) {
+                        errors.append(paragraph("error","No results found"));
+                    } else {
+                        textResult = textResult.replace("<","&lt;").replace(">","&gt;").replace("\n", "<br>");
+                        return head("R Builder - Text result view", getScripts(con) )
+                            + body(standardLayout(con, parms, textResult));
+                    }
+                }
+            }
+        } else if (viewPDF != null) {
+            if (processes.get(viewPDF) != null) {
+                errors.append(paragraph("warning","Process is still running"));
+            } else {
+                StringBuilder desc = new StringBuilder();
+                String tid = Thumbnail.getThumbnailId(tableName, viewPDF, "PDFResult", desc);
+                return head("R Builder - PDF result view", getScripts(con) )
+                    + body(standardLayout(con, parms,
+                        "<object data=\"/thumbnail?SIZE=FULL&ID="+tid+"\" width=\"100%\" height=\"100%\">"
+                            +"<a href=\"/thumbnail?SIZE=FULL&ID="+tid+"\">Click to download "+desc.toString()+"</a> "
+                       +"</object>"     
+                ));
+            }
         } else if (run != null) {
             System.out.println("Build R Process " + run);
             ODocument runDoc = con.get(run);
             if (runDoc == null) {
                 errors.append(paragraph("Could not retrieve run details using " + run));
+            } else if (processes.get(run) != null) {
+                errors.append(paragraph("warning","Process is already running"));
             } else {
                 try {
                     File pdf = File.createTempFile("RProcess", ".pdf");
@@ -80,12 +104,19 @@ public class RBuilder extends Table {
                     File rscript = File.createTempFile("RScript", ".r");
                     System.out.println("Temp rscript file created "+rscript.getAbsolutePath());
                     String rsrc = runDoc.field("RScript");
-                    
+                    runDoc.field("status","Running");
                     // Replace $$pdf$$ with path to PDF output
                     // example cookie options: "name" = "PermeAgilitySession1999", "value" = "admin2.029913179111651E7"
-                    rsrc = rsrc.replace("$$cookie$$", "\"name\"=\"PermeAgilitySession"+Server.getHTTPPort()+"\", \"value\"=\""+parms.get("COOKIE_VALUE")+"\"");
+                    //rsrc = rsrc.replace("$$cookie$$", "\"name\"=\"PermeAgilitySession"+Server.getHTTPPort()+"\", \"value\"=\""+parms.get("COOKIE_VALUE")+"\"");
                     // Write the script to the file - put output to pdf instruction at the top
                     Files.write(rscript.toPath(), ("pdf(\""+pdf.getAbsolutePath()+"\")\n").getBytes(), StandardOpenOption.WRITE);
+                    String rCode = "library(httr)\n"
+                        +"PermeAgilityCSV <- function(p) {\n"
+                        + "    content(GET(paste(\"http://localhost:"+Server.getHTTPPort()
+                                +"/permeagility.plus.csv.Download?\", URLencode(p), sep=\"\"), set_cookies(\"name\" = \"PermeAgilitySession"+Server.getHTTPPort()
+                                +"\", \"value\" = \""+parms.get("COOKIE_VALUE")+"\")))\n"
+                        + "}\n";
+                    Files.write(rscript.toPath(), rCode.getBytes(), StandardOpenOption.APPEND);
                     Files.write(rscript.toPath(), rsrc.getBytes(), StandardOpenOption.APPEND);
                     
                     File output = File.createTempFile("RProcess", ".out");
@@ -95,9 +126,10 @@ public class RBuilder extends Table {
                     
                     System.out.println("Running command "+execCommands[2]);
                     Process newProcess = Runtime.getRuntime().exec(execCommands);
+                    processes.put(run, newProcess);
                     Thread waitForIt = new Thread() {
                         public void run() {
-                            String runDocId = runDoc.getIdentity().toString();
+                            String runDocId = runDoc.getIdentity().toString().substring(1);
                             DatabaseConnection threadCon = con.getNewConnection();
                             StringBuilder result = new StringBuilder();
                             try {
@@ -115,7 +147,9 @@ public class RBuilder extends Table {
                                 ODocument resultDoc = threadCon.get(runDocId);
                                 resultDoc.field("textResult", result);
                                 updateBlobFromFile(resultDoc, "RScript", "PDFResult", pdf.getAbsolutePath());
+                                resultDoc.field("status","Finished");
                                 resultDoc.save();
+                                processes.remove(runDocId);
                             } catch (Exception e) {
                                 System.out.println("Exception in R Process waitFor: "+e.getMessage());
                                 e.printStackTrace();
@@ -136,9 +170,8 @@ public class RBuilder extends Table {
         }
         if (sb.length() == 0) {
             try {
-                parms.put("SERVICE", "R Builder: Setup process");
-                sb.append(paragraph("banner", "Select R Process"));
-                sb.append(getTable(con, parms, PlusSetup.TABLE, "SELECT FROM " + PlusSetup.TABLE, null, 0, "name,description,PDFResult,button_RUN_Run,button_VIEW_View,-"));
+                parms.put("SERVICE", "R Builder");
+                sb.append(getTable(con, parms, PlusSetup.TABLE, "SELECT FROM " + PlusSetup.TABLE, null, 0, "name,description,button_RUN_Run,status,button_VIEWTEXT_ViewText,button_VIEWPDF_ViewPDF,-"));
             } catch (Exception e) {
                 e.printStackTrace();
                 sb.append("Error retrieving R Scripts patterns: " + e.getMessage());
@@ -146,7 +179,7 @@ public class RBuilder extends Table {
         }
         return head("R Builder", getScripts(con) )
                 + body(standardLayout(con, parms,
-                    ((Security.getTablePriv(con, PlusSetup.TABLE) & PRIV_CREATE) > 0 && run == null
+                    ((Security.getTablePriv(con, PlusSetup.TABLE) & PRIV_CREATE) > 0
                     ? popupForm("CREATE_NEW_ROW", null, Message.get(locale, "CREATE_ROW"), null, "NAME",
                             paragraph("banner", Message.get(locale, "CREATE_ROW"))
                             + hidden("TABLENAME", PlusSetup.TABLE)
@@ -186,5 +219,11 @@ public class RBuilder extends Table {
             }
             return true;
 	}
+
+    @Override
+    public String getTableRowFields(DatabaseConnection con, String table, HashMap<String, String> parms) {
+        System.out.println("RBuilder: Get table row fields");
+        return getTableRowFields(con, table, parms, "name,description,RScript,-");
+    }
 
 }
