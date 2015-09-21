@@ -1046,7 +1046,7 @@ public class Server extends Thread {
 		System.out.println("Initializing server using OrientDB Version "+OConstants.getVersion()+" Build number "+OConstants.getBuildNumber());
 		try {
 			String p = getLocalSetting(DB_NAME+HTTP_PORT, null);
-			System.out.println("Localsetting for password is "+p);
+			//System.out.println("Localsetting for password is "+p);
 			if (DB_NAME.startsWith("plocal")) {  // Install database hook for Audit Trail and other triggers
 				System.out.println("Installing database hook for Audit Trail");
 				databaseHook = new DatabaseHook();
