@@ -641,7 +641,7 @@ public class Server extends Thread {
 							ByteArrayOutputStream dataStream = new ByteArrayOutputStream();
 							e.printStackTrace(new PrintWriter(dataStream));
 							theData = dataStream.toByteArray();
-							userdb.closeConnection(con);
+							userdb.closeConnection(con);  // Assume the connection has gone bad
 							con = null;
 						}
 						if (userdb != null && con != null) {
