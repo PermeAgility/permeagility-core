@@ -105,7 +105,9 @@ public class Schema extends Weblet {
                             tablelist.append(link("permeagility.web.Table?TABLENAME=" + tableName, pretty) + br());
                             groupHasTable = true;
                         } else {
-                            System.out.println("permeagility.web.Schema: Table " + tableName + " not found - will not be shown");
+                            if (!tableName.isEmpty()) {
+                                System.out.println("permeagility.web.Schema: Table " + tableName + " not found - will not be shown");
+                            }
                         }
                     }
                 }
