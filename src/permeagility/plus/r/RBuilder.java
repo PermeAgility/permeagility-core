@@ -105,10 +105,7 @@ public class RBuilder extends Table {
                     System.out.println("Temp rscript file created "+rscript.getAbsolutePath());
                     String rsrc = runDoc.field("RScript");
                     runDoc.field("status","Running");
-                    // Replace $$pdf$$ with path to PDF output
-                    // example cookie options: "name" = "PermeAgilitySession1999", "value" = "admin2.029913179111651E7"
-                    //rsrc = rsrc.replace("$$cookie$$", "\"name\"=\"PermeAgilitySession"+Server.getHTTPPort()+"\", \"value\"=\""+parms.get("COOKIE_VALUE")+"\"");
-                    // Write the script to the file - put output to pdf instruction at the top
+                    // Write the script to the file - put output to pdf instruction and PermeAgilityCSV function at the top
                     Files.write(rscript.toPath(), ("pdf(\""+pdf.getAbsolutePath()+"\")\n").getBytes(), StandardOpenOption.WRITE);
                     String rCode = "library(httr)\n"
                         +"PermeAgilityCSV <- function(p) {\n"
@@ -146,8 +143,11 @@ public class RBuilder extends Table {
                                 }
                                 ODocument resultDoc = threadCon.get(runDocId);
                                 resultDoc.field("textResult", result);
-                                updateBlobFromFile(resultDoc, "RScript", "PDFResult", pdf.getAbsolutePath());
-                                resultDoc.field("status","Finished");
+                                if (updateBlobFromFile(resultDoc, "RScript", "PDFResult", pdf.getAbsolutePath())) {
+                                    resultDoc.field("status","Finished");                                
+                                } else {
+                                    resultDoc.field("status","No PDF");                                                                    
+                                }
                                 resultDoc.save();
                                 processes.remove(runDocId);
                             } catch (Exception e) {
@@ -214,7 +214,7 @@ public class RBuilder extends Table {
                     Thumbnail.createThumbnail(table, doc, blobName);
                 }
             } else {
-                System.out.println("Table.updateBlobs() - document is null");
+                System.out.println("RBuilder.updateBlobFromFile() - document is null");
                 return false;
             }
             return true;
