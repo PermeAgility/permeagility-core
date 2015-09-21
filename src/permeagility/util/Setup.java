@@ -105,6 +105,10 @@ public class Setup {
             checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,"userrequest",1,installMessages);
             checkCreatePrivilege(con,"guest",ResourceGeneric.CLUSTER,"userrequest",1,installMessages);
 
+            // Add ability for reader/writer to read from systemclusters
+            checkCreatePrivilege(con,"reader",ResourceGeneric.SYSTEM_CLUSTERS,null,2,installMessages);
+            checkCreatePrivilege(con,"writer",ResourceGeneric.SYSTEM_CLUSTERS,null,2,installMessages);
+
             // columns must be first as it will receive the properties as they are created by checkCreateProperty
             System.out.print(TABLE_COLUMNS+" ");  
             OClass columnsTable = Setup.checkCreateTable(oschema, TABLE_COLUMNS, installMessages);
@@ -379,6 +383,10 @@ public class Setup {
             mCount += checkCreateMessage(con, loc, "RESTORE_ACCESS", "You must be admin or a dba to backup and restore a database");
             mCount += checkCreateMessage(con, loc, "RESTORE_PLOCAL", "You can only restore a plocal database using this tool");
             mCount += checkCreateMessage(con, loc, "USERREQUEST_INSERTED", "Your request was inserted - you will receive an email to confirm your account");
+            mCount += checkCreateMessage(con, loc, "USERREQUEST_CREATED", "Your request was accepted - please proceed to home page and login");
+            mCount += checkCreateMessage(con, loc, "USERREQUEST_NEED_NAMEPASS", "Please enter a username and password");
+            mCount += checkCreateMessage(con, loc, "USERREQUEST_EXISTS", "Username exists, please select a different one");
+            mCount += checkCreateMessage(con, loc, "USERREQUEST_ERROR", "User request could not be created");
             mCount += checkCreateMessage(con, loc, "IMAGE_VIEW_LINK", ".");
             mCount += checkCreateMessage(con, loc, "IMAGE_VIEW_HEADER", "View");
             mCount += checkCreateMessage(con, loc, "DOWNLOAD_FULL_SIZE", "Download full size");
