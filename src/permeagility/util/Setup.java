@@ -105,9 +105,19 @@ public class Setup {
             checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,"userrequest",1,installMessages);
             checkCreatePrivilege(con,"guest",ResourceGeneric.CLUSTER,"userrequest",1,installMessages);
 
-            // Add ability for reader/writer to read from systemclusters
-            checkCreatePrivilege(con,"reader",ResourceGeneric.SYSTEM_CLUSTERS,null,2,installMessages);
-            checkCreatePrivilege(con,"writer",ResourceGeneric.SYSTEM_CLUSTERS,null,2,installMessages);
+            // Add ability for reader/writer to read from systemclusters and ORole
+            
+            // For some reason, the hasRule function thinks these already exist
+//            checkCreatePrivilege(con,"reader",ResourceGeneric.SYSTEM_CLUSTERS,null,2,installMessages);
+//            checkCreatePrivilege(con,"reader",ResourceGeneric.CLUSTER,"ORole",2,installMessages);
+//            checkCreatePrivilege(con,"writer",ResourceGeneric.SYSTEM_CLUSTERS,null,2,installMessages);
+//            checkCreatePrivilege(con,"writer",ResourceGeneric.CLUSTER,"ORole",2,installMessages);
+
+            // So we have to do this manually
+            con.update("GRANT READ on database.systemclusters TO reader");
+            con.update("GRANT READ on database.systemclusters TO writer");
+            con.update("GRANT READ on database.cluster.ORole TO reader");
+            con.update("GRANT READ on database.cluster.ORole TO writer");
 
             // columns must be first as it will receive the properties as they are created by checkCreateProperty
             System.out.print(TABLE_COLUMNS+" ");  
@@ -188,6 +198,7 @@ public class Setup {
                 con.create(TABLE_CONSTANT).field("classname","permeagility.web.Menu").field("description","Menu direction (true=horizontal, false=vertical)").field("field","HORIZONTAL_LAYOUT").field("value","true").save();				
                 con.create(TABLE_CONSTANT).field("classname","permeagility.web.Schema").field("description","Number of columns in tables view").field("field","NUMBER_OF_COLUMNS").field("value","4").save();				
                 con.create(TABLE_CONSTANT).field("classname","permeagility.util.Setup").field("description","When true, ORestricted tables will be by role (Delete OIdentity pickList if setting to false)").field("field","RESTRICTED_BY_ROLE").field("value","true").save();				
+                con.create(TABLE_CONSTANT).field("classname","permeagility.web.UserRequest").field("description","Automatically assign new users to this role, leave blank to prevent automatic new user creation").field("field","ACCEPT_TO_ROLE").field("value","guest").save();				
             }
 
             System.out.print(TABLE_LOCALE+" ");
