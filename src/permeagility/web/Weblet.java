@@ -844,6 +844,9 @@ public abstract class Weblet {
     }
 
     public String linkSetControl(DatabaseConnection con, String name, String table, QueryResult qr, Locale l, Set<ODocument> picked) {
+        if (qr == null) {
+                return paragraph("error","Cannot produce list for table "+table+" query is empty");
+        }
         List<String> names = new ArrayList<>(qr.size());
         List<String> values = new ArrayList<>(qr.size());
         List<String> tooltips = new ArrayList<>(qr.size());
@@ -992,6 +995,9 @@ public abstract class Weblet {
     }
 
     public String linkMapControl(DatabaseConnection con, String name, String table, QueryResult qr, Locale l, Map<String,ODocument> picked) {
+        if (qr == null) {
+                return paragraph("error","Cannot produce list for table "+table+" query is empty");
+        }
         HashMap<String,Integer> listMap = new HashMap<>();  // for keeping counts of objects LinkList can have duplicates
         List<String> names = new ArrayList<>(qr.size());
         List<String> values = new ArrayList<>(qr.size());
