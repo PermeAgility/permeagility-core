@@ -36,6 +36,7 @@ import com.orientechnologies.orient.core.id.ORecordId;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OProperty;
 import com.orientechnologies.orient.core.metadata.schema.OType;
+import com.orientechnologies.orient.core.record.ORecord;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 import com.orientechnologies.orient.core.record.impl.ORecordBytes;
 import java.io.PrintWriter;
@@ -556,7 +557,7 @@ public class Table extends Weblet {
                             if (DEBUG) System.out.println("Updating BLOB");
                             updateBlob(updateRow,table,columnName,parms,errors);
                         }
-                    } else if (type == 9 || type==10 || type==11 || type==12) { // Embedded types - treat like a string (without quotes) - user beware
+                    } else if (type == 9 || type==10 || type==11) { // Embedded types - treat like a string (without quotes) - user beware
                         Object originalValue = updateRow.field(columnName);
                         if ((newValue != null && originalValue != null && !newValue.equals(originalValue)) // They will always detect a change because the string is formatted differently
                             || (newValue == null && originalValue != null)  // This could be considered a bug
@@ -565,6 +566,19 @@ public class Table extends Weblet {
                                 updateRow.field(columnName,newValue);
                         }
 
+                    } else if (type==12) { // Embedded map 
+                        // will not be updated
+/*                        Object originalValue = updateRow.field(columnName);
+                        if ((newValue != null && originalValue != null && !newValue.equals(originalValue)) // They will always detect a change because the string is formatted differently
+                            || (newValue == null && originalValue != null)  // This could be considered a bug
+                            || (originalValue == null && newValue != null)) {
+                            if (DEBUG) System.out.println("Embedded value changed");
+                            ODocument record = new ODocument().fromJSON(newValue);
+                            if (record != null) {
+                                updateRow.field(columnName,record);
+                            }
+                        }
+*/
                     } else if (type == 13) { // Link
                         ODocument o = updateRow.field(columnName);
                         if (DEBUG) System.out.println("Updating Link "+(o == null ? "" : o.getIdentity().toString()));
@@ -1617,6 +1631,18 @@ public class Table extends Weblet {
                 System.out.println("Executing GRANT: "+grantQuery);
                 try {
                     con.update(grantQuery);
+//                    Server.tableUpdated("ORole");  // Privs are stored in ORole
+//                    Security.tablePrivUpdated(table);
+                } catch (Exception e) {
+                    errors.append(e.getLocalizedMessage());
+                    e.printStackTrace();
+                }
+                grantQuery = "GRANT "+right
+                                +" ON database.cluster."+table
+                                +" TO "+role;
+                System.out.println("Executing GRANT for cluster: "+grantQuery);
+                try {
+                    con.update(grantQuery);
                     Server.tableUpdated("ORole");  // Privs are stored in ORole
                     Security.tablePrivUpdated(table);
                 } catch (Exception e) {
@@ -1631,6 +1657,18 @@ public class Table extends Weblet {
                                 +" ON database.class."+table
                                 +" FROM "+role;
                 System.out.println("Executing REVOKE: "+revokeQuery);
+                try {
+                    con.update(revokeQuery);
+//                    Server.tableUpdated("ORole");  // Stored in ORole
+//                    Security.tablePrivUpdated(table);
+                } catch (Exception e) {
+                    errors.append(e.getLocalizedMessage());
+                    e.printStackTrace();
+                }
+                revokeQuery = "REVOKE "+right
+                                +" ON database.cluster."+table
+                                +" FROM "+role;
+                System.out.println("Executing REVOKE on cluster: "+revokeQuery);
                 try {
                     con.update(revokeQuery);
                     Server.tableUpdated("ORole");  // Stored in ORole
