@@ -685,7 +685,6 @@ public class Setup {
             System.out.print(TABLE_USERREQUEST+" ");
             OClass urTable = Setup.checkCreateTable(oschema, TABLE_USERREQUEST, installMessages);
             Setup.checkCreateColumn(con, urTable, "name", OType.STRING, installMessages);
-            Setup.checkCreateColumn(con, urTable, "email", OType.STRING, installMessages);
             Setup.checkCreateColumn(con, urTable, "password", OType.STRING, installMessages);
 
             con.flush();
