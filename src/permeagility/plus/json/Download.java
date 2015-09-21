@@ -24,12 +24,6 @@ import permeagility.util.DatabaseConnection;
 import permeagility.util.QueryResult;
 import permeagility.web.Weblet;
 
-/**
- *
- * @author glenn
- */
-
-
 public class Download extends permeagility.web.Download {
 
     @Override
@@ -64,7 +58,7 @@ public class Download extends permeagility.web.Download {
                     sb.append(comma+exportDocument(con, d, depth, 0));
                     comma = ", \n";
                 }
-                sb.append(" ] }");
+                sb.append(" ] }\n");
                 if (callback != null) { sb.append(")"); }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -80,60 +74,66 @@ public class Download extends permeagility.web.Download {
         String[] columns = d.fieldNames();
         for (String p : columns) {
             OType t = d.fieldType(p);
-            sb.append(comma);
-            if (t == OType.LINK) {
-                ODocument ld = (ODocument)d.field(p);
-                if (ld == null) {
-                    sb.append("\""+p+"\":null");                    
-                } else if (level < maxLevel) {
-                    sb.append("\""+p+"\":"+exportDocument(con, ld , maxLevel, level+1));
+            if (t != OType.CUSTOM) {
+                sb.append(comma);
+                if (t == OType.LINK) {
+                    ODocument ld = (ODocument)d.field(p);
+                    if (ld == null) {
+                        sb.append("\""+p+"\":null");                    
+                    } else if (level < maxLevel) {
+                        sb.append("\""+p+"\":"+exportDocument(con, ld , maxLevel, level+1));
+                    } else {
+                        sb.append("\""+p+"\":\""+ld.getIdentity().toString().substring(1)+"\"");                    
+                    }
+                } else if (t == OType.LINKSET) {
+                    Set<ODocument> set = d.field(p);
+                    String lcomma = "";
+                    sb.append("\""+p+"\": [");
+                    if (set != null) {
+                        for (ODocument sd : set) {
+                            if (sd != null) {
+                                if (level < maxLevel) {
+                                    sb.append(lcomma+exportDocument(con, sd, maxLevel, level+1));
+                                } else {
+                                    sb.append(lcomma+"\""+sd.getIdentity().toString().substring(1)+"\"");                    
+                                }
+                                lcomma = ", \n";
+                            }
+                        }
+                    }
+                    sb.append("] ");
+                } else if (t == OType.LINKLIST) {
+                    List<ODocument> set = d.field(p);
+                    String lcomma = "";
+                    sb.append("\""+p+"\": [");
+                    if (set != null) {
+                        for (ODocument sd : set) {
+                            if (sd != null) {
+                                if (level < maxLevel) {
+                                    sb.append(lcomma+exportDocument(con, sd, maxLevel, level+1));
+                                } else {
+                                    sb.append(lcomma+"\""+sd.getIdentity().toString().substring(1)+"\"");                    
+                                }
+                                lcomma = ", \n";
+                            }
+                        }
+                    }
+                    sb.append("] ");
+                } else if (t == OType.DATE || t == OType.DATETIME) {
+                    sb.append("\""+p+"\":\""+d.field(p)+"\"");
+                } else if (t == OType.EMBEDDED || t == OType.EMBEDDEDLIST || t == OType.EMBEDDEDMAP || t == OType.EMBEDDEDSET) {
+                    sb.append("\""+p+"\":\""+d.field(p)+"\"");                
+                } else if (t == OType.STRING) {
+                    String content = d.field(p);
+                    if (content != null && !content.isEmpty()) {
+                        content = content.replace("\"","\\\"").replace("\\s","\\u005cs").replace("\t","\\t").replace("\r","\\r").replace("\n","\\n");
+                    }
+                    sb.append("\""+p+"\":\""+(content == null ? "" : content)+"\"");                
                 } else {
-                    sb.append("\""+p+"\":\""+ld.getIdentity().toString().substring(1)+"\"");                    
+                    sb.append("\""+p+"\":"+d.field(p));
                 }
-            } else if (t == OType.LINKSET) {
-                Set<ODocument> set = d.field(p);
-                String lcomma = "";
-                sb.append("\""+p+"\": [");
-                if (set != null) {
-                    for (ODocument sd : set) {
-                        if (level < maxLevel) {
-                            sb.append(lcomma+exportDocument(con, sd, maxLevel, level+1));
-                        } else {
-                            sb.append(lcomma+"\""+sd.getIdentity().toString().substring(1)+"\"");                    
-                        }
-                        lcomma = ", \n";
-                    }
-                }
-                sb.append("] ");
-            } else if (t == OType.LINKLIST) {
-                List<ODocument> set = d.field(p);
-                String lcomma = "";
-                sb.append("\""+p+"\": [");
-                if (set != null) {
-                    for (ODocument sd : set) {
-                        if (level < maxLevel) {
-                            sb.append(lcomma+exportDocument(con, sd, maxLevel, level+1));
-                        } else {
-                            sb.append(lcomma+"\""+sd.getIdentity().toString().substring(1)+"\"");                    
-                        }
-                        lcomma = ", \n";
-                    }
-                }
-                sb.append("] ");
-            } else if (t == OType.DATE || t == OType.DATETIME) {
-                sb.append("\""+p+"\":\""+d.field(p)+"\"");
-            } else if (t == OType.EMBEDDED || t == OType.EMBEDDEDLIST || t == OType.EMBEDDEDMAP || t == OType.EMBEDDEDSET) {
-                sb.append("\""+p+"\":\""+d.field(p)+"\"");                
-            } else if (t == OType.STRING) {
-                String content = d.field(p);
-                if (content != null && !content.isEmpty()) {
-                    content = content.replace("\"","\\\"").replace("\\s","\\u005cs").replace("\t","\\t").replace("\r","\\r").replace("\n","\\n");
-                }
-                sb.append("\""+p+"\":\""+(content == null ? "" : content)+"\"");                
-            } else {
-                sb.append("\""+p+"\":"+d.field(p));
+                comma = ", \n";
             }
-            comma = ", \n";
         }
         sb.append("}");
         return sb.toString();
