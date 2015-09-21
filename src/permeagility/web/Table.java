@@ -772,7 +772,7 @@ public class Table extends Weblet {
 
 		String formName = (edit_id == null ? "NEWROW" : "UPDATEROW");
 		return (con.getUser().equals("guest") ? "" : link(this.getClass().getName()+"?TABLENAME="+table,Message.get(con.getLocale(), "ALL_ROWS_IN_TABLE",makeCamelCasePretty(table))))
-                        + "&nbsp;&nbsp;" + link("permeagility.web.Visuility?TYPE=row&ID="+edit_id,"<i>V</i>")    
+                        + (Security.authorized(con.getUser(), "permeagility.web.Visuility") ? "&nbsp;&nbsp;"+link("permeagility.web.Visuility?TYPE=row&ID="+edit_id,"<i>V</i>") : "")   
 			+ getLinkTrail(con, parms.get("SOURCETABLENAME"),parms.get("SOURCEEDIT_ID")) 
 			+ paragraph("banner", (edit_id == null ? Message.get(con.getLocale(), "CREATE_ROW") 
 					: Message.get(con.getLocale(), "UPDATE") + "&nbsp;" + makeCamelCasePretty(table)))
