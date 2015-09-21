@@ -62,9 +62,9 @@ public class UserRequest extends Table {
                                         return paragraph("success",Message.get(locale, "USERREQUEST_CREATED"))+link("/",Message.get(locale, "HEADER_LOGO_DESC"));
                                     }
                                 }
+                            } else {
+                                return paragraph("success",Message.get(locale, "USERREQUEST_INSERTED"))+link("/",Message.get(locale, "HEADER_LOGO_DESC"));                            
                             }
-                        } else {
-                            return paragraph("success",Message.get(locale, "USERREQUEST_INSERTED"))+link("/",Message.get(locale, "HEADER_LOGO_DESC"));
                         }
                     }
                 } catch (Exception e) {
