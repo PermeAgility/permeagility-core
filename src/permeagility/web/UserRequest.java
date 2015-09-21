@@ -15,10 +15,14 @@
  */
 package permeagility.web;
 
+import com.orientechnologies.orient.core.record.impl.ODocument;
 import permeagility.util.DatabaseConnection;
 import permeagility.util.Setup;
 
 public class UserRequest extends Table {
+    
+    // If not null, user request will automatically create user with the specified role
+    public static String ACCEPT_TO_ROLE = null;
 
      public String getPage(DatabaseConnection con, java.util.HashMap<String,String> parms) {
 	return head(Message.get(con.getLocale(),"REQUEST_ACCOUNT"),getDateControlScript(con.getLocale())+getColorControlScript())+
@@ -28,11 +32,53 @@ public class UserRequest extends Table {
     public String getHTML(DatabaseConnection con, java.util.HashMap<String,String> parms) {
     	StringBuilder errors = new StringBuilder();
     	if (parms.get("SUBMIT") != null) {
-            if (insertRow(con, Setup.TABLE_USERREQUEST, parms, errors)) {
-                return paragraph("success",Message.get(con.getLocale(), "USERREQUEST_INSERTED"))+link("/",Message.get(con.getLocale(), "HEADER_LOGO_DESC"));
+            DatabaseConnection serverCon = Server.getServerConnection();
+            if (serverCon != null) {
+                try {
+                    String name = parms.get(PARM_PREFIX+"name");
+                    String pass = parms.get(PARM_PREFIX+"password");
+                    if (name == null || name.isEmpty() || pass == null || pass.isEmpty()) {
+                        errors.append(paragraph("error", Message.get(con.getLocale(),"USERREQUEST_NEED_NAMEPASS")));
+                    } else if (serverCon.queryDocument("SELECT FROM userRequest WHERE name='"+name+"'") != null
+                            || serverCon.queryDocument("SELECT FROM OUser WHERE name='"+name+"'") != null) {
+                        errors.append(paragraph("error", Message.get(con.getLocale(),"USERREQUEST_EXISTS")));
+                    } else {
+                        if (insertRow(con, Setup.TABLE_USERREQUEST, parms, errors)) {
+                            if (ACCEPT_TO_ROLE != null && !ACCEPT_TO_ROLE.isEmpty()) {
+                                System.out.println("Automatically creating the user "+name+" with ACCEPT_TO_ROLE="+ACCEPT_TO_ROLE);
+                                ODocument roleDoc = serverCon.queryDocument("SELECT FROM ORole WHERE name='"+ACCEPT_TO_ROLE+"'");
+                                if (roleDoc == null) {
+                                    System.out.println("ERROR in UserRequest: ORole "+ACCEPT_TO_ROLE+" not found");
+                                    errors.append("Could not find role "+ACCEPT_TO_ROLE);
+                                } else {
+                                    System.out.println("Role "+ACCEPT_TO_ROLE+" found, adding user "+name);
+                                    // name, password should already be in the request so leave it alone
+                                    parms.put(PARM_PREFIX+"status", "ACTIVE");
+                                    parms.put(PARM_PREFIX+"roles", roleDoc.getIdentity().toString().substring(1));
+                                    if (insertRow(serverCon, "OUser", parms, errors)) {
+                                        System.out.println("New user "+parms.get(PARM_PREFIX+"name")+" created");
+                                        return paragraph("success",Message.get(con.getLocale(), "USERREQUEST_CREATED"))+link("/",Message.get(con.getLocale(), "HEADER_LOGO_DESC"));
+                                    }
+                                }
+                            }
+                        } else {
+                            return paragraph("success",Message.get(con.getLocale(), "USERREQUEST_INSERTED"))+link("/",Message.get(con.getLocale(), "HEADER_LOGO_DESC"));
+                        }
+                    }
+                } catch (Exception e) {
+                    errors.append(paragraph("error","Could not create user: "+e.getMessage()));
+                    e.printStackTrace();
+                } finally {
+                    Server.freeServerConnection(serverCon);
+                }
             }
     	}
-    	return errors+getTableRowForm(con, Setup.TABLE_USERREQUEST, parms);
+    	return paragraph("banner",Message.get(con.getLocale(), "USERREQUEST_HEADER"))
+               +errors
+               +form(
+                    getTableRowFields(con, Setup.TABLE_USERREQUEST, parms)
+                   +center(submitButton(con.getLocale(), "CREATE_ROW"))
+               );
     }
                 
 }
