@@ -46,6 +46,10 @@ import java.util.StringTokenizer;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.orientechnologies.orient.core.OConstants;
+import com.orientechnologies.orient.core.metadata.security.ORole;
+import com.orientechnologies.orient.core.metadata.security.ORule.ResourceGeneric;
+import com.orientechnologies.orient.core.metadata.security.OSecurity;
+import com.orientechnologies.orient.core.metadata.security.OSecurityRole;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 
 import permeagility.util.Browser;
@@ -1051,19 +1055,20 @@ public class Server extends Thread {
 				System.out.println("Installing database hook for Audit Trail");
 				databaseHook = new DatabaseHook();
 			}
+//                        database = new Database(DB_NAME, "admin", "admin");
 			database = new Database(DB_NAME, "server", (p == null ? "server" : p));
-//			database = new Database(DB_NAME, "admin", (p == null ? "admin" : p));
 			if (!database.isConnected()) {    
-				System.out.println("Panic: Cannot login with server user, maybe this is first time so will try admin/admin");
-				database = new Database(DB_NAME, "admin", "admin");
+                            System.out.println("Panic: Cannot login with server user, maybe this is first time so will try admin/admin");
+                            database = new Database(DB_NAME, "admin", "admin");
 			}
 			if (!database.isConnected()) {
 				System.out.println("Unable to acquire initial connection for "+DB_NAME);
 				if (DB_NAME.startsWith("plocal")) {
 					System.out.println("Creating new database Using saved password key="+DB_NAME+HTTP_PORT+". pass="+p);
 					String restore = getLocalSetting("restore", null);
-					database.createLocal((restore == null ? DEFAULT_DBFILE : restore));  // New database will default to password given in local setting
-					database.fillPool();
+					database.createLocal((restore == null ? DEFAULT_DBFILE : restore),p);  // New database will default to password given in local setting
+                                        database = new Database(DB_NAME, "server", (p == null ? "server" : p));  // createLocal will create the server role/user
+                                        database.fillPool();
 					if (database.getPooledCount() > 0 && restore != null) {
 						setLocalSetting("restore",null);  // Clear restore only if successful
 					}
@@ -1083,7 +1088,6 @@ public class Server extends Thread {
 				System.out.println("Connected to database name="+DB_NAME+" version="+database.getClientVersion());
 				
 				// Initialize security
-				//Security.setDatabase(database);
 				Security.refreshSecurity();
 				if (Security.keyRoleCount() < 1) {
 					System.out.println("***\n*** Exit condition: No key roles found for security - no functions to enable\n***");

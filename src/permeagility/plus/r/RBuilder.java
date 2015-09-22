@@ -82,12 +82,14 @@ public class RBuilder extends Table {
             } else {
                 StringBuilder desc = new StringBuilder();
                 String tid = Thumbnail.getThumbnailId(tableName, viewPDF, "PDFResult", desc);
-                return head("R Builder - PDF result view", getScripts(con) )
-                    + body(standardLayout(con, parms,
-                        "<object data=\"/thumbnail?SIZE=FULL&ID="+tid+"\" width=\"100%\" height=\"100%\">"
-                            +"<a href=\"/thumbnail?SIZE=FULL&ID="+tid+"\">Click to download "+desc.toString()+"</a> "
-                       +"</object>"     
-                ));
+                if (tid != null) {
+                    return head("R Builder - PDF result view", getScripts(con) )
+                        + body(standardLayout(con, parms,
+                            "<object data=\"/thumbnail?SIZE=FULL&ID="+tid+"\" width=\"100%\" height=\"100%\">"
+                                +"<a href=\"/thumbnail?SIZE=FULL&ID="+tid+"\">Click to download "+desc.toString()+"</a> "
+                           +"</object>"     
+                    ));
+                }
             }
         } else if (run != null) {
             System.out.println("Build R Process " + run);
@@ -106,20 +108,19 @@ public class RBuilder extends Table {
                     String rsrc = runDoc.field("RScript");
                     runDoc.field("status","Running");
                     // Write the script to the file - put output to pdf instruction and PermeAgilityCSV function at the top
-                    Files.write(rscript.toPath(), ("pdf(\""+pdf.getAbsolutePath()+"\")\n").getBytes(), StandardOpenOption.WRITE);
+                    Files.write(rscript.toPath(), ("#---- PermeAgility Header ----#\npdf(\""+pdf.getAbsolutePath()+"\")\n").getBytes(), StandardOpenOption.WRITE);
                     String rCode = "library(httr)\n"
                         +"PermeAgilityCSV <- function(p) {\n"
                         + "    content(GET(paste(\"http://localhost:"+Server.getHTTPPort()
                                 +"/permeagility.plus.csv.Download?\", URLencode(p), sep=\"\"), set_cookies(\"name\" = \"PermeAgilitySession"+Server.getHTTPPort()
-                                +"\", \"value\" = \""+parms.get("COOKIE_VALUE")+"\")))\n"
-                        + "}\n";
+                                +"\", \"value\" = \""+parms.get("COOKIE_VALUE")+"\"))) }\n#---- End of PermeAgility Header ----#\n\n";
                     Files.write(rscript.toPath(), rCode.getBytes(), StandardOpenOption.APPEND);
                     Files.write(rscript.toPath(), rsrc.getBytes(), StandardOpenOption.APPEND);
                     
                     File output = File.createTempFile("RProcess", ".out");
                     System.out.println("Temp output file created "+output.getAbsolutePath());
                      
-                    String execCommands[] = {"/bin/sh", "-c", "r --vanilla -f "+rscript.getAbsolutePath()+" 1>"+output.getAbsolutePath()+" 2>&1" };
+                    String execCommands[] = {"/bin/sh", "-c", "r --quiet --vanilla -f "+rscript.getAbsolutePath()+" 1>"+output.getAbsolutePath()+" 2>&1" };
                     
                     System.out.println("Running command "+execCommands[2]);
                     Process newProcess = Runtime.getRuntime().exec(execCommands);
@@ -186,6 +187,7 @@ public class RBuilder extends Table {
                             + getTableRowFields(con, PlusSetup.TABLE, parms)
                             + submitButton(locale, "CREATE_ROW"))
                     : "")
+                    + "&nbsp;&nbsp;" + link(this.getClass().getName(),Message.get(locale, "REFRESH"))
                     + errors.toString()
                     + sb.toString()
          ));
@@ -193,25 +195,30 @@ public class RBuilder extends Table {
 
     	public boolean updateBlobFromFile(ODocument doc, String table, String blobName, String blobFile) {
             if (doc != null) {
-                if (blobFile != null && !blobFile.trim().equals("")) {
-                    System.out.println("Writing blob "+blobFile+" to "+table+" row="+doc.getIdentity().toString());
-                    ORecordBytes record = new ORecordBytes();
-                    try {
-                        ByteArrayOutputStream fo = new ByteArrayOutputStream();
-                        fo.write("application/pdf".getBytes());
-                        fo.write(0x00);
-                        fo.write((doc.field("name")+".pdf").getBytes());
-                        fo.write(0x00);				
-                        record.fromInputStream(new SequenceInputStream(
-                                new ByteArrayInputStream(fo.toByteArray())
-                                ,new FileInputStream(blobFile)
-                        ));
-                    } catch (IOException ioe) {
-                        ioe.printStackTrace();
+                try {
+                    if (blobFile != null && !blobFile.trim().equals("")) {
+                        System.out.println("Writing blob "+blobFile+" to "+table+" row="+doc.getIdentity().toString());
+                        ORecordBytes record = new ORecordBytes();
+                        try {
+                            ByteArrayOutputStream fo = new ByteArrayOutputStream();
+                            fo.write("application/pdf".getBytes());
+                            fo.write(0x00);
+                            fo.write((doc.field("name")+".pdf").getBytes());
+                            fo.write(0x00);				
+                            record.fromInputStream(new SequenceInputStream(
+                                    new ByteArrayInputStream(fo.toByteArray())
+                                    ,new FileInputStream(blobFile)
+                            ));
+                        } catch (IOException ioe) {
+                            ioe.printStackTrace();
+                        }
+                        record.save();
+                        doc.field(blobName,record);
+                        Thumbnail.createThumbnail(table, doc, blobName);
                     }
-                    record.save();
-                    doc.field(blobName,record);
-                    Thumbnail.createThumbnail(table, doc, blobName);
+                } catch (Exception e) {
+                    System.out.println("Cannot save PDF:"+e.getMessage());
+                    return false;
                 }
             } else {
                 System.out.println("RBuilder.updateBlobFromFile() - document is null");
@@ -222,7 +229,6 @@ public class RBuilder extends Table {
 
     @Override
     public String getTableRowFields(DatabaseConnection con, String table, HashMap<String, String> parms) {
-        System.out.println("RBuilder: Get table row fields");
         return getTableRowFields(con, table, parms, "name,description,RScript,-");
     }
 

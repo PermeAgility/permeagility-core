@@ -23,6 +23,10 @@ import permeagility.util.Setup;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OSchema;
 import com.orientechnologies.orient.core.metadata.schema.OType;
+import com.orientechnologies.orient.core.metadata.security.ORule;
+import static permeagility.plus.r.PlusSetup.TABLE;
+import permeagility.web.Message;
+import permeagility.web.Table;
 
 public class PlusSetup extends permeagility.plus.PlusSetup {
 
@@ -36,7 +40,7 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 	public static String DATA_CLASS = "permeagility.plus.d3.Data";
 	
 	public String getName() { return "D3 Builder"; }
-	public String getInfo() { return "View data in many different ways using D3"; }
+	public String getInfo() { return "Vizualize data using D3"; }
 	public String getVersion() { return "0.1.0"; }
 	
 	public boolean isInstalled() { return INSTALLED; }
@@ -44,13 +48,15 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 	public boolean install(DatabaseConnection con, HashMap<String,String> parms, StringBuilder errors) {
 		OSchema oschema = con.getSchema();
 		String newTableGroup = pickTableGroup(con, parms);
-				
+                String roles = parms.get("ROLES");
+		
 		if (isNullOrBlank(newTableGroup) || isNullOrBlank(parms.get("MENU")) || isNullOrBlank(parms.get("ROLES"))) {
-			errors.append(paragraph("error","Please specify a table group, menu and the roles to allow access"));
+			errors.append(paragraph("error",Message.get(con.getLocale(), "PLUS_PARMS_INVALID")));
 			return false;
 		}
 
 		OClass table = Setup.checkCreateTable(con, oschema, TABLE, errors, newTableGroup);
+                Setup.checkTableSuperclass(oschema, table, "ORestricted", errors);
 		Setup.checkCreateColumn(con,table, "name", OType.STRING, errors);
 		Setup.checkCreateColumn(con,table, "description", OType.STRING, errors);
 		Setup.checkCreateColumn(con,table, "pluginScript", OType.STRING, errors);
@@ -58,9 +64,19 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 		Setup.checkCreateColumn(con,table, "style", OType.STRING, errors);
 		Setup.checkCreateColumn(con,table, "script", OType.STRING, errors);
 		
-		Setup.createMenuItem(con,getName(),getInfo(),MENU_CLASS,parms.get("MENU"),parms.get("ROLES"));	
-		Setup.createMenuItem(con,getName(),getInfo(),DATA_CLASS,null,parms.get("ROLES"));	
+		Setup.createMenuItem(con,getName(),getInfo(),MENU_CLASS,parms.get("MENU"),roles);	
+		Setup.createMenuItem(con,getName(),getInfo(),DATA_CLASS,null,roles);	
 		
+                // Add table privs for each role
+                String privRoles[] = roles.split(",");
+                for (String role : privRoles) {
+                    String roleName = con.get(role).field("name");
+                    if (roleName != null) {
+                        Setup.checkCreatePrivilege(con, roleName, ORule.ResourceGeneric.CLASS, TABLE, Table.PRIV_ALL, errors);
+                        Setup.checkCreatePrivilege(con, roleName, ORule.ResourceGeneric.CLUSTER, TABLE, Table.PRIV_ALL, errors);
+                    }
+                }
+
 		setPlusInstalled(con, this.getClass().getName(), getInfo(), getVersion());
 		INSTALLED = true;
 		return true;
@@ -75,8 +91,7 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 		
 		String remTab = parms.get("REMOVE_TABLES");
 		if (remTab != null && remTab.equals("on")) {
-			Setup.dropTable(con, TABLE);
-			errors.append(paragraph("success","Table dropped: "+TABLE));
+			Setup.dropTable(con, TABLE, errors);
 		}
 
 		setPlusUninstalled(con, this.getClass().getName());

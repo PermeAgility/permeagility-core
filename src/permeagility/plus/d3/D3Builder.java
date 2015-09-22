@@ -40,12 +40,10 @@ public class D3Builder extends Table {
         String additionalStyle = "";
 
         String update = processSubmit(con, parms, tableName, errors);
-        if (update != null) {
-            return update;
-        }
+        if (update != null) { return update; }
         
         if (view != null) {
-            System.out.println("Build view " + view);
+            System.out.println("Building D3 view " + view);
             ODocument viewDoc = con.get(view);
             if (viewDoc == null) {
                 errors.append(paragraph("Could not retrieve view details using " + view));
@@ -59,7 +57,7 @@ public class D3Builder extends Table {
                 additionalStyle = (viewDoc.field("style") != null ? "<style>\n" + viewDoc.field("style") + "</style>\n" : "");
                 additionalScript = (viewDoc.field("pluginScript") != null ? "<script>\n" + viewDoc.field("pluginScript") + "</script>\n" : "");
                 String script = (viewDoc.field("script") != null ? "<script>\n" + viewDoc.field("script") + "</script>\n" : "");
-
+                script = script.replace("$$this$$", view);
                 sb.append(paragraph("" + viewDoc.field("description")));
                 sb.append(form("svgform", hidden("format", "") + hidden("data", "")));
                 sb.append(additionalScript + script);
@@ -67,12 +65,11 @@ public class D3Builder extends Table {
         }
         if (sb.length() == 0) {
             try {
-                parms.put("SERVICE", "View: Setup view");
-                sb.append(paragraph("banner", "Select View"));
+                parms.put("SERVICE", "D3 Builder");
                 sb.append(getTable(con, parms, PlusSetup.TABLE, "SELECT FROM " + PlusSetup.TABLE, null, 0, "name, description, button_VIEW_View),-"));
             } catch (Exception e) {
                 e.printStackTrace();
-                sb.append("Error retrieving table: " + e.getMessage());
+                sb.append("Error retrieving D3 Script table: " + e.getMessage());
             }
         }
         return head("D3 Builder", getScripts(con) + additionalStyle)
@@ -87,6 +84,11 @@ public class D3Builder extends Table {
                     + errors.toString()
                     + sb.toString()
          ));
+    }
+
+    @Override
+    public String getTableRowFields(DatabaseConnection con, String table, HashMap<String, String> parms) {
+        return getTableRowFields(con, table, parms, "name,description,pluginScript,dataScript,style,script,-");
     }
 
 }

@@ -22,11 +22,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.orientechnologies.orient.core.id.ORecordId;
 import com.orientechnologies.orient.core.metadata.security.ORole;
 import com.orientechnologies.orient.core.metadata.security.ORule;
 import com.orientechnologies.orient.core.metadata.security.ORule.ResourceGeneric;
+import com.orientechnologies.orient.core.metadata.security.OSecurity;
+import com.orientechnologies.orient.core.metadata.security.OUser;
 import com.orientechnologies.orient.core.record.impl.ODocument;
+import java.util.HashSet;
+import java.util.List;
 
 import permeagility.util.DatabaseConnection;
 import permeagility.util.QueryResult;
@@ -35,16 +38,17 @@ public class Security {
 
     public static boolean DEBUG = false;
     public static Date securityRefreshTime = new Date();
-    private static final ConcurrentHashMap<String,Object[]> userRoles = new ConcurrentHashMap<>();
+    
+    
+    private static final ConcurrentHashMap<String,Set<String>> userRoles = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<String,HashMap<String,Number>> userRules = new ConcurrentHashMap<>();
-    private static final ConcurrentHashMap<String,Object[]> keyRoles = new ConcurrentHashMap<>();
-    //	private static ConcurrentHashMap<String,QueryResult> columnsCache = new ConcurrentHashMap<String,QueryResult>();
+    private static final ConcurrentHashMap<String,Set<String>> keyRoles = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<String,HashMap<String,Number>> tablePrivsCache = new ConcurrentHashMap<>();
     public static boolean CACHE_TABLE_PRIVS = false;
     
     public static boolean authorized(String user, String className) {
-        Object[] uRoles = userRoles.get(user);
-        Object[] kRoles = keyRoles.get(className);
+        Set<String> uRoles = userRoles.get(user);
+        Set<String> kRoles = keyRoles.get(className);
         return isRoleMatch(uRoles,kRoles);
     }
 
@@ -56,48 +60,53 @@ public class Security {
     public static void refreshSecurity() {
         securityRefreshTime = new Date();
         DatabaseConnection con = Server.getServerConnection();
+        System.out.println("Security: refreshing using "+con.getUser()+" user");
         int entryCount = 0;
         try {
-            QueryResult qr = new QueryResult(con.getSecurity().getAllUsers());
-            if (qr != null) {
-                for (int i=0;i<qr.size();i++) {
-                        String n = qr.getStringValue(i, "name");
-                        Object[] roles = qr.getLinkSetValue(i,"roles");
-                        if (roles != null) {
-                                if (DEBUG) System.out.println("Adding security key "+n+" - "+roles.length);
-                                entryCount++;
-                                userRoles.put(n, roles);
+            OSecurity osec = con.getSecurity();
+            List<ODocument> users = osec.getAllUsers();
+            if (users != null) {
+                for (ODocument user : users) {
+                    String n = user.field("name");
+                    OUser u = osec.getUser(n);
+                    Set<ORole> roles = u.getRoles();
+                    if (roles != null) {
+                        if (DEBUG) System.out.println("Adding security keyuser "+n+" - "+roles.size());
+                        entryCount++;
+                        Set<String> roleSet = new HashSet<>();
+                        for (ORole r : roles) {
+                            roleSet.add(r.getDocument().getIdentity().toString());
                         }
+                        userRoles.put(n, roleSet);
+                    }
                 }
-                System.out.println("Server.refreshSecurity() - loaded "+entryCount+" users");
+                System.out.println("Security.refreshSecurity() - loaded "+entryCount+" users");
             }
             entryCount = 0;
-            qr = con.query("SELECT classname, _allowRead from menuItem");
+            QueryResult qr = con.query("SELECT FROM menuItem");
             if (qr != null) {
-                for (int i=0;i<qr.size();i++) {
-                        String n = qr.getStringValue(i, "classname");
-                        Object[] roles = qr.getLinkSetValue(i,"_allowRead");
+                for (ODocument menuItem : qr.get()) {
+                        String n = menuItem.field("classname");
+                        Set<ODocument> roles = menuItem.field("_allowRead");
                         if (n != null && roles != null) {
-                                if (DEBUG) System.out.println("Adding security key "+n);
+                                if (DEBUG) System.out.println("Adding security keyrole "+n);
                                 entryCount++;
-                                keyRoles.put(n, roles);
+                                Set<String> roleSet = new HashSet<>();
+                                for (ODocument r : roles) {
+                                    roleSet.add(r.getIdentity().toString());
+                                }
+                                keyRoles.put(n, roleSet);
                         }
                 }
-                System.out.println("Server.refreshSecurity() - loaded "+entryCount+" menuItems");
+                System.out.println("Security.refreshSecurity() - loaded "+entryCount+" menuItems");
             }
 
             for (String user : userRoles.keySet()) {
                 // User object rules are compiled into a simple HashMap<String,Byte>
-                Object[] roles = userRoles.get(user);  // I believe these are ODocuments or ORecordIds
+                Set<String> roles = userRoles.get(user);  
                 ArrayList<Set<ORule>> rules = new ArrayList<>();  // To hold the rules
-                for (Object role : roles) {
-                    ODocument r;
-                    if (role instanceof ORecordId) {
-                        r = con.getDb().getRecord((ORecordId)role);
-                    } else {
-                        r = (ODocument)role;
-                    }
-                    Security.getRoleRules(new ORole(r),rules);				
+                for (String role : roles) {
+                    getRoleRules(osec.getRole((con.get(role)).getIdentity()),rules);				
                 }
                 if (DEBUG) System.out.println(user+" rules="+rules);
                 // Collapse the rules into a single HashMap 
@@ -130,18 +139,16 @@ public class Security {
     }
 
     /** Returns true is one of the first set of roles is a match for a role in the second set - please pass in arrays of ORoles */
-    public static boolean isRoleMatch(Object uRoles[], Object kRoles[]) {
+    public static boolean isRoleMatch(Set<String> uRoles, Set<String> kRoles) {
         boolean authorized = false;
-
         if (uRoles == null || kRoles == null) {
             System.out.println("Server.isRoleAuthorized: kRoles/uRoles is null");
             return authorized;
         }
-
-        OUT: for (Object ur: uRoles) {
-            for (Object kr: kRoles) {
+        OUT: for (String ur: uRoles) {
+            for (String kr: kRoles) {
                 if (ur != null && kr != null && ur.equals(kr)) {
-                    //if (DEBUG) System.out.println("Server.isRoleAuthorized: Match on user role "+ur.toString()+" Authorized!");
+                    if (DEBUG) System.out.println("Server.isRoleAuthorized: Match on user role "+ur+" Authorized!");
                     authorized = true;
                     break OUT;
                 }
@@ -161,23 +168,22 @@ public class Security {
     }
 
     /** Get the connected user's roles in an object array (be warned, they could be ODocuments or ORecordIds) */ 
-    public static Object[] getUserRoles(DatabaseConnection con) {
-        return userRoles.get(con.getUser());  // I believe these are ODocuments or ORecordIds
+    public static Set<String> getUserRoles(DatabaseConnection con) {
+        return userRoles.get(con.getUser());  
     }
 
     /** Get the connected user's roles as a list that can be used in SQL. Example: #1:1,#1:2,#1:3 */
     public static String getUserRolesList(DatabaseConnection con) {
-        Object[] roles = userRoles.get(con.getUser());
+        Set<String> roles = userRoles.get(con.getUser());
         if (roles != null) {
             StringBuilder rb = new StringBuilder();
-            for(Object r : roles) {
-                if (r != roles[0]) { rb.append(", "); }
-                if (r instanceof ORecordId) {  // Sometimes, these are returned
-                        rb.append(((ORecordId)r).getIdentity());
-                } else {
-                        rb.append(((ODocument)r).getIdentity());
-                }
+            String comma = "";
+            for(String r : roles) {
+                rb.append(comma);
+                rb.append(r);
+                comma = ",";
             }
+            if (DEBUG) System.out.println("Security.getUserRolesList for user "+con.getUser()+" = "+rb.toString());
             return rb.toString();  // These are ODocuments or ORecordIds
         } else {
             System.out.println("This is odd, "+con.getUser()+" has no roles?");
@@ -206,7 +212,6 @@ public class Security {
                 return r.intValue();
             }
         }
-
         if (DEBUG) {
             for (String n : newRules.keySet()) {
                 System.out.println("Security.getTablePriv: rule="+n+" access="+newRules.get(n));
@@ -243,10 +248,11 @@ public class Security {
         if (DEBUG) System.out.println("Retrieving privs for table "+table);
         HashMap<String,Number> map = new HashMap<>();
         DatabaseConnection con = Server.getServerConnection();	
-        for (ODocument role : con.getSecurity().getAllRoles()) {
+        OSecurity osec = con.getSecurity();
+        for (ODocument role : osec.getAllRoles()) {
             String roleName = role.field("name");
             ArrayList<Set<ORule>> rules = new ArrayList<>();
-            getRoleRules(new ORole(role),rules);
+            getRoleRules(osec.getRole(role.getIdentity()),rules);
             for (Set<ORule> rs : rules) {
                 for (ORule rule : rs) {
                     if (DEBUG) System.out.println("getTablePrivs: rule="+roleName+" "+rule.getSpecificResources()+": "+rule.getAccess());

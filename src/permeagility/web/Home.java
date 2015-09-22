@@ -33,10 +33,11 @@ public class Home extends Weblet {
     public String getHTML(DatabaseConnection con, HashMap<String,String> parms) {
     	StringBuilder sb = new StringBuilder();
     	try {
-	    	QueryResult qr = con.query("SELECT dateline, name, description FROM "+Setup.TABLE_NEWS
-	    							+" WHERE (archive IS NULL or archive=false) and (locale IS NULL or locale.name='"+con.getLocale().getLanguage()+"') "
-	    							+"AND _allowRead in ["+Security.getUserRolesList(con)+"] ORDER BY dateline desc "
-	    							);
+                String query = "SELECT dateline, name, description FROM "+Setup.TABLE_NEWS
+                        +" WHERE (archive IS NULL or archive=false) and (locale IS NULL or locale.name='"+con.getLocale().getLanguage()+"') "
+                        +"AND _allowRead in ["+Security.getUserRolesList(con)+"] ORDER BY dateline desc ";
+	    	//System.out.println("ArticleQuery="+query);
+	    	QueryResult qr = con.query(query);
 	    	for (int i=0; i<qr.size(); i++) {
 	    		sb.append(paragraph("headline",qr.getStringValue(i, "name")));
 	    		sb.append(paragraph("dateline",formatDate(con.getLocale(), qr.getDateValue(i, "dateline"), "MMMM dd yyyy")));

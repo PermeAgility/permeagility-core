@@ -158,7 +158,7 @@ public class Context extends Weblet {
                 +br()+Message.get(locale, "SERVER_RUNNING")+"&nbsp;"+Server.getServerInitTime()
                 +br()+Message.get(locale, "SERVER_JAR")+"&nbsp;"+Server.getCodeSource()
                 +br()+Message.get(locale, "SERVER_CONNECT")+"&nbsp;"+Server.getDBName()
-                +br()+Message.get(locale, "SERVER_USER")+"&nbsp;"+Server.getServerUser()
+                +" "+Message.get(locale, "SERVER_USER")+"&nbsp;"+Server.getServerUser()
                 +br()+Message.get(locale, "SERVER_VERSION")+"&nbsp;"+Server.getClientVersion())
             +paragraph("banner",Message.get(locale, "SERVER_CACHE"))
                 +form(submitButton(locale, "CACHE_CLEAR_MENUS")

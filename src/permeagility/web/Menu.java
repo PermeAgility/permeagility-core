@@ -26,6 +26,7 @@ import permeagility.util.QueryResult;
 import permeagility.util.Setup;
 
 import com.orientechnologies.orient.core.record.impl.ODocument;
+import java.util.HashSet;
 
 public class Menu extends Weblet {
 	
@@ -71,53 +72,60 @@ public class Menu extends Weblet {
 			// Assemble menu based on the users roles and the menuItem's _allowRead
 			QueryResult qr = dbcon.query("SELECT FROM "+Setup.TABLE_MENU+" WHERE active=TRUE ORDER BY sortOrder");
 			for (ODocument m : qr.get()) {
-				StringBuilder itemMenu = new StringBuilder();
-                List<ODocument> items = m.field("items");
-                if (items != null) {
-	                for (ODocument i : items) {
-	                	if (i != null) {
-		                	Set<ODocument> readRoles = i.field("_allowRead");
-		                	String menuName = (String)i.field("name");
-		                	String menuDesc = (String)i.field("description");
-		                	Boolean itemActive = i.field("active");
-		                	if (itemActive != null && itemActive.booleanValue()==true) {
-			                	String pretty = Message.get(locale,"MENUITEM_"+menuName);
-			            		if (menuName != null && ("MENUITEM_"+menuName).equals(pretty)) {  // No translation
-			            			pretty = menuName;
-			            		} else if (menuName == null) {
-			            			pretty = "";
-			            		}
-			                	String prettyDesc = Message.get(locale,"MENUITEMDESC_"+menuName);
-			            		if (menuDesc != null && ("MENUITEMDESC_"+menuName).equals(prettyDesc)) {  // No translation
-			            			prettyDesc = menuDesc;
-			            		} else if (menuDesc == null) {
-			            			prettyDesc = "";
-			            		}
-			                	if (readRoles != null && Security.isRoleMatch(Security.getUserRoles(con),readRoles.toArray())) {
-		                        	if (i.field("classname") == null || ((String)i.field("classname")).equals("")) {
-		                                itemMenu.append((HORIZONTAL_LAYOUT ? "&nbsp;" : "<br>") +"\n");                	                	
-		                        	} else {
-		                        		itemMenu.append(link((String)i.field("classname"), pretty, prettyDesc));	
-		                        		itemMenu.append((HORIZONTAL_LAYOUT ? "&nbsp;" : "<br>") +"\n");  
-		                        	}
-			                	}
-		                	} 
-	                	} else {
-	                		System.err.println("Menu item is null - was deleted?");
-	                	}
-	                }
-	                if (itemMenu.length() > 0) {
-	                	String menuHeader = (String)m.field("name");
-	                	String pretty = Message.get(locale,"MENU_"+menuHeader);
-	            		if (menuHeader != null && ("MENU_"+menuHeader).equals(pretty)) {  // No translation
-	            			pretty = menuHeader;
-	            		} else if (menuHeader == null) {
-	            			pretty = "";
-	            		}
-		                menu.append((HORIZONTAL_LAYOUT ? "&nbsp;&nbsp;&nbsp;" : paragraph("menuheader",pretty)));
-		                menu.append(itemMenu);
-	                }
-                }
+                            StringBuilder itemMenu = new StringBuilder();
+                            List<ODocument> items = m.field("items");
+                            if (items != null) {
+                                    for (ODocument i : items) {
+                                        if (DEBUG) System.out.println("MenuItem="+i);
+                                            if (i != null) {
+                                                    String menuName = (String)i.field("name");
+                                                    String menuDesc = (String)i.field("description");
+                                                    Boolean itemActive = i.field("active");
+                                                    if (itemActive != null && itemActive==true) {
+                                                            String pretty = Message.get(locale,"MENUITEM_"+menuName);
+                                                            if (menuName != null && ("MENUITEM_"+menuName).equals(pretty)) {  // No translation
+                                                                    pretty = menuName;
+                                                            } else if (menuName == null) {
+                                                                    pretty = "";
+                                                            }
+                                                            String prettyDesc = Message.get(locale,"MENUITEMDESC_"+menuName);
+                                                            if (menuDesc != null && ("MENUITEMDESC_"+menuName).equals(prettyDesc)) {  // No translation
+                                                                    prettyDesc = menuDesc;
+                                                            } else if (menuDesc == null) {
+                                                                    prettyDesc = "";
+                                                            }
+                                                            Set<ODocument> readRoles = i.field("_allowRead");
+                                                            Set<String> readRoleSet = new HashSet<>();
+                                                            for (ODocument rr : readRoles) {
+                                                                readRoleSet.add(rr.getIdentity().toString());
+                                                            }
+                                                            if (readRoles != null && Security.isRoleMatch(Security.getUserRoles(con),readRoleSet)) {
+                                                                if (i.field("classname") == null || ((String)i.field("classname")).equals("")) {
+                                                                itemMenu.append((HORIZONTAL_LAYOUT ? "&nbsp;" : "<br>") +"\n");                	                	
+                                                                } else {
+                                                                        itemMenu.append(link((String)i.field("classname"), pretty, prettyDesc));	
+                                                                        itemMenu.append((HORIZONTAL_LAYOUT ? "&nbsp;" : "<br>") +"\n");  
+                                                                }
+                                                            }
+                                                    } else {
+                                                        if (DEBUG) System.out.println("Menu item "+menuName+" is inactive");
+                                                    } 
+                                            } else {
+                                                    System.err.println("Menu item is null - was deleted?");
+                                            }
+                                    }
+                                    if (itemMenu.length() > 0) {
+                                            String menuHeader = (String)m.field("name");
+                                            String pretty = Message.get(locale,"MENU_"+menuHeader);
+                                            if (menuHeader != null && ("MENU_"+menuHeader).equals(pretty)) {  // No translation
+                                                    pretty = menuHeader;
+                                            } else if (menuHeader == null) {
+                                                    pretty = "";
+                                            }
+                                            menu.append((HORIZONTAL_LAYOUT ? "&nbsp;&nbsp;&nbsp;" : paragraph("menuheader",pretty)));
+                                            menu.append(itemMenu);
+                                    }
+                            }
 			}
 		} catch( Exception e ) {
 			System.out.println("Error in Menu: "+e);

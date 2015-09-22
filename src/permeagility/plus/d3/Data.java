@@ -46,13 +46,13 @@ public class Data extends Download {
                 String callback = parms.get("CALLBACK");
 
                 if (view != null && !view.equals("")) {
-			System.out.println("Build view "+view);
+			System.out.println("Return sample dataScript "+view);
 			ODocument viewDoc = con.get("#"+view);
 			if (viewDoc == null) {
 				return ("Could not retrieve data using "+parms.toString()).getBytes();
 			} else {
 				String sampleData = viewDoc.field("dataScript");
-				return sampleData == null ? "".getBytes() : sampleData.replace("'","\"").getBytes();
+				return sampleData == null ? "".getBytes() : sampleData.getBytes();
 			}
                         
 		} else if ((fromTable != null && !fromTable.isEmpty()) || (fromSQL != null && !fromSQL.isEmpty())) {

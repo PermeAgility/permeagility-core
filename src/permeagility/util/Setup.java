@@ -28,6 +28,8 @@ import com.orientechnologies.orient.core.metadata.security.ORule;
 import com.orientechnologies.orient.core.metadata.security.ORule.ResourceGeneric;
 import com.orientechnologies.orient.core.metadata.security.OSecurity;
 import com.orientechnologies.orient.core.record.impl.ODocument;
+import java.util.HashSet;
+import java.util.Set;
 
 import permeagility.web.Message;
 import permeagility.web.Security;
@@ -58,25 +60,29 @@ public class Setup {
     public static boolean checkInstallation(DatabaseConnection con) {
         try {
             OSchema oschema = con.getSchema();
+            OSecurity osecurity = con.getSecurity();
             System.out.print("DatabaseSetup.checkInstallation ");
 
             // Setup roles lists for use later on in this script
-            ArrayList<ODocument> allRoles = new ArrayList<>();			
-            ArrayList<ODocument> allRolesButGuest = new ArrayList<>();			
-            ArrayList<ODocument> adminRoles = new ArrayList<>();			
-            ArrayList<ODocument> adminAndWriterRoles = new ArrayList<>();			
-            ArrayList<ODocument> readerRoles = new ArrayList<>();			
-            ArrayList<ODocument> writerRoles = new ArrayList<>();			
-            ArrayList<ODocument> guestRoles = new ArrayList<>();			
-            QueryResult qr = con.query("SELECT FROM ORole");
-            for (ODocument role : qr.get()) {
-                allRoles.add(role);
-                if (!role.field("name").equals("guest")) allRolesButGuest.add(role);
-                if (role.field("name").equals("admin")) adminRoles.add(role);
-                if (role.field("name").equals("reader")) readerRoles.add(role);
-                if (role.field("name").equals("writer")) writerRoles.add(role);
-                if (role.field("name").equals("guest")) guestRoles.add(role);
-                if (role.field("name").equals("admin") || role.field("name").equals("writer")) adminAndWriterRoles.add(role);
+            Set<ODocument> allRoles = new HashSet<>();			
+            Set<ODocument> allRolesButGuest = new HashSet<>();			
+            Set<ODocument> adminRoles = new HashSet<>();			
+            Set<ODocument> adminAndWriterRoles = new HashSet<>();			
+            Set<ODocument> readerRoles = new HashSet<>();			
+            Set<ODocument> writerRoles = new HashSet<>();			
+            Set<ODocument> guestRoles = new HashSet<>();			
+            Set<ODocument> userRoles = new HashSet<>();			
+            List<ODocument> qr = osecurity.getAllRoles();
+            for (ODocument roleDoc : qr) {
+                ORole role = osecurity.getRole(roleDoc);
+                allRoles.add(role.getDocument());
+                if (!role.getName().equals("guest")) allRolesButGuest.add(role.getDocument());
+                if (role.getName().equals("admin")) adminRoles.add(role.getDocument());
+                if (role.getName().equals("reader")) readerRoles.add(role.getDocument());
+                if (role.getName().equals("writer")) writerRoles.add(role.getDocument());
+                if (role.getName().equals("guest")) guestRoles.add(role.getDocument());
+                if (role.getName().equals("user")) userRoles.add(role.getDocument());
+                if (role.getName().equals("admin") || role.getName().equals("writer")) adminAndWriterRoles.add(role.getDocument());
             }
 
             //ODocument adminUser = con.queryDocument("SELECT FROM OUser WHERE name='admin'");  // Not actually used
@@ -88,22 +94,28 @@ public class Setup {
                 allRoles.add(guestRole);
                 installMessages.append(Weblet.paragraph("CheckInstallation: Created guest role"));
             }
+            if (userRoles.isEmpty()) {
+                ODocument userRole = (ODocument)con.update("insert into ORole set name = 'user', mode = 0");
+                userRoles.add(userRole);
+                allRoles.add(userRole);
+                installMessages.append(Weblet.paragraph("CheckInstallation: Created user role"));
+            }
             if (guestUser == null) {
                 guestUser = (ODocument)con.update("insert into OUser set name = 'guest', password = 'guest', status = 'ACTIVE', roles = (select from ORole where name = 'guest')");
                 installMessages.append(Weblet.paragraph("CheckInstallation: Created guest user ")+guestUser.getIdentity());
             }
 
-            // Verify the minimum privileges for the guest role since this changed in OrientDB 2.1
+            // Verify the minimum privileges for the guest and user role
             checkCreatePrivilege(con,"guest",ResourceGeneric.DATABASE,null,2,installMessages);
             checkCreatePrivilege(con,"guest",ResourceGeneric.COMMAND,null,2,installMessages);
             checkCreatePrivilege(con,"guest",ResourceGeneric.SCHEMA,null,2,installMessages);
             checkCreatePrivilege(con,"guest",ResourceGeneric.CLUSTER,null,2,installMessages);
-            checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,"columns",2,installMessages);
-            checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,"article",2,installMessages);
-            checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,"style",2,installMessages);
-            checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,"locale",2,installMessages);
-            checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,"userrequest",1,installMessages);
-            checkCreatePrivilege(con,"guest",ResourceGeneric.CLUSTER,"userrequest",1,installMessages);
+
+            checkCreatePrivilege(con,"user",ResourceGeneric.DATABASE,null,2,installMessages);
+            checkCreatePrivilege(con,"user",ResourceGeneric.COMMAND,null,2,installMessages);
+            checkCreatePrivilege(con,"user",ResourceGeneric.SCHEMA,null,2,installMessages);
+            checkCreatePrivilege(con,"user",ResourceGeneric.CLUSTER,null,3,installMessages);
+
 
             // Add ability for reader/writer to read from systemclusters and ORole
             
@@ -198,7 +210,7 @@ public class Setup {
                 con.create(TABLE_CONSTANT).field("classname","permeagility.web.Menu").field("description","Menu direction (true=horizontal, false=vertical)").field("field","HORIZONTAL_LAYOUT").field("value","true").save();				
                 con.create(TABLE_CONSTANT).field("classname","permeagility.web.Schema").field("description","Number of columns in tables view").field("field","NUMBER_OF_COLUMNS").field("value","4").save();				
                 con.create(TABLE_CONSTANT).field("classname","permeagility.util.Setup").field("description","When true, ORestricted tables will be by role (Delete OIdentity pickList if setting to false)").field("field","RESTRICTED_BY_ROLE").field("value","true").save();				
-                con.create(TABLE_CONSTANT).field("classname","permeagility.web.UserRequest").field("description","Automatically assign new users to this role, leave blank to prevent automatic new user creation").field("field","ACCEPT_TO_ROLE").field("value","guest").save();				
+                con.create(TABLE_CONSTANT).field("classname","permeagility.web.UserRequest").field("description","Automatically assign new users to this role, leave blank to prevent automatic new user creation").field("field","ACCEPT_TO_ROLE").field("value","user").save();				
             }
 
             System.out.print(TABLE_LOCALE+" ");
@@ -214,7 +226,7 @@ public class Setup {
                 loc.field("description","English");
                 loc.field("active",true);
                 loc.save();
-                installMessages.append(Weblet.paragraph("CheckInstallation: Created en locale"));
+                installMessages.append(Weblet.paragraph("CheckInstallation: Created English locale(en)"));
             } else {
                 loc = con.queryDocument("SELECT FROM locale WHERE name='en'");
             }
@@ -294,6 +306,7 @@ public class Setup {
             mCount += checkCreateMessage(con, loc, "DROP_COLUMN", "Drop column");
             mCount += checkCreateMessage(con, loc, "DROP_TABLE_BUTTON", "Drop table");
             mCount += checkCreateMessage(con, loc, "DROP_TABLE", "Drop table");
+            mCount += checkCreateMessage(con, loc, "DROP_TABLE_SUCCESS", "Table removed");
             mCount += checkCreateMessage(con, loc, "DROP_TABLE_CONFIRM", "Are you sure you want to drop this table? (cannot be undone)");
             mCount += checkCreateMessage(con, loc, "NEW_TABLE", "New table");
             mCount += checkCreateMessage(con, loc, "NEW_TABLE_CREATED", "New table created called {0} will be shown as {1} - translate with TABLE_{0}");			
@@ -410,7 +423,9 @@ public class Setup {
             mCount += checkCreateMessage(con, loc, "PLUS_DESCRIPTION", "Description");
             mCount += checkCreateMessage(con, loc, "PLUS_INSTALL", "Install");
             mCount += checkCreateMessage(con, loc, "PLUS_REMOVE", "Remove");
-            mCount += checkCreateMessage(con, loc, "PLUS_UPGRADE", "Upgrade");
+            mCount += checkCreateMessage(con, loc, "PLUS_UPGRADE", "Upgrade");  
+            mCount += checkCreateMessage(con, loc, "PLUS_PARMS_INVALID", "Please specify a table group, menu and the roles to allow access");
+            mCount += checkCreateMessage(con, loc, "REFRESH", "Refresh");
             mCount += checkCreateMessage(con, loc, "VISUILITY", "Visuility");
 
             if (mCount > 0) {
@@ -570,7 +585,7 @@ public class Setup {
                 mi_login.field("description","Login page");
                 mi_login.field("classname","permeagility.web.Login");
                 mi_login.field("active",true);
-                mi_login.field("_allowRead", allRoles.toArray());
+                mi_login.field("_allowRead", allRoles);
                 mi_login.save();
 
                 ODocument mi_home = con.create(TABLE_MENUITEM);
@@ -578,7 +593,7 @@ public class Setup {
                 mi_home.field("description","Home page including news");
                 mi_home.field("classname","permeagility.web.Home");
                 mi_home.field("active",true);
-                mi_home.field("_allowRead", allRoles.toArray());
+                mi_home.field("_allowRead", allRoles);
                 mi_home.save();
 
                 ODocument mi_password = con.create(TABLE_MENUITEM);
@@ -586,7 +601,7 @@ public class Setup {
                 mi_password.field("description","Change password");
                 mi_password.field("classname","permeagility.web.Password");
                 mi_password.field("active",true);
-                mi_password.field("_allowRead", allRolesButGuest.toArray());
+                mi_password.field("_allowRead", allRolesButGuest);
                 mi_password.save();
 
                 ODocument mi_userRequest = con.create(TABLE_MENUITEM);
@@ -594,7 +609,7 @@ public class Setup {
                 mi_userRequest.field("description","User Request");
                 mi_userRequest.field("classname","permeagility.web.UserRequest");
                 mi_userRequest.field("active",true);
-                mi_userRequest.field("_allowRead", guestRoles.toArray());
+                mi_userRequest.field("_allowRead", guestRoles);
                 mi_userRequest.save();
 
                 ODocument mi_context = con.create(TABLE_MENUITEM);
@@ -602,7 +617,7 @@ public class Setup {
                 mi_context.field("description","Context");
                 mi_context.field("classname","permeagility.web.Context");
                 mi_context.field("active",true);
-                mi_context.field("_allowRead", adminRoles.toArray());
+                mi_context.field("_allowRead", adminRoles);
                 mi_context.save();
 
                 ODocument mi_settings = con.create(TABLE_MENUITEM);
@@ -610,7 +625,7 @@ public class Setup {
                 mi_settings.field("description","Basic settings");
                 mi_settings.field("classname","permeagility.web.Settings");
                 mi_settings.field("active",true);
-                mi_settings.field("_allowRead", adminRoles.toArray());
+                mi_settings.field("_allowRead", adminRoles);
                 mi_settings.save();
 
                 ODocument mi_shutdown = con.create(TABLE_MENUITEM);
@@ -618,7 +633,7 @@ public class Setup {
                 mi_shutdown.field("description","Shutdown the server");
                 mi_shutdown.field("classname","permeagility.web.Shutdown");
                 mi_shutdown.field("active",true);
-                mi_shutdown.field("_allowRead", adminRoles.toArray());
+                mi_shutdown.field("_allowRead", adminRoles);
                 mi_shutdown.save();
 
                 ODocument mi_query = con.create(TABLE_MENUITEM);
@@ -626,7 +641,7 @@ public class Setup {
                 mi_query.field("description","Query the database");
                 mi_query.field("classname","permeagility.web.Query");
                 mi_query.field("active",true);
-                mi_query.field("_allowRead", adminAndWriterRoles.toArray());
+                mi_query.field("_allowRead", adminAndWriterRoles);
                 mi_query.save();
 
                 ODocument mi_schema = con.create(TABLE_MENUITEM);
@@ -634,7 +649,7 @@ public class Setup {
                 mi_schema.field("description","Table Catalog");
                 mi_schema.field("classname","permeagility.web.Schema");
                 mi_schema.field("active",true);
-                mi_schema.field("_allowRead", allRolesButGuest.toArray());
+                mi_schema.field("_allowRead", allRolesButGuest);
                 mi_schema.save();
 
                 ODocument mi_table = con.create(TABLE_MENUITEM);
@@ -642,7 +657,7 @@ public class Setup {
                 mi_table.field("description","Table editor");
                 mi_table.field("classname","permeagility.web.Table");
                 mi_table.field("active",true);
-                mi_table.field("_allowRead", allRolesButGuest.toArray());
+                mi_table.field("_allowRead", allRolesButGuest);
                 mi_table.save();				
 
                 ODocument mi_visuility = con.create(TABLE_MENUITEM);
@@ -650,7 +665,7 @@ public class Setup {
                 mi_visuility.field("description","Visuility browser");
                 mi_visuility.field("classname","permeagility.web.Visuility");
                 mi_visuility.field("active",true);
-                mi_visuility.field("_allowRead", allRolesButGuest.toArray());
+                mi_visuility.field("_allowRead", allRolesButGuest);
                 mi_visuility.save();				
 
                 ODocument mi_visuilityData = con.create(TABLE_MENUITEM);
@@ -658,7 +673,7 @@ public class Setup {
                 mi_visuilityData.field("description","Visuility browser (data component)");
                 mi_visuilityData.field("classname","permeagility.web.VisuilityData");
                 mi_visuilityData.field("active",true);
-                mi_visuilityData.field("_allowRead", allRolesButGuest.toArray());
+                mi_visuilityData.field("_allowRead", allRolesButGuest);
                 mi_visuilityData.save();				
 
                 ODocument mi_backup = con.create(TABLE_MENUITEM);
@@ -666,7 +681,7 @@ public class Setup {
                 mi_backup.field("description","Backup and restore the database");
                 mi_backup.field("classname","permeagility.web.BackupRestore");
                 mi_backup.field("active",true);
-                mi_backup.field("_allowRead", adminRoles.toArray());
+                mi_backup.field("_allowRead", adminRoles);
                 mi_backup.save();				
 
                 ODocument mi_blank = con.create(TABLE_MENUITEM);
@@ -678,7 +693,7 @@ public class Setup {
                 mi_blank.save();
 
                 // Build default menu
-                ArrayList<ODocument> items = new ArrayList<ODocument>();
+                ArrayList<ODocument> items = new ArrayList<>();
                 items.add(mi_userRequest);
                 items.add(mi_visuility);
                 items.add(mi_schema);
@@ -694,7 +709,7 @@ public class Setup {
                 Setup.checkCreateColumn(con, menuTable, "items", OType.LINKLIST, menuItemTable, installMessages);
                 ODocument menuDoc = con.queryDocument("SELECT FROM menu");
                 if (menuDoc != null && items.size() > 0) {
-                    menuDoc.field("items",items.toArray());
+                    menuDoc.field("items",items);
                     menuDoc.save();
                 } else {
                     installMessages.append(Weblet.paragraph("error","menu is null or no items to add"));
@@ -706,6 +721,20 @@ public class Setup {
             Setup.checkCreateColumn(con, urTable, "name", OType.STRING, installMessages);
             Setup.checkCreateColumn(con, urTable, "password", OType.STRING, installMessages);
 
+            // Add table privileges for the guest and user roles
+            checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,"columns",2,installMessages);
+            checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,"article",2,installMessages);
+            checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,"style",2,installMessages);
+            checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,"locale",2,installMessages);
+            checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,"userrequest",1,installMessages);
+            checkCreatePrivilege(con,"guest",ResourceGeneric.CLUSTER,"userrequest",1,installMessages);
+
+            checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,"columns",2,installMessages);
+            checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,"tableGroup",2,installMessages);
+            checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,"article",2,installMessages);
+            checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,"style",2,installMessages);
+            checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,"locale",2,installMessages);
+       
             con.flush();
             System.out.println("- verified.");
 
@@ -955,11 +984,11 @@ public class Setup {
     }
 
     /** Check for the existence of a class's superclass or set it */
-    public static void checkTableSuperclass(OSchema oschema, OClass oclass, String superClassName, StringBuilder errors) {
+    public static boolean checkTableSuperclass(OSchema oschema, OClass oclass, String superClassName, StringBuilder errors) {
         OClass s = oschema.getClass(superClassName);
         if (s == null) {
             errors.append(Weblet.paragraph("error","Schema update: Cannot find superclass "+superClassName+" to assign to class "+oclass.getName()));
-            return;
+            return false;
         }
         List<OClass> sc = oclass.getSuperClasses();
         boolean hasSuper = false;
@@ -972,17 +1001,20 @@ public class Setup {
             if (superClassName.equals("ORestricted") && RESTRICTED_BY_ROLE) {
                 oclass.setCustom("onCreate.identityType", "role");   //alter class x custom onCreate.identityType=role
             }
-            return;
+            return true;
         }
-        return;
+        return false;
     }
 
     /** Check for the existence of a privilege or add it */
     public static boolean checkCreatePrivilege(DatabaseConnection con, String roleName, ORule.ResourceGeneric resource, String className, int priv, StringBuilder errors) {
         OSecurity osecurity = con.getDb().getMetadata().getSecurity();
         ORole role = osecurity.getRole(roleName);
+        if (role == null) {
+            System.out.println("Setup.checkCreatePrivilege role "+roleName+" is null");
+        }
         if (!role.hasRule(resource,className)) {
-            System.out.println("Adding privilege: "+resource+" to "+roleName);
+            System.out.println("Adding privilege: "+resource+" to "+roleName+" for "+className+" with priv="+priv);
             ORole newRole = role.addRule(resource,className, priv);
             if (newRole.allow(resource,className, priv)){
                 newRole.save();

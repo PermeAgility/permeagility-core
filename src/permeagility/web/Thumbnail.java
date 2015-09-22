@@ -93,7 +93,9 @@ public class Thumbnail {
 	}
 
 	public static byte[] getThumbnail(String rid, String size, StringBuilder type, StringBuilder file) {
-		
+		if (rid == null || rid.equals("null")) {
+                    return null;
+                }
 		DatabaseConnection con = Server.getServerConnection();
 		if (con != null) {
 			try {

@@ -27,6 +27,10 @@ import com.orientechnologies.orient.core.command.OCommandOutputListener;
 import com.orientechnologies.orient.core.db.ODatabase.STATUS;
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
 import com.orientechnologies.orient.core.db.tool.ODatabaseImport;
+import com.orientechnologies.orient.core.metadata.security.ORole;
+import com.orientechnologies.orient.core.metadata.security.ORule;
+import com.orientechnologies.orient.core.metadata.security.OSecurity;
+import com.orientechnologies.orient.core.metadata.security.OSecurityRole.ALLOW_MODES;
 
 import permeagility.web.Server;
 
@@ -217,7 +221,7 @@ public class Database implements Serializable {
     }
 
     /** Create a plocal database and load starterdb.json if it exists - if no starter DatabaseSetup.Schema update will install what is needed */
-    public void createLocal(String backupFile) {
+    public void createLocal(String backupFile, String serverPass) {
         if (url.startsWith("plocal") || url.startsWith("local")) {
             System.out.println("*** Creating new database "+url+" in "+System.getProperty("user.dir"));
             ODatabaseDocumentTx d = new ODatabaseDocumentTx(url);
@@ -250,6 +254,17 @@ public class Database implements Serializable {
                 if (d.getStatus() != STATUS.OPEN) {
                     System.err.println("Problem after import - status is not open");
                     Server.exit(-5);
+                } else {
+                    OSecurity osec = d.getMetadata().getSecurity();
+                    if (osec.getRole("server") == null) {
+                        System.out.println("Server role does not exist, Creating the server role");
+                        ORole serverRole = osec.createRole("server", ALLOW_MODES.ALLOW_ALL_BUT);
+                        serverRole.addRule(ORule.ResourceGeneric.BYPASS_RESTRICTED, null, 15);
+                    }
+                    if (osec.getUser("server") == null) {
+                        System.out.println("Server user does not exist, Creating the server user");
+                        osec.createUser("server",(serverPass == null ? "server" : serverPass),"server");                        
+                    }
                 }
                 d.close();
             } else {
