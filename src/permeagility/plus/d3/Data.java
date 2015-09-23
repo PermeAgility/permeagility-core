@@ -27,19 +27,15 @@ import permeagility.util.QueryResult;
 public class Data extends Download {
 
 	@Override
-	public String getContentType() {
-		return "application/json";
-	}
+	public String getContentType() { return "application/json"; }
 
 	@Override
-	public String getContentDisposition() {
-		return "inline; filename=\"data.json\"";
-	}
+	public String getContentDisposition() {	return "inline; filename=\"data.json\""; }
 
 	@Override
 	public byte[] getBytes(DatabaseConnection con, HashMap<String, String> parms) {
 
-		// For view builder sample views.  The other stuff has been implemented elsewhere
+		// For view builder sample views
 		String view = parms.get("VIEW");
                 String fromTable = parms.get("FROMTABLE");
                 String fromSQL = parms.get("SQL");
