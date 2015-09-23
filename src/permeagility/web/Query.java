@@ -26,31 +26,33 @@ import permeagility.util.QueryResult;
 import com.orientechnologies.orient.core.metadata.schema.OProperty;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 import com.orientechnologies.orient.core.record.impl.ORecordBytes;
+import java.util.Locale;
 
 public class Query extends Weblet {
 	
     public static boolean DEBUG = false;
 
     public String getPage(DatabaseConnection con, java.util.HashMap<String,String> parms) {
-        parms.put("SERVICE", Message.get(con.getLocale(), "SQL_WEBLET"));
+        Locale locale = con.getLocale();
+        parms.put("SERVICE", Message.get(locale, "SQL_WEBLET"));
         String query = (String)parms.get("SQL");
         return 	
-            head(Message.get(con.getLocale(), "SQL_WEBLET")+"&nbsp;"+query,getSortTableScript())+
+            head(Message.get(locale, "SQL_WEBLET")+"&nbsp;"+query,getSortTableScript())+
             body( standardLayout(con, parms,  
                 getSQLBuilder(con)
                 +form("QUERY","#",
                         "<textarea spellcheck=\"false\" name=\"SQL\" rows=6 cols=100 text-build>"+(query==null ? "" : query)+"</textarea>"
                         +br()
-                        +submitButton(con.getLocale(), "EXECUTE_QUERY")
+                        +submitButton(locale, "EXECUTE_QUERY")
                 ) 
                 +br()
-                +paragraph("banner",Message.get(con.getLocale(), "QUERY_RESULTS"))
-                +anchor("TOP",Message.get(con.getLocale(), "RESULTS_TOP"))+"&nbsp;&nbsp;&nbsp;"
-                +link("#BOTTOM",Message.get(con.getLocale(), "RESULTS_BOTTOM"))
-                +paragraph(Message.get(con.getLocale(), "QUERY_IS")+"&nbsp;"+query)
+                +paragraph("banner",Message.get(locale, "QUERY_RESULTS"))
+                +anchor("TOP",Message.get(locale, "RESULTS_TOP"))+"&nbsp;&nbsp;&nbsp;"
+                +link("#BOTTOM",Message.get(locale, "RESULTS_BOTTOM"))
+                +paragraph(Message.get(locale, "QUERY_IS")+"&nbsp;"+query)
                 +table("sortable", getResult(con, query))
-                +anchor("BOTTOM",Message.get(con.getLocale(), "RESULTS_BOTTOM"))+"&nbsp;&nbsp;&nbsp;"
-                +link("#TOP",Message.get(con.getLocale(), "RESULTS_TOP"))		  
+                +anchor("BOTTOM",Message.get(locale, "RESULTS_BOTTOM"))+"&nbsp;&nbsp;&nbsp;"
+                +link("#TOP",Message.get(locale, "RESULTS_TOP"))		  
             ));
     }
 
