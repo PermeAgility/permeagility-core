@@ -22,6 +22,8 @@ import permeagility.util.Setup;
 import permeagility.web.Weblet;
 
 import com.orientechnologies.orient.core.record.impl.ODocument;
+import java.util.List;
+import permeagility.util.QueryResult;
 
 public abstract class PlusSetup extends Weblet {
 
@@ -107,7 +109,14 @@ public abstract class PlusSetup extends Weblet {
 
     /** Remove the INSTALLED and INSTALLED_VERSION constant  */
     public static void setPlusUninstalled(DatabaseConnection con, String classname) {
-        con.update("DELETE FROM "+Setup.TABLE_CONSTANT+" WHERE classname='"+classname+"'");		
+        QueryResult qr = con.query("SELECT FROM "+Setup.TABLE_CONSTANT+" WHERE classname='"+classname+"'");
+        List<String> ids = qr.getIds();
+        for (String id : ids) {
+            ODocument d = con.get(id);
+            if (d != null) {
+                d.delete();
+            }
+        }
     }
 
     /** Update the INSTALLED_VERSION constant  */

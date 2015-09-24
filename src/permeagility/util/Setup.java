@@ -209,7 +209,7 @@ public class Setup {
                 con.create(TABLE_CONSTANT).field("classname","permeagility.web.Header").field("description","Logo for header").field("field","LOGO_FILE").field("value","Logo-yel.svg").save();				
                 con.create(TABLE_CONSTANT).field("classname","permeagility.web.Menu").field("description","Menu direction (true=horizontal, false=vertical)").field("field","HORIZONTAL_LAYOUT").field("value","true").save();				
                 con.create(TABLE_CONSTANT).field("classname","permeagility.web.Schema").field("description","Number of columns in tables view").field("field","NUMBER_OF_COLUMNS").field("value","4").save();				
-                con.create(TABLE_CONSTANT).field("classname","permeagility.util.Setup").field("description","When true, ORestricted tables will be by role (Delete OIdentity pickList if setting to false)").field("field","RESTRICTED_BY_ROLE").field("value","true").save();				
+                con.create(TABLE_CONSTANT).field("classname","permeagility.util.Setup").field("description","When true, ORestricted tables will be by user (Change OIdentity pickList if setting to true)").field("field","RESTRICTED_BY_ROLE").field("value","false").save();				
                 con.create(TABLE_CONSTANT).field("classname","permeagility.web.UserRequest").field("description","Automatically assign new users to this role, leave blank to prevent automatic new user creation").field("field","ACCEPT_TO_ROLE").field("value","user").save();				
             }
 
@@ -540,7 +540,7 @@ public class Setup {
             Setup.checkCreateColumn(con, pickListTable, "description", OType.STRING, installMessages);
 
             if (pickListTable.count() == 0) {
-                con.create(TABLE_PICKLIST).field("tablename","OIdentity").field("query","select @rid.asString(), name from ORole").field("description","This will restrict row level table privileges to only selecting Roles, alter or remove this to allow user and role selection for _allow, _allowRead, etc... columns").save();				
+                con.create(TABLE_PICKLIST).field("tablename","OIdentity").field("query","select @rid.asString(), format('%s - %s',@class,name) as name from OIdentity").field("description","This will restrict row level table privileges to only selecting Roles, if Setup.RESTRICTED_BY_ROLE is true replace OIdentity pickList with SELECT @rid.asString(), name from ORole").save();				
             }
 
             System.out.print(TABLE_PICKVALUES+" ");
@@ -764,18 +764,22 @@ public class Setup {
         try {
             // Get the menu items for this class
             QueryResult menuItems = con.query("SELECT FROM menuItem WHERE classname = '"+classname+"'");
-            for (ODocument mi : menuItems.get()) {
+            List<String> menuIds = menuItems.getIds();
+            for (String mi : menuIds) {
                 // Find the menus it is in and remove it from them
-                QueryResult menus = con.query("SELECT FROM menu WHERE items CONTAINS "+mi.getIdentity().toString());
-                for (ODocument m : menus.get()) {
-                    Object ret = con.update("UPDATE "+m.getIdentity().toString()+" REMOVE items = "+mi.getIdentity().toString());
-                    errors.append(Weblet.paragraph("success","Removed from menu "+m.field("name")+": "+ret));				
+                QueryResult menus = con.query("SELECT FROM menu WHERE items CONTAINS "+mi);
+                for (String m : menus.getIds()) {
+                    Object ret = con.update("UPDATE "+m+" REMOVE items = "+mi);
+                    errors.append(Weblet.paragraph("success","Removed from menu "+m+": "+ret));				
                 }
             }
-
             // Delete menu item(s)
-            Object ret = con.update("DELETE FROM "+Setup.TABLE_MENUITEM+" WHERE classname='"+classname+"'");
-            errors.append(Weblet.paragraph("success","Deleted menu items: "+ret));
+            for (String mi : menuIds) {
+                ODocument d = con.get(mi);
+                d.delete();
+            }
+            //Object ret = con.update("DELETE FROM "+Setup.TABLE_MENUITEM+" WHERE classname='"+classname+"'");
+            errors.append(Weblet.paragraph("success","Deleted menu item for "+classname));
             Server.tableUpdated("menu");
             return true;
         } catch (Exception e) {
@@ -824,7 +828,7 @@ public class Setup {
         return;
     }
 
-    /** Add the column to the columns table to preserve initial order (always append) */
+    /** Remove the column from the columns table to preserve initial order (always append) */
     public static void removeColumnFromColumns(DatabaseConnection con, String theClass, String propertyName) {
         ODocument d = con.queryDocument("SELECT FROM "+TABLE_COLUMNS+" WHERE name='"+theClass+"'");
         if (d == null) {
@@ -897,8 +901,6 @@ public class Setup {
             }		
             d.save();
         }
-        // Also remove the columns
-        con.update("DELETE FROM "+TABLE_COLUMNS+" WHERE name='"+theClass+"'");
         return;
     }
 
@@ -906,9 +908,13 @@ public class Setup {
     public static void checkCreateConstant(DatabaseConnection con, String classname, String description, String field, String value) {
         QueryResult qr = con.query("SELECT FROM "+TABLE_CONSTANT+" WHERE classname='"+classname+"' AND field='"+field+"'");
         if (qr != null && qr.size()>0) {
-                con.update("UPDATE CONSTANT SET value='"+value+"' WHERE classname='"+classname+"' AND field='"+field+"'");
+            ODocument cd = qr.get(0);
+            if (cd != null) {
+                cd.field("value",value).save();
+            }
+            //con.update("UPDATE CONSTANT SET value='"+value+"' WHERE classname='"+classname+"' AND field='"+field+"'");
         } else {
-                con.create(Setup.TABLE_CONSTANT).field("classname",classname).field("description",description).field("field",field).field("value",value).save();							
+            con.create(Setup.TABLE_CONSTANT).field("classname",classname).field("description",description).field("field",field).field("value",value).save();							
         }
     }
 
@@ -1031,12 +1037,26 @@ public class Setup {
         dropTable(con, classname, null);
     }
 
-    public static void dropTable(DatabaseConnection con, String classname, StringBuilder errors) {
-        OSchema schema = con.getSchema();
-        schema.dropClass(classname);
-        Setup.removeTableFromAllTableGroups(con, classname);
-        DatabaseConnection.rowCountChanged(classname);
-        if (errors != null) errors.append(Weblet.paragraph("success","Table dropped: "+classname));
+    public static boolean dropTable(DatabaseConnection con, String classname, StringBuilder errors) {
+        try {
+            con.update("ALTER CLASS "+classname+" SUPERCLASSES NULL");  // Clear superclasses first otherwise will fail
+            OSchema schema = con.getSchema();
+            schema.dropClass(classname);
+            Setup.removeTableFromAllTableGroups(con, classname);
+            QueryResult qr = con.query("SELECT FROM columns WHERE name='"+classname+"'");
+            List<String> colIds = qr.getIds();
+            for (String colId : colIds) {
+                ODocument d = con.get(colId);
+                if (d != null) d.delete();
+            }
+            //con.update("DELETE FROM columns WHERE name='"+classname+"'");
+            DatabaseConnection.rowCountChanged(classname);
+            if (errors != null) errors.append(Weblet.paragraph("success","Table dropped: "+classname));
+            return true;
+        } catch (Exception e) {
+            if (errors != null) errors.append(Weblet.paragraph("error","Table "+classname+" could not be dropped: "+e.getMessage()));            
+            return false;
+        }
     }
 
     public static final String DEFAULT_ALT_STYLESHEET = 

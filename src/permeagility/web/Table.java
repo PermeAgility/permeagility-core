@@ -1572,13 +1572,7 @@ public class Table extends Weblet {
                         }
                 } else if (submit.equals("DROP_TABLE_BUTTON")) {
                         try {
-                                con.update("DROP class " + table);
-                                ODocument d = con.queryDocument("SELECT FROM columns WHERE name='"+table+"'");
-                                if (d != null) {
-                                        d.delete();
-                                        d.save();
-                                }
-                                DatabaseConnection.rowCountChanged(table);
+                                Setup.dropTable(con, table);
                                 return redirect(parms, this);
                         } catch (Exception e) {
                                 errors.append(paragraph("error", e.getMessage()));

@@ -24,7 +24,6 @@ import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OSchema;
 import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.orientechnologies.orient.core.metadata.security.ORule;
-import static permeagility.plus.r.PlusSetup.TABLE;
 import permeagility.web.Message;
 import permeagility.web.Table;
 
@@ -85,18 +84,20 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 	public boolean remove(DatabaseConnection con, HashMap<String,String> parms, StringBuilder errors) {
 
 		if (parms.get("REMOVE_MENU") != null) {
-			Setup.removeMenuItem(con, MENU_CLASS, errors);
-			Setup.removeMenuItem(con, DATA_CLASS, errors);
+                    Setup.removeMenuItem(con, MENU_CLASS, errors);
+                    Setup.removeMenuItem(con, DATA_CLASS, errors);
 		}
 		
 		String remTab = parms.get("REMOVE_TABLES");
 		if (remTab != null && remTab.equals("on")) {
-			Setup.dropTable(con, TABLE, errors);
+                    if (Setup.dropTable(con, TABLE, errors)) {
+                    }
 		}
+                
+                setPlusUninstalled(con, this.getClass().getName());
+                INSTALLED = false;
+                return true;
 
-		setPlusUninstalled(con, this.getClass().getName());
-		INSTALLED = false;
-		return true;
 	}
 	
 	public boolean upgrade(DatabaseConnection con, HashMap<String,String> parms, StringBuilder errors) {

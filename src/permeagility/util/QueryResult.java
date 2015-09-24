@@ -22,6 +22,7 @@ import java.util.Set;
 import com.orientechnologies.orient.core.id.ORID;
 import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.orientechnologies.orient.core.record.impl.ODocument;
+import java.util.ArrayList;
 
 public class QueryResult {
 	
@@ -34,8 +35,16 @@ public class QueryResult {
     	result = _result;
     }
 	    
-	public List<ODocument> get() {
+    public List<ODocument> get() {
     	return result;
+    }
+    
+    public List<String> getIds() {
+        List<String> list = new ArrayList<>();
+        for (ODocument d : get()) {
+            list.add(d.getIdentity().toString());
+        }
+        return list;
     }
     
     public Date getTime() {
