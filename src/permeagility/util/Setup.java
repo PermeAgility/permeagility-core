@@ -1185,7 +1185,7 @@ public class Setup {
 "    position: absolute; border: none; }\n" +
 "a.headerlogo:hover { text-decoration: none; background-color: transparent;}\n" +
 "body, html { font-family: verdana,sans-serif;\n" +
-"       color: white;\n" +
+"       color: white; background: black;\n" +
 "        background: linear-gradient(to right, black, #444444); }\n" +
 "#menu { position: fixed; left: 0px; top: 2px; right: 0px; height: 20px; z-index: 100;\n" +
 "/*  background-repeat: repeat-y; border: 0;\n" +
