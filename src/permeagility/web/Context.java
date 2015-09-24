@@ -115,7 +115,7 @@ public class Context extends Weblet {
                         +column(inVersion)
                         +column(plusVersion)
                         +column(popupForm("INSTALL-"+m,null,Message.get(locale,act),null,null
-                            ,paragraph("banner",act+" "+m)
+                            ,paragraph("banner",Message.get(locale, act)+" "+m)
                             +hidden("MODULE",m)
                             +(installed ? (act.equals("PLUS_REMOVE") ? plusSetup.getRemoveForm(con) : plusSetup.getUpgradeForm(con)) : plusSetup.getAddForm(con))
                             +br()+center(submitButton(locale, act))
