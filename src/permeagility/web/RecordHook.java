@@ -81,7 +81,6 @@ public class RecordHook implements ORecordHook {
                                 .field("action", iType.toString())
                                 .field("table", document.getClassName())
                                 .field("rid", iRecord.getIdentity().toString().substring(1))
-                      //          .field("user", iRecord.getDatabase().getUser().getName())
                                 .field("user", user)
                                 .field("recordVersion", iRecord.getRecordVersion().getCounter())
                                 .field("detail", iRecord.toJSON())
