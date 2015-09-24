@@ -68,6 +68,7 @@ public class RecordHook implements ORecordHook {
             if (iRecord instanceof ODocument) {
                 final ODocument document = (ODocument) iRecord;
                 String className = document.getClassName();
+                String user = ODatabaseRecordThreadLocal.INSTANCE.get().getUser().getName();
                 if (className != null && !className.equalsIgnoreCase("auditTrail")) {
                     if (DEBUG) System.out.println("RecordHook:onTrigger type="+iType.name()+" table="+className+" record="+iRecord.toJSON());
                     try {
@@ -80,7 +81,8 @@ public class RecordHook implements ORecordHook {
                                 .field("action", iType.toString())
                                 .field("table", document.getClassName())
                                 .field("rid", iRecord.getIdentity().toString().substring(1))
-                                .field("user", iRecord.getDatabase().getUser().getName())
+                      //          .field("user", iRecord.getDatabase().getUser().getName())
+                                .field("user", user)
                                 .field("recordVersion", iRecord.getRecordVersion().getCounter())
                                 .field("detail", iRecord.toJSON())
                                 .save();
