@@ -449,7 +449,7 @@ public class Setup {
                     + "<ul><li><a href='permeagility.web.Home?USERNAME=admin&PASSWORD=admin'>admin/admin</a></li>\n"
                     + "<li><a href='permeagility.web.Home?USERNAME=writer&PASSWORD=writer'>writer/writer</a></li>\n"
                     + "<li><a href='permeagility.web.Home?USERNAME=reader&PASSWORD=reader'>reader/reader</a></li></ul>\n"
-                    + "<br><img src='images/Logo.svg'>");
+                    + "<br><img height='60%' align='right' src='images/Logo.svg'>");
                 n1.field("dateline",new Date());
                 n1.field("locale",loc);
                 n1.field("archive",false);
