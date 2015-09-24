@@ -778,7 +778,6 @@ public class Setup {
                 ODocument d = con.get(mi);
                 d.delete();
             }
-            //Object ret = con.update("DELETE FROM "+Setup.TABLE_MENUITEM+" WHERE classname='"+classname+"'");
             errors.append(Weblet.paragraph("success","Deleted menu item for "+classname));
             Server.tableUpdated("menu");
             return true;
@@ -912,7 +911,6 @@ public class Setup {
             if (cd != null) {
                 cd.field("value",value).save();
             }
-            //con.update("UPDATE CONSTANT SET value='"+value+"' WHERE classname='"+classname+"' AND field='"+field+"'");
         } else {
             con.create(Setup.TABLE_CONSTANT).field("classname",classname).field("description",description).field("field",field).field("value",value).save();							
         }
@@ -1049,7 +1047,6 @@ public class Setup {
                 ODocument d = con.get(colId);
                 if (d != null) d.delete();
             }
-            //con.update("DELETE FROM columns WHERE name='"+classname+"'");
             DatabaseConnection.rowCountChanged(classname);
             if (errors != null) errors.append(Weblet.paragraph("success","Table dropped: "+classname));
             return true;
