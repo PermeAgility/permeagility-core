@@ -456,30 +456,23 @@ public class Table extends Weblet {
                     String columnName = column.getName();
                     Integer type = column.getType().getId();
                     String newValue = parms.get(PARM_PREFIX+columnName);
-                    if (newValue == null && !parms.containsKey(PARM_PREFIX+columnName)) {
-                        continue;  // Don't update if not specified in parameters
+                    if (newValue == null) {
+                        continue;  // Don't update field if not specified in parameters
                     }
                     if (DEBUG) System.out.println("updating "+columnName+" of type "+type+" with value "+newValue);
-                    if (newValue != null) {
-                        if (newValue.equals("null")) {
-                                newValue = null;
-                        }
+                    if (newValue.equals("null")) {
+                            newValue = null;
                     }
                     if (type == 0) { // Boolean
                         Boolean oldval = updateRow.field(columnName);
-                        boolean oldbool = false;
                         boolean newbool = false;
-                        if (oldval != null) {
-                            oldbool = oldval.booleanValue();
-                        }
                         if (newValue != null) {
-                            if (newValue.equalsIgnoreCase("on") || newValue.equalsIgnoreCase("true")
-                                            || newValue.equalsIgnoreCase("yes")) {
-                                    newbool = true;
+                            if (newValue.equalsIgnoreCase("on") || newValue.equalsIgnoreCase("true") || newValue.equalsIgnoreCase("yes")) {
+                                newbool = true;
                             }
-                        }
-                        if (oldbool != newbool) {
-                            updateRow.field(columnName,newbool);
+                            if (oldval == null || oldval != newbool) {
+                                updateRow.field(columnName,newbool);
+                            }
                         }
                     } else if (type == 1 || type == 2 || type == 3) { // Whole number
                         Number originalValue = updateRow.field(columnName);
@@ -891,7 +884,7 @@ public class Table extends Weblet {
             }
 
             if (type == 0) {
-                return row(label + column(checkbox(PARM_PREFIX+name, (initialValue == null ? false : new Boolean(initialValue.toString())))));
+                return row(label + column(hidden(PARM_PREFIX+name,"")+checkbox(PARM_PREFIX+name, (initialValue == null ? false : Boolean.valueOf(initialValue.toString())))));
 
             // Number
             } else if (type == 1 || type == 2 || type == 3 || type == 4 || type == 5 || type == 17 || type == 21) {  
