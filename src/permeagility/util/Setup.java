@@ -52,8 +52,8 @@ public class Setup {
     public static final String TABLE_COLUMNS = "columns";
     public static final String TABLE_MENU = "menu";
     public static final String TABLE_MENUITEM = "menuItem";
-    public static final String TABLE_NEWS = "article";
-    public static final String TABLE_USERREQUEST = "userRequest";
+    public static final String TABLE_NEWS = "news";
+    public static final String TABLE_USERPROFILE = "userProfile";
     public static final String TABLE_AUDIT = "auditTrail";
     public static final String TABLE_PICKVALUES = "pickValues";
 
@@ -98,6 +98,7 @@ public class Setup {
                 ODocument userRole = (ODocument)con.update("insert into ORole set name = 'user', mode = 0");
                 userRoles.add(userRole);
                 allRoles.add(userRole);
+                allRolesButGuest.add(userRole);
                 installMessages.append(Weblet.paragraph("CheckInstallation: Created user role"));
             }
             if (guestUser == null) {
@@ -160,9 +161,9 @@ public class Setup {
             Setup.checkCreateColumn(con, tableGroupTable, "tables", OType.STRING, installMessages);
 
             if (tableGroupTable.count() == 0) {
-                    con.create(TABLE_TABLEGROUP).field("name","Application").field("tables","columns,constant,locale,pickList,pickValues,menu,menuItem,message,style,tableGroup,userRequest,auditTrail,-thumbnail").field("_allowRead", adminRoles.toArray()).save();
+                    con.create(TABLE_TABLEGROUP).field("name","Application").field("tables","news,columns,constant,locale,pickList,pickValues,menu,menuItem,message,style,tableGroup,userProfile,auditTrail,-thumbnail").field("_allowRead", adminRoles.toArray()).save();
                     con.create(TABLE_TABLEGROUP).field("name","System").field("tables","ORole,OUser,OFunction,OSchedule,-ORIDs,-E,-V,-_studio").field("_allowRead", adminRoles.toArray()).save();
-                    con.create(TABLE_TABLEGROUP).field("name","News").field("tables","article").field("_allowRead", allRoles.toArray()).save();
+                    con.create(TABLE_TABLEGROUP).field("name","Content").field("tables","").field("_allowRead", allRoles.toArray()).save();
                     con.create(TABLE_TABLEGROUP).field("name","Plus").field("tables","").field("_allowRead", allRoles.toArray()).save();
             }
 
@@ -208,7 +209,7 @@ public class Setup {
                 con.create(TABLE_CONSTANT).field("classname","permeagility.web.Context").field("description","Code editor theme").field("field","EDITOR_THEME").field("value","blackboard").save();				
                 con.create(TABLE_CONSTANT).field("classname","permeagility.web.Header").field("description","Logo for header").field("field","LOGO_FILE").field("value","Logo-yel.svg").save();				
                 con.create(TABLE_CONSTANT).field("classname","permeagility.web.Menu").field("description","Menu direction (true=horizontal, false=vertical)").field("field","HORIZONTAL_LAYOUT").field("value","true").save();				
-                con.create(TABLE_CONSTANT).field("classname","permeagility.web.Schema").field("description","Number of columns in tables view").field("field","NUMBER_OF_COLUMNS").field("value","4").save();				
+                con.create(TABLE_CONSTANT).field("classname","permeagility.web.Schema").field("description","Number of columns in tables view").field("field","NUMBER_OF_COLUMNS").field("value","8").save();				
                 con.create(TABLE_CONSTANT).field("classname","permeagility.util.Setup").field("description","When true, ORestricted tables will be by user (Change OIdentity pickList if setting to true)").field("field","RESTRICTED_BY_ROLE").field("value","false").save();				
                 con.create(TABLE_CONSTANT).field("classname","permeagility.web.UserRequest").field("description","Automatically assign new users to this role, leave blank to prevent automatic new user creation").field("field","ACCEPT_TO_ROLE").field("value","user").save();				
             }
@@ -267,9 +268,12 @@ public class Setup {
             mCount += checkCreateMessage(con, loc, "LOGIN_BUTTON_TEXT", "Login");
             mCount += checkCreateMessage(con, loc, "USER_LABEL", "User");
             mCount += checkCreateMessage(con, loc, "PASSWORD_LABEL", "Password");
+            mCount += checkCreateMessage(con, loc, "UPDATE_PASSWORD", "Change Password");
             mCount += checkCreateMessage(con, loc, "REQUEST_LOGIN", "Sign up");
             mCount += checkCreateMessage(con, loc, "PASSWORD_CHANGE_SUCCESS", "Password changed");
-            mCount += checkCreateMessage(con, loc, "CHANGE_PASSWORD_FOR", "Change {0} password");
+            mCount += checkCreateMessage(con, loc, "PASSWORD_CHANGE_FAILED", "Current password not verified - cannot change password");
+            mCount += checkCreateMessage(con, loc, "UPDATE_PROFILE", "Update profile");
+            mCount += checkCreateMessage(con, loc, "PROFILE_UPDATED", "Your profile has been updated");
             mCount += checkCreateMessage(con, loc, "CURRENT_PASSWORD", "Current password");
             mCount += checkCreateMessage(con, loc, "NEW_PASSWORD", "New password");
             mCount += checkCreateMessage(con, loc, "CONFIRM_PASSWORD", "Confirm password");
@@ -597,9 +601,9 @@ public class Setup {
                 mi_home.save();
 
                 ODocument mi_password = con.create(TABLE_MENUITEM);
-                mi_password.field("name","Password");
-                mi_password.field("description","Change password");
-                mi_password.field("classname","permeagility.web.Password");
+                mi_password.field("name","Profile");
+                mi_password.field("description","Change profile or password");
+                mi_password.field("classname","permeagility.web.Profile");
                 mi_password.field("active",true);
                 mi_password.field("_allowRead", allRolesButGuest);
                 mi_password.save();
@@ -665,7 +669,7 @@ public class Setup {
                 mi_visuility.field("description","Visuility browser");
                 mi_visuility.field("classname","permeagility.web.Visuility");
                 mi_visuility.field("active",true);
-                mi_visuility.field("_allowRead", allRolesButGuest);
+                mi_visuility.field("_allowRead", adminAndWriterRoles);
                 mi_visuility.save();				
 
                 ODocument mi_visuilityData = con.create(TABLE_MENUITEM);
@@ -716,24 +720,27 @@ public class Setup {
                 }
             }			
 
-            System.out.print(TABLE_USERREQUEST+" ");
-            OClass urTable = Setup.checkCreateTable(oschema, TABLE_USERREQUEST, installMessages);
+            System.out.print(TABLE_USERPROFILE+" ");
+            OClass urTable = Setup.checkCreateTable(oschema, TABLE_USERPROFILE, installMessages);
+            Setup.checkTableSuperclass(oschema, urTable, "ORestricted", installMessages);
             Setup.checkCreateColumn(con, urTable, "name", OType.STRING, installMessages);
             Setup.checkCreateColumn(con, urTable, "password", OType.STRING, installMessages);
 
             // Add table privileges for the guest and user roles
-            checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,"columns",2,installMessages);
-            checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,"article",2,installMessages);
-            checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,"style",2,installMessages);
-            checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,"locale",2,installMessages);
-            checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,"userrequest",1,installMessages);
-            checkCreatePrivilege(con,"guest",ResourceGeneric.CLUSTER,"userrequest",1,installMessages);
+            checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,TABLE_COLUMNS,2,installMessages);
+            checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,TABLE_NEWS,2,installMessages);
+            checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,TABLE_STYLE,2,installMessages);
+            checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,TABLE_LOCALE,2,installMessages);
+            checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,TABLE_USERPROFILE,1,installMessages);
+            checkCreatePrivilege(con,"guest",ResourceGeneric.CLUSTER,TABLE_USERPROFILE,1,installMessages);
 
-            checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,"columns",2,installMessages);
-            checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,"tableGroup",2,installMessages);
-            checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,"article",2,installMessages);
-            checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,"style",2,installMessages);
-            checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,"locale",2,installMessages);
+            checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,TABLE_COLUMNS,2,installMessages);
+            checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,TABLE_TABLEGROUP,2,installMessages);
+            checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,TABLE_NEWS,2,installMessages);
+            checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,TABLE_STYLE,2,installMessages);
+            checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,TABLE_LOCALE,2,installMessages);
+            checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,TABLE_USERPROFILE,6,installMessages);
+            checkCreatePrivilege(con,"user",ResourceGeneric.CLUSTER,TABLE_USERPROFILE,6,installMessages);
        
             con.flush();
             System.out.println("- verified.");

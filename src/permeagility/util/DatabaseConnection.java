@@ -37,6 +37,7 @@ import com.orientechnologies.orient.core.metadata.security.OSecurity;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 import com.orientechnologies.orient.core.sql.OCommandSQL;
 import com.orientechnologies.orient.core.sql.query.OSQLSynchQuery;
+import permeagility.web.Security;
 
 /** This abstracts the native database connections a bit and give us somewhere to put some helper functions */
 public class DatabaseConnection {
@@ -264,62 +265,64 @@ public class DatabaseConnection {
         // List of columns to override natural (apparently random) order
         QueryResult columnList = null;
         if (columnOverride == null) {
-            c.activateOnCurrentThread();
             columnList = query("SELECT columnList FROM "+Setup.TABLE_COLUMNS+" WHERE name='"+table+"'");
         }
         boolean addDynamicColumns = true;
-        if (columnOverride != null || (columnList != null && columnList.size()>0)) {
-            String list = (columnOverride == null ? columnList.getStringValue(0, "columnList") : columnOverride);
-            String columnNames[] = list.split(",");
-            if (columnNames.length > 0 ) {
-                    ArrayList<OProperty> newList = new ArrayList<>();
-                    for (String name : columnNames) {
-                            name = name.trim();
-                            if (name.equals("-")) {
-                                    if (Server.DEBUG) System.out.println("ColumnOverride="+columnOverride+" no dynamic columns");
-                                    addDynamicColumns = false;
-                            }
-                            if (!name.startsWith("-")) {
-                                    if (name.trim().startsWith("button")) {
-                                            OProperty bd = new ButtonProperty();
-                                            bd.setName(name.replace("(","_").replace(":","_").replace(")",""));
-                                            newList.add(bd);
-                                    } else {
-                                            boolean found = false;
-                                            for (OProperty p : result) {
-                                                    if (p.getName().equals(name)) {
-                                                            newList.add(p);
-                                                            found = true;
-                                                            break;
-                                                    }
-                                            }
-                                            if (!found) {
-                                                    System.out.println("Could not find column "+name+" in the columns for table "+table+" even though this column was explicitly mentioned in the columns table - huh!");
-                                            }
-                                    }
-                            }
-                    }
-                    if (addDynamicColumns) {
-                            for (OProperty col : result) {
-                                    String name = col.getName();
-                                    boolean found = false;
-                                    for (String cn : columnNames) {
-                                            String cnt = cn.trim();
-                                            if (cnt.equals(name) 
-                                              || (cnt.startsWith("-") && cnt.substring(1).equals(name))) {
-                                                    found = true;
-                                            }
-                                    }
-                                    if (!found) {
-                                            newList.add(col);
-                                    }
-                            }
-                    }
-                    if (newList.size() > 0 ) {
-                            return newList;
-                    }
+        String list = (columnOverride == null ? (columnList != null && columnList.size() > 0 ? columnList.getStringValue(0, "columnList") : "") : columnOverride);
+        String columnNames[] = list.split(",");
+        for (String name : columnNames) {
+            if (name.trim().equals("-")) {
+                if (Server.DEBUG) System.out.println("ColumnOverride="+columnOverride+" no dynamic columns");
+                addDynamicColumns = false;
             }
-            return result;
+        }
+        ArrayList<OProperty> newList = new ArrayList<>();
+        for (String name : columnNames) {
+            name = name.trim();
+            if (!name.startsWith("-")) {
+                if (name.trim().startsWith("button")) {
+                    OProperty bd = new ButtonProperty();
+                    bd.setName(name.replace("(","_").replace(":","_").replace(")",""));
+                    newList.add(bd);
+                } else {
+                    boolean found = false;
+                    for (OProperty p : result) {
+                        String pname = p.getName();
+                        if (pname.equals(name)) {
+                            found = true;
+                            if (pname.equals("_allow") || pname.equals("_allowRead") || pname.equals("_allowUpdate") || pname.equals("_allowDelete")) {
+                                if (Security.getTablePriv(this, "OIdentity") > 0) {
+                                    newList.add(p);
+                                }
+                            } else {
+                                newList.add(p);
+                            }
+                            break;
+                        }
+                    }
+                    if (!found) {
+                        System.out.println("Could not find column "+name+" in the columns for table "+table+" even though this column was explicitly mentioned in the columns table - huh!");
+                    }
+                }
+            }
+        }
+        if (addDynamicColumns) {
+            for (OProperty col : result) {
+                String name = col.getName();
+                boolean found = false;
+                for (String cn : columnNames) {
+                    String cnt = cn.trim();
+                    if (cnt.equals(name) || (cnt.startsWith("-") && cnt.substring(1).equals(name))) {
+                        found = true;
+                    }
+                }
+                if (!found) {
+                    newList.add(col);
+                }
+            }
+        }
+        if (newList.size() > 0 ) {
+            return newList;
         }
         return result;  // will be empty but not null
     }

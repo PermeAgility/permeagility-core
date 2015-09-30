@@ -840,11 +840,14 @@ public class Table extends Weblet {
                             hidden.append(hidden(PARM_PREFIX+name,parms.get("FORCE_"+name)));
                             continue;
                     }
-                    // Added to support request approval using parms to prime the initial values
-//			if (initialValues.field(name) == null && parms.get(name) != null) {
-//				initialValues.field(name, parms.get(name));
-//			}
-                    fields.append(getColumnAsField(table, column, initialValues, con, formName, edit_id, parms));
+                    // If column is linked but user has no read access to that class, do not show the column (it will fail to produce list)
+                    if (column.getLinkedClass() != null) {
+                        if ((Security.getTablePriv(con, column.getLinkedClass().getName()) & PRIV_READ) > 0) {
+                            fields.append(getColumnAsField(table, column, initialValues, con, formName, edit_id, parms));
+                        }
+                    } else {
+                        fields.append(getColumnAsField(table, column, initialValues, con, formName, edit_id, parms));
+                    }
                 }
                 return hidden.toString()+center(table("data", fields.toString()));
             } else {
@@ -1617,8 +1620,6 @@ public class Table extends Weblet {
                 System.out.println("Executing GRANT: "+grantQuery);
                 try {
                     con.update(grantQuery);
-//                    Server.tableUpdated("ORole");  // Privs are stored in ORole
-//                    Security.tablePrivUpdated(table);
                 } catch (Exception e) {
                     errors.append(e.getLocalizedMessage());
                     e.printStackTrace();
