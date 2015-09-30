@@ -15,7 +15,9 @@
  */
 package permeagility.web;
 
+import com.orientechnologies.orient.core.metadata.schema.OProperty;
 import com.orientechnologies.orient.core.record.impl.ODocument;
+import java.util.Collection;
 import permeagility.util.DatabaseConnection;
 import permeagility.util.Setup;
 
@@ -58,11 +60,23 @@ public class Profile extends Table {
            parms.put("EDIT_ID", up.getIdentity().toString().substring(1));
         }       
         
+        // Build a column list for the profile without the name and password
+        StringBuilder profileColumns = new StringBuilder();
+        profileColumns.append("-");  // Keep name/password from being added again
+        Collection<OProperty> profColumns = con.getColumns(Setup.TABLE_USERPROFILE);
+        for (OProperty p : profColumns) {
+            String pcName = p.getName();
+            if (!pcName.equals("name") && !pcName.equals("password")) {
+                profileColumns.append(",");
+                profileColumns.append(pcName);
+            }
+        }
+                
         return errors
             +paragraph("banner",Message.get(con.getLocale(),"UPDATE_PROFILE",con.getUser()))
             +(parms.get("EDIT_ID") != null 
                ? form("PROFILECHANGE",hidden("EDIT_ID",parms.get("EDIT_ID"))
-                       +getTableRowFields(con, Setup.TABLE_USERPROFILE, parms,"-name,-password")
+                       +getTableRowFields(con, Setup.TABLE_USERPROFILE, parms, profileColumns.toString())
                        +center(submitButton(con.getLocale(),"UPDATE"))
                )
                : "")
