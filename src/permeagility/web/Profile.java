@@ -71,7 +71,7 @@ public class Profile extends Table {
                 profileColumns.append(pcName);
             }
         }
-                
+
         return errors
             +paragraph("banner",Message.get(con.getLocale(),"UPDATE_PROFILE",con.getUser()))
             +(parms.get("EDIT_ID") != null 
