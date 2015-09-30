@@ -867,8 +867,8 @@ public class Table extends Weblet {
             Integer type = column.getType().getId();
             String name = column.getName();
             String prettyName = makeCamelCasePretty(name);
-            String trName = Message.get(con.getLocale(),"COLUMN_"+name);
-            if (!trName.equals("COLUMN_"+name)) {
+            String trName = Message.get(con.getLocale(),"COLUMN_"+table+"."+name);
+            if (!trName.equals("COLUMN_"+table+"."+name)) {
                 prettyName = trName;
             }
             String label = column("label",prettyName);
@@ -931,7 +931,7 @@ public class Table extends Weblet {
                     if (DEBUG) System.out.println("Doing R Code Editor field "+name);
                     return row(label + column(getCodeEditorControl(formName,PARM_PREFIX+name,(String)initialValue,"text/x-rsrc")));
             // Script-Javascript (String)
-            } else if (type == 7 && (name.toUpperCase().endsWith("SCRIPT") || name.toUpperCase().endsWith("CODE"))) {
+            } else if (type == 7 && (name.toUpperCase().endsWith("SCRIPT") || (table.equals("OFunction") && name.toUpperCase().equals("CODE")))) {
                     if (DEBUG) System.out.println("Doing Javascript Code Editor field "+name);
                     return row(label + column(getCodeEditorControl(formName,PARM_PREFIX+name,(String)initialValue,"text/javascript")));
             // Style-CSS (String)

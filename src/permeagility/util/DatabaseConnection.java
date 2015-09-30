@@ -321,7 +321,7 @@ public class DatabaseConnection {
                 }
             }
         }
-        if (newList.size() > 0 ) {
+        if (newList.size() > 0 || columnOverride != null) {
             return newList;
         }
         return result;  // will be empty but not null
