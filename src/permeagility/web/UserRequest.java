@@ -16,7 +16,9 @@
 package permeagility.web;
 
 import com.orientechnologies.orient.core.record.impl.ODocument;
+import java.util.HashSet;
 import java.util.Locale;
+import java.util.Set;
 import permeagility.util.DatabaseConnection;
 import permeagility.util.Setup;
 
@@ -41,11 +43,11 @@ public class UserRequest extends Table {
                     String pass = parms.get(PARM_PREFIX+"password");
                     if (name == null || name.isEmpty() || pass == null || pass.isEmpty()) {
                         errors.append(paragraph("error", Message.get(locale,"USERREQUEST_NEED_NAMEPASS")));
-                    } else if (serverCon.queryDocument("SELECT FROM userRequest WHERE name='"+name+"'") != null
+                    } else if (serverCon.queryDocument("SELECT FROM "+Setup.TABLE_USERPROFILE+" WHERE name='"+name+"'") != null
                             || serverCon.queryDocument("SELECT FROM OUser WHERE name='"+name+"'") != null) {
                         errors.append(paragraph("error", Message.get(locale,"USERREQUEST_EXISTS")));
                     } else {
-                        if (insertRow(con, Setup.TABLE_USERREQUEST, parms, errors)) {
+                        if (insertRow(con, Setup.TABLE_USERPROFILE, parms, errors)) {
                             if (ACCEPT_TO_ROLE != null && !ACCEPT_TO_ROLE.isEmpty()) {
                                 System.out.println("Automatically creating the user "+name+" with ACCEPT_TO_ROLE="+ACCEPT_TO_ROLE);
                                 ODocument roleDoc = serverCon.queryDocument("SELECT FROM ORole WHERE name='"+ACCEPT_TO_ROLE+"'");
@@ -54,12 +56,21 @@ public class UserRequest extends Table {
                                     errors.append("Could not find role "+ACCEPT_TO_ROLE);
                                 } else {
                                     //System.out.println("Role "+ACCEPT_TO_ROLE+" found, adding user "+name);
-                                    // name, password should already be in the request so leave it alone
+                                    // name, password should already be in the request so leave it alone, other cols will be ignored
                                     parms.put(PARM_PREFIX+"status", "ACTIVE");
                                     parms.put(PARM_PREFIX+"roles", roleDoc.getIdentity().toString().substring(1));
                                     if (insertRow(serverCon, "OUser", parms, errors)) {
                                         System.out.println("New user "+parms.get(PARM_PREFIX+"name")+" created");
+                                        ODocument userRecord = serverCon.queryDocument("SELECT FROM OUser WHERE name='"+parms.get(PARM_PREFIX+"name")+"'");
+                                        ODocument userProfile = serverCon.queryDocument("SELECT FROM "+Setup.TABLE_USERPROFILE+" WHERE name='"+parms.get(PARM_PREFIX+"name")+"'");
+                                        if (userProfile != null && userRecord != null) {
+                                            Set<ODocument> allow = new HashSet();
+                                            allow.add(userRecord);
+                                            userProfile.field("_allow",allow);  // replace guest with the user    
+                                            userProfile.save();
+                                        }
                                         return paragraph("success",Message.get(locale, "USERREQUEST_CREATED"))+link("/",Message.get(locale, "HEADER_LOGO_DESC"));
+                                        // Now update the user profile so the new user owns it
                                     }
                                 }
                             } else {
@@ -78,7 +89,7 @@ public class UserRequest extends Table {
     	return paragraph("banner",Message.get(locale, "REQUEST_LOGIN"))
                +errors
                +form(
-                    getTableRowFields(con, Setup.TABLE_USERREQUEST, parms)
+                    getTableRowFields(con, Setup.TABLE_USERPROFILE, parms)
                    +center(submitButton(locale, "CREATE_ROW"))
                );
     }

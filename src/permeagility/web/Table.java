@@ -456,30 +456,23 @@ public class Table extends Weblet {
                     String columnName = column.getName();
                     Integer type = column.getType().getId();
                     String newValue = parms.get(PARM_PREFIX+columnName);
-                    if (newValue == null && !parms.containsKey(PARM_PREFIX+columnName)) {
-                        continue;  // Don't update if not specified in parameters
+                    if (newValue == null) {
+                        continue;  // Don't update field if not specified in parameters
                     }
                     if (DEBUG) System.out.println("updating "+columnName+" of type "+type+" with value "+newValue);
-                    if (newValue != null) {
-                        if (newValue.equals("null")) {
-                                newValue = null;
-                        }
+                    if (newValue.equals("null")) {
+                            newValue = null;
                     }
                     if (type == 0) { // Boolean
                         Boolean oldval = updateRow.field(columnName);
-                        boolean oldbool = false;
                         boolean newbool = false;
-                        if (oldval != null) {
-                            oldbool = oldval.booleanValue();
-                        }
                         if (newValue != null) {
-                            if (newValue.equalsIgnoreCase("on") || newValue.equalsIgnoreCase("true")
-                                            || newValue.equalsIgnoreCase("yes")) {
-                                    newbool = true;
+                            if (newValue.equalsIgnoreCase("on") || newValue.equalsIgnoreCase("true") || newValue.equalsIgnoreCase("yes")) {
+                                newbool = true;
                             }
-                        }
-                        if (oldbool != newbool) {
-                            updateRow.field(columnName,newbool);
+                            if (oldval == null || oldval != newbool) {
+                                updateRow.field(columnName,newbool);
+                            }
                         }
                     } else if (type == 1 || type == 2 || type == 3) { // Whole number
                         Number originalValue = updateRow.field(columnName);
@@ -847,11 +840,14 @@ public class Table extends Weblet {
                             hidden.append(hidden(PARM_PREFIX+name,parms.get("FORCE_"+name)));
                             continue;
                     }
-                    // Added to support request approval using parms to prime the initial values
-//			if (initialValues.field(name) == null && parms.get(name) != null) {
-//				initialValues.field(name, parms.get(name));
-//			}
-                    fields.append(getColumnAsField(table, column, initialValues, con, formName, edit_id, parms));
+                    // If column is linked but user has no read access to that class, do not show the column (it will fail to produce list)
+                    if (column.getLinkedClass() != null) {
+                        if ((Security.getTablePriv(con, column.getLinkedClass().getName()) & PRIV_READ) > 0) {
+                            fields.append(getColumnAsField(table, column, initialValues, con, formName, edit_id, parms));
+                        }
+                    } else {
+                        fields.append(getColumnAsField(table, column, initialValues, con, formName, edit_id, parms));
+                    }
                 }
                 return hidden.toString()+center(table("data", fields.toString()));
             } else {
@@ -871,8 +867,8 @@ public class Table extends Weblet {
             Integer type = column.getType().getId();
             String name = column.getName();
             String prettyName = makeCamelCasePretty(name);
-            String trName = Message.get(con.getLocale(),"COLUMN_"+name);
-            if (!trName.equals("COLUMN_"+name)) {
+            String trName = Message.get(con.getLocale(),"COLUMN_"+table+"."+name);
+            if (!trName.equals("COLUMN_"+table+"."+name)) {
                 prettyName = trName;
             }
             String label = column("label",prettyName);
@@ -891,7 +887,7 @@ public class Table extends Weblet {
             }
 
             if (type == 0) {
-                return row(label + column(checkbox(PARM_PREFIX+name, (initialValue == null ? false : new Boolean(initialValue.toString())))));
+                return row(label + column(hidden(PARM_PREFIX+name,"")+checkbox(PARM_PREFIX+name, (initialValue == null ? false : Boolean.valueOf(initialValue.toString())))));
 
             // Number
             } else if (type == 1 || type == 2 || type == 3 || type == 4 || type == 5 || type == 17 || type == 21) {  
@@ -935,7 +931,7 @@ public class Table extends Weblet {
                     if (DEBUG) System.out.println("Doing R Code Editor field "+name);
                     return row(label + column(getCodeEditorControl(formName,PARM_PREFIX+name,(String)initialValue,"text/x-rsrc")));
             // Script-Javascript (String)
-            } else if (type == 7 && (name.toUpperCase().endsWith("SCRIPT") || name.toUpperCase().endsWith("CODE"))) {
+            } else if (type == 7 && (name.toUpperCase().endsWith("SCRIPT") || (table.equals("OFunction") && name.toUpperCase().equals("CODE")))) {
                     if (DEBUG) System.out.println("Doing Javascript Code Editor field "+name);
                     return row(label + column(getCodeEditorControl(formName,PARM_PREFIX+name,(String)initialValue,"text/javascript")));
             // Style-CSS (String)
@@ -1624,8 +1620,6 @@ public class Table extends Weblet {
                 System.out.println("Executing GRANT: "+grantQuery);
                 try {
                     con.update(grantQuery);
-//                    Server.tableUpdated("ORole");  // Privs are stored in ORole
-//                    Security.tablePrivUpdated(table);
                 } catch (Exception e) {
                     errors.append(e.getLocalizedMessage());
                     e.printStackTrace();

@@ -30,6 +30,7 @@ import com.orientechnologies.orient.core.metadata.security.OUser;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 import java.util.HashSet;
 import java.util.List;
+import permeagility.util.Database;
 
 import permeagility.util.DatabaseConnection;
 import permeagility.util.QueryResult;
@@ -38,7 +39,6 @@ public class Security {
 
     public static boolean DEBUG = false;
     public static Date securityRefreshTime = new Date();
-    
     
     private static final ConcurrentHashMap<String,Set<String>> userRoles = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<String,HashMap<String,Number>> userRules = new ConcurrentHashMap<>();
@@ -58,7 +58,15 @@ public class Security {
 
     /** Refresh the cached security model in the server */
     public static void refreshSecurity() {
-        securityRefreshTime = new Date();
+
+        // If security has changed, close all existing connections for all users but admin
+        for (String usr : Server.sessionsDB.keySet()) {
+            if (usr != null && !usr.equals("admin")) {
+                Database udb = Server.sessionsDB.get(usr);
+                udb.close();
+            }
+        }
+  
         DatabaseConnection con = Server.getServerConnection();
         System.out.println("Security: refreshing using "+con.getUser()+" user");
         int entryCount = 0;
@@ -136,6 +144,7 @@ public class Security {
         } finally {
             Server.freeServerConnection(con);
         }
+        securityRefreshTime = new Date();
     }
 
     /** Returns true is one of the first set of roles is a match for a role in the second set - please pass in arrays of ORoles */

@@ -244,22 +244,26 @@ public class Translate extends Table {
 					}
 
 					if (doColumns != null && doColumns.equals("on")) {
-						QueryResult qr = con.query("select distinct(name) as name from (select expand(properties) from (select expand(classes) from metadata:schema))");
-						for (ODocument m : qr.get()) {
-							String cName = m.field("name");
-							if (cName != null && !cName.trim().equals("")) {
-								ODocument newMessage = con.queryDocument("SELECT FROM "+Setup.TABLE_MESSAGE+" WHERE name='COLUMN_"+cName+"' AND locale="+newLocale.getIdentity().toString());
-								if (newMessage != null && replace == false) {
-									continue;
-								}
-								String originalText = cName;
-								String newText = translate(fromLocale, toLocale, sb, makeCamelCasePretty(cName), email);
-								if (newText != null) {
-									updateMessage(con, "COLUMN_"+cName, originalText, newText, newLocale);
-								}
-								translateCount++;
-							}
-						}
+						QueryResult qrTables = con.query("SELECT name FROM (select expand(classes) from metadata:schema)");
+                                                for (ODocument tabDoc : qrTables.get()) {
+                                                    String tabName = tabDoc.field("name");
+                                                    QueryResult qr = con.query("select distinct(name) as name from (select expand(properties) from (select expand(classes) from metadata:schema) where name='"+tabName+"')");
+                                                    for (ODocument m : qr.get()) {
+                                                            String cName = m.field("name");
+                                                            if (cName != null && !cName.trim().equals("")) {
+                                                                    ODocument newMessage = con.queryDocument("SELECT FROM "+Setup.TABLE_MESSAGE+" WHERE name='COLUMN_"+tabName+"."+cName+"' AND locale="+newLocale.getIdentity().toString());
+                                                                    if (newMessage != null && replace == false) {
+                                                                            continue;
+                                                                    }
+                                                                    String originalText = cName;
+                                                                    String newText = translate(fromLocale, toLocale, sb, makeCamelCasePretty(cName), email);
+                                                                    if (newText != null) {
+                                                                            updateMessage(con, "COLUMN_"+tabName+"."+cName, originalText, newText, newLocale);
+                                                                    }
+                                                                    translateCount++;
+                                                            }
+                                                    }
+                                                }
 					}
 
 					if (doNews != null && doNews.equals("on")) {
