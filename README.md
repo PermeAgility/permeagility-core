@@ -6,7 +6,8 @@ PermeAgility is a lightweight integrated data manager and web application framew
 Try out the live demo site hosted on Amazon's Cloud: http://demo.permeagility.com
 
 This is the source code. Binary releases are available at: http://sourceforge.net/projects/permeagility/files  
-To build from source you must have Java 1.8+ and maven installed.  Then type: 
+
+To build from source you must have Java 1.8+ and maven installed.  Clone this repository, then type: 
 
     mvn install
 
@@ -42,10 +43,17 @@ Licensed under Apache License 2.0  http://www.apache.org/licenses/LICENSE-2.0
 Includes other components and copyrights: (Database and JavaScript Components)
 
 OrientDB - http://www.orientechnologies.com/orientdb/ (version 2.1)  License: Apache 2.0
+
 JQuery - http://jquery.org/license (version 2.1.3)  License: MIT
+
 AngularJs - Google, Inc. http://angularjs.org (version 1.3.8)  License: MIT
+
 D3.js - Mike Bostock, http://d3js.org (version 3.5)  License: BSD
+
 SortTable - Stuart Langridge, http://www.kryogenix.org/code/browser/sorttable/
+
 JSCalendar - Mihai Bazon, http://www.dynarch.com/projects/calendar
+
 JSColor - Jan Odvarko, http://odvarko.cz, http://jscolor.com
+
 CodeMirror - http://codemirror.net (version 5.2.1) License: MIT
