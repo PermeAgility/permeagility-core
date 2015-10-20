@@ -39,6 +39,8 @@ import permeagility.web.Thumbnail;
 
 public class RBuilder extends Table {
 
+    public static String R_COMMAND = "r";
+    
     // Processes in progress by RScript ID containing RScript id and process
     static ConcurrentHashMap<String,Process> processes = new ConcurrentHashMap<>();
 
@@ -120,7 +122,7 @@ public class RBuilder extends Table {
                     File output = File.createTempFile("RProcess", ".out");
                     System.out.println("Temp output file created "+output.getAbsolutePath());
                      
-                    String execCommands[] = {"/bin/sh", "-c", "r --quiet --vanilla -f "+rscript.getAbsolutePath()+" 1>"+output.getAbsolutePath()+" 2>&1" };
+                    String execCommands[] = {"/bin/sh", "-c", R_COMMAND+" --quiet --vanilla -f "+rscript.getAbsolutePath()+" 1>"+output.getAbsolutePath()+" 2>&1" };
                     
                     System.out.println("Running command "+execCommands[2]);
                     Process newProcess = Runtime.getRuntime().exec(execCommands);
