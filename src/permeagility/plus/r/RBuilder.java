@@ -46,7 +46,8 @@ public class RBuilder extends Table {
 
     @Override
     public String getPage(DatabaseConnection con, HashMap<String, String> parms) {
-
+        parms.put("SERVICE", "R Builder");
+        
         StringBuilder sb = new StringBuilder();
         StringBuilder errors = new StringBuilder();
         Locale locale = con.getLocale();
@@ -180,7 +181,6 @@ public class RBuilder extends Table {
         }
         if (sb.length() == 0) {
             try {
-                parms.put("SERVICE", "R Builder");
                 sb.append(getTable(con, parms, PlusSetup.TABLE, "SELECT FROM " + PlusSetup.TABLE, null, 0, "name,description,RScript,-"));
             } catch (Exception e) {
                 e.printStackTrace();
