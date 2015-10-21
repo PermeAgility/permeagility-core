@@ -241,7 +241,7 @@ public class RBuilder extends Table {
                         link(this.getClass().getName()+"?VIEWTEXT="+parms.get("EDIT_ID"), Message.get(con.getLocale(), "PLUS-R_VIEWTEXT"))+"&nbsp;&nbsp;&nbsp;"
                         +link(this.getClass().getName()+"?VIEWPDF="+parms.get("EDIT_ID"), Message.get(con.getLocale(), "PLUS-R_VIEWPDF"))
                      : "")
-                     +getTableRowFields(con, table, parms, "name,description,RScript,-,button_RUN_Update and Run");
+                     +getTableRowFields(con, table, parms, "name,description,RScript,-,button_RUN_"+Message.get(con.getLocale(), "PLUS-R_RUN"));
     }
 
 }
