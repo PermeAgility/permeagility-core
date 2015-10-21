@@ -40,9 +40,9 @@ import permeagility.web.Thumbnail;
 public class RBuilder extends Table {
 
     public static String R_COMMAND = "r";
-    
+
     // Processes in progress by RScript ID containing RScript id and process
-    static ConcurrentHashMap<String,Process> processes = new ConcurrentHashMap<>();
+    static ConcurrentHashMap<String, Process> processes = new ConcurrentHashMap<>();
 
     @Override
     public String getPage(DatabaseConnection con, HashMap<String, String> parms) {
@@ -53,44 +53,58 @@ public class RBuilder extends Table {
 
         String run = parms.get("RUN");
         String viewText = parms.get("VIEWTEXT");
+        if (viewText != null && viewText.indexOf(",") > 0) {
+            viewText = viewText.substring(0,viewText.indexOf(","));
+        }
         String viewPDF = parms.get("VIEWPDF");
         String tableName = PlusSetup.TABLE;
-
+        
+        if (run != null && parms.get("EDIT_ID") != null) {
+            parms.put("SUBMIT","UPDATE");
+        }
         // Handle data editing using the default table behaviour
         String update = processSubmit(con, parms, tableName, errors);
-        if (update != null) { return update; }
-        
-        if (viewText != null) {
+        if (update != null) {
+            if (run == null) {
+                return update;
+            }
+        }
+
+        if (viewText != null && viewPDF == null && run == null) {
             if (processes.get(viewText) != null) {
-                errors.append(paragraph("warning","Process is still running"));
+                errors.append(paragraph("warning", "Process is still running"));
             } else {
                 ODocument doc = con.get(viewText);
                 if (doc == null) {
-                    errors.append(paragraph("error","View text - document is null"));
+                    errors.append(paragraph("error", "View text - document is null"));
                 } else {
                     String textResult = doc.field("textResult");
                     if (textResult == null) {
-                        errors.append(paragraph("error","No results found"));
+                        errors.append(paragraph("error", "No results found"));
                     } else {
-                        textResult = textResult.replace("<","&lt;").replace(">","&gt;").replace("\n", "<br>");
-                        return head("R Builder - Text result view", getScripts(con) )
-                            + body(standardLayout(con, parms, textResult));
+                        return head("R Builder - Text result view", getScripts(con))
+                                + body(standardLayout(con, parms, 
+                                        link(this.getClass().getName()+"?EDIT_ID="+viewText, Message.get(locale, "PLUS-R_EDIT"))+"&nbsp;&nbsp;&nbsp;"
+                                        +link(this.getClass().getName()+"?VIEWPDF="+viewText, Message.get(locale, "PLUS-R_VIEWPDF"))
+                                         +br()+textResult));
                     }
                 }
             }
-        } else if (viewPDF != null) {
+        } else if (viewPDF != null && run == null) {
             if (processes.get(viewPDF) != null) {
-                errors.append(paragraph("warning","Process is still running"));
+                errors.append(paragraph("warning", "Process is still running"));
             } else {
                 StringBuilder desc = new StringBuilder();
                 String tid = Thumbnail.getThumbnailId(tableName, viewPDF, "PDFResult", desc);
                 if (tid != null) {
-                    return head("R Builder - PDF result view", getScripts(con) )
-                        + body(standardLayout(con, parms,
-                            "<object data=\"/thumbnail?SIZE=FULL&ID="+tid+"\" width=\"100%\" height=\"100%\">"
-                                +"<a href=\"/thumbnail?SIZE=FULL&ID="+tid+"\">Click to download "+desc.toString()+"</a> "
-                           +"</object>"     
-                    ));
+                    return head("R Builder - PDF result view", getScripts(con))
+                            + body(standardLayout(con, parms, 
+                                        link(this.getClass().getName()+"?EDIT_ID="+viewPDF, Message.get(locale, "PLUS-R_EDIT"))+"&nbsp;&nbsp;&nbsp;"
+                                        +link(this.getClass().getName()+"?VIEWTEXT="+viewPDF, Message.get(locale, "PLUS-R_VIEWTEXT"))
+                                            +"<object data=\"/thumbnail?SIZE=FULL&ID=" + tid + "\" width=\"100%\" height=\"100%\">"
+                                            + "<a href=\"/thumbnail?SIZE=FULL&ID=" + tid + "\">Click to download " + desc.toString() + "</a> "
+                                            + "</object>"
+                                    ));
                 }
             }
         } else if (run != null) {
@@ -99,139 +113,135 @@ public class RBuilder extends Table {
             if (runDoc == null) {
                 errors.append(paragraph("Could not retrieve run details using " + run));
             } else if (processes.get(run) != null) {
-                errors.append(paragraph("warning","Process is already running"));
+                errors.append(paragraph("warning", "Process is already running"));
             } else {
                 try {
                     File pdf = File.createTempFile("RProcess", ".pdf");
-                    System.out.println("Temp pdf file created "+pdf.getAbsolutePath());
+                    System.out.println("Temp pdf file created " + pdf.getAbsolutePath());
 
                     File rscript = File.createTempFile("RScript", ".r");
-                    System.out.println("Temp rscript file created "+rscript.getAbsolutePath());
+                    System.out.println("Temp rscript file created " + rscript.getAbsolutePath());
                     String rsrc = runDoc.field("RScript");
-                    runDoc.field("status","Running");
+                    runDoc.field("status", "Running");
                     // Write the script to the file - put output to pdf instruction and PermeAgilityCSV function at the top
-                    Files.write(rscript.toPath(), ("#---- PermeAgility Header ----#\npdf(\""+pdf.getAbsolutePath()+"\")\n").getBytes(), StandardOpenOption.WRITE);
+                    Files.write(rscript.toPath(), ("#---- PermeAgility Header ----#\npdf(\"" + pdf.getAbsolutePath() + "\")\n").getBytes(), StandardOpenOption.WRITE);
                     String rCode = "library(httr)\n"
-                        +"PermeAgilityCSV <- function(p) {\n"
-                        + "    content(GET(paste(\"http://localhost:"+Server.getHTTPPort()
-                                +"/permeagility.plus.csv.Download?\", URLencode(p), sep=\"\"), set_cookies(\"name\" = \"PermeAgilitySession"+Server.getHTTPPort()
-                                +"\", \"value\" = \""+parms.get("COOKIE_VALUE")+"\"))) }\n#---- End of PermeAgility Header ----#\n\n";
+                            + "PermeAgilityCSV <- function(p) {\n"
+                            + "    content(GET(paste(\"http://localhost:" + Server.getHTTPPort()
+                            + "/permeagility.plus.csv.Download?\", URLencode(p), sep=\"\"), set_cookies(\"name\" = \"PermeAgilitySession" + Server.getHTTPPort()
+                            + "\", \"value\" = \"" + parms.get("COOKIE_VALUE") + "\"))) }\n#---- End of PermeAgility Header ----#\n\n";
                     Files.write(rscript.toPath(), rCode.getBytes(), StandardOpenOption.APPEND);
+                    System.out.println("RCode preamble is "+rCode.length());
                     Files.write(rscript.toPath(), rsrc.getBytes(), StandardOpenOption.APPEND);
-                    
+
                     File output = File.createTempFile("RProcess", ".out");
-                    System.out.println("Temp output file created "+output.getAbsolutePath());
-                     
-                    String execCommands[] = {"/bin/sh", "-c", R_COMMAND+" --quiet --vanilla -f "+rscript.getAbsolutePath()+" 1>"+output.getAbsolutePath()+" 2>&1" };
-                    
-                    System.out.println("Running command "+execCommands[2]);
+                    System.out.println("Temp output file created " + output.getAbsolutePath());
+
+                    String execCommands[] = {"/bin/sh", "-c", R_COMMAND + " --quiet --vanilla -f " + rscript.getAbsolutePath() + " 1>" + output.getAbsolutePath() + " 2>&1"};
+
+                    System.out.println("Running command " + execCommands[2]);
                     Process newProcess = Runtime.getRuntime().exec(execCommands);
                     processes.put(run, newProcess);
-                    Thread waitForIt = new Thread() {
-                        public void run() {
-                            String runDocId = runDoc.getIdentity().toString().substring(1);
-                            DatabaseConnection threadCon = con.getNewConnection();
-                            StringBuilder result = new StringBuilder();
-                            try {
-                                System.out.println("Waiting for process "+newProcess.toString()+" to complete");
-                                int rc = newProcess.waitFor();
-                                System.out.println("R Process waitFor ended with returnCode="+rc);
-                                FileInputStream fis = new FileInputStream(output);
-                                if (fis.available() > 0) {
-                                    int binc = fis.read();
-                                    do {
-                                        result.append((char)binc);
-                                        binc = fis.read();
-                                    } while (fis.available() > 0);
-                                }
-                                ODocument resultDoc = threadCon.get(runDocId);
-                                resultDoc.field("textResult", result);
-                                if (updateBlobFromFile(resultDoc, "RScript", "PDFResult", pdf.getAbsolutePath())) {
-                                    resultDoc.field("status","Finished");                                
-                                } else {
-                                    resultDoc.field("status","No PDF");                                                                    
-                                }
-                                resultDoc.save();
-                                processes.remove(runDocId);
-                            } catch (Exception e) {
-                                System.out.println("Exception in R Process waitFor: "+e.getMessage());
-                                e.printStackTrace();
-                            } finally {
-                                if (threadCon != null) {
-                                    con.freeNewConnection(threadCon);
-                                }
-                            }                          
-                            System.out.println("Result is "+result.toString());
+                    String runDocId = runDoc.getIdentity().toString().substring(1);
+                    StringBuilder result = new StringBuilder();
+                    try {
+                        System.out.println("Waiting for process " + newProcess.toString() + " to complete");
+                        int rc = newProcess.waitFor();
+                        System.out.println("R Process waitFor ended with returnCode=" + rc);
+                        FileInputStream fis = new FileInputStream(output);
+                        if (fis.available() > 0) {
+                            int binc = fis.read();
+                            do {
+                                result.append((char) binc);
+                                binc = fis.read();
+                            } while (fis.available() > 0);
                         }
-                    };
-                    waitForIt.start();
+                        int endOfHeader = result.toString().indexOf("#---- End of PermeAgility Header ----#");
+                        sb.append("<p>"+ result.toString().substring(endOfHeader > rCode.length() ? endOfHeader : 0)+"</p>");
+                        String textResult = result.toString().substring(endOfHeader > rCode.length() ? endOfHeader+38 : 0)
+                                .replace("<", "&lt;").replace(">", "&gt;").replace("\n", "<br>");
+                        runDoc.field("textResult", textResult);
+                        if (updateBlobFromFile(runDoc, "RScript", "PDFResult", pdf.getAbsolutePath())) {
+                            runDoc.field("status", "Finished");
+                        } else {
+                            runDoc.field("status", "No PDF");
+                        }
+                        runDoc.save();
+                        processes.remove(runDocId);
+                        return redirect(parms,this,"VIEWTEXT="+runDocId);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
                 parms.put("SERVICE", "Running:" + runDoc.field("name"));
-             }
+            }
         }
         if (sb.length() == 0) {
             try {
                 parms.put("SERVICE", "R Builder");
-                sb.append(getTable(con, parms, PlusSetup.TABLE, "SELECT FROM " + PlusSetup.TABLE, null, 0, "name,description,button_RUN_Run,status,button_VIEWTEXT_ViewText,button_VIEWPDF_ViewPDF,-"));
+                sb.append(getTable(con, parms, PlusSetup.TABLE, "SELECT FROM " + PlusSetup.TABLE, null, 0, "name,description,RScript,-"));
             } catch (Exception e) {
                 e.printStackTrace();
                 sb.append("Error retrieving R Scripts patterns: " + e.getMessage());
             }
         }
-        return head("R Builder", getScripts(con) )
+        return head("R Builder", getScripts(con))
                 + body(standardLayout(con, parms,
-                    ((Security.getTablePriv(con, PlusSetup.TABLE) & PRIV_CREATE) > 0
-                    ? popupForm("CREATE_NEW_ROW", null, Message.get(locale, "CREATE_ROW"), null, "NAME",
-                            paragraph("banner", Message.get(locale, "CREATE_ROW"))
-                            + hidden("TABLENAME", PlusSetup.TABLE)
-                            + getTableRowFields(con, PlusSetup.TABLE, parms)
-                            + submitButton(locale, "CREATE_ROW"))
-                    : "")
-                    + "&nbsp;&nbsp;" + link(this.getClass().getName(),Message.get(locale, "REFRESH"))
-                    + errors.toString()
-                    + sb.toString()
-         ));
+                                ((Security.getTablePriv(con, PlusSetup.TABLE) & PRIV_CREATE) > 0
+                                        ? popupForm("CREATE_NEW_ROW", null, Message.get(locale, "CREATE_ROW"), null, "NAME",
+                                                paragraph("banner", Message.get(locale, "CREATE_ROW"))
+                                                + hidden("TABLENAME", PlusSetup.TABLE)
+                                                + getTableRowFields(con, PlusSetup.TABLE, parms)
+                                                + submitButton(locale, "CREATE_ROW"))
+                                        : "")
+                                + "&nbsp;&nbsp;"
+                                + errors.toString()
+                                + sb.toString()
+                        ));
     }
 
-    	public boolean updateBlobFromFile(ODocument doc, String table, String blobName, String blobFile) {
-            if (doc != null) {
-                try {
-                    if (blobFile != null && !blobFile.trim().equals("")) {
-                        System.out.println("Writing blob "+blobFile+" to "+table+" row="+doc.getIdentity().toString());
-                        ORecordBytes record = new ORecordBytes();
-                        try {
-                            ByteArrayOutputStream fo = new ByteArrayOutputStream();
-                            fo.write("application/pdf".getBytes());
-                            fo.write(0x00);
-                            fo.write((doc.field("name")+".pdf").getBytes());
-                            fo.write(0x00);				
-                            record.fromInputStream(new SequenceInputStream(
-                                    new ByteArrayInputStream(fo.toByteArray())
-                                    ,new FileInputStream(blobFile)
-                            ));
-                        } catch (IOException ioe) {
-                            ioe.printStackTrace();
-                        }
-                        record.save();
-                        doc.field(blobName,record);
-                        Thumbnail.createThumbnail(table, doc, blobName);
+    public boolean updateBlobFromFile(ODocument doc, String table, String blobName, String blobFile) {
+        if (doc != null) {
+            try {
+                if (blobFile != null && !blobFile.trim().equals("")) {
+                    System.out.println("Writing blob " + blobFile + " to " + table + " row=" + doc.getIdentity().toString());
+                    ORecordBytes record = new ORecordBytes();
+                    try {
+                        ByteArrayOutputStream fo = new ByteArrayOutputStream();
+                        fo.write("application/pdf".getBytes());
+                        fo.write(0x00);
+                        fo.write((doc.field("name") + ".pdf").getBytes());
+                        fo.write(0x00);
+                        record.fromInputStream(new SequenceInputStream(
+                                new ByteArrayInputStream(fo.toByteArray()), new FileInputStream(blobFile)
+                        ));
+                    } catch (IOException ioe) {
+                        ioe.printStackTrace();
                     }
-                } catch (Exception e) {
-                    System.out.println("Cannot save PDF:"+e.getMessage());
-                    return false;
+                    record.save();
+                    doc.field(blobName, record);
+                    Thumbnail.createThumbnail(table, doc, blobName);
                 }
-            } else {
-                System.out.println("RBuilder.updateBlobFromFile() - document is null");
+            } catch (Exception e) {
+                System.out.println("Cannot save PDF:" + e.getMessage());
                 return false;
             }
-            return true;
-	}
+        } else {
+            System.out.println("RBuilder.updateBlobFromFile() - document is null");
+            return false;
+        }
+        return true;
+    }
 
     @Override
     public String getTableRowFields(DatabaseConnection con, String table, HashMap<String, String> parms) {
-        return getTableRowFields(con, table, parms, "name,description,RScript,-");
+        return (parms.get("EDIT_ID") != null ? 
+                        link(this.getClass().getName()+"?VIEWTEXT="+parms.get("EDIT_ID"), Message.get(con.getLocale(), "PLUS-R_VIEWTEXT"))+"&nbsp;&nbsp;&nbsp;"
+                        +link(this.getClass().getName()+"?VIEWPDF="+parms.get("EDIT_ID"), Message.get(con.getLocale(), "PLUS-R_VIEWPDF"))
+                     : "")
+                     +getTableRowFields(con, table, parms, "name,description,RScript,-,button_RUN_Update and Run");
     }
 
 }
