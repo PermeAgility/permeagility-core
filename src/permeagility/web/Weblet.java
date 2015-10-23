@@ -1428,6 +1428,7 @@ public abstract class Weblet {
 
     /** this is faster than Regex parsing */
     public String[] splitCSV(String input) {
+        input = input.replace("\\u0022", "\"");
             List<String> tokensList = new ArrayList<>();
             StringBuilder b = new StringBuilder();
             int itemCount = 0;
@@ -1438,7 +1439,11 @@ public abstract class Weblet {
                             if (!quotes.isEmpty()) {
                                 b.append(c);
                             } else {
-                                tokensList.add(b.toString());
+                                String tok = b.toString();
+                                if (tok.startsWith("\"") && tok.endsWith("\"")) {
+                                    tok = tok.substring(1,tok.length()-1);
+                                }
+                                tokensList.add(tok);
                                 itemCount++;
                                 b = new StringBuilder();
                             }
@@ -1448,7 +1453,7 @@ public abstract class Weblet {
                             } else if (!quotes.empty() && quotes.peek().equals(c)) {
                                     quotes.pop(); // Coming out
                             } else {
-                                    quotes.push(new Character(c)); // Going in
+                                    quotes.push(c); // Going in
                             }
                         default:
                             b.append(c);
@@ -1456,8 +1461,12 @@ public abstract class Weblet {
                 }
             }
             if (b.length()>0) {
-                    tokensList.add(b.toString());
-                    itemCount++;
+                String tok = b.toString();
+                if (tok.startsWith("\"") && tok.endsWith("\"")) {
+                    tok = tok.substring(1,tok.length()-1);
+                }
+                tokensList.add(tok);
+                itemCount++;
             }
             //System.out.println("splitCSV turned "+input+" into "+tokensList);
             String[] temp = new String[itemCount];
