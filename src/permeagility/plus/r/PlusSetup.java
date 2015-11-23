@@ -24,7 +24,9 @@ import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OSchema;
 import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.orientechnologies.orient.core.metadata.security.ORule;
+import com.orientechnologies.orient.core.record.impl.ODocument;
 import permeagility.web.Message;
+import permeagility.web.Server;
 import permeagility.web.Table;
 
 public class PlusSetup extends permeagility.plus.PlusSetup {
@@ -53,6 +55,12 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 			errors.append(paragraph("error",Message.get(con.getLocale(), "PLUS_PARMS_INVALID")));
 			return false;
 		}
+                ODocument loc = con.queryDocument("SELECT FROM locale WHERE name='en'");
+
+                Setup.checkCreateMessage(con, loc, "PLUS-R_RUN", "Run");
+                Setup.checkCreateMessage(con, loc, "PLUS-R_EDIT", "Edit");
+                Setup.checkCreateMessage(con, loc, "PLUS-R_VIEWTEXT", "Result");
+                Setup.checkCreateMessage(con, loc, "PLUS-R_VIEWPDF", "Graph");
 
 		OClass table = Setup.checkCreateTable(con, oschema, TABLE, errors, newTableGroup);
                 Setup.checkTableSuperclass(oschema, table, "ORestricted", errors);
@@ -75,7 +83,7 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
                         Setup.checkCreatePrivilege(con, roleName, ORule.ResourceGeneric.CLUSTER, TABLE, Table.PRIV_ALL, errors);
                     }
                 }
-                
+                Server.tableUpdated("message");
 		setPlusInstalled(con, this.getClass().getName(), getInfo(), getVersion());
 		INSTALLED = true;
 		return true;

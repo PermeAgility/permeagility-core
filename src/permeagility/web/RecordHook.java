@@ -80,12 +80,16 @@ public class RecordHook implements ORecordHook {
                             log.field("timestamp", new Date())
                                 .field("action", iType.toString())
                                 .field("table", document.getClassName())
-                                .field("rid", iRecord.getIdentity().toString().substring(1))
+                                .field("rid", document.getIdentity().toString().substring(1))
                                 .field("user", user)
-                                .field("recordVersion", iRecord.getRecordVersion().getCounter())
-                                .field("detail", iRecord.toJSON())
-                                .save();
-                            con.getDb().getLocalCache().invalidate();  // Don't cache these but hold on to the connection
+                                .field("recordVersion", document.getRecordVersion().getCounter());
+                            try {
+                                log.field("detail", document.isEmbedded() ? "Embedded" : document.toJSON());
+                            } catch(ClassCastException e) {
+                                System.out.println("AuditLog error: cannot save detail for document "+document.getIdentity().toString());
+                            }
+                            log.save();
+                            //con.getDb().getLocalCache().invalidate();  // Don't cache these but hold on to the connection
                             DatabaseConnection.rowCountChanged("auditTrail");  // This should clear the rowcount for the auditTrail from the cache
                         }
                     } catch (Exception e) {
