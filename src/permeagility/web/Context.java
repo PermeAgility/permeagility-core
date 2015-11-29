@@ -15,6 +15,9 @@
  */
 package permeagility.web;
 
+import java.io.File;
+import java.text.DecimalFormat;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
@@ -24,6 +27,10 @@ import permeagility.util.DatabaseConnection;
 import permeagility.util.PlusClassLoader;
 import permeagility.util.QueryResult;
 import permeagility.util.Setup;
+import static permeagility.web.Weblet.column;
+import static permeagility.web.Weblet.form;
+import static permeagility.web.Weblet.hidden;
+import static permeagility.web.Weblet.row;
 
 public class Context extends Weblet {
 
@@ -64,6 +71,35 @@ public class Context extends Weblet {
             Setup.checkInstallation(con);
         }
 
+        // Prepare log file list
+        File logDir = new File("log");
+        StringBuilder logs = new StringBuilder();
+        if (logDir.isDirectory()) {
+            File[] logFiles = logDir.listFiles();
+            if (logFiles != null) {
+                for (int i=0; i<logFiles.length; i++) {
+                    if (logFiles[i].getName().endsWith(".log")) {
+                        String fileSizeString;
+                        DecimalFormat sizeFormat = new DecimalFormat("#0.0");
+                        long fileSize = logFiles[i].length();
+                        if (fileSize/1024 < 1024) {
+                            fileSizeString = ""+sizeFormat.format((double)fileSize/1024.0)+"KB";
+                        } else if (fileSize/1024/1024 < 1024) {
+                            fileSizeString = ""+sizeFormat.format((double)fileSize/1024.0/1024.0)+"MB";		
+                        } else {
+                            fileSizeString = ""+sizeFormat.format((double)fileSize/1024.0/1024.0/1024.0)+"GB";							
+                        }
+                        logs.append(row(
+                            column(logFiles[i].getName())
+                            +column(fileSizeString)
+                            +column(""+(new Date(logFiles[i].lastModified())))
+                            +column(link("/log/"+logFiles[i].getName(),Message.get(con.getLocale(),"LOG_VIEW") ) )
+                        ));
+                    }
+                }
+            }
+        }
+        
         // Prepare cached query list
         StringBuilder cacheList = new StringBuilder();
         Object[] keys = getCache().keySet().toArray();
@@ -160,6 +196,13 @@ public class Context extends Weblet {
                 +br()+Message.get(locale, "SERVER_CONNECT")+"&nbsp;"+Server.getDBName()
                 +" "+Message.get(locale, "SERVER_USER")+"&nbsp;"+Server.getServerUser()
                 +br()+Message.get(locale, "SERVER_VERSION")+"&nbsp;"+Server.getClientVersion())
+            +(logs.length() > 0 ? table("sortable", 
+                row(columnHeader(Message.get(locale, "LOG_FILENAME"))
+                    +columnHeader(Message.get(locale, "LOG_SIZE"))
+                    +columnHeader(Message.get(locale, "LOG_DATE"))
+                    +columnHeader(Message.get(locale, "LOG_VIEW")))
+               +logs.toString())
+                : bold("-- Logging to console --"))
             +paragraph("banner",Message.get(locale, "SERVER_CACHE"))
                 +form(submitButton(locale, "CACHE_CLEAR_MENUS")
                     + "&nbsp;" + Message.get(locale, "CACHE_COUNT",""+Menu.cacheSize()))
