@@ -1,20 +1,50 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>org.permeagility</groupId>
+  <groupId>com.permeagility</groupId>
   <artifactId>permeagility</artifactId>
-  <version>0.6.1-SNAPSHOT</version>
+  <version>0.6.2-SNAPSHOT</version>
   <packaging>jar</packaging>
-  <name>permeagility</name>
-  <description>PermeAgility</description>
+  <name>Permeagility Core</name>
+  <description>The dynamic adaptive data management platform</description>
+  <url>http://www.permeagility.com</url>
+  
+  <licenses>
+    <license>
+      <name>The Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+    </license>
+  </licenses>
+ 
+  <developers>
+    <developer>
+      <name>Glenn Irwin</name>
+      <email>glenn@irwinideas.com</email>
+      <organization>PermeAgility</organization>
+      <organizationUrl>http://www.permeagility.com</organizationUrl>
+    </developer>
+  </developers>
+  
+
+  <scm>
+    <connection>scm:git:https://github.com/PermeAgility/permeagility-core.git</connection>
+    <developerConnection>scm:git:https://github.com/PermeAgility/permeagility-core.git</developerConnection>
+    <url>git@github.com:PermeAgility/permeagility-core.git</url>
+  </scm>
+
+
+<distributionManagement>
+  <snapshotRepository>
+    <id>ossrh</id>
+    <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+  </snapshotRepository>
+</distributionManagement>
   
   <properties>
     <mainClass>permeagility.web.Server</mainClass>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
-    <netbeans.hint.license>apache20</netbeans.hint.license>
   </properties>
-  
   
   <build>
     <sourceDirectory>src</sourceDirectory>
@@ -32,10 +62,6 @@
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
         <version>3.1</version>
-        <configuration>
-          <source/>
-          <target/>
-        </configuration>
       </plugin>
       
       <plugin>
@@ -103,7 +129,80 @@
           <version>2.3.6</version>
           <extensions>true</extensions>
         </plugin>
+
     
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-release-plugin</artifactId>
+                <version>2.5</version>
+                <configuration>
+                  <tagNameFormat>v@{project.version}</tagNameFormat>
+                  <autoVersionSubmodules>true</autoVersionSubmodules>
+                  <useReleaseProfile>false</useReleaseProfile>
+                  <releaseProfiles>release</releaseProfiles>  
+                  <goals>deploy</goals>
+                </configuration>
+            </plugin>
+                   
+            <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-source-plugin</artifactId>
+              <version>2.2.1</version>
+              <executions>
+                <execution>
+                  <id>attach-sources</id>
+                  <goals>
+                    <goal>jar-no-fork</goal>
+                  </goals>
+                </execution>
+              </executions>
+            </plugin>
+            
+            <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-javadoc-plugin</artifactId>
+              <version>2.9.1</version>
+              <executions>
+                <execution>
+                  <id>attach-javadocs</id>
+                  <goals>
+                    <goal>jar</goal>
+                  </goals>
+                    <configuration>
+                         <additionalparam>-quiet</additionalparam>
+                         <additionalparam>-Xdoclint:none</additionalparam>
+                    </configuration>
+                </execution>
+              </executions>
+            </plugin>
+            
+                <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-gpg-plugin</artifactId>
+              <version>1.5</version>
+              <executions>
+                <execution>
+                  <id>sign-artifacts</id>
+                  <phase>verify</phase>
+                  <goals>
+                    <goal>sign</goal>
+                  </goals>
+                </execution>
+              </executions>
+            </plugin>
+
+            <plugin>
+              <groupId>org.sonatype.plugins</groupId>
+              <artifactId>nexus-staging-maven-plugin</artifactId>
+              <version>1.6.3</version>
+              <extensions>true</extensions>
+              <configuration>
+                <serverId>ossrh</serverId>
+                <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+                <autoReleaseAfterClose>false</autoReleaseAfterClose>
+              </configuration>
+            </plugin>
+            
      </plugins>
  
     </build>

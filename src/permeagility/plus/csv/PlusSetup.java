@@ -29,17 +29,11 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 	public static String MENU_CLASS_EXP = "permeagility.plus.csv.ExportCSV";
 	public static String MENU_CLASS_DATA = "permeagility.plus.csv.Download";
 	
-	@Override
-        public String getName() { return "plus CSV"; }
+	@Override public String getName() { return "plus CSV"; }
+        @Override public String getInfo() { return "(builtin) Import/Export CSV data"; }
+        @Override public String getVersion() { return "0.1.0"; }
 	
-        @Override
-        public String getInfo() { return "Import/Export CSV data"; }
-	
-        @Override
-        public String getVersion() { return "0.1.0"; }
-	
-	@Override
-        public boolean isInstalled() { return INSTALLED; }
+	@Override public boolean isInstalled() { return INSTALLED; }
 	
 	@Override   // Override as there are no tables for this plugin
 	public String getAddForm(DatabaseConnection con) {
@@ -52,8 +46,7 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 		return "Remove from menu"+checkbox("REMOVE_MENU",true);
 	}
 
-	@Override
-        public boolean install(DatabaseConnection con, HashMap<String,String> parms, StringBuilder errors) {
+	@Override public boolean install(DatabaseConnection con, HashMap<String,String> parms, StringBuilder errors) {
 		if (isNullOrBlank(parms.get("MENU")) || isNullOrBlank(parms.get("ROLES"))) {
 			errors.append(paragraph("error","Please specify a menu and the roles to access"));
 			return false;
@@ -71,8 +64,7 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 		return true;
 	}
 	
-	@Override
-        public boolean remove(DatabaseConnection con, HashMap<String,String> parms, StringBuilder errors) {
+	@Override public boolean remove(DatabaseConnection con, HashMap<String,String> parms, StringBuilder errors) {
 		if (parms.get("REMOVE_MENU") != null) {
 			Setup.removeMenuItem(con, MENU_CLASS_IMP, errors);
 			Setup.removeMenuItem(con, MENU_CLASS_EXP, errors);
@@ -85,11 +77,9 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 		return true;
 	}
 	
-	@Override
-        public boolean upgrade(DatabaseConnection con, HashMap<String,String> parms, StringBuilder errors) {
+	@Override public boolean upgrade(DatabaseConnection con, HashMap<String,String> parms, StringBuilder errors) {
 		// Perform upgrade actions
-		
-				
+			
 		setPlusVersion(con,this.getClass().getName(),getInfo(),getVersion());
 		return true;
 	}

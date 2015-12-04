@@ -202,7 +202,7 @@ public class BackupRestore extends Weblet {
                         fileSizeString = ""+sizeFormat.format((double)fileSize/1024.0/1024.0/1024.0)+"GB";							
                     }
                     restorePoints.append(row(
-                        column(backupFiles[i].getName())
+                        column(link("/backup/"+backupFiles[i].getName(),backupFiles[i].getName()))
                         +column(fileSizeString)
                         +column(""+(new Date(backupFiles[i].lastModified())))
                         +column(form(hidden("RESTORE",backupFiles[i].getName())+submitButton(locale, "RESTORE_NOW") ) )
