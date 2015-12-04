@@ -396,7 +396,7 @@ public class Server extends Thread {
 					
 					// Internal images and JavaScript - anyone can have them
 					if (file.startsWith("/images/") 
-						|| file.startsWith("/js/")) {
+                                        || file.startsWith("/js/")) {
 						if (DEBUG) System.out.println("Looking for resource "+file);
 						if (file.contains("?")) {
 							file = file.substring(0,file.indexOf('?'));
@@ -404,6 +404,7 @@ public class Server extends Thread {
 						}
 						// TODO: Should see if If-modified is specified and send back Not-modified in header
 						InputStream iis = null;
+                                                long filesize = 0;
 						if (WWW_IN_JAR) {  // Get files from jar
 							//file = "/www"+file;
 							URL imageurl = Thread.currentThread().getContextClassLoader().getResource(file.substring(1));
@@ -411,27 +412,26 @@ public class Server extends Thread {
 								URLConnection urlcon = imageurl.openConnection();
 								urlcon.setConnectTimeout(100);
 								urlcon.setReadTimeout(100);
+                                                                filesize = urlcon.getContentLengthLong();
 								iis = imageurl.openStream();
 							}
 						} else {  // Look in file system
 							file = "www"+file;
-							File imageurl = new File(file);
-							if (imageurl != null) {
-								iis = new FileInputStream(imageurl);
+							File imagefile = new File(file);
+                                                        filesize = imagefile.length();
+							if (imagefile != null) {
+								iis = new FileInputStream(imagefile);
 							}
 						}
 						if (iis != null) {
-							ByteArrayOutputStream databuf = new ByteArrayOutputStream(); 
-							int b = iis.read();
-							while (b != -1) {
-								databuf.write(b);
-								b = iis.read();
-							}
-							if (DEBUG) System.out.println("Returning "+databuf.size()+" bytes for "+file);
-							iis.close();
-//							content_type = getContentType(file);
-							os.write(getImageHeader(content_type, databuf.size(), keep_alive).getBytes());
-							databuf.writeTo(os);
+							if (DEBUG) System.out.println("Returning "+filesize+" bytes for "+file);
+							content_type = getContentType(file);
+							os.write(getImageHeader(content_type, (int)filesize, keep_alive).getBytes());
+                                                        int b;  byte[] buf = new byte[1024];
+                                                        while ((b = iis.read(buf)) != -1) {
+                                                            os.write(buf, 0, b);
+                                                        }
+                                                        iis.close();
 							os.flush();
 							break;
 						} else {
@@ -563,18 +563,22 @@ public class Server extends Thread {
 						if (DEBUG) System.out.println("Looking for log "+file);
 						File logfile = new File(file.substring(1));
 						if (logfile.exists()) {
-							InputStream iis = new FileInputStream(logfile);
-							theData = new byte[iis.available()];
-							int bytesread = iis.read(theData);
-							if (DEBUG) System.out.println("Returning "+theData.length+" bytes: "+bytesread+" bytes read");
-							// need to check the number of bytes read here
-							iis.close();
-							os.write(getLogHeader(content_type, theData.length, keep_alive).getBytes());
-							os.write(theData);
-							os.flush();
+                                                        returnFile(file, logfile, keep_alive, os);
 							break;
 						} else {
 							System.out.println("Could not retrieve log file "+file);
+						}
+					}
+
+      					// Pull backup files from the backup directory (only for Admin)  - Need to make this handle big files
+					if (userdb != null && file.startsWith("/backup/") && userdb.getUser().equals("admin")) {
+						if (DEBUG) System.out.println("Looking for backup "+file);
+						File backfile = new File(file.substring(1));
+						if (backfile.exists()) {
+                                                    returnFile(file, backfile, keep_alive, os);
+                                                    break;
+						} else {
+							System.out.println("Could not retrieve backup file "+file);
 						}
 					}
 
@@ -834,6 +838,18 @@ public class Server extends Thread {
 		}
 	}
 	
+        /* Return a file response and flush - file is streamed in 1024 byte chunks */
+        private void returnFile(String filename, File thefile, boolean keep_alive, OutputStream os) throws Exception {
+            os.write(getHeader(getContentType(filename), (int) thefile.length(), null, null, keep_alive).getBytes());
+            InputStream iis = new FileInputStream(thefile);
+            int b;   byte[] buf = new byte[1024];
+            while ((b = iis.read(buf)) != -1) {
+                os.write(buf, 0, b);
+            }
+            iis.close();
+            os.flush();
+        }
+        
 	/** Get HTML header adding a cookie and content disposition 
 	 * @param keep_alive */
 	public String getHeader(String ct, int size, String newCookieValue, String content_disposition, boolean keep_alive) {
@@ -929,6 +945,7 @@ public class Server extends Thread {
 		if (name.endsWith(".html") || name.endsWith(".htm")) return "text/html";
 		else if (name.endsWith(".txt") || name.endsWith(".log")) return "text/plain";
 		else if (name.endsWith(".json") ) return "application/json";
+		else if (name.endsWith(".gz") ) return "application/gzip";
 		else if (name.endsWith(".js") ) return "text/javascript";
 		else if (name.endsWith(".css")) return "text/css";
 		else if (name.endsWith(".pdf")) return "application/pdf";
