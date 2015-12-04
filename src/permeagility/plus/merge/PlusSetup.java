@@ -35,13 +35,13 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 	
 	public static String MENU_CLASS = "permeagility.plus.merge.Merge";
 	
-	public String getName() { return "Merge"; }
-	public String getInfo() { return "(built-in) Move, link, or update data from one table to another"; }
-	public String getVersion() { return "0.1.0"; }
+	@Override public String getName() { return "Merge"; }
+	@Override public String getInfo() { return "(built-in) Move, link, or update data from one table to another"; }
+	@Override public String getVersion() { return "0.1.0"; }
 	
-	public boolean isInstalled() { return INSTALLED; }
+	@Override public boolean isInstalled() { return INSTALLED; }
 	
-	public boolean install(DatabaseConnection con, HashMap<String,String> parms, StringBuilder errors) {
+	@Override public boolean install(DatabaseConnection con, HashMap<String,String> parms, StringBuilder errors) {
 		OSchema oschema = con.getSchema();
 		String newTableGroup = pickTableGroup(con, parms);
 		
@@ -72,7 +72,7 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 		return true;
 	}
 	
-	public boolean remove(DatabaseConnection con, HashMap<String,String> parms, StringBuilder errors) {
+	@Override public boolean remove(DatabaseConnection con, HashMap<String,String> parms, StringBuilder errors) {
 		
 		if (parms.get("REMOVE_MENU") != null) {
 			Setup.removeMenuItem(con, MENU_CLASS, errors);
@@ -91,7 +91,7 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 		return true;
 	}
 	
-	public boolean upgrade(DatabaseConnection con, HashMap<String,String> parms, StringBuilder errors) {
+	@Override public boolean upgrade(DatabaseConnection con, HashMap<String,String> parms, StringBuilder errors) {
 		// Perform upgrade actions
 				
 		setPlusVersion(con,this.getClass().getName(),getInfo(),getVersion());
