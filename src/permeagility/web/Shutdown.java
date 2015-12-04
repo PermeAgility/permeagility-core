@@ -21,43 +21,41 @@ import permeagility.util.DatabaseConnection;
 
 public class Shutdown extends Weblet {
 
-    public String getPage(DatabaseConnection con, HashMap<String,String> parms) {
-		String service = Message.get(con.getLocale(),"SHUTDOWN_SERVER");
-		parms.put("SERVICE",service);
-		StringBuilder errors = new StringBuilder();
-		
-		if (parms.get("SUBMIT") != null && parms.get("SUBMIT").equals("CANCEL")) {
-			return redirect(parms,"/");
-        	}
-    
-		if (parms.get("SUBMIT") == null || !parms.get("SUBMIT").equals("CONFIRM_SHUTDOWN")) {
-	    	return head(service)+
-		    standardLayout(con, parms,
-		    	errors
-	    		+paragraph("banner",Message.get(con.getLocale(), "CONFIRM_SHUTDOWN"))
-	    		+form("SHUTDOWN_FORM",
-	    			hidden("SHUTDOWN",parms.get("SHUTDOWN"))
-	    			+paragraph(Message.get(con.getLocale(),"SHUTDOWN_CONFIRM_MESSAGE"))
-	    			+paragraph(checkbox("WITH_RESTART",false)+"&nbsp;"+Message.get(con.getLocale(),"SHUTDOWN_RESTART"))
-	    			+submitButton(con.getLocale(),"CONFIRM_SHUTDOWN")
-	    			+"&nbsp;&nbsp;&nbsp;&nbsp;"
-	    			+submitButton(con.getLocale(),"CANCEL")
-		        )
-		    );
-		} else {
-				System.out.println("Database and Server shutdown initiated by user "+con.getUser());
-				Server.restore_lockout = true;
-				int exitCode = parms.get("WITH_RESTART") != null ? 1 : 0;
-				try {
-					return redirect(parms, "/");
-				} catch (Exception e) {
-				} finally {
-					Server.exit(exitCode);
-				}
-				return redirect(parms,"/");
-		}
+    public String getPage(DatabaseConnection con, HashMap<String, String> parms) {
+        String service = Message.get(con.getLocale(), "SHUTDOWN_SERVER");
+        parms.put("SERVICE", service);
+        StringBuilder errors = new StringBuilder();
+
+        if (parms.get("SUBMIT") != null && parms.get("SUBMIT").equals("CANCEL")) {
+            return redirect(parms, "/");
+        }
+
+        if (parms.get("SUBMIT") == null || !parms.get("SUBMIT").equals("CONFIRM_SHUTDOWN")) {
+            return head(service)
+                    + standardLayout(con, parms,
+                            errors
+                            + paragraph("banner", Message.get(con.getLocale(), "CONFIRM_SHUTDOWN"))
+                            + form("SHUTDOWN_FORM",
+                                    hidden("SHUTDOWN", parms.get("SHUTDOWN"))
+                                    + paragraph(Message.get(con.getLocale(), "SHUTDOWN_CONFIRM_MESSAGE"))
+                                    + paragraph(checkbox("WITH_RESTART", true) + "&nbsp;" + Message.get(con.getLocale(), "SHUTDOWN_RESTART"))
+                                    + submitButton(con.getLocale(), "CONFIRM_SHUTDOWN")
+                                    + "&nbsp;&nbsp;&nbsp;&nbsp;"
+                                    + submitButton(con.getLocale(), "CANCEL")
+                            )
+                    );
+        } else {
+            System.out.println("Database and Server shutdown initiated by user " + con.getUser());
+            Server.restore_lockout = true;
+            int exitCode = parms.get("WITH_RESTART") != null ? 1 : 0;
+            try {
+                return redirect(parms, "/");
+            } catch (Exception e) {
+            } finally {
+                Server.exit(exitCode);
+            }
+            return redirect(parms, "/");
+        }
     }
 
 }
-
-
