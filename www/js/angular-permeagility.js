@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright 2015 PermeAgility Incorporated.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,7 +18,7 @@
 
 var app = angular.module('permeagility', []);
 
-// When an input has a directive text-build 
+// When an input has a directive text-build
 app.directive('textBuild', ['$rootScope', function($rootScope) {
   return {
     link: function(scope, element, attrs) {
@@ -58,19 +58,19 @@ app.controller('TextBuildControl', function($scope, $rootScope) {
 // Link Set Control
 app.controller('LinkSetControl', function($scope) {
   $scope.values = null;
-  $scope.selValue = null;   
-  $scope.toggleActive = function(s){    s.active = !s.active;        };   
-  $scope.resultList = function(){      
+  $scope.selValue = null;
+  $scope.toggleActive = function(s){    s.active = !s.active;        };
+  $scope.resultList = function(){
     var result = "";
     angular.forEach($scope.values,
-      function(v){        
-        if (v.active){      
-          if (result !== "") { result += "," } 
-          result += v.rid;  
-        }                   
-      });              
-      return result;           
-  };       
+      function(v){
+        if (v.active){
+          if (result !== "") { result += "," }
+          result += v.rid;
+        }
+      });
+      return result;
+  };
 });
 
 // Link List Control
@@ -78,7 +78,7 @@ app.controller('LinkListControl', function($scope) {
 	$scope.values = null;
 	$scope.listValues = null;
     $scope.selValue = null;
-    
+
     $scope.delete = function(s) {
     	for (i = 0; i<$scope.listValues.length; i++) {
     		if ($scope.listValues[i].rid == s.rid && $scope.listValues[i].active == s.active) {
@@ -89,7 +89,7 @@ app.controller('LinkListControl', function($scope) {
     			}
     			$scope.listValues.pop();
     		}
-    	}       					
+    	}
     }
 
     $scope.up = function(s) {
@@ -100,7 +100,7 @@ app.controller('LinkListControl', function($scope) {
     			$scope.listValues[i] = $scope.listValues[i-1];
     			$scope.listValues[i-1] = swap;
     		}
-    	}       					
+    	}
     }
 
     $scope.down = function(s) {
@@ -112,14 +112,14 @@ app.controller('LinkListControl', function($scope) {
     			$scope.listValues[i] = swap;
     			break;  // otherwise it goes to bottom
     		}
-    	}       					
+    	}
     }
-    	
-    $scope.selected = function(s)   {  
+
+    $scope.selected = function(s)   {
     	s.active++; // makes it unique
        	$scope.listValues[$scope.listValues.length] = angular.copy(s);
     };
-    	
+
     $scope.resultList = function() {
         var result = "";
         angular.forEach($scope.listValues,
@@ -136,7 +136,7 @@ app.controller('LinkMapControl', function($scope) {
 	$scope.values = null;
 	$scope.listValues = null;
     $scope.selValue = null;
-    
+
     $scope.delete = function(s) {
     	for (i = 0; i<$scope.listValues.length; i++) {
     		if ($scope.listValues[i].rid == s.rid &&
@@ -155,7 +155,7 @@ app.controller('LinkMapControl', function($scope) {
     				}
     			}
     		}
-    	}       					
+    	}
     }
 
     $scope.up = function(s) {
@@ -167,7 +167,7 @@ app.controller('LinkMapControl', function($scope) {
     			$scope.listValues[i-1] = swap;
     			break;  // Stop searching
     		}
-    	}       					
+    	}
     }
 
     $scope.down = function(s) {
@@ -179,10 +179,10 @@ app.controller('LinkMapControl', function($scope) {
     			$scope.listValues[i] = swap;
     			break;  // otherwise it searches to bottom
     		}
-    	}       					
+    	}
     }
-    	
-    $scope.selected = function(s)   { 
+
+    $scope.selected = function(s)   {
         if (s.active > 0) {
         	alert("Already selected, no duplicates allowed");
         	} else {
@@ -190,15 +190,15 @@ app.controller('LinkMapControl', function($scope) {
 	           	$scope.listValues[$scope.listValues.length] = angular.copy(s);
 	        }
     };
-    	
+
     $scope.resultList = function() {
         var result = "";
         angular.forEach($scope.listValues,
                 function(v){
-                  if (result !== "") { 
-                   	result += ","; 
+                  if (result !== "") {
+                   	result += ",";
                   }
-                  result += "'"+v.map + "':"+ v.rid;    
+                  result += "'"+v.map + "':"+ v.rid;
              });
         return result;
     };
