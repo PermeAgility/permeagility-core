@@ -230,7 +230,8 @@ public class Context extends Weblet {
             modules.add(TEST_MODULE);
         }
         for (String m : modules) {
-            String setupClassName = "permeagility.plus." + m.substring(5) + ".PlusSetup";
+            System.out.println("Loading plus module: "+m);
+            String setupClassName = "permeagility.plus." + (m.indexOf("-",5) > 0 ? m.substring(5,m.indexOf("-",5)) : m.substring(5)) + ".PlusSetup";
             try {
                 Class<?> classOf = Class.forName(setupClassName, true, PlusClassLoader.get());
                 Object classInstance = classOf.newInstance();
