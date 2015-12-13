@@ -230,7 +230,8 @@ public class Context extends Weblet {
             modules.add(TEST_MODULE);
         }
         for (String m : modules) {
-            String setupClassName = "permeagility.plus." + m.substring(5) + ".PlusSetup";
+            System.out.println("Loading plus module: "+m);
+            String setupClassName = "permeagility.plus." + (m.indexOf("-",5) > 0 ? m.substring(5,m.indexOf("-",5)) : m.substring(5)) + ".PlusSetup";
             try {
                 Class<?> classOf = Class.forName(setupClassName, true, PlusClassLoader.get());
                 Object classInstance = classOf.newInstance();
@@ -313,7 +314,7 @@ public class Context extends Weblet {
                    : (Server.getCodeSource().equals("classes") ? "" : form(submitButton(locale, "CHECK_FOR_UPDATE")))
                     + (latestVersion != null ? br() + "Latest="+latestVersion+"("+latestVersionDate+")        checked:"+lastChecked.toString() : "")
                     + (latestVersion != null && !latestVersion.equals(Server.getCodeSource()) && !downloading ? form(submitButton(locale, "DOWNLOAD_UPDATE")) : "")
-                    + (downloading ? downloadPercent < 100 ? br()+"downloading latest "+downloadPercent+"%" : "downloaded" : "")
+                    + (downloading ? downloadPercent < 100 ? br()+Message.get(locale, "DOWNLOADING_UPDATE")+" "+downloadPercent+"%" : Message.get(locale, "DOWNLOADING_COMPLETE") : "")
                     + (downloadURL != null && downloadPercent == 100 ? form(submitButton(locale, "APPLY_UPDATE")) : "")))
                 + (logs.length() > 0 ? table("sortable",
                                 row(columnHeader(Message.get(locale, "LOG_FILENAME"))
@@ -321,7 +322,7 @@ public class Context extends Weblet {
                                         + columnHeader(Message.get(locale, "LOG_DATE"))
                                         + columnHeader(Message.get(locale, "LOG_VIEW")))
                                 + logs.toString())
-                        : bold("-- Logging to console --"))
+                        : bold(Message.get(locale, "LOGGING_TO_CONSOLE")))
                 + paragraph("banner", Message.get(locale, "SERVER_CACHE"))
                 + form(submitButton(locale, "CACHE_CLEAR_MENUS")
                         + "&nbsp;" + Message.get(locale, "CACHE_COUNT", "" + Menu.cacheSize()))

@@ -431,6 +431,16 @@ public class Setup {
             mCount += checkCreateMessage(con, loc, "PLUS_PARMS_INVALID", "Please specify a table group, menu and the roles to allow access");
             mCount += checkCreateMessage(con, loc, "REFRESH", "Refresh");
             mCount += checkCreateMessage(con, loc, "VISUILITY", "Visuility");
+            mCount += checkCreateMessage(con, loc, "LOGGING_TO_CONSOLE", "-- Logging to console --");
+            mCount += checkCreateMessage(con, loc, "LOG_VIEW", "View");
+            mCount += checkCreateMessage(con, loc, "LOG_FILENAME", "File Name");
+            mCount += checkCreateMessage(con, loc, "LOG_SIZE", "Size");
+            mCount += checkCreateMessage(con, loc, "LOG_DATE", "Start Date");
+            mCount += checkCreateMessage(con, loc, "CHECK_FOR_UPDATE", "Check for update");
+            mCount += checkCreateMessage(con, loc, "DOWNLOAD_UPDATE", "Download update");
+            mCount += checkCreateMessage(con, loc, "DOWNLOADING_UPDATE", "Downloading");
+            mCount += checkCreateMessage(con, loc, "DOWNLOADING_COMPLETE", "Downloaded");
+            mCount += checkCreateMessage(con, loc, "APPLY_UPDATE", "Apply update");
 
             if (mCount > 0) {
                     installMessages.append(Weblet.paragraph("CheckInstallation: Created "+mCount+" messages"));
