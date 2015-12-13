@@ -62,8 +62,8 @@ public abstract class Weblet {
     public static String DATE_CONTROL_STYLE = "blue2";  
     public static String DEFAULT_STYLE = "default";
     public static String POPUP_SUFFIX = "..";
-    public static boolean JQUERY_MIN = false;  // Set to true to reduce download time but sacrifice debug messages of any value
-    public static boolean ANGULAR_MIN = false;  // Set to true to reduce download time but sacrifice debug messages of any value
+    public static boolean JQUERY_MIN = true;  // Set to true to reduce download time but sacrifice debug messages of any value
+    public static boolean ANGULAR_MIN = true;  // Set to true to reduce download time but sacrifice debug messages of any value
     public static String NONE_STRING = "null";  // this is what a null reference will convert to on description lookups (when something is deleted)
 
     // Override this to add body attributes (but don't remove the one that's there unless you are doing your own controls)
