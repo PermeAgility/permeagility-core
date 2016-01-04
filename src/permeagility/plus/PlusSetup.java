@@ -38,7 +38,7 @@ public abstract class PlusSetup extends Weblet {
     public abstract String getInfo();
 
     /** Implement this to return the version (should be ascending alpha numeric) */
-    public abstract String getVersion();
+    public String getVersion() { return null; }
 
     /** Implement this with what the plug in needs to be installed */
     public abstract boolean install(DatabaseConnection con, HashMap<String,String> parms, StringBuilder errors);

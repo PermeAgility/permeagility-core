@@ -30,8 +30,7 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 	public static String MENU_CLASS_DATA = "permeagility.plus.csv.Download";
 	
 	@Override public String getName() { return "plus CSV"; }
-        @Override public String getInfo() { return "(builtin) Import/Export CSV data"; }
-        @Override public String getVersion() { return "0.1.0"; }
+        @Override public String getInfo() { return "Import/Export CSV data"; }
 	
 	@Override public boolean isInstalled() { return INSTALLED; }
 	

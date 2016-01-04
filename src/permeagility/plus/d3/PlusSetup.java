@@ -39,8 +39,7 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 	public static String DATA_CLASS = "permeagility.plus.d3.Data";
 	
 	@Override public String getName() { return "D3 Builder"; }
-	@Override public String getInfo() { return "(builtin) Visualize data using D3"; }
-	@Override public String getVersion() { return "0.1.0"; }
+	@Override public String getInfo() { return "Visualize data using D3"; }
 	
 	@Override public boolean isInstalled() { return INSTALLED; }
 	

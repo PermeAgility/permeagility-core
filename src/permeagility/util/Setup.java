@@ -423,11 +423,14 @@ public class Setup {
             mCount += checkCreateMessage(con, loc, "PLUS_NAME", "Name");
             mCount += checkCreateMessage(con, loc, "PLUS_DB_VERSION", "DB Version");
             mCount += checkCreateMessage(con, loc, "PLUS_VERSION", "Plus Version");
+            mCount += checkCreateMessage(con, loc, "PLUS_EMBEDDED", "Embedded");
             mCount += checkCreateMessage(con, loc, "PLUS_SETUP", "Setup");
             mCount += checkCreateMessage(con, loc, "PLUS_DESCRIPTION", "Description");
             mCount += checkCreateMessage(con, loc, "PLUS_INSTALL", "Install");
             mCount += checkCreateMessage(con, loc, "PLUS_REMOVE", "Remove");
             mCount += checkCreateMessage(con, loc, "PLUS_UPGRADE", "Upgrade");  
+            mCount += checkCreateMessage(con, loc, "DOWNLOAD_PLUS_FILE", "Download");  
+            mCount += checkCreateMessage(con, loc, "DOWNLOAD_PLUS", "Download new plus");  
             mCount += checkCreateMessage(con, loc, "PLUS_PARMS_INVALID", "Please specify a table group, menu and the roles to allow access");
             mCount += checkCreateMessage(con, loc, "REFRESH", "Refresh");
             mCount += checkCreateMessage(con, loc, "VISUILITY", "Visuility");
@@ -739,6 +742,8 @@ public class Setup {
             // Add table privileges for the guest and user roles
             checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,TABLE_COLUMNS,2,installMessages);
             checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,TABLE_NEWS,2,installMessages);
+            checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,TABLE_MENU,2,installMessages);
+            checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,TABLE_MENUITEM,2,installMessages);
             checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,TABLE_STYLE,2,installMessages);
             checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,TABLE_LOCALE,2,installMessages);
             checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,TABLE_USERPROFILE,1,installMessages);
@@ -747,6 +752,8 @@ public class Setup {
             checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,TABLE_COLUMNS,2,installMessages);
             checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,TABLE_TABLEGROUP,2,installMessages);
             checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,TABLE_NEWS,2,installMessages);
+            checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,TABLE_MENU,2,installMessages);
+            checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,TABLE_MENUITEM,2,installMessages);
             checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,TABLE_STYLE,2,installMessages);
             checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,TABLE_LOCALE,2,installMessages);
             checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,TABLE_USERPROFILE,6,installMessages);

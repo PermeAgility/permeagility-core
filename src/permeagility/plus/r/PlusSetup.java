@@ -41,8 +41,7 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 	public static String DATA_CLASS = "permeagility.plus.r.Data";
 	
 	@Override public String getName() { return "R Builder"; }
-	@Override public String getInfo() { return "(builtin) Calculate, twist and plot data using R (requires R install on server)"; }
-	@Override public String getVersion() { return "0.1.0"; }
+	@Override public String getInfo() { return "Calculate, twist and plot data using R (requires R install on server)"; }
 	
 	@Override public boolean isInstalled() { return INSTALLED; }
 	

@@ -30,8 +30,7 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 	public static String MENU_CLASS_DATA = "permeagility.plus.json.Download";
                 
 	@Override public String getName() { return "plus JSON"; }
-        @Override public String getInfo() { return "(builtin) Import/Export JSON data"; }
-        @Override public String getVersion() { return "0.1.0"; }
+        @Override public String getInfo() { return "Import/Export JSON data"; }
         
 	@Override public boolean isInstalled() { return INSTALLED; }
 	

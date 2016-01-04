@@ -63,14 +63,15 @@ public class Menu extends Weblet {
 		
 		if (DEBUG) System.out.println("Menu: Getting menu for "+con.getUser());
 		StringBuilder menu = new StringBuilder();
-		DatabaseConnection dbcon = null;
+		//DatabaseConnection dbcon = null;
 		try {
 			// Only the server and admin need to see the menu table
-			dbcon = Server.getServerConnection();
-			if (DEBUG) System.out.println("Menu: Connected as (server) "+dbcon.getUser());
+			//dbcon = Server.getServerConnection();
+			//if (DEBUG) System.out.println("Menu: Connected as (server) "+dbcon.getUser());
 
 			// Assemble menu based on the users roles and the menuItem's _allowRead
-			QueryResult qr = dbcon.query("SELECT FROM "+Setup.TABLE_MENU+" WHERE active=TRUE ORDER BY sortOrder");
+			//QueryResult qr = dbcon.query("SELECT FROM "+Setup.TABLE_MENU+" WHERE active=TRUE ORDER BY sortOrder");
+			QueryResult qr = con.query("SELECT FROM "+Setup.TABLE_MENU+" WHERE active=TRUE ORDER BY sortOrder");
 			for (ODocument m : qr.get()) {
                             StringBuilder itemMenu = new StringBuilder();
                             List<ODocument> items = m.field("items");
@@ -100,18 +101,20 @@ public class Menu extends Weblet {
                                                                 readRoleSet.add(rr.getIdentity().toString());
                                                             }
                                                             if (readRoles != null && Security.isRoleMatch(Security.getUserRoles(con),readRoleSet)) {
-                                                                if (i.field("classname") == null || ((String)i.field("classname")).equals("")) {
+  
+                                                            if (i.field("classname") == null || ((String)i.field("classname")).equals("")) {
                                                                 itemMenu.append((HORIZONTAL_LAYOUT ? "&nbsp;" : "<br>") +"\n");                	                	
-                                                                } else {
-                                                                        itemMenu.append(link((String)i.field("classname"), pretty, prettyDesc));	
-                                                                        itemMenu.append((HORIZONTAL_LAYOUT ? "&nbsp;" : "<br>") +"\n");  
-                                                                }
+                                                            } else {
+                                                                itemMenu.append(link((String)i.field("classname"), pretty, prettyDesc));	
+                                                                itemMenu.append((HORIZONTAL_LAYOUT ? "&nbsp;" : "<br>") +"\n");  
                                                             }
+                                                        }
                                                     } else {
                                                         if (DEBUG) System.out.println("Menu item "+menuName+" is inactive");
                                                     } 
                                             } else {
-                                                    System.err.println("Menu item is null - was deleted?");
+                                                // No access to item
+                                                //    System.err.println("Menu item is null - was deleted?");
                                             }
                                     }
                                     if (itemMenu.length() > 0) {
@@ -130,10 +133,10 @@ public class Menu extends Weblet {
 		} catch( Exception e ) {
 			System.out.println("Error in Menu: "+e);
 			e.printStackTrace();
-		} finally {
-			if (dbcon != null) {
-				Server.freeServerConnection(dbcon);
-			}
+//		} finally {
+//			if (dbcon != null) {
+//				Server.freeServerConnection(dbcon);
+//			}
 		}
 		if (DEBUG) System.out.println("Menu: Adding menu for "+con.getUser()+" to menuCache");
 		String newMenu = menu.toString();

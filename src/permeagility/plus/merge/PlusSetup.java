@@ -36,8 +36,7 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 	public static String MENU_CLASS = "permeagility.plus.merge.Merge";
 	
 	@Override public String getName() { return "Merge"; }
-	@Override public String getInfo() { return "(built-in) Move, link, or update data from one table to another"; }
-	@Override public String getVersion() { return "0.1.0"; }
+	@Override public String getInfo() { return "Move, link, or update data from one table to another"; }
 	
 	@Override public boolean isInstalled() { return INSTALLED; }
 	

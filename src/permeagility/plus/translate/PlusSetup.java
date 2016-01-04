@@ -28,8 +28,7 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 	public static String MENU_CLASS = "permeagility.plus.translate.Translate";
 	
 	@Override public String getName() { return "Translate"; }
-	@Override public String getInfo() { return "(builtin) Translate messages, table and column names, and news articles using mymemory.translated.net"; }
-	@Override public String getVersion() { return "0.1.0"; }
+	@Override public String getInfo() { return "Translate messages, table and column names, and news articles using mymemory.translated.net"; }
 	
 	@Override public boolean isInstalled() { return INSTALLED; }
 	
