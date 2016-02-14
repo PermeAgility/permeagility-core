@@ -444,6 +444,9 @@ public class Setup {
             mCount += checkCreateMessage(con, loc, "DOWNLOADING_UPDATE", "Downloading");
             mCount += checkCreateMessage(con, loc, "DOWNLOADING_COMPLETE", "Downloaded");
             mCount += checkCreateMessage(con, loc, "APPLY_UPDATE", "Apply update");
+            mCount += checkCreateMessage(con, loc, "SAVE_AND_RUN", "Save/Run");
+            mCount += checkCreateMessage(con, loc, "DETAILS", "Details");
+            mCount += checkCreateMessage(con, loc, "MORE", "More");
 
             if (mCount > 0) {
                     installMessages.append(Weblet.paragraph("CheckInstallation: Created "+mCount+" messages"));

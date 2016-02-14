@@ -15,6 +15,7 @@
  */
 package permeagility.plus.r;
 
+import com.orientechnologies.orient.core.metadata.schema.OProperty;
 import java.util.HashMap;
 
 import permeagility.util.DatabaseConnection;
@@ -32,14 +33,26 @@ import java.io.IOException;
 import java.io.SequenceInputStream;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
+import java.util.Collection;
 import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
+import permeagility.util.QueryResult;
 import permeagility.web.Server;
+import static permeagility.web.Table.PARM_PREFIX;
 import permeagility.web.Thumbnail;
+import static permeagility.web.Weblet.div;
+import static permeagility.web.Weblet.getSplitScript;
+import static permeagility.web.Weblet.hidden;
+import static permeagility.web.Weblet.paragraph;
+import static permeagility.web.Weblet.popupBox;
+import static permeagility.web.Weblet.popupForm;
+import static permeagility.web.Weblet.script;
 
 public class RBuilder extends Table {
 
-    public static String R_COMMAND = "r";
+//    public static String R_COMMAND = "/bin/bash -c r";
+    public static String R_COMMAND = "/usr/local/bin/r";
+    public static boolean DEBUG = true;
 
     // Processes in progress by RScript ID containing RScript id and process
     static ConcurrentHashMap<String, Process> processes = new ConcurrentHashMap<>();
@@ -52,26 +65,50 @@ public class RBuilder extends Table {
         StringBuilder errors = new StringBuilder();
         Locale locale = con.getLocale();
 
-        String run = parms.get("RUN");
+        String serviceStyleOverride = "<style>#service { top: 0px !important; left: 0px !important; }</style>";
+
+        String submit = parms.get("SUBMIT");
+        String preview = parms.get("PREVIEW");
         String viewText = parms.get("VIEWTEXT");
-        if (viewText != null && viewText.indexOf(",") > 0) {
-            viewText = viewText.substring(0,viewText.indexOf(","));
-        }
+//        if (viewText != null && viewText.indexOf(",") > 0) {
+//            viewText = viewText.substring(0,viewText.indexOf(","));
+//        }
         String viewPDF = parms.get("VIEWPDF");
         String tableName = PlusSetup.TABLE;
         
-        if (run != null && parms.get("EDIT_ID") != null) {
-            parms.put("SUBMIT","UPDATE");
-        }
+ //       if (submit != null && submit.equals("UPDATE")) {
+ //           parms.put(PARM_PREFIX+"textResult","");
+ //           parms.put(PARM_PREFIX+"PDFResult","");
+ //       }
+
         // Handle data editing using the default table behaviour
         String update = processSubmit(con, parms, tableName, errors);
-        if (update != null) {
-            if (run == null) {
-                return update;
+        if (update != null) { 
+            return update; 
+        }
+
+        if (submit != null && submit.equals("UPDATE")) { 
+            runRProcess(con, parms, errors); 
+        }  
+
+        if (preview != null && !preview.equals("null")) {
+            ODocument viewDoc = con.get(preview);
+            if (viewDoc == null) {
+                errors.append(paragraph("Could not retrieve preview using " + preview));
+            } else {
+                StringBuilder desc = new StringBuilder();
+                String tid = Thumbnail.getThumbnailId(tableName, preview, "PDFResult", desc);
+                if (tid != null) {
+                    sb.append("<object data=\"/thumbnail?SIZE=FULL&ID=" + tid + "\" width=\"100%\" height=\"100%\">"
+                           + "<a href=\"/thumbnail?SIZE=FULL&ID=" + tid + "\">Click to download " + desc.toString() + "</a> " + "</object>");
+                } else {
+                    sb.append(paragraph("warning","No Results"));
+                }
+                return head("R Builder", serviceStyleOverride) + body(errors.toString()+div("service",sb.toString()));
             }
         }
 
-        if (viewText != null && viewPDF == null && run == null) {
+        if (viewText != null && !viewText.equals("null")) {
             if (processes.get(viewText) != null) {
                 errors.append(paragraph("warning", "Process is still running"));
             } else {
@@ -81,17 +118,14 @@ public class RBuilder extends Table {
                 } else {
                     String textResult = doc.field("textResult");
                     if (textResult == null) {
-                        errors.append(paragraph("error", "No results found"));
-                    } else {
-                        return head("R Builder - Text result view", getScripts(con))
-                                + body(standardLayout(con, parms, 
-                                        link(this.getClass().getName()+"?EDIT_ID="+viewText, Message.get(locale, "PLUS-R_EDIT"))+"&nbsp;&nbsp;&nbsp;"
-                                        +link(this.getClass().getName()+"?VIEWPDF="+viewText, Message.get(locale, "PLUS-R_VIEWPDF"))
-                                         +br()+textResult));
+                        textResult = "No results found";
                     }
+                    return head("R Builder - Text result view") + bodyOnLoad("<pre>"+textResult+"</pre>"
+                            ,"window.scrollTo(0, document.body.scrollHeight);");
                 }
             }
-        } else if (viewPDF != null && run == null) {
+        }
+        if (viewPDF != null) {
             if (processes.get(viewPDF) != null) {
                 errors.append(paragraph("warning", "Process is still running"));
             } else {
@@ -108,83 +142,14 @@ public class RBuilder extends Table {
                                     ));
                 }
             }
-        } else if (run != null) {
-            System.out.println("Build R Process " + run);
-            ODocument runDoc = con.get(run);
-            if (runDoc == null) {
-                errors.append(paragraph("Could not retrieve run details using " + run));
-            } else if (processes.get(run) != null) {
-                errors.append(paragraph("warning", "Process is already running"));
-            } else {
-                try {
-                    File pdf = File.createTempFile("RProcess", ".pdf");
-                    System.out.println("Temp pdf file created " + pdf.getAbsolutePath());
-
-                    File rscript = File.createTempFile("RScript", ".r");
-                    System.out.println("Temp rscript file created " + rscript.getAbsolutePath());
-                    String rsrc = runDoc.field("RScript");
-                    runDoc.field("status", "Running");
-                    // Write the script to the file - put output to pdf instruction and PermeAgilityCSV function at the top
-                    Files.write(rscript.toPath(), ("#---- PermeAgility Header ----#\npdf(\"" + pdf.getAbsolutePath() + "\")\n").getBytes(), StandardOpenOption.WRITE);
-                    String rCode = "library(httr)\n"
-                            + "PermeAgilityCSV <- function(p) {\n"
-                            + "    content(GET(paste(\"http://localhost:" + Server.getHTTPPort()
-                            + "/permeagility.plus.csv.Download?\", URLencode(p), sep=\"\"), set_cookies(\"name\" = \"PermeAgilitySession" + Server.getHTTPPort()
-                            + "\", \"value\" = \"" + parms.get("COOKIE_VALUE") + "\"))) }\n#---- End of PermeAgility Header ----#\n\n";
-                    Files.write(rscript.toPath(), rCode.getBytes(), StandardOpenOption.APPEND);
-                    System.out.println("RCode preamble is "+rCode.length());
-                    Files.write(rscript.toPath(), rsrc.getBytes(), StandardOpenOption.APPEND);
-
-                    File output = File.createTempFile("RProcess", ".out");
-                    System.out.println("Temp output file created " + output.getAbsolutePath());
-
-                    String execCommands[] = {"/bin/sh", "-c", R_COMMAND + " --quiet --vanilla -f " + rscript.getAbsolutePath() + " 1>" + output.getAbsolutePath() + " 2>&1"};
-
-                    System.out.println("Running command " + execCommands[2]);
-                    Process newProcess = Runtime.getRuntime().exec(execCommands);
-                    processes.put(run, newProcess);
-                    String runDocId = runDoc.getIdentity().toString().substring(1);
-                    StringBuilder result = new StringBuilder();
-                    try {
-                        System.out.println("Waiting for process " + newProcess.toString() + " to complete");
-                        int rc = newProcess.waitFor();
-                        System.out.println("R Process waitFor ended with returnCode=" + rc);
-                        FileInputStream fis = new FileInputStream(output);
-                        if (fis.available() > 0) {
-                            int binc = fis.read();
-                            do {
-                                result.append((char) binc);
-                                binc = fis.read();
-                            } while (fis.available() > 0);
-                        }
-                        int endOfHeader = result.toString().indexOf("#---- End of PermeAgility Header ----#");
-                        sb.append("<p>"+ result.toString().substring(endOfHeader > rCode.length() ? endOfHeader : 0)+"</p>");
-                        String textResult = result.toString().substring(endOfHeader > rCode.length() ? endOfHeader+38 : 0)
-                                .replace("<", "&lt;").replace(">", "&gt;").replace("\n", "<br>");
-                        runDoc.field("textResult", textResult);
-                        if (updateBlobFromFile(runDoc, "RScript", "PDFResult", pdf.getAbsolutePath())) {
-                            runDoc.field("status", "Finished");
-                        } else {
-                            runDoc.field("status", "No PDF");
-                        }
-                        runDoc.save();
-                        processes.remove(runDocId);
-                        return redirect(parms,this,"VIEWTEXT="+runDocId);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                parms.put("SERVICE", "Running:" + runDoc.field("name"));
-            }
         }
+        
         if (sb.length() == 0) {
             try {
                 sb.append(getTable(con, parms, PlusSetup.TABLE, "SELECT FROM " + PlusSetup.TABLE, null, 0, "name,description,RScript,-"));
             } catch (Exception e) {
                 e.printStackTrace();
-                sb.append("Error retrieving R Scripts patterns: " + e.getMessage());
+                sb.append("Error retrieving R Scripts: " + e.getMessage());
             }
         }
         return head("R Builder", getScripts(con))
@@ -193,7 +158,7 @@ public class RBuilder extends Table {
                                         ? popupForm("CREATE_NEW_ROW", null, Message.get(locale, "CREATE_ROW"), null, "NAME",
                                                 paragraph("banner", Message.get(locale, "CREATE_ROW"))
                                                 + hidden("TABLENAME", PlusSetup.TABLE)
-                                                + getTableRowFields(con, PlusSetup.TABLE, parms)
+                                                + super.getTableRowFields(con, PlusSetup.TABLE, parms, "name,description,-")
                                                 + submitButton(locale, "CREATE_ROW"))
                                         : "")
                                 + "&nbsp;&nbsp;"
@@ -235,13 +200,179 @@ public class RBuilder extends Table {
         return true;
     }
 
-    @Override
+   /* @Override
     public String getTableRowFields(DatabaseConnection con, String table, HashMap<String, String> parms) {
         return (parms.get("EDIT_ID") != null ? 
                         link(this.getClass().getName()+"?VIEWTEXT="+parms.get("EDIT_ID"), Message.get(con.getLocale(), "PLUS-R_VIEWTEXT"))+"&nbsp;&nbsp;&nbsp;"
                         +link(this.getClass().getName()+"?VIEWPDF="+parms.get("EDIT_ID"), Message.get(con.getLocale(), "PLUS-R_VIEWPDF"))
                      : "")
                      +getTableRowFields(con, table, parms, "name,description,RScript,-,button_RUN_"+Message.get(con.getLocale(), "PLUS-R_RUN"));
+    } */
+
+    @Override
+    public String getTableRowForm(DatabaseConnection con, String table, HashMap<String, String> parms) {
+        return getTableRowFields(con, table, parms, null);
     }
 
+
+     /**
+     * Returns the fields for a table - can be for insert of a new row or update of an existing (as specified by the EDIT_ID in parms)
+     */
+    @Override
+    public String getTableRowFields(DatabaseConnection con, String table, HashMap<String, String> parms, String columnOverride) {
+        String edit_id = parms.get("EDIT_ID");
+        ODocument initialValues = null;
+        if (edit_id != null) {
+            QueryResult initrows = con.query("SELECT FROM #" + edit_id);
+            if (initrows != null && initrows.size() == 1) {
+                initialValues = initrows.get(0);
+            } else {
+                if (DEBUG) {
+                    System.out.println("Error in permeagility.web.Table:getTableRowForm: Only one row may be returned by ID for editing rows=" + initrows.size());
+                }
+                return paragraph("error", Message.get(con.getLocale(), "ONLY_ONE_ROW_CAN_BE_EDITED"));
+            }
+        } else {
+            if (DEBUG) {
+                System.out.println("getTableRowFields: No EDIT_ID specified");
+            }
+        }
+        String scriptEditor = "";
+        String formName = (edit_id == null ? "NEWROW" : "UPDATEROW");
+        Collection<OProperty> columns = con.getColumns(table, columnOverride);
+        if (columns != null) {
+            for (OProperty column : columns) {
+                String name = column.getName();
+                    if (column.getName().equals("RScript")) {
+                        String init = initialValues != null ? initialValues.field(name) : null;
+                        if (init == null) init = "# R Script\n";
+                        scriptEditor = getCodeEditorControl(formName, PARM_PREFIX + name, init, "text/x-rsrc");                    
+                    }
+            }
+            String resultText = "<iframe id='resultFrame' width='100%' height='100%'></iframe>\n";
+
+            String resultView = button("UpdateButton", "UPDATEBUTTON","UPDATE","Save/Run")+"&nbsp;&nbsp;&nbsp;"
+                    +"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+                    + popupBox("UPDATE_NAME", null, Message.get(con.getLocale(), "DETAILS"), null, "NAME",
+                            paragraph("banner", Message.get(con.getLocale(), "DETAILS"))
+                            + hidden("TABLENAME", PlusSetup.TABLE)
+                            + super.getTableRowFields(con, PlusSetup.TABLE, parms, "name,description,-")
+                    //        + submitButton(locale, "CREATE_ROW")
+                    )
+                    +"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+                    + popupForm("UPDATE_MORE", null, Message.get(con.getLocale(), "MORE"), null, "NAME",
+                            paragraph("banner", Message.get(con.getLocale(), "MORE"))
+                            + hidden("TABLENAME", PlusSetup.TABLE)
+                            + deleteButton(con.getLocale())+"<br>"
+                            + submitButton(con.getLocale(), "COPY")
+                    )
+                    +"<br><iframe id='previewFrame' width='100%' height='100%'></iframe>\n";
+
+            return getSplitScript()
+                   +div("leftHand","split split-horizontal",div("scriptEditor","split content",scriptEditor)+div("resultText",resultText))
+                   +div("rightHand","split split-horizontal",resultView)
+                   +script("Split(['#leftHand', '#rightHand'], { sizes:[50,50], gutterSize: 8, cursor: 'col-resize' });\n"
+                            //+ "Split(['#scriptEditor'], { direction: 'vertical', sizes: [100], gutterSize: 8, cursor: 'row-resize' });\n"
+                            + "Split(['#scriptEditor', '#resultText'], { direction: 'vertical', sizes: [50, 50], gutterSize: 8, cursor: 'row-resize' });\n"
+                           + "d3.select('#headerservice').text(document.getElementById('"+PARM_PREFIX+"name').value);\n"
+                           + "d3.select('#resultFrame').attr('src','/permeagility.plus.r.RBuilder?VIEWTEXT="+edit_id+"');\n"
+                           + "d3.select('#previewFrame').attr('src','/permeagility.plus.r.RBuilder?PREVIEW="+edit_id+"');\n"
+                           + "d3.select('#UpdateButton').on('click', function() { \n"
+                           + "   "+PARM_PREFIX+"RScriptEditor.save();\n"
+                           + "   var formData = new FormData();\n"
+                           + "   formData.append('SUBMIT','UPDATE');\n"
+                                + addFormData("RScript")
+                                + addFormData("name")
+                                + addFormData("description")
+                           //+ "formData.append('EDIT_ID','"+edit_id+"');\n"  // its already there
+                           + "   d3.xhr('').post(formData, function(error,data) {   \n"                        
+                           + "      d3.select('#resultFrame').attr('src','/permeagility.plus.r.RBuilder?VIEWTEXT="+edit_id+"');\n"
+                           + "      d3.select('#previewFrame').attr('src','/permeagility.plus.r.RBuilder?PREVIEW="+edit_id+"');\n"
+                           + "      d3.select('#headerservice').text(document.getElementById('"+PARM_PREFIX+"name').value);\n"
+                           + "   });\n"
+                           + "});\n"
+                    );
+        } else {
+            return null;
+        }
+    }
+
+    public String addFormData(String name) {
+        return "formData.append('"+PARM_PREFIX+name+"',document.getElementById('"+PARM_PREFIX+name+"').value);\n";
+    }
+
+    private void runRProcess(DatabaseConnection con, HashMap<String,String> parms, StringBuilder errors) {
+        String run = parms.get("EDIT_ID");
+        System.out.println("Build R Process " + run);
+        ODocument runDoc = con.get(run);
+        if (runDoc == null) {
+            errors.append(paragraph("Could not retrieve run details using " + run));
+        } else if (processes.get(run) != null) {
+            errors.append(paragraph("warning", "Process is already running"));
+        } else {
+            try {
+                File pdf = File.createTempFile("RProcess", ".pdf");
+                System.out.println("Temp pdf file created " + pdf.getAbsolutePath());
+
+                File rscript = File.createTempFile("RScript", ".r");
+                System.out.println("Temp rscript file created " + rscript.getAbsolutePath());
+                String rsrc = runDoc.field("RScript");
+                runDoc.field("status", "Running");
+                // Write the script to the file - put output to pdf instruction and PermeAgilityCSV function at the top
+                Files.write(rscript.toPath(), ("#---- PermeAgility Header ----#\npdf(\"" + pdf.getAbsolutePath() + "\")\n").getBytes(), StandardOpenOption.WRITE);
+                String rCode = "library(httr)\n"
+                        + "PermeAgilityCSV <- function(p) {\n"
+                        + "    content(GET(paste(\"http://localhost:" + Server.getHTTPPort()
+                        + "/permeagility.plus.csv.Download?\", URLencode(p), sep=\"\"), set_cookies(\"name\" = \"PermeAgilitySession" + Server.getHTTPPort()
+                        + "\", \"value\" = \"" + parms.get("COOKIE_VALUE") + "\"))) }\n#---- End of PermeAgility Header ----#\n\n";
+                Files.write(rscript.toPath(), rCode.getBytes(), StandardOpenOption.APPEND);
+                System.out.println("RCode preamble is "+rCode.length());
+                Files.write(rscript.toPath(), rsrc.getBytes(), StandardOpenOption.APPEND);
+
+                File output = File.createTempFile("RProcess", ".out");
+                System.out.println("Temp output file created " + output.getAbsolutePath());
+
+                String execCommand = R_COMMAND + " --quiet --vanilla -f " + rscript.getAbsolutePath() + " 1>" + output.getAbsolutePath() + " 2>&1";
+                String execCommands[] = {"/bin/bash", "-c", R_COMMAND+" --quiet --vanilla -f " + rscript.getAbsolutePath() + " 1>" + output.getAbsolutePath() + " 2>&1"};
+
+                System.out.println("Running command " + execCommands[2]);
+                Process newProcess = Runtime.getRuntime().exec(execCommands);
+                processes.put(run, newProcess);
+                String runDocId = runDoc.getIdentity().toString().substring(1);
+                StringBuilder result = new StringBuilder();
+                try {
+                    System.out.println("Waiting for process " + newProcess.toString() + " to complete");
+                    int rc = newProcess.waitFor();
+                    System.out.println("R Process waitFor ended with returnCode=" + rc);
+                    FileInputStream fis = new FileInputStream(output);
+                    if (fis.available() > 0) {
+                        int binc = fis.read();
+                        do {
+                            result.append((char) binc);
+                            binc = fis.read();
+                        } while (fis.available() > 0);
+                    }
+                    int endOfHeader = result.toString().indexOf("#---- End of PermeAgility Header ----#");
+                    //sb.append("<p>"+ result.toString().substring(endOfHeader > rCode.length() ? endOfHeader : 0)+"</p>");
+                    String textResult = result.toString().substring(endOfHeader > rCode.length() ? endOfHeader+38 : 0)
+                            .replace("<", "&lt;").replace(">", "&gt;").replace("\n", "<br>");
+                    runDoc.field("textResult", textResult);
+                    if (updateBlobFromFile(runDoc, "RScript", "PDFResult", pdf.getAbsolutePath())) {
+                        runDoc.field("status", "Finished");
+                    } else {
+                        runDoc.field("status", "No PDF");
+                    }
+                    runDoc.save();
+                    processes.remove(runDocId);
+                    //return redirect(parms,this,"EDIT_ID="+runDocId);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            parms.put("SERVICE", "Running:" + runDoc.field("name"));
+        }
+
+    }
 }

@@ -243,7 +243,7 @@ public class Table extends Weblet {
         // Process create action
         if (submit.equals("CREATE_ROW")) {
             if (insertRow(con, table, parms, errors)) {
-                return redirect(parms, this, "TABLENAME=" + table);
+                return redirect(parms, this, "TABLENAME=" + table + "&EDIT_ID="+parms.get("EDIT_ID"));
             } else {
                 errors.append(paragraph("error", "Could not insert"));
                 return head("Insert", getScripts(con))
@@ -423,7 +423,8 @@ public class Table extends Weblet {
         }
         if (newDoc.isDirty()) {
             try {
-                newDoc.save();
+                ODocument createdDoc = newDoc.save();
+                parms.put("EDIT_ID", createdDoc.getIdentity().toString().substring(1));  // In case we want to go straight to the new record's editor
                 errors.append(paragraph("success", Message.get(con.getLocale(), "NEW_ROW_CREATED", (newDoc.isDirty() ? "false" : "true"))));
                 Server.tableUpdated(table);
                 DatabaseConnection.rowCountChanged(table);
@@ -938,7 +939,7 @@ public class Table extends Weblet {
      * @param edit_id - record id of the value to be edited (the identity of initialValues would be misleading on a new record)
      * @return a table row for a given column in the document
      */
-    private String getColumnAsField(String table, OProperty column, ODocument initialValues, DatabaseConnection con, String formName, String edit_id, HashMap<String, String> parms) {
+    public String getColumnAsField(String table, OProperty column, ODocument initialValues, DatabaseConnection con, String formName, String edit_id, HashMap<String, String> parms) {
         Integer type = column.getType().getId();
         String name = column.getName();
         String prettyName = makeCamelCasePretty(name);
@@ -1988,7 +1989,7 @@ public class Table extends Weblet {
     }
 
     public String getScripts(DatabaseConnection con) {
-        return getDateControlScript(con.getLocale()) + getColorControlScript() + getCodeEditorScript() + getScript("d3.js");
+        return getDateControlScript(con.getLocale()) + getColorControlScript() + getCodeEditorScript() + getD3Script();
     }
 
 }

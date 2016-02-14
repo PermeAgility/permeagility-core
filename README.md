@@ -8,13 +8,13 @@ Try out the live demo site hosted on Amazon's Cloud: http://demo.permeagility.co
 This is the source code. Binary releases are available at: http://sourceforge.net/projects/permeagility/files  
 To build from source you must have Java 1.8+ and maven installed.  Then type: 
 
-    mvn install
+    `mvn package`
 
 Libraries will be downloaded, java files compiled, selftest will run, and a deployment jar 
 file will be created in the target directory.  Deploy the jar file to a directory 
 where you want the server to run and double click it or type: 
 
-    java -jar permeagility-_version_.jar
+    `java -jar permeagility-<version>-jar-with-dependencies.jar`
 
 Main class is: <b>permeagility.web.Server</b>
 
@@ -35,7 +35,7 @@ Login to the server using admin/admin, writer/writer, or reader/reader
 <br>
 <br>
 <br>
-&copy; 2015 PermeAgility Incorporated
+&copy; 2016 PermeAgility Incorporated
 
 Licensed under Apache License 2.0  http://www.apache.org/licenses/LICENSE-2.0
 
@@ -44,8 +44,10 @@ Includes other components and copyrights: (Database and JavaScript Components)
 OrientDB - http://www.orientechnologies.com/orientdb/ (version 2.1)  License: Apache 2.0
 JQuery - http://jquery.org/license (version 2.1.3)  License: MIT
 AngularJs - Google, Inc. http://angularjs.org (version 1.3.8)  License: MIT
-D3.js - Mike Bostock, http://d3js.org (version 3.5)  License: BSD
+D3.js - Mike Bostock, http://d3js.org (version 3.5.15)  License: BSD
 SortTable - Stuart Langridge, http://www.kryogenix.org/code/browser/sorttable/
 JSCalendar - Mihai Bazon, http://www.dynarch.com/projects/calendar
 JSColor - Jan Odvarko, http://odvarko.cz, http://jscolor.com
 CodeMirror - http://codemirror.net (version 5.2.1) License: MIT
+Pace - HubSpot - https://github.com/HubSpot/pace  (version 0.5.3)
+Split.js - Nathan Cahill, https://nathancahill.github.io/Split.js/  

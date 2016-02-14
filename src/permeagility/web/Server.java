@@ -677,8 +677,10 @@ public class Server implements Runnable {
                                     if (parms.containsKey("RESPONSE_REDIRECT")) {
                                         os.write(getRedirectHeader(parms).getBytes());
                                     } else {
-                                        os.write(getHeader(content_type, theData.length, newCookieValue, content_disposition, keep_alive).getBytes());
-                                        os.write(theData);
+                                        if (theData != null) {
+                                            os.write(getHeader(content_type, theData.length, newCookieValue, content_disposition, keep_alive).getBytes());
+                                            os.write(theData);
+                                        }
                                     }
                                     os.flush();
 				} catch (SocketException se) {  // Connection broken

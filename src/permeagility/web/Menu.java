@@ -65,10 +65,6 @@ public class Menu extends Weblet {
 		StringBuilder menu = new StringBuilder();
 		//DatabaseConnection dbcon = null;
 		try {
-			// Only the server and admin need to see the menu table
-			//dbcon = Server.getServerConnection();
-			//if (DEBUG) System.out.println("Menu: Connected as (server) "+dbcon.getUser());
-
 			// Assemble menu based on the users roles and the menuItem's _allowRead
 			//QueryResult qr = dbcon.query("SELECT FROM "+Setup.TABLE_MENU+" WHERE active=TRUE ORDER BY sortOrder");
 			QueryResult qr = con.query("SELECT FROM "+Setup.TABLE_MENU+" WHERE active=TRUE ORDER BY sortOrder");
@@ -133,10 +129,6 @@ public class Menu extends Weblet {
 		} catch( Exception e ) {
 			System.out.println("Error in Menu: "+e);
 			e.printStackTrace();
-//		} finally {
-//			if (dbcon != null) {
-//				Server.freeServerConnection(dbcon);
-//			}
 		}
 		if (DEBUG) System.out.println("Menu: Adding menu for "+con.getUser()+" to menuCache");
 		String newMenu = menu.toString();
