@@ -25,8 +25,10 @@ import permeagility.web.Table;
 
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OProperty;
+import com.orientechnologies.orient.core.metadata.schema.OSchema;
 import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.orientechnologies.orient.core.record.impl.ODocument;
+import permeagility.util.Setup;
 
 public class Merge extends Table {
 
@@ -39,19 +41,22 @@ public class Merge extends Table {
         StringBuilder sb = new StringBuilder();
         StringBuilder errors = new StringBuilder();
 
-        String submit = parms.get("SUBMIT");
-        String connect = parms.get("CONNECT");
+ //       String submit = parms.get("SUBMIT");
+ //       String connect = parms.get("CONNECT");
         String fromTable = parms.get("fromTable");
         String toTable = parms.get("toTable");
         String fromKey = parms.get("fromKey");
         String toKey = parms.get("toKey");
-        String editId = parms.get("EDIT_ID");
-        String updateId = parms.get("UPDATE_ID");
+ //       String editId = parms.get("EDIT_ID");
+ //       String updateId = parms.get("UPDATE_ID");
         String run = parms.get("RUN");
         String tableName = parms.get("TABLENAME");
 
         // Process update of work tables
-        if (updateId != null && submit != null) {
+        String update = processSubmit(con, parms, tableName, errors);
+        if (update != null) { return update; }
+
+/*        if (updateId != null && submit != null) {
             System.out.println("update_id=" + updateId);
             if (submit.equals("DELETE")) {
                 if (deleteRow(con, tableName, parms, errors)) {
@@ -74,29 +79,30 @@ public class Merge extends Table {
             updateId = null;
             connect = parms.get(PARM_PREFIX + "path");
         }
-
-        // Create a SQL import directly - set the created date
-        if (submit != null && submit.equals("CREATE_ROW")) {
+*/
+        // Create a merge directly - set the created date
+/*        if (submit != null && submit.equals("CREATE_ROW")) {
             parms.put(PARM_PREFIX + "created", formatDate(con.getLocale(), new java.util.Date()));
             boolean inserted = insertRow(con, tableName, parms, errors);
             if (!inserted) {
                 errors.append(paragraph("error", "Could not insert"));
             }
         }
-
+        */
+/*
         // Show edit form if row selected for edit
         if (editId != null && submit == null && connect == null) {
             toTable = tableName;
             return head("Edit", getDateControlScript(con.getLocale()) + getColorControlScript())
                     + body(standardLayout(con, parms, getTableRowForm(con, toTable, parms)));
         }
-
+*/
         if (run != null) {
             // Run a merge path 
             int insertCount = 0;
             int updateCount = 0;
             System.out.println("Running merge path " + run);
-            editId = null;
+            //editId = null;
             ODocument mDoc = con.get(run);
             if (mDoc != null) {
                 fromTable = mDoc.field("fromTable");
@@ -104,8 +110,10 @@ public class Merge extends Table {
                 fromKey = mDoc.field("fromKey");
                 toKey = mDoc.field("toKey");
             }
-            OClass fromClass = con.getSchema().getClass(fromTable);
+            OSchema oschema = con.getSchema();
+            OClass fromClass = oschema.getClass(fromTable);
             System.out.println("Merge from " + fromTable + " to " + toTable);
+            OClass toClass = Setup.checkCreateTable(oschema, tableName, errors);
             QueryResult fromResult = null;
             QueryResult toResult = null;
             try {
@@ -202,8 +210,8 @@ public class Merge extends Table {
         return head("Merge", getDateControlScript(con.getLocale()) + getColorControlScript())
                 + body(standardLayout(con, parms,
                                 errors.toString()
-                                + ((Security.getTablePriv(con, PlusSetup.MERGE_TABLE) & PRIV_CREATE) > 0 && connect == null
-                                        ? popupForm("CREATE_NEW_ROW", null, "New merge path", null, "name",
+                                + ((Security.getTablePriv(con, PlusSetup.MERGE_TABLE) & PRIV_CREATE) > 0
+                                        ? popupForm("CREATE_NEW_ROW", this.getClass().getName(), "New merge path", null, "name",
                                                 paragraph("banner", Message.get(con.getLocale(), "CREATE_ROW"))
                                                 + hidden("TABLENAME", PlusSetup.MERGE_TABLE)
                                                 + getTableRowFields(con, PlusSetup.MERGE_TABLE, parms, "name,fromTable,toTable,fromKey,toKey")
@@ -228,7 +236,7 @@ public class Merge extends Table {
             System.out.println("Merge: What the?");
             return 0;
         }
-
+        StringBuilder errors = new StringBuilder();
         int mergeCount = 0;
         OClass tableClass = toDoc.getSchemaClass();
         for (ODocument cm : columnMap.get()) {
@@ -241,9 +249,11 @@ public class Merge extends Table {
                     System.out.println("fromColumn is null");
                 } else if (toCol == null || toCol.equals("")) {
                     System.out.println("toColumn is null");
-                } else if (toProp == null) {
-                    System.out.println("toColumn property can not be found in the target class");
                 } else {
+                    if (toProp == null) {
+                        System.out.println("toColumn property can not be found in the target class");
+                        toProp = Setup.checkCreateColumn(con, tableClass, toCol, fromDoc.fieldType(fromCol), errors);                    
+                    }
                     OClass linkedClass = toProp.getLinkedClass();
                     Object data = fromDoc.field(fromCol);
                     Object toData = toDoc.field(toCol);

@@ -37,7 +37,7 @@ public abstract class PlusSetup extends Weblet {
     /** Implement this to return the module description */
     public abstract String getInfo();
 
-    /** Implement this to return the version (should be ascending alpha numeric) */
+    /** Implement this to return the version (should be ascending numeric) */
     public String getVersion() { return null; }
 
     /** Implement this with what the plug in needs to be installed */
@@ -101,10 +101,19 @@ public abstract class PlusSetup extends Weblet {
         return null;
     }
 
+    /** Get the INSTALLED_VERSION constant for the plus module given */
+    public boolean isInstalled(DatabaseConnection con, String classname) {
+        ODocument d = con.queryDocument("SELECT FROM "+Setup.TABLE_CONSTANT+" WHERE classname='"+classname+"' AND field='INSTALLED'");
+        if (d != null) {
+            return Boolean.valueOf(d.field("value"));
+        }
+        return false;
+    }
+
     /** Set the INSTALLED and INSTALLED_VERSION constant  */
     public static void setPlusInstalled(DatabaseConnection con, String classname, String info, String version) {
         Setup.checkCreateConstant(con,classname,info,"INSTALLED","true");
-        Setup.checkCreateConstant(con,classname,info,"INSTALLED_VERSION",version);
+        Setup.checkCreateConstant(con,classname,info,"INSTALLED_VERSION",version==null ? "current" : version);
     }
 
     /** Remove the INSTALLED and INSTALLED_VERSION constant  */
@@ -121,7 +130,7 @@ public abstract class PlusSetup extends Weblet {
 
     /** Update the INSTALLED_VERSION constant  */
     public static void setPlusVersion(DatabaseConnection con, String classname, String info, String version) {
-        Setup.checkCreateConstant(con,classname,info,"INSTALLED_VERSION",version);	
+        Setup.checkCreateConstant(con,classname,info,"INSTALLED_VERSION",version==null ? "current" : version);	
     }
 	
 }

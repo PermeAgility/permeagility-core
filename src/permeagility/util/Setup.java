@@ -334,6 +334,8 @@ public class Setup {
             mCount += checkCreateMessage(con, loc, "ROW_COUNT_LIMIT_UPDATED", "Page size updated");
             mCount += checkCreateMessage(con, loc, "GOTO_ROW", "Goto&gt;");
             mCount += checkCreateMessage(con, loc, "COPY", "Copy");
+            mCount += checkCreateMessage(con, loc, "COPY_PREFIX", "Copied on {0}: ");
+            mCount += checkCreateMessage(con, loc, "COPY_SUFFIX", " Copy");
             mCount += checkCreateMessage(con, loc, "DELETE_MESSAGE", "Are you sure you want to delete this?");
             mCount += checkCreateMessage(con, loc, "DELETE", "Delete");
             mCount += checkCreateMessage(con, loc, "UPDATE", "Update");
@@ -422,7 +424,8 @@ public class Setup {
             mCount += checkCreateMessage(con, loc, "PLUS_MODULES", "Plus modules");
             mCount += checkCreateMessage(con, loc, "PLUS_NAME", "Name");
             mCount += checkCreateMessage(con, loc, "PLUS_DB_VERSION", "DB Version");
-            mCount += checkCreateMessage(con, loc, "PLUS_VERSION", "Plus Version");
+            mCount += checkCreateMessage(con, loc, "PLUS_VERSION", "Version");
+            mCount += checkCreateMessage(con, loc, "PLUS_SIZE", "Size");
             mCount += checkCreateMessage(con, loc, "PLUS_EMBEDDED", "Embedded");
             mCount += checkCreateMessage(con, loc, "PLUS_SETUP", "Setup");
             mCount += checkCreateMessage(con, loc, "PLUS_DESCRIPTION", "Description");
@@ -1189,7 +1192,20 @@ public class Setup {
 "div.CodeMirror {\n"+
 "    border: 1px solid #eee;\n"+
 "    height: auto;\n"+
-"}\n"+
+"}\n" +
+"  .split {\n" +
+"    box-sizing: border-box;\n" +
+"    overflow-y: auto;\n" +
+"    overflow-x: hidden;\n" +
+"  }\n" +
+"  .gutter.gutter-horizontal { cursor: col-resize; }\n" +
+"  .gutter.gutter-vertical { cursor: row-resize; }\n" +
+"  .gutter.gutter-horizontal:hover { background-color: lightgray; }\n" +
+"  .gutter.gutter-vertical:hover { background-color: lightgray; }\n" +
+"  .split.split-horizontal, .gutter.gutter-horizontal {\n" +
+"    height: 100%;\n" +
+"    float: left;\n" +
+"  }\n"+
 ".nodeTitle { fill: black; font-size: medium; }\n"+
 "g:not(.selected) { stroke: none; } \n"+
 "g.selected { stroke: black; }\n"+
@@ -1334,6 +1350,19 @@ public class Setup {
 "    border: 1px solid #eee;\n"+
 "    height: auto;\n"+
 "}\n"+
+"  .split {\n" +
+"    box-sizing: border-box;\n" +
+"    overflow-y: auto;\n" +
+"    overflow-x: hidden;\n" +
+"  }\n" +
+"  .gutter.gutter-horizontal { cursor: col-resize; }\n" +
+"  .gutter.gutter-vertical { cursor: row-resize; }\n" +
+"  .gutter.gutter-horizontal:hover { background-color: #444444; }\n" +
+"  .gutter.gutter-vertical:hover { background-color: #444444; }\n" +
+"  .split.split-horizontal, .gutter.gutter-horizontal {\n" +
+"    height: 100%;\n" +
+"    float: left;\n" +
+"  }\n"+
 ".nodeTitle { fill: white; filter: url(#drop-shadow); font-size: small; }\n"+
 "g:not(.selected) { stroke: none; } \n"+
 "g.selected { stroke: yellow; }\n"+

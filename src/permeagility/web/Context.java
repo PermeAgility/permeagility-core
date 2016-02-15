@@ -49,6 +49,7 @@ public class Context extends Weblet {
     static String latestVersionDate = null;
     static int downloadPercent = 0;
     static String downloadURL = null;
+    static boolean downloadedPlus = false;
 
       // For testing apply update
 //    static Date lastChecked = new Date();
@@ -71,30 +72,22 @@ public class Context extends Weblet {
         String ref = parms.get("TABLENAME");
         String submit = parms.get("SUBMIT");
         if (ref != null && Security.isDBA(con)) {
-            if (DEBUG) {
-                System.out.println("Context: Cache refresh=" + ref);
-            }
+            if (DEBUG) System.out.println("Context: Cache refresh=" + ref);
             getCache().refresh(ref);
         }
 
         if (submit != null && submit.equals("CACHE_CLEAR_MENUS") && Security.isDBA(con)) {
-            if (DEBUG) {
-                System.out.println("Context: Menu Cache refresh");
-            }
+            if (DEBUG) System.out.println("Context: Menu Cache refresh");
             Menu.clearCache();
         }
 
         if (submit != null && submit.equals("REFRESH_SECURITY") && Security.isDBA(con)) {
-            if (DEBUG) {
-                System.out.println("Context: refresh security");
-            }
+            if (DEBUG) System.out.println("Context: refresh security");
             Security.refreshSecurity();
         }
 
         if (submit != null && submit.equals("CHECK_INSTALLATION") && Security.isDBA(con)) {
-            if (DEBUG) {
-                System.out.println("Context: Check Installation");
-            }
+            if (DEBUG) System.out.println("Context: Check Installation");
             Setup.checkInstallation(con);
         }
 
@@ -106,8 +99,7 @@ public class Context extends Weblet {
                 @Override public void run() {
                     try {
                         String fileName = "plus" + plusFileURL.substring(plusFileURL.lastIndexOf(File.separator));
-                        System.out.println("Downloading "+plusFileURL+" to "+fileName);
-/*                        StringBuilder jsonString = new StringBuilder();
+                        if (DEBUG) System.out.println("Downloading "+plusFileURL+" to "+fileName);
                         URL latestURL = new URL(plusFileURL);
                         URLConnection yc = latestURL.openConnection();
                         int dlLength = yc.getContentLength();
@@ -123,43 +115,54 @@ public class Context extends Weblet {
                         }
                         output.close();
                         input.close();
-  */                  } catch (Exception e) {
+                        downloadedPlus = true;
+                    } catch (Exception e) {
                         e.printStackTrace();
                     } finally {
                         downloading = false;                        
                     }                   
                 }
             }.start();
-
             
         }
         
         if (submit != null && submit.equals("DOWNLOAD_PLUS") && Security.isDBA(con)) {
             if (DEBUG)  System.out.println("Context: Checking for plus modules");
-            StringBuilder plusList = new StringBuilder();
+            StringBuilder plusList = new StringBuilder();        
+            List<String> modules = PlusClassLoader.getModules();
+        
             JSONArray jsonArray = getURLArray("https://api.github.com/orgs/permeagility/repos");
             for (int i=0; i<jsonArray.length(); i++) {                
                 JSONObject jsonObject = jsonArray.getJSONObject(i);
                 String plusName = jsonObject.getString("name");
-                if (plusName.startsWith("plus-")) {
+                if (plusName.startsWith("permeagility-plus-")) {
                     String plusDesc = jsonObject.getString("description");
-                    System.out.println("GitHub Plus found: "+plusName);
+                    if (DEBUG) System.out.println("GitHub Plus found: "+plusName);
                     JSONObject jsonPlus = getURLObject("https://api.github.com/repos/permeagility/"+plusName+"/releases/latest");
                     if (jsonPlus != null) {
+                        boolean exists = false;
+                        for (String m : modules) {  if (plusName.endsWith(m)) { exists = true; break; } }
                         String latestName = jsonPlus.getString("name");
                         String latestBody = jsonPlus.getString("body");
+                        if (!latestBody.isEmpty()) latestBody = latestBody.replace("\n","<br>");
                         String latestPublishedDate = jsonPlus.getString("published_at");
                         if (jsonPlus.has("assets")) {
                             JSONArray latestAssets = jsonPlus.getJSONArray("assets");
                             JSONObject latestAsset = latestAssets.getJSONObject(0);
                             String latestFileName = latestAsset.getString("name");
                             long latestFileSize = latestAsset.getLong("size");
-                            System.out.println("Latest: name="+latestName+" body="+latestBody+" fileName="+latestFileName);
+                            if (DEBUG) System.out.println("Latest: name="+latestName+" body="+latestBody+" fileName="+latestFileName);
                             String downloadPlusURL = latestAsset.getString("browser_download_url");
                             if (plusName.startsWith("permeagility-")) {
                                 plusName = plusName.substring(13);
                             }
-                            plusList.append(row(column(plusName)+column(plusDesc)+column(latestName)+column(latestFileSize/1024+"k")+column(form(hidden("DOWNLOAD_PLUS_URL",downloadPlusURL)+submitButton(locale,"DOWNLOAD_PLUS_FILE")))));
+                            plusList.append(row(
+                                    column(plusName)
+                                    +column(plusDesc+"<br>"+xSmall(latestPublishedDate+"<br>"+latestBody))
+                                    +column(latestName)
+                                            +column(latestFileSize/1024+"k")
+                                    +column(exists ? Message.get(locale, "DOWNLOADING_COMPLETE") : form(hidden("DOWNLOAD_PLUS_URL",downloadPlusURL)+submitButton(locale,"DOWNLOAD_PLUS_FILE")))
+                            ));
                         } else {
                             System.out.println("No assets");
                         }
@@ -185,9 +188,7 @@ public class Context extends Weblet {
         }
 
         if (submit != null && submit.equals("CHECK_FOR_UPDATE") && Security.isDBA(con)) {
-            if (DEBUG) {
-                System.out.println("Context: Checking for updated version");
-            }
+            if (DEBUG) System.out.println("Context: Checking for updated version");
             try {
                 StringBuilder jsonString = new StringBuilder();
                 URL latestURL = new URL("https://api.github.com/repos/permeagility/permeagility-core/releases/latest");
@@ -205,7 +206,7 @@ public class Context extends Weblet {
                 JSONArray latestAssets = jsonObject.getJSONArray("assets");
                 JSONObject latestAsset = latestAssets.getJSONObject(0);
                 String latestFileName = latestAsset.getString("name");
-                System.out.println("Latest: name="+latestName+" body="+latestBody+" fileName="+latestFileName);
+                if (DEBUG) System.out.println("Latest: name="+latestName+" body="+latestBody+" fileName="+latestFileName);
                 
                 currentVersion = Server.getCodeSource();
                 downloadURL = latestAsset.getString("browser_download_url");
@@ -224,7 +225,6 @@ public class Context extends Weblet {
             new Thread() {
                 @Override public void run() {
                     try {
-                        StringBuilder jsonString = new StringBuilder();
                         URL latestURL = new URL(downloadURL);
                         URLConnection yc = latestURL.openConnection();
                         int dlLength = yc.getContentLength();
@@ -329,20 +329,20 @@ public class Context extends Weblet {
                     if (submit != null && module != null && module.equals(m)) {
                         if (installed) {
                             if (submit.equals("PLUS_REMOVE")) {
-                                System.out.println("Removing " + m);
+                                if (DEBUG) System.out.println("Removing " + m);
                                 installed = !plusSetup.remove(con, parms, errors);
                             } else if (submit.equals("PLUS_UPGRADE")) {
-                                System.out.println("Upgrading " + m);
+                                if (DEBUG) System.out.println("Upgrading " + m);
                                 installed = plusSetup.upgrade(con, parms, errors);
                             }
                         } else if (submit.equals("PLUS_INSTALL")) {
-                            System.out.println("Installing " + m);
+                            if (DEBUG) System.out.println("Installing " + m);
                             installed = plusSetup.install(con, parms, errors);
                         }
                     }
                     String inVersion = plusSetup.getInstalledVersion(con, plusSetup.getClass().getName());
                     String plusVersion = plusSetup.getVersion();
-                    if (inVersion == null) {
+                    if (inVersion == null && !plusSetup.isInstalled()) {
                         installed = false;
                     }
                     String act = (installed ? (plusVersion != null && plusVersion.compareTo(inVersion) > 0 ? "PLUS_UPGRADE" : "PLUS_REMOVE") : "PLUS_INSTALL");
@@ -423,6 +423,7 @@ public class Context extends Weblet {
                         + Message.get(locale, "CACHE_COUNT", "" + getCache().size()))
                 + paragraph("banner", Message.get(locale, "PLUS_MODULES"))
                 + (downloading ? "" : form(submitButton(locale, "DOWNLOAD_PLUS")))
+                + (downloadedPlus ? paragraph("warning",Message.get(locale,"RESTART_REQUIRED")) : "")
                 + table("data",
                         row(columnHeader(Message.get(locale, "PLUS_NAME"))
                                 + columnHeader(Message.get(locale, "PLUS_DB_VERSION"))

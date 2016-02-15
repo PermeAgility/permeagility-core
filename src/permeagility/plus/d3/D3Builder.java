@@ -96,7 +96,7 @@ public class D3Builder extends Table {
         if (sb.length() == 0) {
             try {
                 parms.put("SERVICE", "D3 Builder");
-                sb.append(getTable(con, parms, PlusSetup.TABLE, "SELECT FROM " + PlusSetup.TABLE, null, 0, "name, description, button_VIEW_View),-"));
+                sb.append(getTable(con, parms, PlusSetup.TABLE, "SELECT FROM " + PlusSetup.TABLE, null, 0, "button_VIEW_View,name,description,-"));
             } catch (Exception e) {
                 e.printStackTrace();
                 sb.append("Error retrieving D3 Script table: " + e.getMessage());

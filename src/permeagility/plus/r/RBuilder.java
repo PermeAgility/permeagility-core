@@ -70,17 +70,9 @@ public class RBuilder extends Table {
         String submit = parms.get("SUBMIT");
         String preview = parms.get("PREVIEW");
         String viewText = parms.get("VIEWTEXT");
-//        if (viewText != null && viewText.indexOf(",") > 0) {
-//            viewText = viewText.substring(0,viewText.indexOf(","));
-//        }
         String viewPDF = parms.get("VIEWPDF");
         String tableName = PlusSetup.TABLE;
         
- //       if (submit != null && submit.equals("UPDATE")) {
- //           parms.put(PARM_PREFIX+"textResult","");
- //           parms.put(PARM_PREFIX+"PDFResult","");
- //       }
-
         // Handle data editing using the default table behaviour
         String update = processSubmit(con, parms, tableName, errors);
         if (update != null) { 
@@ -200,20 +192,10 @@ public class RBuilder extends Table {
         return true;
     }
 
-   /* @Override
-    public String getTableRowFields(DatabaseConnection con, String table, HashMap<String, String> parms) {
-        return (parms.get("EDIT_ID") != null ? 
-                        link(this.getClass().getName()+"?VIEWTEXT="+parms.get("EDIT_ID"), Message.get(con.getLocale(), "PLUS-R_VIEWTEXT"))+"&nbsp;&nbsp;&nbsp;"
-                        +link(this.getClass().getName()+"?VIEWPDF="+parms.get("EDIT_ID"), Message.get(con.getLocale(), "PLUS-R_VIEWPDF"))
-                     : "")
-                     +getTableRowFields(con, table, parms, "name,description,RScript,-,button_RUN_"+Message.get(con.getLocale(), "PLUS-R_RUN"));
-    } */
-
     @Override
     public String getTableRowForm(DatabaseConnection con, String table, HashMap<String, String> parms) {
         return getTableRowFields(con, table, parms, null);
     }
-
 
      /**
      * Returns the fields for a table - can be for insert of a new row or update of an existing (as specified by the EDIT_ID in parms)
@@ -364,7 +346,6 @@ public class RBuilder extends Table {
                     }
                     runDoc.save();
                     processes.remove(runDocId);
-                    //return redirect(parms,this,"EDIT_ID="+runDocId);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }

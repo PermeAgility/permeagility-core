@@ -189,7 +189,6 @@ public class Table extends Weblet {
         Locale locale = con.getLocale();
         String submit = parms.get("SUBMIT");
         String editId = parms.get("EDIT_ID");
-        String sourceTable = parms.get("SOURCETABLENAME");
 
         // Show edit form if row selected for edit
         if (editId != null && submit == null) {
@@ -202,12 +201,77 @@ public class Table extends Weblet {
         }
         // Process cancel action
         if (submit.equals("CANCEL")) {
-            if (sourceTable != null && !sourceTable.isEmpty()) {  // Go to the source record if it is defined
+            return redirectUsingSource(parms, "TABLENAME=" + table);
+        }
+        // Process create action
+        if (submit.equals("CREATE_ROW")) {
+            if (insertRow(con, table, parms, errors)) {
+                redirectUsingSource(parms, "TABLENAME=" + table + "&EDIT_ID="+parms.get("EDIT_ID"));
+            } else {
+                errors.append(paragraph("error", "Could not insert"));
+                return head("Insert", getScripts(con))
+                        + body(standardLayout(con, parms,
+                                        errors.toString()
+                                        + form("NEWROW", "#",
+                                                paragraph("banner", Message.get(locale, "CREATE") + "&nbsp;" + makeCamelCasePretty(table))
+                                                + getTableRowFields(con, table, parms)
+                                                + center(submitButton(locale, "CREATE_ROW")
+                                                        + submitButton(locale, "CANCEL"))
+                                        )
+                                ));
+            }
+        }
+        // Process actions on an existing record
+        if (editId != null) {
+            if (submit.equals("COPY")) {
+                if (copyRow(con, table, parms, errors)) {
+                    return redirect(parms, this, "TABLENAME=" + table + "&EDIT_ID="+parms.get("EDIT_ID"));
+                } else {
+                    errors.append(paragraph("error", "Could not copy"));
+                    return head("Insert", getScripts(con))
+                        + body(standardLayout(con, parms,
+                            errors.toString()
+                            + form("NEWROW", "#",
+                                    paragraph("banner", Message.get(locale, "COPY") + "&nbsp;" + makeCamelCasePretty(table))
+                                    + getTableRowFields(con, table, parms)
+                                    + center(submitButton(locale, "CREATE_ROW") + submitButton(locale, "CANCEL"))
+                        )));
+                }
+            } else if (submit.equals("DELETE")) {
+                if (deleteRow(con, table, parms, errors)) {
+                    return redirectUsingSource(parms, "TABLENAME=" + table);
+                } else {
+                    return head("Could not delete", getScripts(con))
+                            + body(standardLayout(con, parms, getTableRowForm(con, table, parms) + errors.toString()));
+                }
+            } else if (submit.equals("UPDATE")) {
+                if (DEBUG) {
+                    System.out.println("In updating row");
+                }
+                if (updateRow(con, table, parms, errors)) {
+                    return redirectUsingSource(parms, "TABLENAME=" + table);
+                } else {
+                    return head("Could not update", getScripts(con))
+                            + body(standardLayout(con, parms, getTableRowForm(con, table, parms) + errors.toString()));
+                }
+            }
+            parms.remove("EDIT_ID"); // If there was an EDIT_ID, it should have been dealt with already in this function
+        }
+        return null;  // Nothing happened here
+    }
+
+    /* After a POST operation (create, update, delete) redirect to the source table/record if it is in the parms
+      because the source table/id could be a list, pop it
+    */ 
+    public String redirectUsingSource(HashMap<String, String> parms, String defaultPath) {
+            String sourceTable = parms.get("SOURCETABLENAME");
+            String sourceId = parms.get("SOURCEEDIT_ID");
+            String editId = parms.get("EDIT_ID");
+            if (sourceTable != null && !sourceTable.isEmpty()  && sourceId != null && !sourceId.isEmpty()) { 
                 if (DEBUG) {
                     System.out.println("Table (Cancel) popping sourceTableName=" + parms.get("SOURCETABLENAME") + " id=" + parms.get("SOURCEEDIT_ID"));
                 }
                 int lastComma = sourceTable.lastIndexOf(',');
-                String sourceId = parms.get("SOURCEEDIT_ID");
                 int lastCommaId = sourceId.lastIndexOf(',');
                 String oldTable = (lastComma > 0 && lastComma < sourceTable.length() ? sourceTable.substring(lastComma + 1) : sourceTable);
                 String oldId = (lastCommaId > 0 && lastCommaId < sourceId.length() ? sourceId.substring(lastCommaId + 1) : sourceId);
@@ -237,60 +301,27 @@ public class Table extends Weblet {
                 return redirect(parms, this, "TABLENAME=" + oldTable + "&EDIT_ID=" + oldId
                         + (!oldTable.equals(newSourceTable) && !oldId.equals(newSourceId) ? "&SOURCETABLENAME=" + newSourceTable + "&SOURCEEDIT_ID=" + newSourceId : ""));
             } else {
-                return redirect(parms, this, "TABLENAME=" + table);
+                return redirect(parms, this, defaultPath);
             }
+
+    }
+
+    public boolean copyRow(DatabaseConnection con, String table, HashMap<String, String> parms, StringBuilder errors) {
+        ODocument oldDoc = con.get(parms.get("EDIT_ID"));
+        if (oldDoc != null) {
+            ODocument newDoc = con.create(oldDoc.getClassName());
+            Map<String,Object> fieldMap = oldDoc.toMap();
+            //System.out.println("------------->  "+fieldMap.keySet());
+            fieldMap.remove("@rid");  // Otherwise will try to overwrite
+            newDoc.fromMap(fieldMap);
+            if (newDoc.field("name") != null) newDoc.field("name", newDoc.field("name")+Message.get(con.getLocale(),"COPY_SUFFIX"));
+            if (newDoc.field("description") != null) newDoc.field("description", Message.get(con.getLocale(),"COPY_PREFIX",new Date().toString())+newDoc.field("description"));
+            newDoc.save();
+            parms.put("EDIT_ID", newDoc.getIdentity().toString().substring(1));  // In case we want to go straight to the new record's editor
+            //System.out.println("------------->  "+parms.get("EDIT_ID"));
+            return true;
         }
-        // Process create action
-        if (submit.equals("CREATE_ROW")) {
-            if (insertRow(con, table, parms, errors)) {
-                return redirect(parms, this, "TABLENAME=" + table + "&EDIT_ID="+parms.get("EDIT_ID"));
-            } else {
-                errors.append(paragraph("error", "Could not insert"));
-                return head("Insert", getScripts(con))
-                        + body(standardLayout(con, parms,
-                                        errors.toString()
-                                        + form("NEWROW", "#",
-                                                paragraph("banner", Message.get(locale, "CREATE") + "&nbsp;" + makeCamelCasePretty(table))
-                                                + getTableRowFields(con, table, parms)
-                                                + center(submitButton(locale, "CREATE_ROW")
-                                                        + submitButton(locale, "CANCEL"))
-                                        )
-                                ));
-            }
-        }
-        // Process actions on an existing record
-        if (editId != null) {
-            if (submit.equals("COPY")) {
-                return head("Copy", getScripts(con))
-                        + body(standardLayout(con, parms,
-                                        errors.toString()
-                                        + form("NEWROW", "#",
-                                                paragraph("banner", Message.get(locale, "COPY") + "&nbsp;" + makeCamelCasePretty(table))
-                                                + getTableRowFields(con, table, parms)
-                                                + center(submitButton(locale, "CREATE_ROW") + submitButton(locale, "CANCEL"))
-                                        )
-                                ));
-            } else if (submit.equals("DELETE")) {
-                if (deleteRow(con, table, parms, errors)) {
-                    return redirect(parms, this, "TABLENAME=" + table);
-                } else {
-                    return head("Could not delete", getScripts(con))
-                            + body(standardLayout(con, parms, getTableRowForm(con, table, parms) + errors.toString()));
-                }
-            } else if (submit.equals("UPDATE")) {
-                if (DEBUG) {
-                    System.out.println("In updating row");
-                }
-                if (updateRow(con, table, parms, errors)) {
-                    return redirect(parms, this, "TABLENAME=" + table);
-                } else {
-                    return head("Could not update", getScripts(con))
-                            + body(standardLayout(con, parms, getTableRowForm(con, table, parms) + errors.toString()));
-                }
-            }
-            parms.remove("EDIT_ID"); // If there was an EDIT_ID, it should have been dealt with already in this function
-        }
-        return null;  // Nothing happened here
+        return false;
     }
 
     public boolean insertRow(DatabaseConnection con, String table, HashMap<String, String> parms, StringBuilder errors) {
@@ -1236,7 +1267,7 @@ public class Table extends Weblet {
                     + (newSourceTable != null ? hidden("SOURCETABLENAME", newSourceTable) : "");
             sb.append(
                     paragraph("banner", (table.equals(fkColumn) ? makeCamelCasePretty(relTable) : makeCamelCasePretty(relTable) + " (" + makeCamelCasePretty(fkColumn) + ")"))
-                    + ((priv & PRIV_CREATE) > 0 ? popupForm("CREATE_NEW_ROW_" + relTable, "permeagility.web.Table", Message.get(con.getLocale(), "NEW_ROW"), null, "NAME",
+                    + ((priv & PRIV_CREATE) > 0 ? popupForm("CREATE_NEW_ROW_" + relTable, this.getClass().getName(), Message.get(con.getLocale(), "NEW_ROW"), null, "NAME",
                                     paragraph("banner", Message.get(con.getLocale(), "CREATE_ROW"))
                                     + hiddenFields
                                     + getTableRowFields(con, relTable, fkParms) // send fkcolumn data in parms
@@ -1399,11 +1430,11 @@ public class Table extends Weblet {
                             if (p == page) {
                                 sb.append(bold(color("red", "" + p)) + "&nbsp;");
                             } else {
-                                sb.append(linkWithTip("permeagility.web.Table?TABLENAME=" + table + "&PAGE=" + p, "" + p, "Page " + p) + "&nbsp;");
+                                sb.append(linkWithTip(this.getClass().getName()+"?TABLENAME=" + table + "&PAGE=" + p, "" + p, "Page " + p) + "&nbsp;");
                             }
                         } else {
                             if (p % DOT_INTERVAL == 0) {
-                                sb.append(linkWithTip("permeagility.web.Table?TABLENAME=" + table + "&PAGE=" + p, ".", "Page " + p));
+                                sb.append(linkWithTip(this.getClass().getName()+"?TABLENAME=" + table + "&PAGE=" + p, ".", "Page " + p));
                             }
                         }
                     }
@@ -1713,7 +1744,7 @@ public class Table extends Weblet {
                 + body(standardLayout(con, parms,
                                 advancedOptionsForm(con, table, parms, errors.toString())
                                 + br()
-                                + link("permeagility.web.Table?TABLENAME=" + table, Message.get(locale, "BACK_TO_TABLE"))
+                                + link(this.getClass().getName()+"?TABLENAME=" + table, Message.get(locale, "BACK_TO_TABLE"))
                         ));
     }
 
@@ -1809,7 +1840,7 @@ public class Table extends Weblet {
                 + body(standardLayout(con, parms,
                                 rightsOptionsForm(con, table, parms, errors.toString())
                                 + br()
-                                + link("permeagility.web.Table?TABLENAME=" + table, Message.get(locale, "BACK_TO_TABLE"))
+                                + link(this.getClass().getName()+"?TABLENAME=" + table, Message.get(locale, "BACK_TO_TABLE"))
                         ));
     }
 

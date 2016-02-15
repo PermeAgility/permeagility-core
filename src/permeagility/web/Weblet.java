@@ -204,7 +204,7 @@ public abstract class Weblet {
     }
 
     public String redirect(HashMap<String,String> parms, Object object) {
-        return redirect(parms, object.getClass().getName(), null);
+        return redirect(parms, object, null);
     }
 
     public String redirect(HashMap<String,String> parms, Object object, String parameters) {
