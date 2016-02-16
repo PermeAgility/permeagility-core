@@ -32,8 +32,8 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 	public static boolean INSTALLED = false;  // Set via constant to complete installation
 	public static String INSTALLED_VERSION = "0";  // Set via constant to complete installation
 	
-	// Override these to change the names of the tables that will be created and used by this importer
-	public static String TABLE = "D3Script";   // Local OrientDB table name to hold connection specs
+	public static String TABLE = "D3Script";   
+	public static String TABLE_PLUGIN = "D3Plugin";   
 	
 	public static String MENU_CLASS = "permeagility.plus.d3.D3Builder";
 	public static String DATA_CLASS = "permeagility.plus.d3.Data";
@@ -61,7 +61,13 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 		Setup.checkCreateColumn(con,table, "dataScript", OType.STRING, errors);
 		Setup.checkCreateColumn(con,table, "style", OType.STRING, errors);
 		Setup.checkCreateColumn(con,table, "script", OType.STRING, errors);
-		
+
+      		OClass tableplugin = Setup.checkCreateTable(con, oschema, TABLE_PLUGIN, errors, newTableGroup);
+                Setup.checkTableSuperclass(oschema, tableplugin, "ORestricted", errors);
+		Setup.checkCreateColumn(con,tableplugin, "name", OType.STRING, errors);
+		Setup.checkCreateColumn(con,tableplugin, "description", OType.STRING, errors);
+		Setup.checkCreateColumn(con,tableplugin, "script", OType.STRING, errors);
+
 		Setup.createMenuItem(con,getName(),getInfo(),MENU_CLASS,parms.get("MENU"),roles);	
 		Setup.createMenuItem(con,getName(),getInfo(),DATA_CLASS,null,roles);	
 		
@@ -72,6 +78,8 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
                     if (roleName != null) {
                         Setup.checkCreatePrivilege(con, roleName, ORule.ResourceGeneric.CLASS, TABLE, Table.PRIV_ALL, errors);
                         Setup.checkCreatePrivilege(con, roleName, ORule.ResourceGeneric.CLUSTER, TABLE, Table.PRIV_ALL, errors);
+                        Setup.checkCreatePrivilege(con, roleName, ORule.ResourceGeneric.CLASS, TABLE_PLUGIN, Table.PRIV_ALL, errors);
+                        Setup.checkCreatePrivilege(con, roleName, ORule.ResourceGeneric.CLUSTER, TABLE_PLUGIN, Table.PRIV_ALL, errors);
                     }
                 }
 
@@ -89,8 +97,8 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 		
 		String remTab = parms.get("REMOVE_TABLES");
 		if (remTab != null && remTab.equals("on")) {
-                    if (Setup.dropTable(con, TABLE, errors)) {
-                    }
+                    Setup.dropTable(con, TABLE, errors);
+                    Setup.dropTable(con, TABLE_PLUGIN, errors);                   
 		}
                 
                 setPlusUninstalled(con, this.getClass().getName());

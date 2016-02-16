@@ -313,6 +313,10 @@ public class Table extends Weblet {
             Map<String,Object> fieldMap = oldDoc.toMap();
             //System.out.println("------------->  "+fieldMap.keySet());
             fieldMap.remove("@rid");  // Otherwise will try to overwrite
+            fieldMap.remove("_allow"); 
+            fieldMap.remove("_allowRead");
+            fieldMap.remove("_allowUpdate");
+            fieldMap.remove("_allowDelete");
             newDoc.fromMap(fieldMap);
             if (newDoc.field("name") != null) newDoc.field("name", newDoc.field("name")+Message.get(con.getLocale(),"COPY_SUFFIX"));
             if (newDoc.field("description") != null) newDoc.field("description", Message.get(con.getLocale(),"COPY_PREFIX",new Date().toString())+newDoc.field("description"));
@@ -851,10 +855,9 @@ public class Table extends Weblet {
             return paragraph("error", "cannot find class " + table);
         }
 
-        if (DEBUG) {
-            System.out.println("Table.getTableRowForm: table=" + table + " class.isAbstract=" + tclass.isAbstract());
-        }
-        if (tclass.isAbstract()) {  // If table name is abstract, get the table name from the document itself
+        if (DEBUG) System.out.println("Table.getTableRowForm: table=" + table + " class.isAbstract=" + tclass.isAbstract());
+
+        if (tclass.isAbstract() && edit_id != null) {  // If table name is abstract, get the table name from the document itself
             ODocument d = con.get(edit_id);
             if (d != null) {
                 OClass c = d.getSchemaClass();
@@ -862,7 +865,7 @@ public class Table extends Weblet {
                 parms.put("TABLENAME", table);
             }
         }
-
+        boolean readOnly = edit_id == null ? false : Security.isReadOnlyDocument(con, con.get(edit_id));
         String formName = (edit_id == null ? "NEWROW" : "UPDATEROW");
         return (con.getUser().equals("guest") ? "" : link(this.getClass().getName() + "?TABLENAME=" + table, Message.get(con.getLocale(), "ALL_ROWS_IN_TABLE", makeCamelCasePretty(table))))
                 + (Security.authorized(con.getUser(), "permeagility.web.Visuility") ? "&nbsp;&nbsp;" + link("permeagility.web.Visuility?TYPE=row&ID=" + edit_id, "<i>V</i>") : "")
@@ -873,12 +876,12 @@ public class Table extends Weblet {
                         getTableRowFields(con, table, parms)
                         + center((edit_id == null
                                         ? ((Security.getTablePriv(con, table) & PRIV_CREATE) > 0 ? submitButton(con.getLocale(), "CREATE_ROW") : "")
-                                        : ((Security.getTablePriv(con, table) & PRIV_UPDATE) > 0 ? submitButton(con.getLocale(), "UPDATE") : "")
+                                        : ((Security.getTablePriv(con, table) & PRIV_UPDATE) > 0 && !readOnly ? submitButton(con.getLocale(), "UPDATE") : "")
                                         + "&nbsp;&nbsp;"
                                         + submitButton(con.getLocale(), "CANCEL")))
                         + paragraph("delete",
                                 (edit_id != null && (Security.getTablePriv(con, table) & PRIV_CREATE) > 0 ? submitButton(con.getLocale(), "COPY") : "") + "&nbsp;&nbsp;"
-                                + (edit_id != null && (Security.getTablePriv(con, table) & PRIV_DELETE) > 0 ? deleteButton(con.getLocale()) : ""))
+                                + (edit_id != null && (Security.getTablePriv(con, table) & PRIV_DELETE) > 0 && !readOnly ? deleteButton(con.getLocale()) : ""))
                 )
                 + getTableRowRelated(con, table, parms);
     }
@@ -910,22 +913,8 @@ public class Table extends Weblet {
      */
     public String getTableRowFields(DatabaseConnection con, String table, HashMap<String, String> parms, String columnOverride) {
         String edit_id = (parms != null ? parms.get("EDIT_ID") : null);
-        ODocument initialValues = null;
-        if (edit_id != null) {
-            QueryResult initrows = con.query("SELECT FROM #" + edit_id);
-            if (initrows != null && initrows.size() == 1) {
-                initialValues = initrows.get(0);
-            } else {
-                if (DEBUG) {
-                    System.out.println("Error in permeagility.web.Table:getTableRowForm: Only one row may be returned by ID for editing rows=" + initrows.size());
-                }
-                return paragraph("error", Message.get(con.getLocale(), "ONLY_ONE_ROW_CAN_BE_EDITED"));
-            }
-        } else {
-            if (DEBUG) {
-                System.out.println("getTableRowFields: No EDIT_ID specified");
-            }
-        }
+        ODocument initialValues = edit_id == null ? null : con.get(edit_id);
+
         StringBuilder fields = new StringBuilder();
         StringBuilder hidden = new StringBuilder();
         String formName = (edit_id == null ? "NEWROW" : "UPDATEROW");
@@ -933,6 +922,9 @@ public class Table extends Weblet {
         if (columns != null) {
             for (OProperty column : columns) {
                 String name = column.getName();
+                if (column.getLinkedClass() != null && (Security.getTablePriv(con, column.getLinkedClass().getName()) & PRIV_READ) == 0) {
+                        continue;
+                }
                 if (name.startsWith("button_") && name.length() > 8 && name.indexOf('_', 7) > 7) {
                      if (initialValues != null) {
                         int cp = name.indexOf('_', 7);
@@ -945,16 +937,8 @@ public class Table extends Weblet {
                         hidden.append(hidden(PARM_PREFIX + name, parms.get("FORCE_" + name)));
                         continue;
                     }
-                    // If column is linked but user has no read access to that class, do not show the column (it will fail to produce list)
-                    if (column.getLinkedClass() != null) {
-                        if ((Security.getTablePriv(con, column.getLinkedClass().getName()) & PRIV_READ) > 0) {
-                            fields.append(getColumnAsField(table, column, initialValues, con, formName, edit_id, parms));
-                        }
-                    } else {
-                        fields.append(getColumnAsField(table, column, initialValues, con, formName, edit_id, parms));
-                    }
+                    fields.append(getColumnAsField(table, column, initialValues, con, formName, edit_id, parms));
                 }
-
             }
             return hidden.toString() + center(table("data", fields.toString()));
         } else {
@@ -1506,6 +1490,9 @@ public class Table extends Weblet {
             } else {
                 colNameI18N = makeCamelCasePretty(columnName);
             }
+            if (column.getLinkedClass() != null && (Security.getTablePriv(con, column.getLinkedClass().getName()) & PRIV_READ) == 0) {
+                continue;
+            }
             if (!columnName.toUpperCase().endsWith("PASSWORD") // && !columnName.startsWith("_")
                     && (hideColumn == null || !columnName.equals(hideColumn))) {
                 if (columnName.startsWith("button_") && columnName.length() > 8 && columnName.indexOf('_', 7) > 7) {
@@ -1526,14 +1513,15 @@ public class Table extends Weblet {
 //		if (DEBUG) System.out.println("Table.getRow colCount="+columns.size());
         for (OProperty column : columns) {
             String fieldName = column.getName();
+            if (column.getLinkedClass() != null && (Security.getTablePriv(con, column.getLinkedClass().getName()) & PRIV_READ) == 0) {
+                continue;
+            }
             if (!fieldName.toUpperCase().endsWith("PASSWORD") // && !fieldName.startsWith("_")
                     && (hideColumn == null || !fieldName.equals(hideColumn))) {
                 if (fieldName.startsWith("button_") && fieldName.length() > 8 && fieldName.indexOf('_', 7) > 7) {
                     int cp = fieldName.indexOf('_', 7);
                     String n = fieldName.substring(7, cp);
                     String l = fieldName.substring(cp + 1);
-//					sb.append(column("<div style=\"z-index: 1000;\">"+form(hidden(n,d.getIdentity().toString().substring(1))+submitButton(l))+"</div>"));
-//					sb.append(column(form(hidden(n,d.getIdentity().toString().substring(1))+submitButton(l))));
                     sb.append(column(form(button(n, d.getIdentity().toString().substring(1), l))));
                 } else {
                     sb.append(getColumnAsCell(column, d, con));
@@ -1543,7 +1531,7 @@ public class Table extends Weblet {
         return sb.toString();
     }
 
-    private String getColumnAsCell(OProperty column, ODocument d, DatabaseConnection con) {
+    public String getColumnAsCell(OProperty column, ODocument d, DatabaseConnection con) {
         StringBuilder sb = new StringBuilder();
         String columnName = column.getName();
         Integer columnType = column.getType().getId();

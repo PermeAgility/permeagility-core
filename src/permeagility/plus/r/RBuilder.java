@@ -15,7 +15,6 @@
  */
 package permeagility.plus.r;
 
-import com.orientechnologies.orient.core.metadata.schema.OProperty;
 import java.util.HashMap;
 
 import permeagility.util.DatabaseConnection;
@@ -33,10 +32,9 @@ import java.io.IOException;
 import java.io.SequenceInputStream;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
-import java.util.Collection;
+import java.util.Date;
 import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
-import permeagility.util.QueryResult;
 import permeagility.web.Server;
 import static permeagility.web.Table.PARM_PREFIX;
 import permeagility.web.Thumbnail;
@@ -70,19 +68,18 @@ public class RBuilder extends Table {
         String submit = parms.get("SUBMIT");
         String preview = parms.get("PREVIEW");
         String viewText = parms.get("VIEWTEXT");
-        String viewPDF = parms.get("VIEWPDF");
         String tableName = PlusSetup.TABLE;
         
         // Handle data editing using the default table behaviour
         String update = processSubmit(con, parms, tableName, errors);
-        if (update != null) { 
-            return update; 
-        }
+        if (update != null) { return update; }
 
+        // If there was an update, run it
         if (submit != null && submit.equals("UPDATE")) { 
             runRProcess(con, parms, errors); 
         }  
 
+        // PDF Preview
         if (preview != null && !preview.equals("null")) {
             ODocument viewDoc = con.get(preview);
             if (viewDoc == null) {
@@ -100,6 +97,7 @@ public class RBuilder extends Table {
             }
         }
 
+        // Text result
         if (viewText != null && !viewText.equals("null")) {
             if (processes.get(viewText) != null) {
                 errors.append(paragraph("warning", "Process is still running"));
@@ -112,51 +110,35 @@ public class RBuilder extends Table {
                     if (textResult == null) {
                         textResult = "No results found";
                     }
-                    return head("R Builder - Text result view") + bodyOnLoad("<pre>"+textResult+"</pre>"
-                            ,"window.scrollTo(0, document.body.scrollHeight);");
+                    return head("R Builder - Text result view") + bodyOnLoad("<pre>"+textResult+"</pre>", "window.scrollTo(0, document.body.scrollHeight);");
                 }
             }
         }
-        if (viewPDF != null) {
-            if (processes.get(viewPDF) != null) {
-                errors.append(paragraph("warning", "Process is still running"));
-            } else {
-                StringBuilder desc = new StringBuilder();
-                String tid = Thumbnail.getThumbnailId(tableName, viewPDF, "PDFResult", desc);
-                if (tid != null) {
-                    return head("R Builder - PDF result view", getScripts(con))
-                            + body(standardLayout(con, parms, 
-                                        link(this.getClass().getName()+"?EDIT_ID="+viewPDF, Message.get(locale, "PLUS-R_EDIT"))+"&nbsp;&nbsp;&nbsp;"
-                                        +link(this.getClass().getName()+"?VIEWTEXT="+viewPDF, Message.get(locale, "PLUS-R_VIEWTEXT"))
-                                            +"<object data=\"/thumbnail?SIZE=FULL&ID=" + tid + "\" width=\"100%\" height=\"100%\">"
-                                            + "<a href=\"/thumbnail?SIZE=FULL&ID=" + tid + "\">Click to download " + desc.toString() + "</a> "
-                                            + "</object>"
-                                    ));
-                }
-            }
-        }
-        
+
+        // If nothing else happened, show the list of R Scripts owned by the user
         if (sb.length() == 0) {
             try {
-                sb.append(getTable(con, parms, PlusSetup.TABLE, "SELECT FROM " + PlusSetup.TABLE, null, 0, "name,description,RScript,-"));
+                sb.append(getTable(con, parms, PlusSetup.TABLE, "SELECT FROM " + PlusSetup.TABLE+" WHERE _allow contains(name='"+con.getUser()+"')", null, 0, "name,description,RScript,-"));
             } catch (Exception e) {
                 e.printStackTrace();
                 sb.append("Error retrieving R Scripts: " + e.getMessage());
             }
         }
+        
+        // Return the default result
         return head("R Builder", getScripts(con))
-                + body(standardLayout(con, parms,
-                                ((Security.getTablePriv(con, PlusSetup.TABLE) & PRIV_CREATE) > 0
-                                        ? popupForm("CREATE_NEW_ROW", null, Message.get(locale, "CREATE_ROW"), null, "NAME",
-                                                paragraph("banner", Message.get(locale, "CREATE_ROW"))
-                                                + hidden("TABLENAME", PlusSetup.TABLE)
-                                                + super.getTableRowFields(con, PlusSetup.TABLE, parms, "name,description,-")
-                                                + submitButton(locale, "CREATE_ROW"))
-                                        : "")
-                                + "&nbsp;&nbsp;"
-                                + errors.toString()
-                                + sb.toString()
-                        ));
+        + body(standardLayout(con, parms,
+            ((Security.getTablePriv(con, PlusSetup.TABLE) & PRIV_CREATE) > 0
+                ? popupForm("CREATE_NEW_ROW", null, Message.get(locale, "CREATE_ROW"), null, "NAME",
+                    paragraph("banner", Message.get(locale, "CREATE_ROW"))
+                    + hidden("TABLENAME", PlusSetup.TABLE)
+                    + super.getTableRowFields(con, PlusSetup.TABLE, parms, "name,description,-")
+                    + submitButton(locale, "CREATE_ROW"))
+                : "")
+           + "&nbsp;&nbsp;"
+            + errors.toString()
+            + sb.toString()
+        ));
     }
 
     public boolean updateBlobFromFile(ODocument doc, String table, String blobName, String blobFile) {
@@ -205,78 +187,62 @@ public class RBuilder extends Table {
         String edit_id = parms.get("EDIT_ID");
         ODocument initialValues = null;
         if (edit_id != null) {
-            QueryResult initrows = con.query("SELECT FROM #" + edit_id);
-            if (initrows != null && initrows.size() == 1) {
-                initialValues = initrows.get(0);
-            } else {
-                if (DEBUG) {
-                    System.out.println("Error in permeagility.web.Table:getTableRowForm: Only one row may be returned by ID for editing rows=" + initrows.size());
-                }
-                return paragraph("error", Message.get(con.getLocale(), "ONLY_ONE_ROW_CAN_BE_EDITED"));
-            }
-        } else {
-            if (DEBUG) {
-                System.out.println("getTableRowFields: No EDIT_ID specified");
+            initialValues = con.get(edit_id);
+            if (initialValues == null) {
+                return paragraph("error", Message.get(con.getLocale(), "ERROR_IN_QUERY",edit_id));
             }
         }
-        String scriptEditor = "";
+        boolean readOnly = false;  // Assume a new doc
+        if (initialValues != null) {
+            readOnly = Security.isReadOnlyDocument(con, initialValues);
+        }
         String formName = (edit_id == null ? "NEWROW" : "UPDATEROW");
-        Collection<OProperty> columns = con.getColumns(table, columnOverride);
-        if (columns != null) {
-            for (OProperty column : columns) {
-                String name = column.getName();
-                    if (column.getName().equals("RScript")) {
-                        String init = initialValues != null ? initialValues.field(name) : null;
-                        if (init == null) init = "# R Script\n";
-                        scriptEditor = getCodeEditorControl(formName, PARM_PREFIX + name, init, "text/x-rsrc");                    
-                    }
-            }
-            String resultText = "<iframe id='resultFrame' width='100%' height='100%'></iframe>\n";
+        String init = initialValues != null ? initialValues.field("RScript") : null;
+        if (init == null) init = "# R Script "+new Date()+"\n";
+        String scriptEditor = getCodeEditorControl(formName, PARM_PREFIX + "RScript", init, "text/x-rsrc", readOnly ? ",readOnly:true" : null);                    
+        String resultText = frame("resultFrame","/permeagility.plus.r.RBuilder?VIEWTEXT="+edit_id);  //"<iframe id='resultFrame' width='100%' height='100%'></iframe>\n";
 
-            String resultView = button("UpdateButton", "UPDATEBUTTON","UPDATE","Save/Run")+"&nbsp;&nbsp;&nbsp;"
+        String resultView = 
+                (readOnly ? "" : 
+                    button("UpdateButton", "UPDATEBUTTON","UPDATE",Message.get(con.getLocale(),"SAVE_AND_RUN"))+"&nbsp;&nbsp;&nbsp;"
                     +"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
                     + popupBox("UPDATE_NAME", null, Message.get(con.getLocale(), "DETAILS"), null, "NAME",
-                            paragraph("banner", Message.get(con.getLocale(), "DETAILS"))
-                            + hidden("TABLENAME", PlusSetup.TABLE)
-                            + super.getTableRowFields(con, PlusSetup.TABLE, parms, "name,description,-")
-                    //        + submitButton(locale, "CREATE_ROW")
+                        paragraph("banner", Message.get(con.getLocale(), "DETAILS"))
+                        + hidden("TABLENAME", PlusSetup.TABLE)
+                        + super.getTableRowFields(con, PlusSetup.TABLE, parms, "name,description,-")
                     )
-                    +"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-                    + popupForm("UPDATE_MORE", null, Message.get(con.getLocale(), "MORE"), null, "NAME",
-                            paragraph("banner", Message.get(con.getLocale(), "MORE"))
-                            + hidden("TABLENAME", PlusSetup.TABLE)
-                            + deleteButton(con.getLocale())+"<br>"
-                            + submitButton(con.getLocale(), "COPY")
-                    )
-                    +"<br><iframe id='previewFrame' width='100%' height='100%'></iframe>\n";
+                    + "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+                )
+                + popupForm("UPDATE_MORE", null, Message.get(con.getLocale(), "MORE"), null, "NAME",
+                        paragraph("banner", Message.get(con.getLocale(), "MORE"))
+                        + hidden("TABLENAME", PlusSetup.TABLE)
+                        + (readOnly ? "" : deleteButton(con.getLocale())+"<br>")
+                        + submitButton(con.getLocale(), "COPY")
+                )
+                +"<br>"+frame("previewFrame","/permeagility.plus.r.RBuilder?PREVIEW="+edit_id);  // <iframe id='previewFrame' width='100%' height='100%'></iframe>\n";
 
-            return getSplitScript()
-                   +div("leftHand","split split-horizontal",div("scriptEditor","split content",scriptEditor)+div("resultText",resultText))
-                   +div("rightHand","split split-horizontal",resultView)
-                   +script("Split(['#leftHand', '#rightHand'], { sizes:[50,50], gutterSize: 8, cursor: 'col-resize' });\n"
-                            //+ "Split(['#scriptEditor'], { direction: 'vertical', sizes: [100], gutterSize: 8, cursor: 'row-resize' });\n"
-                            + "Split(['#scriptEditor', '#resultText'], { direction: 'vertical', sizes: [50, 50], gutterSize: 8, cursor: 'row-resize' });\n"
-                           + "d3.select('#headerservice').text(document.getElementById('"+PARM_PREFIX+"name').value);\n"
-                           + "d3.select('#resultFrame').attr('src','/permeagility.plus.r.RBuilder?VIEWTEXT="+edit_id+"');\n"
-                           + "d3.select('#previewFrame').attr('src','/permeagility.plus.r.RBuilder?PREVIEW="+edit_id+"');\n"
-                           + "d3.select('#UpdateButton').on('click', function() { \n"
-                           + "   "+PARM_PREFIX+"RScriptEditor.save();\n"
-                           + "   var formData = new FormData();\n"
-                           + "   formData.append('SUBMIT','UPDATE');\n"
-                                + addFormData("RScript")
-                                + addFormData("name")
-                                + addFormData("description")
-                           //+ "formData.append('EDIT_ID','"+edit_id+"');\n"  // its already there
-                           + "   d3.xhr('').post(formData, function(error,data) {   \n"                        
-                           + "      d3.select('#resultFrame').attr('src','/permeagility.plus.r.RBuilder?VIEWTEXT="+edit_id+"');\n"
-                           + "      d3.select('#previewFrame').attr('src','/permeagility.plus.r.RBuilder?PREVIEW="+edit_id+"');\n"
-                           + "      d3.select('#headerservice').text(document.getElementById('"+PARM_PREFIX+"name').value);\n"
-                           + "   });\n"
-                           + "});\n"
-                    );
-        } else {
-            return null;
-        }
+        return getSplitScript()
+               +div("leftHand","split split-horizontal",div("scriptEditor","split content",scriptEditor)+div("resultText",resultText))
+               +div("rightHand","split split-horizontal",resultView)
+               +script("Split(['#leftHand', '#rightHand'], { sizes:[50,50], gutterSize: 8, cursor: 'col-resize' });\n"
+                        + "Split(['#scriptEditor', '#resultText'], { direction: 'vertical', sizes: [50, 50], gutterSize: 8, cursor: 'row-resize' });\n"
+                    +(readOnly ? "" : 
+                         "d3.select('#headerservice').text(document.getElementById('"+PARM_PREFIX+"name').value);\n"
+                       + "d3.select('#UpdateButton').on('click', function() { \n"
+                       + "   "+PARM_PREFIX+"RScriptEditor.save();\n"
+                       + "   var formData = new FormData();\n"
+                       + "   formData.append('SUBMIT','UPDATE');\n"
+                            + addFormData("RScript")
+                            + addFormData("name")
+                            + addFormData("description")
+                       + "   d3.xhr('').post(formData, function(error,data) {   \n"                        
+                       + "      d3.select('#resultFrame').attr('src','/permeagility.plus.r.RBuilder?VIEWTEXT="+edit_id+"');\n"
+                       + "      d3.select('#previewFrame').attr('src','/permeagility.plus.r.RBuilder?PREVIEW="+edit_id+"');\n"
+                       + "      d3.select('#headerservice').text(document.getElementById('"+PARM_PREFIX+"name').value);\n"
+                       + "   });\n"
+                       + "});\n")
+                );
+       
     }
 
     public String addFormData(String name) {
@@ -354,6 +320,6 @@ public class RBuilder extends Table {
             }
             parms.put("SERVICE", "Running:" + runDoc.field("name"));
         }
-
     }
+    
 }

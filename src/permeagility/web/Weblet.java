@@ -448,7 +448,11 @@ public abstract class Weblet {
         return "<a class=\"popuplink\">"+linkText+POPUP_SUFFIX+"</a>\n<div class=\"canpopup\">\n" +content +"\n</div>\n";
     }
 
-
+    public static String frame(String id) { return frame(id,null); }
+    public static String frame(String id, String src) {
+        return "<iframe id='"+id+"' "+(src == null ? "" : " src='"+src+"'")+" width='100%' height='100%'></iframe>\n";
+    }
+    
     public static String fieldSet(String s) {
         return "<fieldset>" + s + "</fieldset>";
     }
@@ -732,12 +736,16 @@ public abstract class Weblet {
     }
 
     public String getCodeEditorControl(String formName, String controlName, String initialValue, String mode) {
+        return getCodeEditorControl(formName, controlName, initialValue, mode, null);
+    }
+
+    public String getCodeEditorControl(String formName, String controlName, String initialValue, String mode, String options) {
         return "<textarea id=\""+controlName+"\" name=\""+controlName+"\">"+(initialValue==null ? "" : initialValue)+"</textarea>\n"
             +" <script>\n"
             + "var "+controlName+"Editor = CodeMirror.fromTextArea(document.getElementById(\""+controlName+"\")\n"
             + ", { lineNumbers: true, mode: \""+mode+"\""
                             + ", theme: \""+EDITOR_THEME+"\", matchBrackets: true, extraKeys: {\"Ctrl-Space\": \"autocomplete\"}"
-                            + ", viewportMargin: Infinity });\n"
+                            + ", viewportMargin: Infinity "+(options == null ? "" : options)+" });\n"
             + "</script>\n";				
     }
 
@@ -758,7 +766,7 @@ public abstract class Weblet {
     }
 
     public String getColorControl(String formName, String controlName, String initialValue) {
-            return "<input name='"+controlName+"' class='color' value='"+initialValue+"'>";
+            return "<input id='"+controlName+"' name='"+controlName+"' class='color' value='"+initialValue+"'>";
     }
 
     int dateControlCount = 0;
@@ -800,9 +808,9 @@ public abstract class Weblet {
 
     public static String multiSelectList(String name, List<String> names, List<String> values, List<String> tooltips, Locale l) {
     	StringBuilder sb = new StringBuilder(1024);
-    	sb.append("<SELECT NAME=\""+name+"\" SIZE=\""+names.size()+"\" MULTIPLE>\n");
+    	sb.append("<SELECT id=\""+name+"\" name=\""+name+"\" size=\""+names.size()+"\" MULTIPLE>\n");
     	for(int i=0; i < names.size();i++) {
-    	    sb.append("<OPTION TITLE=\"" + tooltips.get(i) + "\" VALUE=\""+(String)values.get(i)+"\">"+(String)names.get(i)+"</OPTION>\n");
+    	    sb.append("<OPTION title=\"" + tooltips.get(i) + "\" value=\""+(String)values.get(i)+"\">"+(String)names.get(i)+"</OPTION>\n");
     	}
     	sb.append("</SELECT>\n");
     	return sb.toString();
@@ -851,6 +859,7 @@ public abstract class Weblet {
     	for(int i=0; i < names.size();i++) {
     	    sb.append("<input type=\"CHECKBOX\""
                 +(checks.get(i)==null ? "" : " chacked=\"yes"+"\"")
+                +" id=\""+name+"\""
                 +" name=\""+name+"\""
                 +" title=\""+tooltips.get(i)+"\""
                 +" value=\""+(String)values.get(i)+"\">"
@@ -864,7 +873,7 @@ public abstract class Weblet {
     public static String multiCheckboxList(String name, List<String> names, List<String> values, List<String> tooltips, Locale l) {
     	StringBuilder sb = new StringBuilder(1024);
     	for(int i=0; i < names.size();i++) {
-    	    sb.append("<input type=\"CHECKBOX\" name=\""+name+"\" title=\""+tooltips.get(i)+"\" value=\""+(String)values.get(i)+"\">"+(String)names.get(i)+"</input><BR>\n");
+    	    sb.append("<input type=\"CHECKBOX\" id=\""+name+"\" name=\""+name+"\" title=\""+tooltips.get(i)+"\" value=\""+(String)values.get(i)+"\">"+(String)names.get(i)+"</input><BR>\n");
     	}
     	return sb.toString();
     }
@@ -927,7 +936,7 @@ public abstract class Weblet {
         result.append("  <select ng-model=\"selValue\" ng-options=\"v.name for v in values\" ng-change=\"toggleActive(selValue)\">\n");
         result.append("    <option value=\"\">"+Message.get(l, "OPTION_NONE")+"</option>\n");
         result.append("      </select>\n");
-        result.append("<input class=\"text\" type=\"hidden\" name=\""+name+"\"  value=\"{{resultList()}}\"/>\n");  // TYPE=\"hidden\"
+        result.append("<input class=\"text\" type=\"hidden\" id=\""+name+"\" name=\""+name+"\"  value=\"{{resultList()}}\"/>\n");  // TYPE=\"hidden\"
         result.append("</div>\n");
   	return result.toString();
   }
@@ -1014,7 +1023,7 @@ public abstract class Weblet {
         result.append("  <select ng-model=\"selValue\" ng-options=\"v.name for v in values\" ng-change=\"selected(selValue)\">\n");
         result.append("    <option value=\"\">"+Message.get(l, "OPTION_NONE")+"</option>\n");
         result.append("      </select>\n");
-        result.append("<input class=\"text\" type=\"hidden\" name=\""+name+"\"  value=\"{{resultList()}}\"/>\n");  // TYPE=\"hidden\"
+        result.append("<input class=\"text\" type=\"hidden\" id=\""+name+"\" name=\""+name+"\"  value=\"{{resultList()}}\"/>\n");  // TYPE=\"hidden\"
         //          result.append("<INPUT CLASS=\"text\" NAME=\""+name+"\"  VALUE=\"{{resultList()}}\"/>\n");   // For debugging purposes
         result.append("</div>\n");
         return result.toString();
@@ -1106,7 +1115,7 @@ public abstract class Weblet {
         result.append("  <select ng-model=\"selValue\" ng-options=\"v.name for v in values\" ng-change=\"selected(selValue)\">\n");
         result.append("    <option value=\"\">"+Message.get(l, "OPTION_NONE")+"</option>\n");
         result.append("  </select>\n");
-        result.append("<input class=\"text\" type=\"hidden\" name=\""+name+"\" value=\"{{resultList()}}\"/>\n");  // TYPE=\"hidden\"
+        result.append("<input class=\"text\" type=\"hidden\" id=\""+name+"\" name=\""+name+"\" value=\"{{resultList()}}\"/>\n");  // TYPE=\"hidden\"
 //		result.append("<INPUT CLASS=\"text\" NAME=\""+name+"\"  VALUE=\"{{resultList()}}\"/>\n"); 
         result.append("</div>\n");
         return result.toString();
@@ -1177,10 +1186,9 @@ public abstract class Weblet {
                     , String attributes, boolean allowNull, String classname, boolean enabled) {
         QueryResult qr = queryCache.getResult(con, query);
         StringBuilder sb = new StringBuilder(1024);
-        sb.append("<SELECT " + (enabled ? "" : "DISABLED") + (classname != null ? " CLASS=\"" + classname + "\"" : "") + " NAME=\""
-                        + name + "\" " + (attributes != null ? attributes : "") + ">\n");
+        sb.append("<SELECT " + (enabled ? "" : "DISABLED") + (classname != null ? " class=\"" + classname + "\"" : "") + " id=\"" + name + "\" name=\"" + name + "\" " + (attributes != null ? attributes : "") + ">\n");
         if (initial == null && allowNull) {
-            sb.append("<OPTION SELECTED=\"yes\" VALUE=null>" + "Select" + "\n");
+            sb.append("<OPTION SELECTED=\"yes\" value=null>" + "Select" + "\n");
         } else if (allowNull) {
             sb.append("<OPTION VALUE=null>"+Message.get(con.getLocale(), "OPTION_NONE")+"\n");
         }
@@ -1221,11 +1229,12 @@ public abstract class Weblet {
         StringBuilder sb = new StringBuilder(1024);
         sb.append("<SELECT " 
             + (enabled ? "" : "DISABLED") 
-            + (classname != null ? " CLASS=\"" + classname + "\"" : "") 
-            + " NAME=\"" + name + "\" " 
+            + (classname != null ? " class=\"" + classname + "\"" : "") 
+            + " id=\"" + name + "\" " 
+            + " name=\"" + name + "\" " 
             + (attributes != null ? attributes : "") + ">\n");
         if (initial == null && allowNull) {
-            sb.append("<OPTION SELECTED=\"yes\" VALUE=null>" + "Select" + "\n");
+            sb.append("<OPTION SELECTED=\"yes\" value=null>" + "Select" + "\n");
         } else if (allowNull) {
             sb.append("<OPTION VALUE=null>" + Message.get(locale,"OPTION_NONE"));
         }
@@ -1248,6 +1257,7 @@ public abstract class Weblet {
             sb.append("<select " 
                             + (enabled ? "" : "DISABLED") 
                             + (classname != null ? " class=\"" + classname + "\"" : "") 
+                            + " id=\"" + name + "\" " 
                             + " name=\"" + name + "\" " 
                             + (attributes != null ? attributes : "") + ">\n");
             if (allowNull) {

@@ -56,11 +56,6 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 		}
                 ODocument loc = con.queryDocument("SELECT FROM locale WHERE name='en'");
 
-                Setup.checkCreateMessage(con, loc, "PLUS-R_RUN", "Run");
-                Setup.checkCreateMessage(con, loc, "PLUS-R_EDIT", "Edit");
-                Setup.checkCreateMessage(con, loc, "PLUS-R_VIEWTEXT", "Result");
-                Setup.checkCreateMessage(con, loc, "PLUS-R_VIEWPDF", "Graph");
-
 		OClass table = Setup.checkCreateTable(con, oschema, TABLE, errors, newTableGroup);
                 Setup.checkTableSuperclass(oschema, table, "ORestricted", errors);
 		Setup.checkCreateColumn(con,table, "name", OType.STRING, errors);
