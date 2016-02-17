@@ -38,13 +38,13 @@ Licensed under Apache License 2.0  http://www.apache.org/licenses/LICENSE-2.0
 
 Includes other components and copyrights: (Database and JavaScript Components)
 
-OrientDB - http://www.orientechnologies.com/orientdb/ (version 2.1)  License: Apache 2.0
-JQuery - http://jquery.org/license (version 2.1.3)  License: MIT
-AngularJs - Google, Inc. http://angularjs.org (version 1.3.8)  License: MIT
-D3.js - Mike Bostock, http://d3js.org (version 3.5.15)  License: BSD
-SortTable - Stuart Langridge, http://www.kryogenix.org/code/browser/sorttable/
-JSCalendar - Mihai Bazon, http://www.dynarch.com/projects/calendar
-JSColor - Jan Odvarko, http://odvarko.cz, http://jscolor.com
-CodeMirror - http://codemirror.net (version 5.2.1) License: MIT
-Pace - HubSpot - https://github.com/HubSpot/pace  (version 0.5.3)
-Split.js - Nathan Cahill, https://nathancahill.github.io/Split.js/  
+- OrientDB - http://www.orientechnologies.com/orientdb/ (version 2.1)  License: Apache 2.0
+- JQuery - http://jquery.org/license (version 2.1.3)  License: MIT
+- AngularJs - Google, Inc. http://angularjs.org (version 1.3.8)  License: MIT
+- D3.js - Mike Bostock, http://d3js.org (version 3.5.15)  License: BSD
+- SortTable - Stuart Langridge, http://www.kryogenix.org/code/browser/sorttable/
+- JSCalendar - Mihai Bazon, http://www.dynarch.com/projects/calendar
+- JSColor - Jan Odvarko, http://odvarko.cz, http://jscolor.com
+- CodeMirror - http://codemirror.net (version 5.2.1) License: MIT
+- Pace - HubSpot - https://github.com/HubSpot/pace  (version 0.5.3)
+- Split.js - Nathan Cahill, https://nathancahill.github.io/Split.js/  
