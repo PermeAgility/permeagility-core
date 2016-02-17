@@ -6,7 +6,8 @@ PermeAgility is a lightweight integrated data manager and web application framew
 Try out the live demo site hosted on Amazon's Cloud: http://demo.permeagility.com
 
 This is the source code. Binary releases are available at: http://sourceforge.net/projects/permeagility/files  
-To build from source you must have Java 1.8+ and maven installed.  Then type: 
+
+To build from source you must have Java 1.8+ and maven installed.  Clone this repository, then type: 
 
     mvn package
 
