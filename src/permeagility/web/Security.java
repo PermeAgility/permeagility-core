@@ -328,4 +328,36 @@ public class Security {
         }
     }
 
+    /* See if document is view-only based on the ORestricted fields, 
+    Note: this does not check table privileges
+    */
+    public static boolean isReadOnlyDocument(DatabaseConnection con, ODocument doc) {
+        if (Security.isDBA(con)) return false;  // admin, dba not read only
+        Set<String> roles = Security.getUserRoles(con);
+        if (doc.containsField("_allow")) {
+            Set<ODocument> allowed = doc.field("_allow");
+            for (ODocument r : allowed) {
+                String aname = r.field("name");
+                if (r.getClassName().equals("ORole")) {
+                    if (roles.contains(aname)) return false; // role on the _allow
+                } else {
+                    if (con.getUser().equals(aname)) return false;  // on the _allow list
+                }
+            }            
+        }
+        if (doc.containsField("_allowUpdate")) {
+            Set<ODocument> allowed = doc.field("_allowUpdate");
+            for (ODocument r : allowed) {
+                String aname = r.field("name");
+                if (r.getClassName().equals("ORole")) {
+                    if (roles.contains(aname)) return false; // role on the _allowUpdate
+                } else {
+                    if (con.getUser().equals(aname)) return false;  // on the _allowUpdate
+                }
+            }            
+            return true;
+        }
+        return true;
+    }
+
 }

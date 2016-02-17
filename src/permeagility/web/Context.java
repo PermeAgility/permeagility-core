@@ -49,6 +49,7 @@ public class Context extends Weblet {
     static String latestVersionDate = null;
     static int downloadPercent = 0;
     static String downloadURL = null;
+    static boolean downloadedPlus = false;
 
       // For testing apply update
 //    static Date lastChecked = new Date();
@@ -71,37 +72,123 @@ public class Context extends Weblet {
         String ref = parms.get("TABLENAME");
         String submit = parms.get("SUBMIT");
         if (ref != null && Security.isDBA(con)) {
-            if (DEBUG) {
-                System.out.println("Context: Cache refresh=" + ref);
-            }
+            if (DEBUG) System.out.println("Context: Cache refresh=" + ref);
             getCache().refresh(ref);
         }
 
         if (submit != null && submit.equals("CACHE_CLEAR_MENUS") && Security.isDBA(con)) {
-            if (DEBUG) {
-                System.out.println("Context: Menu Cache refresh");
-            }
+            if (DEBUG) System.out.println("Context: Menu Cache refresh");
             Menu.clearCache();
         }
 
         if (submit != null && submit.equals("REFRESH_SECURITY") && Security.isDBA(con)) {
-            if (DEBUG) {
-                System.out.println("Context: refresh security");
-            }
+            if (DEBUG) System.out.println("Context: refresh security");
             Security.refreshSecurity();
         }
 
         if (submit != null && submit.equals("CHECK_INSTALLATION") && Security.isDBA(con)) {
-            if (DEBUG) {
-                System.out.println("Context: Check Installation");
-            }
+            if (DEBUG) System.out.println("Context: Check Installation");
             Setup.checkInstallation(con);
         }
 
-        if (submit != null && submit.equals("CHECK_FOR_UPDATE") && Security.isDBA(con)) {
-            if (DEBUG) {
-                System.out.println("Context: Checking for updated version");
+        if (!downloading && submit != null && submit.equals("DOWNLOAD_PLUS_FILE") && Security.isDBA(con) && parms.get("DOWNLOAD_PLUS_URL") != null) {
+            if (DEBUG) System.out.println("Context: Downloading plus");
+            downloading = true;
+            String plusFileURL = parms.get("DOWNLOAD_PLUS_URL");
+            new Thread() {
+                @Override public void run() {
+                    try {
+                        String fileName = "plus" + plusFileURL.substring(plusFileURL.lastIndexOf(File.separator));
+                        if (DEBUG) System.out.println("Downloading "+plusFileURL+" to "+fileName);
+                        URL latestURL = new URL(plusFileURL);
+                        URLConnection yc = latestURL.openConnection();
+                        int dlLength = yc.getContentLength();
+                        InputStream input = yc.getInputStream();
+                        OutputStream output = new FileOutputStream(new File(fileName));
+                        int n = -1;
+                        int nTotal = 0;
+                        byte[] buffer = new byte[4096];
+                        while (( n = input.read(buffer)) != -1) {
+                            output.write(buffer, 0, n);
+                            nTotal += n;
+                            downloadPercent = (int)((float)nTotal/(float)dlLength*100.0);
+                        }
+                        output.close();
+                        input.close();
+                        downloadedPlus = true;
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    } finally {
+                        downloading = false;                        
+                    }                   
+                }
+            }.start();
+            
+        }
+        
+        if (submit != null && submit.equals("DOWNLOAD_PLUS") && Security.isDBA(con)) {
+            if (DEBUG)  System.out.println("Context: Checking for plus modules");
+            StringBuilder plusList = new StringBuilder();        
+            List<String> modules = PlusClassLoader.getModules();
+        
+            JSONArray jsonArray = getURLArray("https://api.github.com/orgs/permeagility/repos");
+            for (int i=0; i<jsonArray.length(); i++) {                
+                JSONObject jsonObject = jsonArray.getJSONObject(i);
+                String plusName = jsonObject.getString("name");
+                if (plusName.startsWith("permeagility-plus-")) {
+                    String plusDesc = jsonObject.getString("description");
+                    if (DEBUG) System.out.println("GitHub Plus found: "+plusName);
+                    JSONObject jsonPlus = getURLObject("https://api.github.com/repos/permeagility/"+plusName+"/releases/latest");
+                    if (jsonPlus != null) {
+                        boolean exists = false;
+                        for (String m : modules) {  if (plusName.endsWith(m)) { exists = true; break; } }
+                        String latestName = jsonPlus.getString("name");
+                        String latestBody = jsonPlus.getString("body");
+                        if (!latestBody.isEmpty()) latestBody = latestBody.replace("\n","<br>");
+                        String latestPublishedDate = jsonPlus.getString("published_at");
+                        if (jsonPlus.has("assets")) {
+                            JSONArray latestAssets = jsonPlus.getJSONArray("assets");
+                            JSONObject latestAsset = latestAssets.getJSONObject(0);
+                            String latestFileName = latestAsset.getString("name");
+                            long latestFileSize = latestAsset.getLong("size");
+                            if (DEBUG) System.out.println("Latest: name="+latestName+" body="+latestBody+" fileName="+latestFileName);
+                            String downloadPlusURL = latestAsset.getString("browser_download_url");
+                            if (plusName.startsWith("permeagility-")) {
+                                plusName = plusName.substring(13);
+                            }
+                            plusList.append(row(
+                                    column(plusName)
+                                    +column(plusDesc+"<br>"+xSmall(latestPublishedDate+"<br>"+latestBody))
+                                    +column(latestName)
+                                            +column(latestFileSize/1024+"k")
+                                    +column(exists ? Message.get(locale, "DOWNLOADING_COMPLETE") : form(hidden("DOWNLOAD_PLUS_URL",downloadPlusURL)+submitButton(locale,"DOWNLOAD_PLUS_FILE")))
+                            ));
+                        } else {
+                            System.out.println("No assets");
+                        }
+                    } else {
+                        System.out.println("No releases");
+                    }
+                }
             }
+            if (plusList.length() > 0) {
+                parms.put("SERVICE", Message.get(locale, "DOWNLOAD_PLUS"));
+                return table("sortable",
+                    row(columnHeader(Message.get(locale, "PLUS_NAME"))
+                        + columnHeader(Message.get(locale, "PLUS_DESCRIPTION"))
+                        + columnHeader(Message.get(locale, "PLUS_VERSION"))
+                        + columnHeader(Message.get(locale, "PLUS_SIZE"))
+                        + columnHeader(Message.get(locale, "DOWNLOAD_PLUS_FILE")))
+                    +plusList.toString())
+                    +form(submitButton(locale,"CANCEL"));
+            } else {
+                return paragraph("warning","NO_PLUS_MODULES")
+                    +form(submitButton(locale,"CANCEL"));
+            }
+        }
+
+        if (submit != null && submit.equals("CHECK_FOR_UPDATE") && Security.isDBA(con)) {
+            if (DEBUG) System.out.println("Context: Checking for updated version");
             try {
                 StringBuilder jsonString = new StringBuilder();
                 URL latestURL = new URL("https://api.github.com/repos/permeagility/permeagility-core/releases/latest");
@@ -119,7 +206,7 @@ public class Context extends Weblet {
                 JSONArray latestAssets = jsonObject.getJSONArray("assets");
                 JSONObject latestAsset = latestAssets.getJSONObject(0);
                 String latestFileName = latestAsset.getString("name");
-                System.out.println("Latest: name="+latestName+" body="+latestBody+" fileName="+latestFileName);
+                if (DEBUG) System.out.println("Latest: name="+latestName+" body="+latestBody+" fileName="+latestFileName);
                 
                 currentVersion = Server.getCodeSource();
                 downloadURL = latestAsset.getString("browser_download_url");
@@ -138,7 +225,6 @@ public class Context extends Weblet {
             new Thread() {
                 @Override public void run() {
                     try {
-                        StringBuilder jsonString = new StringBuilder();
                         URL latestURL = new URL(downloadURL);
                         URLConnection yc = latestURL.openConnection();
                         int dlLength = yc.getContentLength();
@@ -154,10 +240,11 @@ public class Context extends Weblet {
                         }
                         output.close();
                         input.close();
-                        downloading = false;
                     } catch (Exception e) {
                         e.printStackTrace();
-                    }                    
+                    } finally {
+                        downloading = false;                        
+                    }                   
                 }
             }.start();
         }
@@ -230,7 +317,7 @@ public class Context extends Weblet {
             modules.add(TEST_MODULE);
         }
         for (String m : modules) {
-            System.out.println("Loading plus module: "+m);
+            //System.out.println("Loading plus module: "+m);
             String setupClassName = "permeagility.plus." + (m.indexOf("-",5) > 0 ? m.substring(5,m.indexOf("-",5)) : m.substring(5)) + ".PlusSetup";
             try {
                 Class<?> classOf = Class.forName(setupClassName, true, PlusClassLoader.get());
@@ -242,27 +329,27 @@ public class Context extends Weblet {
                     if (submit != null && module != null && module.equals(m)) {
                         if (installed) {
                             if (submit.equals("PLUS_REMOVE")) {
-                                System.out.println("Removing " + m);
+                                if (DEBUG) System.out.println("Removing " + m);
                                 installed = !plusSetup.remove(con, parms, errors);
                             } else if (submit.equals("PLUS_UPGRADE")) {
-                                System.out.println("Upgrading " + m);
+                                if (DEBUG) System.out.println("Upgrading " + m);
                                 installed = plusSetup.upgrade(con, parms, errors);
                             }
                         } else if (submit.equals("PLUS_INSTALL")) {
-                            System.out.println("Installing " + m);
+                            if (DEBUG) System.out.println("Installing " + m);
                             installed = plusSetup.install(con, parms, errors);
                         }
                     }
                     String inVersion = plusSetup.getInstalledVersion(con, plusSetup.getClass().getName());
                     String plusVersion = plusSetup.getVersion();
-                    if (inVersion == null) {
+                    if (inVersion == null && !plusSetup.isInstalled()) {
                         installed = false;
                     }
-                    String act = (installed ? (plusVersion.compareTo(inVersion) > 0 ? "PLUS_UPGRADE" : "PLUS_REMOVE") : "PLUS_INSTALL");
+                    String act = (installed ? (plusVersion != null && plusVersion.compareTo(inVersion) > 0 ? "PLUS_UPGRADE" : "PLUS_REMOVE") : "PLUS_INSTALL");
                     plusList.append(row("data",
                             column(m)
                             + column(inVersion)
-                            + column(plusVersion)
+                            + column(plusVersion==null ? Message.get(locale,"PLUS_EMBEDDED") : plusVersion)
                             + column(popupForm("INSTALL-" + m, null, Message.get(locale, act), null, null, paragraph("banner", Message.get(locale, act) + " " + m)
                                             + hidden("MODULE", m)
                                             + (installed ? (act.equals("PLUS_REMOVE") ? plusSetup.getRemoveForm(con) : plusSetup.getUpgradeForm(con)) : plusSetup.getAddForm(con))
@@ -335,6 +422,8 @@ public class Context extends Weblet {
                         + hidden("TABLENAME", "ALL") + "&nbsp;"
                         + Message.get(locale, "CACHE_COUNT", "" + getCache().size()))
                 + paragraph("banner", Message.get(locale, "PLUS_MODULES"))
+                + (downloading ? "" : form(submitButton(locale, "DOWNLOAD_PLUS")))
+                + (downloadedPlus ? paragraph("warning",Message.get(locale,"RESTART_REQUIRED")) : "")
                 + table("data",
                         row(columnHeader(Message.get(locale, "PLUS_NAME"))
                                 + columnHeader(Message.get(locale, "PLUS_DB_VERSION"))
@@ -351,4 +440,31 @@ public class Context extends Weblet {
                 + (installMessages != null && !installMessages.equals("") ? installMessages : "");
     }
 
+    public static JSONArray getURLArray(String url) {
+        String a = getURL(url);
+        return a == null ? null : new JSONArray(a);        
+    }
+
+    public static JSONObject getURLObject(String url) {
+        String o = getURL(url);
+        return o == null ? null : new JSONObject(o);
+    }
+            
+    public static String getURL(String url) {
+         try {
+            StringBuilder jsonString = new StringBuilder();
+             URL latestURL = new URL(url);
+             URLConnection yc = latestURL.openConnection();
+             BufferedReader in = new BufferedReader(new InputStreamReader(yc.getInputStream()));
+             String inputLine;
+             while ((inputLine = in.readLine()) != null) {
+                 jsonString.append(inputLine);
+             }
+             in.close();
+             return jsonString.toString();
+        } catch (Exception e) {
+            System.out.println("Error retrieving URL: "+url+" error is "+e.getClass().getName());
+        }
+        return null;       
+    }        
 }

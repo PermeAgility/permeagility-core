@@ -47,6 +47,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.orientechnologies.orient.core.OConstants;
 import com.orientechnologies.orient.core.record.impl.ODocument;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import permeagility.util.Browser;
 import permeagility.util.ConstantOverride;
@@ -61,7 +63,7 @@ import permeagility.util.Setup;
   *  
   *  Parameters: [port(1999)] [db(plocal:db)] [selftest] 
   */
-public class Server extends Thread {
+public class Server implements Runnable {
 
 	private static int HTTP_PORT = 1999;  // First parameter
 	private static String DB_NAME = "plocal:db";  // Second parameter
@@ -101,8 +103,8 @@ public class Server extends Thread {
 	private static String SETTINGS_FILE = "init.pa";
 	private static Properties localSettings = new Properties();
 
-	static ConcurrentHashMap<String,String> sessions = new ConcurrentHashMap<>(); // Cookie (user+random) -> username
-	static ConcurrentHashMap<String,Locale> sessionsLocale = new ConcurrentHashMap<>(); // Cookie (user+random) -> locale
+	static ConcurrentHashMap<String,String> sessions = new ConcurrentHashMap<>(); // Cookie (random+user) -> username
+	static ConcurrentHashMap<String,Locale> sessionsLocale = new ConcurrentHashMap<>(); // Cookie (random+user) -> locale
 	static ConcurrentHashMap<String,Database> sessionsDB = new ConcurrentHashMap<>();  // username -> Database pool
 	
 	private static ConcurrentHashMap<String,byte[]> transientImages = new ConcurrentHashMap<>();
@@ -113,10 +115,11 @@ public class Server extends Thread {
 	
 	private static DatabaseHook databaseHook = null;
 	private static ClassLoader plusClassLoader;
-//	static Message messages = null;
 
 	Socket socket;
-	
+        
+	private static ExecutorService executor = Executors.newCachedThreadPool();
+
 	public Server() {
 		socket = null;
 	}  
@@ -198,8 +201,9 @@ public class Server extends Thread {
 					
 					// This is the main web server loop
 					while (true) {
-						Server s = new Server(ss.accept());
-						s.start();
+						//Server s = new Server(ss.accept());
+						//s.start();
+                                            executor.execute(new Server(ss.accept()));
 					}
 				}
 			} else {
@@ -214,6 +218,7 @@ public class Server extends Thread {
 			System.err.println("***\n*** Exit condition: \n***"+e.getClass().getName()+":"+e.getMessage());
 			exit(-1);
 		} finally {
+                    executor.shutdown();
                     if (ss != null) {
                         try {  ss.close();  } catch (Exception e) { e.printStackTrace();  }
                     } 
@@ -510,7 +515,7 @@ public class Server extends Thread {
 						// Set a cookie value
 						if (userdb != null && parmUserName != null) {
 							if (DEBUG) System.out.println("Calculating new cookie for: "+parmUserName);
-							newCookieValue = parmUserName + (Math.random() * 100000000);
+							newCookieValue = (Math.random() * 100000000) + parmUserName;
 							sessions.put(newCookieValue, parmUserName);
 							if (!sessionsDB.containsKey(parmUserName)) {
 								sessionsDB.put(parmUserName, userdb);
@@ -523,7 +528,7 @@ public class Server extends Thread {
 							try {
 								if (DEBUG) System.out.println("Using guest connection");
 								userdb = getNonUserDatabase();
-								newCookieValue = userdb.getUser() + (Math.random() * 100000000);
+								newCookieValue = (Math.random() * 100000000) + "guest";
 								sessions.put(newCookieValue, "guest");
 								if (!sessionsDB.containsKey("guest")) {
 									sessionsDB.put("guest", userdb);
@@ -672,8 +677,10 @@ public class Server extends Thread {
                                     if (parms.containsKey("RESPONSE_REDIRECT")) {
                                         os.write(getRedirectHeader(parms).getBytes());
                                     } else {
-                                        os.write(getHeader(content_type, theData.length, newCookieValue, content_disposition, keep_alive).getBytes());
-                                        os.write(theData);
+                                        if (theData != null) {
+                                            os.write(getHeader(content_type, theData.length, newCookieValue, content_disposition, keep_alive).getBytes());
+                                            os.write(theData);
+                                        }
                                     }
                                     os.flush();
 				} catch (SocketException se) {  // Connection broken
@@ -1114,7 +1121,7 @@ public class Server extends Thread {
 					exit(-1);
 				}
 				// Set the class loader for the currentThread (and all the Children so that plus's will work)
-				currentThread().setContextClassLoader(plusClassLoader);
+				Thread.currentThread().setContextClassLoader(plusClassLoader);
 
 				// Do this after plus modules loaded so we can set their constants
 				if (!ConstantOverride.apply(con)) {

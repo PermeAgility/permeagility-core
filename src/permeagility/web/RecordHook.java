@@ -22,6 +22,7 @@ import permeagility.util.DatabaseConnection;
 import com.orientechnologies.orient.core.db.ODatabase.STATUS;
 import com.orientechnologies.orient.core.db.ODatabaseRecordThreadLocal;
 import com.orientechnologies.orient.core.hook.ORecordHook;
+import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.orientechnologies.orient.core.record.ORecord;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 
@@ -84,8 +85,15 @@ public class RecordHook implements ORecordHook {
                                 .field("user", user)
                                 .field("recordVersion", document.getRecordVersion().getCounter());
                             try {
-                                log.field("detail", document.isEmbedded() ? "Embedded" : document.toJSON());
-                            } catch(ClassCastException e) {
+                                StringBuilder details = new StringBuilder();
+                                for (String n : document.fieldNames()) {
+                                    if (document.fieldType(n) == OType.CUSTOM) {
+                                    System.out.println("REMOVING Name="+n+" Type="+document.fieldType(n));
+                                        document.removeField(n);
+                                    }
+                                }
+                                log.field("detail", document.toJSON());
+                            } catch(Exception e) {
                                 System.out.println("AuditLog error: cannot save detail for document "+document.getIdentity().toString());
                             }
                             log.save();
