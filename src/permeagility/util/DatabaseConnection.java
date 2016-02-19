@@ -207,7 +207,7 @@ public class DatabaseConnection {
         if (DEBUG) System.out.println("DatabaseConnection.DEBUG(update)="+expression+";");
        	lastAccess = System.currentTimeMillis();
        	c.activateOnCurrentThread();
-        return c.command(new OCommandSQL(expression)).execute();    // run the query return the resulting object
+        return c.command(new OCommandSQL(expression)).execute();  // run the query return the resulting object
     }
 
     /** Get a document by its RID */

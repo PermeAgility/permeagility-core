@@ -28,6 +28,7 @@ public class Visuility extends Weblet {
             body(standardLayout(con, parms,  
                 Schema.getTableSelector(con)
                 +"<button style=\"position: fixed; bottom: 0px;\" id=\"save_as_svg\" download=\"view.svg\">to SVG</button>"
+                +chartDiv("chart")
                 +getScript("visuility.js")
                 +(type != null && id != null ? script("getMore('"+type+"','"+id+"')") : "")
             ));

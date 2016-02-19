@@ -58,7 +58,8 @@ public class D3Builder extends Table {
                 String script = (viewDoc.field("script") != null ? "<script>" + viewDoc.field("script") + "</script>" : "");
                 script = script.replace("$$this$$", "/permeagility.plus.d3.Data?VIEW="+preview);
                 sb.append(form("svgform", hidden("format", "") + hidden("data", "")));
-                sb.append(additionalScript + script);
+                sb.append(chartDiv("chart"));
+                sb.append(additionalScript + "\n" + script);
                 return head("D3 Builder", getScripts(con) + additionalStyle) + body(errors.toString()+div("service",sb.toString()));
             }
         }
@@ -78,6 +79,7 @@ public class D3Builder extends Table {
                 script = script.replace("$$this$$", "/permeagility.plus.d3.Data?VIEW="+view);
                 sb.append(paragraph("" + viewDoc.field("description")));
                 sb.append(form("svgform", hidden("format", "") + hidden("data", "")));
+                sb.append(chartDiv("chart"));
                 sb.append(additionalScript + script);
             }
         }

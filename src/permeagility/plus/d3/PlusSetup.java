@@ -53,21 +53,21 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 			return false;
 		}
 
-		OClass table = Setup.checkCreateTable(con, oschema, TABLE, errors, newTableGroup);
-                Setup.checkTableSuperclass(oschema, table, "ORestricted", errors);
-		Setup.checkCreateColumn(con,table, "name", OType.STRING, errors);
-		Setup.checkCreateColumn(con,table, "description", OType.STRING, errors);
-		Setup.checkCreateColumn(con,table, "pluginScript", OType.STRING, errors);
-		Setup.checkCreateColumn(con,table, "dataScript", OType.STRING, errors);
-		Setup.checkCreateColumn(con,table, "style", OType.STRING, errors);
-		Setup.checkCreateColumn(con,table, "script", OType.STRING, errors);
-
       		OClass tableplugin = Setup.checkCreateTable(con, oschema, TABLE_PLUGIN, errors, newTableGroup);
                 Setup.checkTableSuperclass(oschema, tableplugin, "ORestricted", errors);
 		Setup.checkCreateColumn(con,tableplugin, "name", OType.STRING, errors);
 		Setup.checkCreateColumn(con,tableplugin, "description", OType.STRING, errors);
 		Setup.checkCreateColumn(con,tableplugin, "script", OType.STRING, errors);
 
+		OClass table = Setup.checkCreateTable(con, oschema, TABLE, errors, newTableGroup);
+                Setup.checkTableSuperclass(oschema, table, "ORestricted", errors);
+		Setup.checkCreateColumn(con,table, "name", OType.STRING, errors);
+		Setup.checkCreateColumn(con,table, "description", OType.STRING, errors);
+		Setup.checkCreateColumn(con,table, "plugins", OType.LINKLIST, tableplugin, errors);
+		Setup.checkCreateColumn(con,table, "dataScript", OType.STRING, errors);
+		Setup.checkCreateColumn(con,table, "style", OType.STRING, errors);
+		Setup.checkCreateColumn(con,table, "script", OType.STRING, errors);
+                
 		Setup.createMenuItem(con,getName(),getInfo(),MENU_CLASS,parms.get("MENU"),roles);	
 		Setup.createMenuItem(con,getName(),getInfo(),DATA_CLASS,null,roles);	
 		

@@ -26,11 +26,11 @@ import permeagility.web.Weblet;
 
 public class Download extends permeagility.web.Download {
 
-    @Override
-    public String getContentType() { return "application/json"; }
+    public static boolean NO_ALLOWS = true;
+    
+    @Override public String getContentType() { return "application/json"; }
 
-    @Override
-    public String getContentDisposition() { return "inline; filename=\"data.json\""; }
+    @Override public String getContentDisposition() { return "inline; filename=\"data.json\""; }
 
     @Override
     public byte[] getBytes(DatabaseConnection con, HashMap<String, String> parms) {
@@ -73,6 +73,12 @@ public class Download extends permeagility.web.Download {
         sb.append("{");
         String[] columns = d.fieldNames();
         for (String p : columns) {
+            if ((d.getClassName().equals("ORole") || d.getClassName().equals("OUser")) && !p.equals("name")) {
+                continue;  // Only the name is shown for an ORole or an OUser
+            }
+            if (NO_ALLOWS && p.startsWith("_allow")) {
+                continue;  // No allow columns
+            }
             OType t = d.fieldType(p);
             if (t != OType.CUSTOM) {
                 sb.append(comma);

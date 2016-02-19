@@ -45,8 +45,6 @@ public class RecordHook implements ORecordHook {
     public static boolean AUDIT_WRITES = false;
     public static boolean FINALIZE_ONLY = true;  // for writes, otherwise saves three records
 
-    private static DatabaseConnection con = null;  // Don't connect until we have to (holds the connection)
-
     public RecordHook() {
     }
 
@@ -69,39 +67,33 @@ public class RecordHook implements ORecordHook {
             if (iRecord instanceof ODocument) {
                 final ODocument document = (ODocument) iRecord;
                 String className = document.getClassName();
-                String user = ODatabaseRecordThreadLocal.INSTANCE.get().getUser().getName();
+                String user = iRecord.getDatabase().getUser().getName();  //ODatabaseRecordThreadLocal.INSTANCE.get().getUser().getName();
                 if (className != null && !className.equalsIgnoreCase("auditTrail")) {
                     if (DEBUG) System.out.println("RecordHook:onTrigger type="+iType.name()+" table="+className+" record="+iRecord.toJSON());
                     try {
-                        if (con == null) {
-                            con = Server.getServerConnection();
-                        }
-                        if (con != null) {
-                            ODocument log = con.create("auditTrail");
-                            log.field("timestamp", new Date())
-                                .field("action", iType.toString())
-                                .field("table", document.getClassName())
-                                .field("rid", document.getIdentity().toString().substring(1))
-                                .field("user", user)
-                                .field("recordVersion", document.getRecordVersion().getCounter());
-                            try {
-                                StringBuilder details = new StringBuilder();
-                                for (String n : document.fieldNames()) {
-                                    if (document.fieldType(n) == OType.CUSTOM) {
-                                    System.out.println("REMOVING Name="+n+" Type="+document.fieldType(n));
-                                        document.removeField(n);
-                                    }
-                                }
-                                log.field("detail", document.toJSON());
-                            } catch(Exception e) {
-                                System.out.println("AuditLog error: cannot save detail for document "+document.getIdentity().toString());
+                        String table = document.getClassName();
+                        String rid = document.getIdentity().toString().substring(1);
+                        int recordVersion = document.getRecordVersion().getCounter();
+                        for (String n : document.fieldNames()) {
+                            if (document.fieldType(n) == OType.CUSTOM) {
+                            if (DEBUG) System.out.println("REMOVING Name="+n+" Type="+document.fieldType(n));
+                                document.removeField(n);
                             }
-                            log.save();
-                            //con.getDb().getLocalCache().invalidate();  // Don't cache these but hold on to the connection
-                            DatabaseConnection.rowCountChanged("auditTrail");  // This should clear the rowcount for the auditTrail from the cache
                         }
+                        String json = document.toJSON();
+                        ODocument log = iRecord.getDatabase().newInstance("auditTrail");
+                        log.field("timestamp", new Date())
+                            .field("action", iType.toString())
+                            .field("table", table)
+                            .field("rid", rid)
+                            .field("user", user)
+                            .field("recordVersion", recordVersion)
+                            .field("detail", json)
+                            .save();
+                        DatabaseConnection.rowCountChanged("auditTrail");  // This should clear the rowcount for the auditTrail from the cache
                     } catch (Exception e) {
-                            e.printStackTrace();
+                        System.err.println("Unable to write audit trail using user "+user+" with message "+e.getMessage());
+                        e.printStackTrace();
                     }		    		
                 }
             }
