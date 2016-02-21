@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.permeagility</groupId>
   <artifactId>permeagility</artifactId>
-  <version>0.7.1-SNAPSHOT</version>
+  <version>0.7.1</version>
   <packaging>jar</packaging>
   <name>Permeagility Core</name>
   <description>The dynamic adaptive data management platform</description>
@@ -29,7 +29,7 @@
     <connection>scm:git:https://github.com/PermeAgility/permeagility-core.git</connection>
     <developerConnection>scm:git:https://github.com/PermeAgility/permeagility-core.git</developerConnection>
     <url>git@github.com:PermeAgility/permeagility-core.git</url>
-    <tag>HEAD</tag>
+    <tag>v0.7.1</tag>
   </scm>
 
 
