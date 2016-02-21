@@ -25,6 +25,7 @@ import permeagility.util.QueryResult;
 import permeagility.util.Setup;
 
 import com.orientechnologies.orient.core.record.impl.ODocument;
+import java.util.Set;
 
 public class Menu extends Weblet {
 
@@ -74,6 +75,7 @@ public class Menu extends Weblet {
                         if (i != null) {
                             String menuName = (String) i.field("name");
                             String menuDesc = (String) i.field("description");
+                            String classname = (String) i.field("classname");
                             Boolean itemActive = i.field("active");
                             if (itemActive != null && itemActive == true) {
                                 String pretty = Message.get(locale, "MENUITEM_" + menuName);
@@ -88,12 +90,13 @@ public class Menu extends Weblet {
                                 } else if (menuDesc == null) {
                                     prettyDesc = "";
                                 }
-              
-                                if (i.field("classname") == null || ((String) i.field("classname")).equals("")) {
-                                    itemMenu.append((HORIZONTAL_LAYOUT ? "&nbsp;" : "<br>") + "\n");
-                                } else {
-                                    itemMenu.append(link((String) i.field("classname"), pretty, prettyDesc));
-                                    itemMenu.append((HORIZONTAL_LAYOUT ? "&nbsp;" : "<br>") + "\n");
+                                if (classname == null || Security.authorized(con.getUser(),classname)) {
+                                    if (i.field("classname") == null || ((String) i.field("classname")).equals("")) {
+                                        itemMenu.append((HORIZONTAL_LAYOUT ? "&nbsp;" : "<br>") + "\n");
+                                    } else {
+                                        itemMenu.append(link((String) i.field("classname"), pretty, prettyDesc));
+                                        itemMenu.append((HORIZONTAL_LAYOUT ? "&nbsp;" : "<br>") + "\n");
+                                    }                                    
                                 }
                             } else {
                                 if (DEBUG) {

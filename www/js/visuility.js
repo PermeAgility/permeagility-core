@@ -25,12 +25,13 @@ d3.selection.prototype.last = function() {
   return d3.select(this[0][last]);
 };
 
+var inRectangleSelection = false;
+
 // Database model and data viewer
-var TOP_MARGIN = 50;
-var h = $("#service").height() - TOP_MARGIN;
-var w = $("#service").width();
-d3.select("#service").style("cursor", "default");
-var svg = d3.select("#service").attr("visuilityBuild",true).append("svg").attr("width", w).attr("height", h);
+var h = $("#chart").height();
+var w = $("#chart").width();
+d3.select("#chart").style("cursor", "default");
+var svg = d3.select("#chart").attr("visuilityBuild",true).append("svg").attr("width", w).attr("height", h);
 
 // Tooltip
 var tooltip = d3.select('body')
@@ -64,7 +65,7 @@ tooltip.showAt = function(text,x,y) {
             .style('height', 50 + 'px')
             .text(text);
             tooltip.transition("tipShow").duration(100).style('visibility','visible').style('opacity', 0.75);
-            //tooltip.transition("tipFade").duration(500).delay(3000).style("opacity",0);
+            tooltip.transition("tipFade").duration(500).delay(3000).style("opacity",0);
 };
 
 tooltip.hide = function() {
@@ -84,7 +85,7 @@ svg.append("defs").selectAll("marker")
   .enter().append("marker")    // This section adds in the arrows
     .attr("id", function (d) {   return d; })
     .attr("viewBox", "0 -5 10 10")
-    .attr("refX", 40)
+    .attr("refX", 0)
     .attr("refY", 0)
     .attr("markerWidth", 10)
     .attr("markerHeight", 10)
@@ -156,11 +157,15 @@ d3.select("#tableSelector").on("change", function(e) {
 
 // Rectangle selection functions
 function selectRectMouseMove() {
-    var s = svg.select( "rect.selection");
+    var s = svg.select("rect.selection");
     if( !s.empty()) {
-        var p = d3.mouse( this);
+        if (typeof this.getBoundingClientRect !== 'function') {
+            //console.log("selectRectMouseMove got a bad type of "+typeof this+" not supporting getBoundingClientRect and it looks like this:"+this);
+            return;
+        }
+        var p = d3.mouse(this);
         var r = { x: parseInt( s.attr( "x"), 10), y: parseInt( s.attr( "y"), 10),
-                width: parseInt( s.attr( "width"), 10), height: parseInt( s.attr( "height"), 10)};
+                width: parseInt( s.attr( "width"), 10), height: Math.max(1,parseInt( s.attr( "height"), 10))};
         var move = { x : p[0] - r.x, y : p[1] - r.y };
         if( move.x < 1 || (move.x*2<r.width)) {
             r.x = p[0];
@@ -193,30 +198,29 @@ function selectRectMouseMove() {
     }
 }
 
-function selectRectEnd() {
-  svg.selectAll( "rect.selection").remove();
-  var selectedNodes = d3.selectAll(".selected");
-  if (selectedNodes[0].length > 0) {
-  	selectedNodes.last().each(function(d) { updateControls(d); } );
-  } else {
-    removeControls();
-  }
-}
-
 function selectRectStart() {
    if (!d3.event.shiftKey) {
      var selectedNodes = d3.selectAll(".selected");
      selectedNodes.classed("selected", false);
    }
   var p = d3.mouse( this);
-  svg.append( "rect")
-    .attr({rx: 6, ry: 6, class: "selection", x: p[0], y: p[1], width: 0, height: 0, opacity: 0.5 })
-    .on("mousemove", selectRectMouseMove)
-    .on("mouseup", selectRectEnd);  
+  svg.append("rect").attr({rx: 6, ry: 6, class: "selection", x: p[0], y: p[1], width: 0, height: 0, opacity: 0.5 });
+  inRectangleSelection = true;
+}
+
+function selectRectEnd() {
+  svg.selectAll("rect.selection").remove();
+  var selectedNodes = d3.selectAll(".selected");
+  if (selectedNodes[0].length > 0) {
+  	selectedNodes.last().each(function(d) { updateControls(d); } );
+  } else {
+    removeControls();
+  }
+  inRectangleSelection = false;
 }
 
 function createFilter() {
-  d3.select("#service")
+  d3.select("#chart")
     .append("div")
     	.attr("id","sidebar")
     	.style({ display:"block", position:"fixed", bottom:"0px", right:"0px", background:"#999", opacity: 0.5, padding: "5px" })
@@ -257,10 +261,9 @@ function updateLinkVisibility() {
   });  
 }
 
-function dragstart(d) {
-  svg.selectAll("rect.selection").remove();
-  d3.select(this).classed('fixed', d.fixed = true);
-}
+function dragstart(d) {    }
+
+function dragend(d) {     }
 
 function dragmove(d, i) {
     // If the node is positioned offset to parent, push the drag to the parent
@@ -270,11 +273,9 @@ function dragmove(d, i) {
     d.x += d3.event.dx;
     d.y += d3.event.dy; 
     tick(); // this is the key to make it work together with updating both px,py,x,y on d !
+    d3.select(this).classed("fixed",d.fixed = true);
 }
 
-function dragend(d) {
-  d3.select(this).transition().delay(1000).each(function(d) { d.fixed = false; });
-}
 
 function dblclickNode(d) {
     if (d.type === "table") {
@@ -284,24 +285,15 @@ function dblclickNode(d) {
     }
 }
 
-// Send keystroke as char to each selected node
-d3.select("body").on("keydown", function() {
-     var key = String.fromCharCode(d3.event.keyCode);
-     if (key !== "") {
-        // Pop text
-        svg.append("text").attr("x","5").attr("y","30").style("font-size","20px")
-            .text("Doing: " + String.fromCharCode(d3.event.keyCode) )  
-            .transition().duration(2000).style("font-size","5px").style("fill-opacity",".1").remove();
-        // Execute the action on the selected nodes
-        d3.selectAll(".selected").each( function (d,i) {
-  		  executeControl(d, key);
-        } );
-     }
-});
-
 function clickNode(d) {
     if (d3.event.defaultPrevented) return; // ignore drag
-    
+    if (d3.event.target === d3.select(this).select("circle").node()) {
+        //console.log("clickNode on circle");
+        d3.select(this).classed("fixed",d.fixed = false);
+        d3.select(this).select("circle").transition("hideCircle").duration(500).attr("r",0).style("fill","green");
+        force.alpha(0.1);
+        return;
+    }
     var detail = d.id.substr(d.id.indexOf(".")+1);
     var selectedNodes = d3.selectAll(".selected");
     
@@ -322,6 +314,22 @@ function clickNode(d) {
         }
    }
 }
+
+// Send keystroke as char to each selected node
+d3.select("body").on("keydown", function() {
+     var key = String.fromCharCode(d3.event.keyCode);
+     if (key !== "") {
+        // Pop text
+        svg.append("text").attr("x","5").attr("y","30").style("font-size","20px")
+            .text("Doing: " + String.fromCharCode(d3.event.keyCode) )  
+            .transition().duration(2000).style("font-size","5px").style("fill-opacity",".1").remove();
+        // Execute the action on the selected nodes
+        d3.selectAll(".selected").each( function (d,i) {
+  		  executeControl(d, key);
+        } );
+     }
+});
+
 
 function executeControl(d, detail) {
       var delCount = 0;
@@ -370,6 +378,7 @@ function executeControl(d, detail) {
             removeNode(srcId);
       } else if (detail === "x*") {  // Remove the nodes in a multiselect
             removeControls();
+             var selectedNodes = d3.selectAll(".selected");
             selectedNodes.each( function(d) { removeNode(d.id); } );
       } else {
 		  //alert("Control pressed\nid="+srcId+" detail="+detail);
@@ -378,6 +387,8 @@ function executeControl(d, detail) {
 
 function updateControls(d) {  // Using controls attribute in nodeTypes structure
   removeControls();
+  if (!d) return;  // Why here with null object????
+
   var selectedNodes = d3.selectAll(".selected");
   var controls = nodeTypes[d.type].controls.split(",");
   var target = d.id;
@@ -482,7 +493,7 @@ function getMore(type,key,detail) {
    d3.json("/permeagility.web.VisuilityData?TYPE="+type.toUpperCase()+"&ID="+key+detail, function(data) {
 	  if (data && (data.links || data.nodes)) {
 	    handleData(data.links, data.nodes);
-	    update();
+           update();
 	  } else {
 		  tooltip.show("no data: "+(data ? data.error : "No Error"),1000);
 	  	return;
@@ -545,6 +556,13 @@ function addNode(node, otherNode) {
         if (nodes.length === 0) {  // first one goes in center
             node.x = w/2; node.px = node.x;
             node.y = h/2; node.py = node.y;
+        } else {
+            if (otherNode) {
+                //console.log("Special position indicated relative to otherNode x="+otherNode.x+" y="+otherNode.y);
+                node.px = otherNode.x; 
+                node.py = otherNode.y - h/10; 
+                node.fixed = true;
+            }
         }
         nodes.push(node);
         return node;
@@ -570,6 +588,11 @@ function addLink(link) {
 }
 
 function tick() {
+   //  var q = d3.geom.quadtree(nodes),
+   //   i = 0,
+   //   n = nodes.length;
+   // while (++i < n) q.visit(collide(nodes[i]));
+  
     // Update relative positioned objects
     nodeSVG.selectAll("rect")
         .each(function(d) {
@@ -629,8 +652,12 @@ function tick() {
             }
         });
 
+    nodeSVG.selectAll("circle")
+            .attr("cx", function (d) { return d.x; })
+            .attr("cy", function (d) { return d.y - 20; });
+
     linkSVG.attr("x1", function(d) {return d.source.x;}).attr("y1", function(d) {return d.source.y;})
-            .attr("x2", function(d) {return d.target.x;}).attr("y2", function(d) {return d.target.y;});
+            .attr("x2", function(d) {return getTargetNodeCircumferencePoint(d)[0];}).attr("y2", function(d) {return getTargetNodeCircumferencePoint(d)[1];});
 
     nodeSVG.selectAll("text").attr("transform", function(d) {
         if (nodeTypes[d.type].offset === "topleft") {
@@ -644,6 +671,16 @@ function tick() {
     });
 }
           
+function getTargetNodeCircumferencePoint(d){
+        var t_radius = 30; 
+        var dx = d.target.x - d.source.x;
+        var dy = d.target.y - d.source.y;
+        var gamma = Math.atan2(dy,dx); // Math.atan2 returns the angle in the correct quadrant as opposed to Math.atan
+        var tx = d.target.x - (Math.cos(gamma) * t_radius);
+        var ty = d.target.y - (Math.sin(gamma) * t_radius);
+        return [tx,ty]; 
+}
+
 function splitLines(text) {
   text.each(function(d) {
     var text = d3.select(this),
@@ -664,8 +701,8 @@ function splitLines(text) {
 
 // Setup service resizing and updating the force diagram
 function resize(e){
-    w = $("#service").width(); 
-    h = $("#service").height()-TOP_MARGIN; 
+    w = $("#chart").width(); 
+    h = $("#chart").height(); 
     svg.attr("width", w);
     svg.attr("height", h);
     force.size([w, h]).resume();
@@ -681,7 +718,7 @@ var linkSVG = svg.select(".links").selectAll(".link"),
 var force = d3.layout.force()
     .nodes(nodes)
     .links(links)
-    .size([w, h - TOP_MARGIN])
+    .size([w, h])
     .linkDistance(function(d) { 
        // if (d.source.type === "table") return 150;
        // if (d.target.type === "control") return 5;
@@ -690,24 +727,25 @@ var force = d3.layout.force()
        // if (d.source.type === "row") return 100;
        // if (d.target.type === "row") return 100;
        // if (d.source.type === "data") return 20;
-        return w/4;
+        return w/nodes.length;
     })
-    .linkStrength(0.01)
+    .linkStrength(0.1)
     .charge(function(d,i) {
-        if (nodeTypes[d.type].offset) {  // relative positioned objects have very little charge
-            return -10;
+//        if (nodeTypes[d.type].offset) {  // relative positioned objects have very little charge
+        if (d.type === "control" || d.type === "column" || d.parent) {  // relative positioned objects have very little charge
+            return 0;
         } else {
-            return -150;
+            return -200;
         }
     })
-    .gravity(0.01)
-    .friction(0.01)
+    .gravity(0.015)
+    .friction(0.85)
+    //.alpha(0.5)
     .on("tick", tick);
 
 function update() {
     // enter, update and exit
-    force.start();
-  
+    
     linkSVG = linkSVG.data(force.links(), function(d) { return d.source.id+"-"+d.target.id; });
     linkSVG.enter()  
       .append("line")
@@ -730,6 +768,12 @@ function update() {
         .attr("stroke-width", 2)
         .attr("fill", function(d) { return nodeTypes[d.type].color; });
 
+    nodeGroup.append("circle")
+        .attr("r", 0)
+        .attr("stroke","none")
+        .style("fill", "red")
+        .append("svg:title").text("Release");
+
     nodeGroup.append("text")
         .attr("class", "nodeTitle")
         .attr("text-anchor", "middle")
@@ -746,20 +790,44 @@ function update() {
     	.transition().duration(1000)
     	    .attr("opacity", 1);
              
-  nodeGroup.on('click', clickNode)
+  nodeGroup   // All behaviour comes to group node
+        .on('click', clickNode)
         .on('dblclick', dblclickNode)
         .on("mouseup", function(d) { 
+            //console.log("mouseover target="+d3.event.target);
             if (d3.event.defaultPrevented) return; // ignore drag
-            selectRectEnd(); 
+            if (inRectangleSelection) selectRectEnd(); 
+        })
+        .on("mouseover", function(d) {
+            //console.log("mouseover target="+d3.event.target);
+            if (inRectangleSelection) return; 
+            if (d.fixed && d.type !== "control") d3.select(this).select("circle").attr("r",8);
+            if (d3.event.target === d3.select(this).select("circle").node()) { d3.select(this).select("circle").transition("showCircle").duration(300).style("fill","green").attr("r",12); }
+            if (d.description) tooltip.showAt(d.description, d3.event.x+15, d3.event.y+10); 
         })
         .on("mousemove", function(d) { 
+            //console.log("mousemove target="+d3.event.target);
             if (d3.event.defaultPrevented) return; // ignore drag
-            selectRectMouseMove(); 
+            if (inRectangleSelection) {
+                selectRectMouseMove();
+                return;
+            } 
+             if (d3.event.target === d3.select(this).select("circle").node()) { 
+                 d3.select(this).select("circle").transition("showCircle").duration(300).style("fill","green").attr("r",12); 
+             } else {
+                if (d.fixed && d.type !== "control") d3.select(this).select("circle").transition("showCircle").duration(300).attr("r",8);
+             }
         })
-        .on("mouseover", function(d) { if (d.description) tooltip.showAt(d.description, d3.event.x+15, d3.event.y+10); })
-        .on("mouseout", function(d) { if (d.description) tooltip.hide(); })
+        .on("mouseout", function(d) {
+            //console.log("mouseout target="+d3.event.target);
+            if (inRectangleSelection) return; 
+//            if (d3.event.target === d3.select(this).select("circle")) { console.log("mouseout circle"); return; }
+            if (d.description) tooltip.hide();
+            if (d.fixed && d.type !== "control") d3.select(this).select("circle").transition("shrinkCircle").duration(300).style("fill","red").attr("r",5);
+//          if (d.fixed && d.type !== "control") d3.select(this).select("circle").transition("shrinkCircle").duration(300).style("fill","red").attr("r",3);
+        })
         .call(force.drag().on('dragstart', dragstart).on('drag',dragmove).on('dragend', dragend));
-
+  
   nodeGroup.selectAll("rect")
         .transition().duration(900)
 	   .attr("width", function(d) { return d.textWidth ? d.textWidth+10 : nodeTypes[d.type].width; })
@@ -771,9 +839,35 @@ function update() {
    nodeSVG.exit().transition().duration(500).remove();	
   
    updateLinkVisibility();
-}
+   force.start();
 
+}
+function collide(node) {
+  var r = node.radius + 16,
+      nx1 = node.x - r,
+      nx2 = node.x + r,
+      ny1 = node.y - r,
+      ny2 = node.y + r;
+  return function(quad, x1, y1, x2, y2) {
+    if (quad.point && (quad.point !== node)) {
+      var x = node.x - quad.point.x,
+          y = node.y - quad.point.y,
+          l = Math.sqrt(x * x + y * y),
+          r = node.radius + quad.point.radius;
+      if (l < r) {
+        l = (l - r) / l * .5;
+        node.x -= x *= l;
+        node.y -= y *= l;
+        quad.point.x += x;
+        quad.point.y += y;
+      }
+    }
+    return x1 > nx2 || x2 < nx1 || y1 > ny2 || y2 < ny1;
+  };
+}
 createFilter();
+
 //Do this to get Visuility to load data
 //getMore("TABLE","menu");
+//getMore("ROW","24:10");
 

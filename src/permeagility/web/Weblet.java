@@ -181,9 +181,14 @@ public abstract class Weblet {
     public static String body(String c, String s) { return "<body "+BODY_OPTIONS+" class=\"" + c + "\">"+"\n" + s +SCREEN_FADE+ "</body>"; }
     public static String bodyOnLoad(String s, String l) { return "<body "+BODY_OPTIONS+" onLoad=\"" + l + "\">"+"\n" + s + SCREEN_FADE + "</body>"; }
 
+    /** Use spans for styles */
     public static String span(String id, String s) { return "<span id=\"" + id + "\">\n" + s + "</span>\n"; }
+    
+    /** Use divs for content */
     public static String div(String id, String contents) { return "<div id=\"" + id + "\">\n" + contents + "</div>\n"; }
     public static String div(String id, String classes, String contents) { return "<div id=\"" + id + "\" class=\""+classes+"\">\n" + contents + "</div>\n"; }
+
+    public static String chartDiv(String id) { return "<div id=\"" + id + "\" style=\"position: static; width: 100%; height: 100%; overflow: visible; \"></div>\n"; }
 
     public static String standardLayout(DatabaseConnection con, java.util.HashMap<String, String> parms, String html) {
         if (Menu.HORIZONTAL_LAYOUT) {  // Needs menu over header

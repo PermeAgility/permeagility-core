@@ -311,7 +311,6 @@ public class Table extends Weblet {
         if (oldDoc != null) {
             ODocument newDoc = con.create(oldDoc.getClassName());
             Map<String,Object> fieldMap = oldDoc.toMap();
-            //System.out.println("------------->  "+fieldMap.keySet());
             fieldMap.remove("@rid");  // Otherwise will try to overwrite
             fieldMap.remove("_allow"); 
             fieldMap.remove("_allowRead");
@@ -322,7 +321,6 @@ public class Table extends Weblet {
             if (newDoc.field("description") != null) newDoc.field("description", Message.get(con.getLocale(),"COPY_PREFIX",new Date().toString())+newDoc.field("description"));
             newDoc.save();
             parms.put("EDIT_ID", newDoc.getIdentity().toString().substring(1));  // In case we want to go straight to the new record's editor
-            //System.out.println("------------->  "+parms.get("EDIT_ID"));
             return true;
         }
         return false;

@@ -164,7 +164,7 @@ public class Setup {
                     con.create(TABLE_TABLEGROUP).field("name","Application").field("tables","news,columns,constant,locale,pickList,pickValues,menu,menuItem,message,style,tableGroup,userProfile,auditTrail,-thumbnail").field("_allowRead", adminRoles.toArray()).save();
                     con.create(TABLE_TABLEGROUP).field("name","System").field("tables","ORole,OUser,OFunction,OSchedule,-ORIDs,-E,-V,-_studio").field("_allowRead", adminRoles.toArray()).save();
                     con.create(TABLE_TABLEGROUP).field("name","Content").field("tables","").field("_allowRead", allRoles.toArray()).save();
-                    con.create(TABLE_TABLEGROUP).field("name","Plus").field("tables","").field("_allowRead", allRoles.toArray()).save();
+                    con.create(TABLE_TABLEGROUP).field("name","Plus").field("tables","").field("_allowRead", adminRoles.toArray()).save();
             }
 
             System.out.print(TABLE_THUMBNAIL+" ");
@@ -433,7 +433,8 @@ public class Setup {
             mCount += checkCreateMessage(con, loc, "PLUS_REMOVE", "Remove");
             mCount += checkCreateMessage(con, loc, "PLUS_UPGRADE", "Upgrade");  
             mCount += checkCreateMessage(con, loc, "DOWNLOAD_PLUS_FILE", "Download");  
-            mCount += checkCreateMessage(con, loc, "DOWNLOAD_PLUS", "Download new plus");  
+            mCount += checkCreateMessage(con, loc, "DOWNLOAD_PLUS", "Download new plus");
+            mCount += checkCreateMessage(con, loc, "RESTART_REQUIRED", "Restart required");
             mCount += checkCreateMessage(con, loc, "PLUS_PARMS_INVALID", "Please specify a table group, menu and the roles to allow access");
             mCount += checkCreateMessage(con, loc, "REFRESH", "Refresh");
             mCount += checkCreateMessage(con, loc, "VISUILITY", "Visuility");
@@ -764,7 +765,13 @@ public class Setup {
             checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,TABLE_LOCALE,2,installMessages);
             checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,TABLE_USERPROFILE,6,installMessages);
             checkCreatePrivilege(con,"user",ResourceGeneric.CLUSTER,TABLE_USERPROFILE,6,installMessages);
-       
+
+            checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,TABLE_AUDIT,1,installMessages);
+            checkCreatePrivilege(con,"guest",ResourceGeneric.CLUSTER,TABLE_AUDIT,1,installMessages);
+
+            checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,TABLE_AUDIT,1,installMessages);
+            checkCreatePrivilege(con,"user",ResourceGeneric.CLUSTER,TABLE_AUDIT,1,installMessages);
+
             con.flush();
             System.out.println("- verified.");
 
@@ -1347,7 +1354,6 @@ public class Setup {
 "    top: 0; left: 0; bottom: 0; right: 0;\n" +
 "}\n" +
 "div.CodeMirror {\n"+
-"    border: 1px solid #eee;\n"+
 "    height: auto;\n"+
 "}\n"+
 "  .split {\n" +
