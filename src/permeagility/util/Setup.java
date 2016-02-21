@@ -433,7 +433,8 @@ public class Setup {
             mCount += checkCreateMessage(con, loc, "PLUS_REMOVE", "Remove");
             mCount += checkCreateMessage(con, loc, "PLUS_UPGRADE", "Upgrade");  
             mCount += checkCreateMessage(con, loc, "DOWNLOAD_PLUS_FILE", "Download");  
-            mCount += checkCreateMessage(con, loc, "DOWNLOAD_PLUS", "Download new plus");  
+            mCount += checkCreateMessage(con, loc, "DOWNLOAD_PLUS", "Download new plus");
+            mCount += checkCreateMessage(con, loc, "RESTART_REQUIRED", "Restart required");
             mCount += checkCreateMessage(con, loc, "PLUS_PARMS_INVALID", "Please specify a table group, menu and the roles to allow access");
             mCount += checkCreateMessage(con, loc, "REFRESH", "Refresh");
             mCount += checkCreateMessage(con, loc, "VISUILITY", "Visuility");

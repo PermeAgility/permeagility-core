@@ -188,7 +188,7 @@ public abstract class Weblet {
     public static String div(String id, String contents) { return "<div id=\"" + id + "\">\n" + contents + "</div>\n"; }
     public static String div(String id, String classes, String contents) { return "<div id=\"" + id + "\" class=\""+classes+"\">\n" + contents + "</div>\n"; }
 
-    public static String chartDiv(String id) { return "<div id=\"" + id + "\" style=\"position: relative; width: 100%; height: 100%; right: 0px; bottom: 0px; overflow: auto; \"></div>\n"; }
+    public static String chartDiv(String id) { return "<div id=\"" + id + "\" style=\"position: static; width: 100%; height: 100%; overflow: visible; \"></div>\n"; }
 
     public static String standardLayout(DatabaseConnection con, java.util.HashMap<String, String> parms, String html) {
         if (Menu.HORIZONTAL_LAYOUT) {  // Needs menu over header

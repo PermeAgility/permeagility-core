@@ -289,10 +289,9 @@ public class Context extends Weblet {
                             fileSizeString = "" + sizeFormat.format((double) fileSize / 1024.0 / 1024.0 / 1024.0) + "GB";
                         }
                         logs.append(row(
-                                column(logFiles[i].getName())
+                                column(linkNewWindow("/log/" + logFiles[i].getName(), logFiles[i].getName()))
                                 + column(fileSizeString)
                                 + column("" + (new Date(logFiles[i].lastModified())))
-                                + column(link("/log/" + logFiles[i].getName(), Message.get(con.getLocale(), "LOG_VIEW")))
                         ));
                     }
                 }
@@ -402,12 +401,11 @@ public class Context extends Weblet {
                     + (latestVersion != null ? br() + "Latest="+latestVersion+"("+latestVersionDate+")        checked:"+lastChecked.toString() : "")
                     + (latestVersion != null && !latestVersion.equals(Server.getCodeSource()) && !downloading ? form(submitButton(locale, "DOWNLOAD_UPDATE")) : "")
                     + (downloading ? downloadPercent < 100 ? br()+Message.get(locale, "DOWNLOADING_UPDATE")+" "+downloadPercent+"%" : Message.get(locale, "DOWNLOADING_COMPLETE") : "")
-                    + (downloadURL != null && downloadPercent == 100 ? form(submitButton(locale, "APPLY_UPDATE")) : "")))
+                    + (downloadURL != null && !downloadedPlus && downloadPercent == 100 ? form(submitButton(locale, "APPLY_UPDATE")) : "")))
                 + (logs.length() > 0 ? table("sortable",
                                 row(columnHeader(Message.get(locale, "LOG_FILENAME"))
                                         + columnHeader(Message.get(locale, "LOG_SIZE"))
-                                        + columnHeader(Message.get(locale, "LOG_DATE"))
-                                        + columnHeader(Message.get(locale, "LOG_VIEW")))
+                                        + columnHeader(Message.get(locale, "LOG_DATE")))
                                 + logs.toString())
                         : bold(Message.get(locale, "LOGGING_TO_CONSOLE")))
                 + paragraph("banner", Message.get(locale, "SERVER_CACHE"))
