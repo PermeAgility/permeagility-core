@@ -2,11 +2,20 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.permeagility</groupId>
   <artifactId>permeagility</artifactId>
-  <version>0.7.1-SNAPSHOT</version>
+  <version>0.7.2-SNAPSHOT</version>
   <packaging>jar</packaging>
   <name>Permeagility Core</name>
   <description>The dynamic adaptive data management platform</description>
   <url>http://www.permeagility.com</url>
+
+  <properties>
+    <orientdb.version>2.1.11</orientdb.version>
+    <mainClass>permeagility.web.Server</mainClass>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <maven.compiler.source>1.8</maven.compiler.source>
+    <maven.compiler.target>1.8</maven.compiler.target>
+  </properties>
+  
   
   <licenses>
     <license>
@@ -40,23 +49,9 @@
   </snapshotRepository>
 </distributionManagement>
   
-  <properties>
-    <mainClass>permeagility.web.Server</mainClass>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <maven.compiler.source>1.8</maven.compiler.source>
-    <maven.compiler.target>1.8</maven.compiler.target>
-  </properties>
-  
   <build>
     <sourceDirectory>src</sourceDirectory>
-    <resources>
-      <resource>
-        <directory>www</directory>
-        <excludes>
-          <exclude>**/*.java</exclude>
-        </excludes>
-      </resource>
-    </resources>
+    <resources><resource><directory>www</directory></resource></resources>
     
     <plugins>
           
@@ -149,14 +144,14 @@
     <dependency>
       <groupId>com.orientechnologies</groupId>
       <artifactId>orientdb-core</artifactId>
-      <version>2.1.10</version>
+      <version>${orientdb.version}</version>
     </dependency>
 
     <!-- OrientDB client - for remote connection -->
     <dependency>
       <groupId>com.orientechnologies</groupId>
       <artifactId>orientdb-client</artifactId>
-      <version>2.1.10</version>
+      <version>${orientdb.version}</version>
     </dependency>
 
  </dependencies>

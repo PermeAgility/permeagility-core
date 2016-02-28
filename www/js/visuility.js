@@ -28,8 +28,8 @@ d3.selection.prototype.last = function() {
 var inRectangleSelection = false;
 
 // Database model and data viewer
-var h = $("#chart").height();
-var w = $("#chart").width();
+var w = d3.select("#chart").node().getBoundingClientRect().width;
+var h = d3.select("#chart").node().getBoundingClientRect().height;
 d3.select("#chart").style("cursor", "default");
 var svg = d3.select("#chart").attr("visuilityBuild",true).append("svg").attr("width", w).attr("height", h);
 
@@ -244,7 +244,7 @@ function createFilter() {
 
 function filterGraph(aType, aVisibility) {
   nodeSVG.style("visibility", function (d) {
-    var lOriginalVisibility = $(this).css("visibility");
+    var lOriginalVisibility = d3.select(this).style("visibility");
     return d.type === aType ? aVisibility : lOriginalVisibility;
   });
   updateLinkVisibility();
@@ -701,8 +701,8 @@ function splitLines(text) {
 
 // Setup service resizing and updating the force diagram
 function resize(e){
-    w = $("#chart").width(); 
-    h = $("#chart").height(); 
+    w = d3.select("#chart").node().getBoundingClientRect().width;
+    h = d3.select("#chart").node().getBoundingClientRect().height;
     svg.attr("width", w);
     svg.attr("height", h);
     force.size([w, h]).resume();
