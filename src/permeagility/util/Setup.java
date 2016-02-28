@@ -442,7 +442,7 @@ public class Setup {
             mCount += checkCreateMessage(con, loc, "LOG_VIEW", "View");
             mCount += checkCreateMessage(con, loc, "LOG_FILENAME", "File Name");
             mCount += checkCreateMessage(con, loc, "LOG_SIZE", "Size");
-            mCount += checkCreateMessage(con, loc, "LOG_DATE", "Start Date");
+            mCount += checkCreateMessage(con, loc, "LOG_DATE", "End Date");
             mCount += checkCreateMessage(con, loc, "CHECK_FOR_UPDATE", "Check for update");
             mCount += checkCreateMessage(con, loc, "DOWNLOAD_UPDATE", "Download update");
             mCount += checkCreateMessage(con, loc, "DOWNLOADING_UPDATE", "Downloading");
