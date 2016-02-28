@@ -17,8 +17,11 @@ package permeagility.plus.json;
 
 import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.orientechnologies.orient.core.record.impl.ODocument;
+import com.orientechnologies.orient.core.record.impl.ORecordBytes;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import permeagility.util.DatabaseConnection;
 import permeagility.util.QueryResult;
@@ -55,8 +58,10 @@ public class Download extends permeagility.web.Download {
                 sb.append("{ \""+(fromTable==null ? "data" : fromTable)+"\":[ ");
                 String comma = "";
                 for (ODocument d : qr.get()) {
-                    sb.append(comma+exportDocument(con, d, depth, 0));
-                    comma = ", \n";
+                    if (d != null) {
+                        sb.append(comma+exportDocument(con, d, depth, 0));
+                        comma = ", \n";
+                    }
                 }
                 sb.append(" ] }\n");
                 if (callback != null) { sb.append(")"); }
@@ -71,16 +76,54 @@ public class Download extends permeagility.web.Download {
         StringBuilder sb = new StringBuilder();
         String comma = "";
         sb.append("{");
+        String className = d.getClassName();
         String[] columns = d.fieldNames();
+        if (className != null) {
+            sb.append("\"rid\":\""+d.getIdentity().toString().substring(1)+"\"");
+            comma = "\n, ";
+        }
         for (String p : columns) {
-            if ((d.getClassName().equals("ORole") || d.getClassName().equals("OUser")) && !p.equals("name")) {
+            if (className != null && (d.getClassName().equals("ORole") || d.getClassName().equals("OUser")) && !p.equals("name")) {
                 continue;  // Only the name is shown for an ORole or an OUser
             }
             if (NO_ALLOWS && p.startsWith("_allow")) {
-                continue;  // No allow columns
+                continue;  // No allow columns, rename them with AS to retrieve them
             }
             OType t = d.fieldType(p);
-            if (t != OType.CUSTOM) {
+            if (t == null) {  // Generated fields from SQL do not give a type must deduce it from the object
+                Object o = d.field(p);
+                if (o != null) {
+                    if (o instanceof String) {
+                        t = OType.STRING;
+                    } else if (o instanceof Boolean) {
+                        t = OType.BOOLEAN;
+                    } else if (o instanceof Date) {
+                        t = OType.DATETIME;
+                    } else if (o instanceof Integer) {
+                        t = OType.INTEGER;
+                    } else if (o instanceof Long) {
+                        t = OType.LONG;
+                    } else if (o instanceof Float) {
+                        t = OType.FLOAT;
+                    } else if (o instanceof Double) {
+                        t = OType.DOUBLE;
+                    } else if (o instanceof ODocument) {
+                        t = OType.LINK;
+                    } else if (o instanceof Set) {
+                        t = OType.LINKSET;
+                    } else if (o instanceof List) {
+                        t = OType.LINKLIST;
+                    } else if (o instanceof Map) {
+                        t = OType.LINKMAP;
+                    } else if (o instanceof ORecordBytes) {
+                        t = OType.CUSTOM;
+                    } else {
+                        System.out.println("Encountered a null type returning a "+o.getClass().getName());
+                        t = OType.STRING;
+                    }
+                }
+            }
+            if (t != null && t != OType.CUSTOM) {
                 sb.append(comma);
                 if (t == OType.LINK) {
                     ODocument ld = (ODocument)d.field(p);
@@ -103,7 +146,7 @@ public class Download extends permeagility.web.Download {
                                 } else {
                                     sb.append(lcomma+"\""+sd.getIdentity().toString().substring(1)+"\"");                    
                                 }
-                                lcomma = ", \n";
+                                lcomma = "\n ,";
                             }
                         }
                     }
@@ -120,11 +163,17 @@ public class Download extends permeagility.web.Download {
                                 } else {
                                     sb.append(lcomma+"\""+sd.getIdentity().toString().substring(1)+"\"");                    
                                 }
-                                lcomma = ", \n";
+                                lcomma = "\n ,";
                             }
                         }
                     }
                     sb.append("] ");
+                } else if (t == OType.BOOLEAN) {
+                    sb.append("\""+p+"\":"+d.field(p));
+                } else if (t == OType.INTEGER || t == OType.LONG || t == OType.BYTE) {
+                    sb.append("\""+p+"\":"+d.field(p));
+                } else if (t == OType.DOUBLE || t == OType.FLOAT || t == OType.DECIMAL) {
+                    sb.append("\""+p+"\":"+d.field(p));
                 } else if (t == OType.DATE || t == OType.DATETIME) {
                     sb.append("\""+p+"\":\""+d.field(p)+"\"");
                 } else if (t == OType.EMBEDDED || t == OType.EMBEDDEDLIST || t == OType.EMBEDDEDMAP || t == OType.EMBEDDEDSET) {
@@ -136,9 +185,10 @@ public class Download extends permeagility.web.Download {
                     }
                     sb.append("\""+p+"\":\""+(content == null ? "" : content)+"\"");                
                 } else {
-                    sb.append("\""+p+"\":"+d.field(p));
+                    System.out.println("json.Download: unrecognized column type: "+t);
+                    sb.append("\""+p+"\":\""+d.field(p)+"\"");
                 }
-                comma = ", \n";
+                comma = "\n ,";
             }
         }
         sb.append("}");
