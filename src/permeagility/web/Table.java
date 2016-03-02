@@ -51,8 +51,9 @@ public class Table extends Weblet {
 
     public static boolean DEBUG = true;
     public static int MAX_STRING_DISPLAY = 100;
-    public static int TEXT_AREA_THRESHOLD = 40;  // When showing a column as a cell, only show this many characters
-    public static int TEXT_AREA_WIDTH = 80;      // When the data is larger than this size, the input will be a text area
+    public static boolean ALWAYS_TEXT_AREA = true;  // Use text areas for all string fields
+    public static int TEXT_AREA_THRESHOLD = 40;  // When the data is larger than this size, the input will be a text area
+    public static int TEXT_AREA_WIDTH = 80;      // When showing a column as a cell, only show this many characters
     public static long ROW_COUNT_LIMIT = 500;    // All text areas will be this width
     public static long DOT_INTERVAL = 5;         // Interval for dot when numerous pages - probably should derive this to be more dynamic
     public static long PAGE_WINDOW = 3;          // Always show this many pages around the current page when there are many dots
@@ -242,7 +243,7 @@ public class Table extends Weblet {
                     return redirectUsingSource(parms, "TABLENAME=" + table);
                 } else {
                     return head("Could not delete", getScripts(con))
-                            + body(standardLayout(con, parms, getTableRowForm(con, table, parms) + errors.toString()));
+                            + body(standardLayout(con, parms, errors.toString()+getTableRowForm(con, table, parms)));
                 }
             } else if (submit.equals("UPDATE")) {
                 if (DEBUG) {
@@ -252,7 +253,7 @@ public class Table extends Weblet {
                     return redirectUsingSource(parms, "TABLENAME=" + table);
                 } else {
                     return head("Could not update", getScripts(con))
-                            + body(standardLayout(con, parms, getTableRowForm(con, table, parms) + errors.toString()));
+                            + body(standardLayout(con, parms, errors.toString()+getTableRowForm(con, table, parms)));
                 }
             }
             parms.remove("EDIT_ID"); // If there was an EDIT_ID, it should have been dealt with already in this function
@@ -1049,9 +1050,9 @@ public class Table extends Weblet {
             if (pickValues != null) {
                 return row(label + column(createList(con.getLocale(), PARM_PREFIX + name, initialValue != null ? initialValue.toString() : null, pickValues, null, false, null, true)));
             }
-            if (initialValue != null && ((String) initialValue).length() > TEXT_AREA_THRESHOLD || name.equals("description")) {
-                int linecount = (initialValue != null ? countLines((String) initialValue) : 0);
-                return row(label + column(textArea(PARM_PREFIX + name, initialValue, (linecount > 2 ? linecount + 3 : 3), TEXT_AREA_WIDTH)));
+            if (ALWAYS_TEXT_AREA || initialValue != null && ((String) initialValue).length() > TEXT_AREA_THRESHOLD || name.equals("description")) {
+                int linecount = (initialValue != null ? countLines((String) initialValue) : 1);
+                return row(label + column(textArea(PARM_PREFIX + name, initialValue, (linecount > 2 ? linecount + 3 : linecount), TEXT_AREA_WIDTH)));
             } else {
                 int length = 20;
                 if (initialValue != null && initialValue.toString().length() > 20) {
@@ -1799,8 +1800,6 @@ public class Table extends Weblet {
             System.out.println("Executing REVOKE: " + revokeQuery);
             try {
                 con.update(revokeQuery);
-//                    Server.tableUpdated("ORole");  // Stored in ORole
-//                    Security.tablePrivUpdated(table);
             } catch (Exception e) {
                 errors.append(e.getLocalizedMessage());
                 e.printStackTrace();
