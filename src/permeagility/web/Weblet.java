@@ -427,14 +427,14 @@ public abstract class Weblet {
 
     /*  Forms  */
     public static String form(String n, String action, String s) {
-        return "<form " + (n==null ? "" : "name=\""+n+"\"" ) + " action=\"" + (action==null ? "#" : action) + "\" "+
+        return "<form " + (n==null ? "" : "name=\""+n+"\"" ) + " action=\"" + (action==null ? "" : action) + "\" "+
                 "method=\"POST\" enctype=\"multipart/form-data\">\n" + s + "</form>\n";
     }
     public static String form(String n, String s) { return form(n, null, s); }
     public static String form(String s) { return form(null, null, s); }
 
     public static String formStart(String n, String action) {
-    	return "<form name=\""+n+"\" action=\""+(action==null ? "#" : action)+"\" method=\"POST\" enctype=\"multipart/form-data\">\n";
+    	return "<form name=\""+n+"\" action=\""+(action==null ? "" : action)+"\" method=\"POST\" enctype=\"multipart/form-data\">\n";
     }
         
     public static String formEnd() { return "</form>\n"; }
@@ -443,7 +443,7 @@ public abstract class Weblet {
     public static String popupForm(String formName, String action, String linkText, String linkClass, String focusField, String content) {
         return "<a class=\"popuplink\">"+linkText+POPUP_SUFFIX+"</a>\n"
                 +"<div class=\"canpopup\">\n"
-                +"<form id=\""+formName+"\" name=\""+formName+"\" method=\"post\" ENCTYPE=\"multipart/form-data\" action=\""+(action==null ? "#" : action)+"\" >\n"
+                +"<form id=\""+formName+"\" name=\""+formName+"\" method=\"post\" ENCTYPE=\"multipart/form-data\" action=\""+(action==null ? "" : action)+"\" >\n"
                 +content
                 +"\n</form></div>\n";
     }
