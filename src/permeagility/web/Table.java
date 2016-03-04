@@ -1051,8 +1051,10 @@ public class Table extends Weblet {
                 return row(label + column(createList(con.getLocale(), PARM_PREFIX + name, initialValue != null ? initialValue.toString() : null, pickValues, null, false, null, true)));
             }
             if (ALWAYS_TEXT_AREA || initialValue != null && ((String) initialValue).length() > TEXT_AREA_THRESHOLD || name.equals("description")) {
-                int linecount = (initialValue != null ? countLines((String) initialValue) : 1);
-                return row(label + column(textArea(PARM_PREFIX + name, initialValue, (linecount > 2 ? linecount + 3 : linecount), TEXT_AREA_WIDTH)));
+                int length = initialValue != null ? ((String) initialValue).length() : 20;
+                int linecount = (initialValue != null ? countLines((String) initialValue, TEXT_AREA_WIDTH) : 1);
+                int width = length > TEXT_AREA_THRESHOLD ? TEXT_AREA_WIDTH : TEXT_AREA_THRESHOLD;
+                return row(label + column(textArea(PARM_PREFIX + name, initialValue, (linecount > 1 || length > TEXT_AREA_THRESHOLD ? linecount + 2 : linecount), width)));
             } else {
                 int length = 20;
                 if (initialValue != null && initialValue.toString().length() > 20) {

@@ -151,7 +151,7 @@ public abstract class Weblet {
             +"        e.stopPropagation();\n"
             +"        $(\".screenfade\").fadeIn(\"slow\");\n"  // Pull up screen fade
             +"        $(e.target).next(\".canpopup\").slideDown(\"fast\");\n"  // Slide down the popup
-            +"        $('.canpopup :input[type!=hidden]:text:visible:first').focus();\n"  // Set focus on the first input
+            +"        $('.canpopup :input[type!=hidden]:visible:first').focus();\n"  // Set focus on the first input
             +"    });\n"
             +"    $('.screenfade').click(function (e) {\n"   // When click on the screen fade (outside the popup)
             +"        $(\".screenfade\").fadeOut(\"slow\");\n"  // Fade out the screen fade
@@ -755,7 +755,23 @@ public abstract class Weblet {
     }
 
     public int countLines(String string) {
-            return java.util.regex.Pattern.compile("[\\n]+").split(string.trim()).length;
+        return countLines(string, 80);
+    }
+        
+    public int countLines(String string, int lineLength) {
+        if (string == null || string.isEmpty()) return 1;
+        int lineBreakThreshold = lineLength/10;
+        int lines = 0;
+        int linel = 0;
+        char[] lineArray = string.toCharArray();
+        for (char c : lineArray) {
+            linel++;
+            if (c== '\n') {
+                lines += Math.max(linel/(lineLength+lineBreakThreshold),1);
+                linel = 0;
+            }
+        }
+        return lines > 0 ? lines : 1;
     }
 
     public static String getSortTableScript() {
