@@ -31,10 +31,10 @@ public class ExportJSON extends Weblet {
                    + row(column("label", "or use SQL") + column(ngTextArea("sql")))
                    + row(column("label", "Depth") + column(ngInput("depth")))
                    + row(column("label", "With callback") + column(ngInput("callback")))
-                   + row(column("") + column("<a href=\"/permeagility.plus.json.Download?FROMTABLE={{selectedTable.table}}&CALLBACK={{callback}}&SQL={{sql}}&DEPTH={{depth}}\" download=\"data.json\"><button>Download</button></a>"))
+                   + row(column("") + column("<a href=\"permeagility.plus.json.Download?FROMTABLE={{selectedTable.table}}&CALLBACK={{callback}}&SQL={{sql}}&DEPTH={{depth}}\" download=\"data.json\"><button>Download</button></a>"))
                 )
                 + br()
-                + xSmall("/permeagility.plus.json.Download?FROMTABLE={{selectedTable.table}}&CALLBACK={{callback}}&SQL={{sql}}&DEPTH={{depth}}")
+                + xSmall("permeagility.plus.json.Download?FROMTABLE={{selectedTable.table}}&CALLBACK={{callback}}&SQL={{sql}}&DEPTH={{depth}}")
         ));
     }
 }

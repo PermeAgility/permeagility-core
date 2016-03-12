@@ -2,14 +2,14 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.permeagility</groupId>
   <artifactId>permeagility</artifactId>
-  <version>0.7.3-SNAPSHOT</version>
+  <version>0.7.4-SNAPSHOT</version>
   <packaging>jar</packaging>
   <name>Permeagility Core</name>
   <description>The dynamic adaptive data management platform</description>
   <url>http://www.permeagility.com</url>
 
   <properties>
-    <orientdb.version>2.1.11</orientdb.version>
+    <orientdb.version>2.1.12</orientdb.version>
     <mainClass>permeagility.web.Server</mainClass>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.source>1.8</maven.compiler.source>

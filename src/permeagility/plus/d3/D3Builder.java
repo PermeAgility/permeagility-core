@@ -56,7 +56,7 @@ public class D3Builder extends Table {
                 additionalStyle = (viewDoc.field("style") != null ? "<style>" + viewDoc.field("style")+ serviceStyleOverride + "</style>" : "");
                 additionalScript = script(getPlugins(viewDoc));
                 String script = (viewDoc.field("script") != null ? "<script>" + viewDoc.field("script") + "</script>" : "");
-                script = script.replace("$$this$$", "/permeagility.plus.d3.Data?VIEW="+preview);
+                script = script.replace("$$this$$", "permeagility.plus.d3.Data?VIEW="+preview);
                 sb.append(form("svgform", hidden("format", "") + hidden("data", "")));
                 sb.append(chartDiv("chart"));
                 sb.append(additionalScript + "\n" + script);
@@ -76,7 +76,7 @@ public class D3Builder extends Table {
                 additionalStyle = (viewDoc.field("style") != null ? "<style>\n" + viewDoc.field("style") + "</style>\n" : "");
                 additionalScript = script(getPlugins(viewDoc));
                 String script = (viewDoc.field("script") != null ? "<script>\n" + viewDoc.field("script")+"\nd3.select('#service').attr('top','0px');" + "</script>\n" : "");
-                script = script.replace("$$this$$", "/permeagility.plus.d3.Data?VIEW="+view);
+                script = script.replace("$$this$$", "permeagility.plus.d3.Data?VIEW="+view);
                 sb.append(paragraph("" + viewDoc.field("description")));
                 sb.append(form("svgform", hidden("format", "") + hidden("data", "")));
                 sb.append(chartDiv("chart"));
@@ -166,7 +166,7 @@ public class D3Builder extends Table {
                     + (readOnly ? "" : deleteButton(con.getLocale())+"<br>")
                     + submitButton(con.getLocale(), "COPY")
             )
-            +"<br>"+frame("previewFrame","/permeagility.plus.d3.D3Builder?PREVIEW="+edit_id);  //<iframe id='previewFrame' width='100%' height='100%'></iframe>\n";
+            +"<br>"+frame("previewFrame","permeagility.plus.d3.D3Builder?PREVIEW="+edit_id);  //<iframe id='previewFrame' width='100%' height='100%'></iframe>\n";
 
         return getSplitScript()
                +div("leftHand","split split-horizontal",div("styleEditor","split content",styleEditor)+div("scriptEditor",scriptEditor))
@@ -189,7 +189,7 @@ public class D3Builder extends Table {
                             + addFormData("description")
                             + addFormData("plugins")
                        + "   d3.xhr('').post(formData, function(error,data) {   \n"                        
-                       + "      d3.select('#previewFrame').attr('src','/permeagility.plus.d3.D3Builder?PREVIEW="+edit_id+"');\n"
+                       + "      d3.select('#previewFrame').attr('src','permeagility.plus.d3.D3Builder?PREVIEW="+edit_id+"');\n"
                        + "      d3.select('#headerservice').text(document.getElementById('"+PARM_PREFIX+"name').value);\n"
                        + "   });\n"
                        + "});\n")

@@ -88,8 +88,8 @@ public class RBuilder extends Table {
                 StringBuilder desc = new StringBuilder();
                 String tid = Thumbnail.getThumbnailId(tableName, preview, "PDFResult", desc);
                 if (tid != null) {
-                    sb.append("<object data=\"/thumbnail?SIZE=FULL&ID=" + tid + "\" width=\"100%\" height=\"100%\">"
-                           + "<a href=\"/thumbnail?SIZE=FULL&ID=" + tid + "\">Click to download " + desc.toString() + "</a> " + "</object>");
+                    sb.append("<object data=\"thumbnail?SIZE=FULL&ID=" + tid + "\" width=\"100%\" height=\"100%\">"
+                           + "<a href=\"thumbnail?SIZE=FULL&ID=" + tid + "\">Click to download " + desc.toString() + "</a> " + "</object>");
                 } else {
                     sb.append(paragraph("warning","No Results"));
                 }
@@ -101,6 +101,7 @@ public class RBuilder extends Table {
         if (viewText != null && !viewText.equals("null")) {
             if (processes.get(viewText) != null) {
                 errors.append(paragraph("warning", "Process is still running"));
+                return head("R Builder - Text result view") + body(errors.toString());
             } else {
                 ODocument doc = con.get(viewText);
                 if (doc == null) {
@@ -200,7 +201,7 @@ public class RBuilder extends Table {
         String init = initialValues != null ? initialValues.field("RScript") : null;
         if (init == null) init = "# R Script "+new Date()+"\n";
         String scriptEditor = getCodeEditorControl(formName, PARM_PREFIX + "RScript", init, "text/x-rsrc", readOnly ? ",readOnly:true" : null);                    
-        String resultText = frame("resultFrame","/permeagility.plus.r.RBuilder?VIEWTEXT="+edit_id);  //"<iframe id='resultFrame' width='100%' height='100%'></iframe>\n";
+        String resultText = frame("resultFrame","permeagility.plus.r.RBuilder?VIEWTEXT="+edit_id);  //"<iframe id='resultFrame' width='100%' height='100%'></iframe>\n";
 
         String resultView = 
                 (readOnly ? "" : 
@@ -219,7 +220,7 @@ public class RBuilder extends Table {
                         + (readOnly ? "" : deleteButton(con.getLocale())+"<br>")
                         + submitButton(con.getLocale(), "COPY")
                 )
-                +"<br>"+frame("previewFrame","/permeagility.plus.r.RBuilder?PREVIEW="+edit_id);  // <iframe id='previewFrame' width='100%' height='100%'></iframe>\n";
+                +"<br>"+frame("previewFrame","permeagility.plus.r.RBuilder?PREVIEW="+edit_id);  // <iframe id='previewFrame' width='100%' height='100%'></iframe>\n";
 
         return getSplitScript()
                +div("leftHand","split split-horizontal",div("scriptEditor","split content",scriptEditor)+div("resultText",resultText))
@@ -236,8 +237,8 @@ public class RBuilder extends Table {
                             + addFormData("name")
                             + addFormData("description")
                        + "   d3.xhr('').post(formData, function(error,data) {   \n"                        
-                       + "      d3.select('#resultFrame').attr('src','/permeagility.plus.r.RBuilder?VIEWTEXT="+edit_id+"');\n"
-                       + "      d3.select('#previewFrame').attr('src','/permeagility.plus.r.RBuilder?PREVIEW="+edit_id+"');\n"
+                       + "      d3.select('#resultFrame').attr('src','permeagility.plus.r.RBuilder?VIEWTEXT="+edit_id+"');\n"
+                       + "      d3.select('#previewFrame').attr('src','permeagility.plus.r.RBuilder?PREVIEW="+edit_id+"');\n"
                        + "      d3.select('#headerservice').text(document.getElementById('"+PARM_PREFIX+"name').value);\n"
                        + "   });\n"
                        + "});\n")
