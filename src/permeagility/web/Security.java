@@ -83,7 +83,9 @@ public class Security {
                         entryCount++;
                         Set<String> roleSet = new HashSet<>();
                         for (ORole r : roles) {
-                            roleSet.add(r.getDocument().getIdentity().toString());
+                            if (r != null) {
+                                roleSet.add(r.getDocument().getIdentity().toString());
+                            }
                         }
                         userRoles.put(n, roleSet);
                     }
@@ -101,7 +103,9 @@ public class Security {
                                 entryCount++;
                                 Set<String> roleSet = new HashSet<>();
                                 for (ODocument r : roles) {
-                                    roleSet.add(r.getIdentity().toString());
+                                    if (r != null) {
+                                        roleSet.add(r.getIdentity().toString());
+                                    }
                                 }
                                 keyRoles.put(n, roleSet);
                         }
