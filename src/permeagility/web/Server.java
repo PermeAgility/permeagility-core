@@ -258,9 +258,13 @@ public class Server implements Runnable {
 		do {
 		try {
 			String get = readLine(is);
+                        while (get == null || get.isEmpty()) {
+                            get = readLine(is);
+				System.out.println("****** Request:blank");
+                        }
 			if (DEBUG) System.out.println("REQUEST="+get);
 			StringTokenizer st = new StringTokenizer(get);
-			if (get == null || !st.hasMoreTokens()) {
+			if (!st.hasMoreTokens()) {
 				System.out.println("****** Request is null - returning no results");
 				keep_alive = false;
 				break;
@@ -268,6 +272,7 @@ public class Server implements Runnable {
 			if (st.hasMoreTokens()) {
 				method = st.nextToken();
 			} else {
+				System.out.println("****** Request missing tokens - returning no results");
 				keep_alive = false;
 				break;
 			}
@@ -703,27 +708,29 @@ public class Server implements Runnable {
 					keep_alive = false;
 				}
 			} else {  // method does not equal "GET" or "POST" or "PUT" or "DELETE"
-				if (version.startsWith("HTTP/")) {  // send a MIME header
-					os.write(("HTTP/1.1 501 Not Implemented\r\n").getBytes());
-					os.write(("Date: " + new java.util.Date() + "\r\n").getBytes());
-					os.write(("Server: PermeAgility 1.0\r\n").getBytes());
-					os.write(("Content-type: text/html" + "\r\n\r\n").getBytes()); 
-				}       
-				os.write("<HTML><HEAD><TITLE>Not Implemented</TITLE></HEAD>".getBytes());
-				os.write("<BODY><H1>HTTP Error 501: Not Implemented</H1></BODY></HTML>".getBytes());
-				os.flush();
-				keep_alive = false;
+                            System.out.println("Invalid request method: "+method);
+                            if (version.startsWith("HTTP/")) {  // send a MIME header
+                                os.write(("HTTP/1.1 501 Not Implemented\r\n").getBytes());
+                                os.write(("Date: " + new java.util.Date() + "\r\n").getBytes());
+                                os.write(("Server: PermeAgility 1.0\r\n").getBytes());
+                                os.write(("Content-type: text/html" + "\r\n\r\n").getBytes()); 
+                            }       
+                            os.write("<HTML><HEAD><TITLE>Not Implemented</TITLE></HEAD>".getBytes());
+                            os.write("<BODY><H1>HTTP Error 501: Not Implemented</H1></BODY></HTML>".getBytes());
+                            os.flush();
+                            keep_alive = false;
 			}
-		} catch (SocketTimeoutException ste) {
-//			System.out.println("Socket Timeout");
-			keep_alive = false;
-		} catch (Exception e) {
-			System.out.println("Server exception:"+e);
-			keep_alive = false;
-		}
-		// Rest after sending response
-		if (keep_alive && KEEP_ALIVE_PAUSE_MS > 0) { try { Thread.sleep(KEEP_ALIVE_PAUSE_MS); } catch (Exception e) { System.out.println("Keep-Alive pause interrupted"); } }
-		} while (keep_alive);
+                    } catch (SocketTimeoutException ste) {
+                        System.out.println("Socket Timeout");
+                        keep_alive = false;
+                    } catch (Exception e) {
+                            System.out.println("Server exception:"+e);
+                            keep_alive = false;
+                    }
+                    // Rest after sending response
+                    if (keep_alive && KEEP_ALIVE_PAUSE_MS > 0) { try { Thread.sleep(KEEP_ALIVE_PAUSE_MS); } catch (Exception e) { System.out.println("Keep-Alive pause interrupted"); } }
+                    
+		} while (keep_alive);   // Stay alive
 
 		try {
 			socket.close();
@@ -735,14 +742,15 @@ public class Server implements Runnable {
 
 	/** Read a line from the input stream into a string buffer */
 	private String readLine(InputStream is) throws IOException {
-		StringBuilder sb = new StringBuilder();
-		int c = is.read();
-			do {
-				if (c != 0x0A && c != 0x0D) { sb.append((char)c); }
-				if (is.available()>0) { c = is.read(); }
-				if (sb.length() > 1024) { break; }
-			} while (c != 0x0A  && c != -1);
-		return sb.toString();
+            StringBuilder sb = new StringBuilder();
+            int c = is.read();
+            do {
+                if (c != 0x0A && c != 0x0D) { sb.append((char)c); }
+                if (is.available() == 0) { return sb.toString(); }
+                c = is.read();
+                if (sb.length() > 1024) { break; }
+            } while (c != 0x0A  && c != -1);
+            return sb.toString();
 	}
 	
 	/** Read the multipart request and put into parms (files come this way and sometimes form fields)
@@ -760,23 +768,19 @@ public class Server implements Runnable {
 			if (DEBUG) System.out.println("Server.ReadMultipartData: disp="+content_disposition);
 			int fni = content_disposition.indexOf("filename=");
 			if (fni > 0) {
-				if (is.available() == 0) { 
-					System.out.println("unavail");
-					return; 
-				}
-				int fne = content_disposition.indexOf('"',fni+10);
-				if (fni < fne) {
-					file_name = content_disposition.substring(fni+10,fne);
-					if (!file_name.equals("")) {
-						String ctline = readLine(is);
-						if (ctline.length() > 14) {
-							content_type = ctline.substring(14);
-						} else {
-							content_type = "Unknown";
-						}
-						if (DEBUG) System.out.println("Server.ReadMultipartData: type="+content_type);
-					}
-				}
+                            int fne = content_disposition.indexOf('"',fni+10);
+                            if (fni < fne) {
+                                file_name = content_disposition.substring(fni+10,fne);
+                                if (!file_name.equals("")) {
+                                    String ctline = readLine(is);
+                                    if (ctline.length() > 14) {
+                                            content_type = ctline.substring(14);
+                                    } else {
+                                            content_type = "Unknown";
+                                    }
+                                    if (DEBUG) System.out.println("Server.ReadMultipartData: type="+content_type);
+                                }
+                            }
 			}
 			int in = content_disposition.indexOf("name=");
 			int ine = content_disposition.indexOf('"',in+6);
@@ -787,10 +791,10 @@ public class Server implements Runnable {
 			int boundaryLength = boundaryValue.length();
 			
 			ByteArrayOutputStream content = new ByteArrayOutputStream();
-			if (is.available() == 0) {
-				System.out.println("---- Nothing available ----");
-				return; 
-			}
+			//if (is.available() == 0) {
+			//	System.out.println("---- Nothing available ----");
+			//	return; 
+			//}
 			readLine(is); // Get to the content (past the /r/l)
 
 			if (DEBUG) System.out.println("Server.ReadMultipartData: content: available="+is.available()+" boundary="+boundaryValue);
