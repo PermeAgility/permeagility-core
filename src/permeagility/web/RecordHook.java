@@ -73,7 +73,7 @@ public class RecordHook implements ORecordHook {
                     try {
                         String table = document.getClassName();
                         String rid = document.getIdentity().toString().substring(1);
-                        int recordVersion = document.getRecordVersion().getCounter();
+                        int recordVersion = document.getVersion();
                         for (String n : document.fieldNames()) {
                             if (document.fieldType(n) == OType.CUSTOM) {
                             if (DEBUG) System.out.println("REMOVING Name="+n+" Type="+document.fieldType(n));
