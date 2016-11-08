@@ -185,8 +185,8 @@ public abstract class Weblet {
     public static String span(String id, String s) { return "<span id=\"" + id + "\">\n" + s + "</span>\n"; }
     
     /** Use divs for content */
-    public static String div(String id, String contents) { return "<div id=\"" + id + "\">\n" + contents + "</div>\n"; }
-    public static String div(String id, String classes, String contents) { return "<div id=\"" + id + "\" class=\""+classes+"\">\n" + contents + "</div>\n"; }
+    public static String div(String id, String contents) { return "<div "+(id == null ? "" : "id=\"" + id + "\"")+">\n" + (contents == null ? "" : contents) + "</div>\n"; }
+    public static String div(String id, String classes, String contents) { return "<div "+(id == null ? "" : "id=\"" + id + "\"")+(classes == null ? "" : " class=\""+classes+"\"")+">\n" + (contents == null ? "" : contents) + "</div>\n"; }
 
     public static String chartDiv(String id) { return "<div id=\"" + id + "\" style=\"position: static; width: 100%; height: 100%; overflow: visible; \"></div>\n"; }
 
@@ -450,6 +450,10 @@ public abstract class Weblet {
 
     /** Creates a link which will popup a form containing the content given as a parameter */
     public static String popupBox(String formName, String action, String linkText, String linkClass, String focusField, String content) {
+        return "<a class=\"popuplink\">"+linkText+POPUP_SUFFIX+"</a>\n<div class=\"canpopup\">\n" +content +"\n</div>\n";
+    }
+
+    public static String popupBox(String linkText, String content) {
         return "<a class=\"popuplink\">"+linkText+POPUP_SUFFIX+"</a>\n<div class=\"canpopup\">\n" +content +"\n</div>\n";
     }
 
@@ -784,6 +788,10 @@ public abstract class Weblet {
 
     public static String script(String script) {
             return "<script>"+script+"</script>\n";
+    }
+
+    public static String style(String script) {
+            return "<style type=\"text/css\">\n" + script + "</style>\n";
     }
 
     public String getColorControl(String formName, String controlName, String initialValue) {

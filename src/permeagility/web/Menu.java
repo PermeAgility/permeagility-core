@@ -15,6 +15,7 @@
  */
 package permeagility.web;
 
+import com.orientechnologies.orient.core.record.impl.ODocument;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -24,8 +25,6 @@ import permeagility.util.DatabaseConnection;
 import permeagility.util.QueryResult;
 import permeagility.util.Setup;
 
-import com.orientechnologies.orient.core.record.impl.ODocument;
-import java.util.Set;
 
 public class Menu extends Weblet {
 
@@ -71,13 +70,12 @@ public class Menu extends Weblet {
                 List<ODocument> items = m.field("items");
                 if (items != null) {
                     for (ODocument i : items) {
-                        if (DEBUG) System.out.println("MenuItem=" + i);
                         if (i != null) {
+                            if (DEBUG) System.out.println("MenuItem=" + i.field("name")+" class="+i.field("classname")+" active="+i.field("active"));
                             String menuName = (String) i.field("name");
                             String menuDesc = (String) i.field("description");
                             String classname = (String) i.field("classname");
-                            Boolean itemActive = i.field("active");
-                            if (itemActive != null && itemActive == true) {
+                            if (i.field("active")) {
                                 String pretty = Message.get(locale, "MENUITEM_" + menuName);
                                 if (menuName != null && ("MENUITEM_" + menuName).equals(pretty)) {  // No translation
                                     pretty = menuName;
@@ -90,18 +88,26 @@ public class Menu extends Weblet {
                                 } else if (menuDesc == null) {
                                     prettyDesc = "";
                                 }
+                                if (DEBUG) System.out.println("MenuItem2=" + pretty+" desc="+prettyDesc+" class="+classname);
                                 if (classname == null || Security.authorized(con.getUser(),classname)) {
                                     if (i.field("classname") == null || ((String) i.field("classname")).equals("")) {
                                         itemMenu.append((HORIZONTAL_LAYOUT ? "&nbsp;" : "<br>") + "\n");
                                     } else {
-                                        itemMenu.append(link((String) i.field("classname"), pretty, prettyDesc));
+                                        if (i.field("pageScript") != null) {
+                                            //System.out.println("Building a pageScript menu item now");
+                                            itemMenu.append(link((String) i.field("classname")+"?ID="+i.getIdentity().toString().substring(1), pretty, prettyDesc));
+                                        } else {
+                                            //System.out.println("Building a pageScript menu item now");
+                                            itemMenu.append(link((String) i.field("classname"), pretty, prettyDesc));
+                                        }
                                         itemMenu.append((HORIZONTAL_LAYOUT ? "&nbsp;" : "<br>") + "\n");
                                     }                                    
+                                    if (DEBUG) System.out.println("MenuItem3.added?=" + pretty+" desc="+prettyDesc+" class="+classname);
+                                } else {
+                                    if (DEBUG) System.out.println("MenuItem="+pretty+" not authorized");
                                 }
                             } else {
-                                if (DEBUG) {
-                                    System.out.println("Menu item " + menuName + " is inactive");
-                                }
+                                if (DEBUG) System.out.println("Menu item " + menuName + " is inactive");
                             }
                         } else {
                             // No access to item so it doesn't get added // System.err.println("Menu item is null - was deleted?");

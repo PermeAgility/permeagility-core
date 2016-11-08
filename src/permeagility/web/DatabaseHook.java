@@ -19,6 +19,7 @@ import com.orientechnologies.orient.core.Orient;
 import com.orientechnologies.orient.core.db.ODatabaseInternal;
 import com.orientechnologies.orient.core.db.ODatabaseLifecycleListener;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
+import com.orientechnologies.orient.core.record.impl.ODocument;
 
 public class DatabaseHook implements ODatabaseLifecycleListener {
 	
@@ -68,5 +69,10 @@ public class DatabaseHook implements ODatabaseLifecycleListener {
 	public void onDrop(ODatabaseInternal arg0) {
 		if (DEBUG) System.out.println("DatabaseHook:onDrop");
 	}
+
+    @Override
+    public void onLocalNodeConfigurationRequest(ODocument od) {
+	if (DEBUG) System.out.println("DatabaseHook:onLocalNodeConfigurationRequest: "+od);
+    }
 	 
 }

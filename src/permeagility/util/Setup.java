@@ -601,6 +601,8 @@ public class Setup {
             Setup.checkCreateColumn(con, menuItemTable, "classname", OType.STRING, installMessages);
             Setup.checkCreateColumn(con, menuItemTable, "active", OType.BOOLEAN, installMessages);
             Setup.checkCreateColumn(con, menuItemTable, "description", OType.STRING, installMessages);
+            Setup.checkCreateColumn(con, menuItemTable, "pageScript", OType.STRING, installMessages);
+            Setup.checkCreateColumn(con, menuItemTable, "pageStyle", OType.STRING, installMessages);
             Setup.checkTableSuperclass(oschema, menuItemTable, "ORestricted", installMessages);
 
             if (menuItemTable.count() == 0) {

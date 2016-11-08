@@ -200,7 +200,7 @@ public class D3Builder extends Table {
         return "formData.append('"+PARM_PREFIX+name+"',document.getElementById('"+PARM_PREFIX+name+"').value);\n";
     }
     
-    public String getPlugins(ODocument viewDoc) {
+    public static String getPlugins(ODocument viewDoc) {
         StringBuilder result = new StringBuilder();
         List<ODocument> plugins = viewDoc.field("plugins");
         if (plugins != null) {
@@ -210,5 +210,21 @@ public class D3Builder extends Table {
         }
         return result.toString();
     }
-    
+
+    public static String getAsComponent(DatabaseConnection con, String id) {
+        ODocument viewDoc = con.get(id);
+        if (viewDoc != null) {
+            StringBuilder sb = new StringBuilder();
+            sb.append("<button style=\"position: fixed; bottom: 0px;\" id=\"save_as_svg\" download=\"view.svg\">to SVG</button>");
+            String additionalStyle = (viewDoc.field("style") != null ? "<style>" + viewDoc.field("style")+ "</style>" : "");
+            String additionalScript = script(getPlugins(viewDoc));
+            String script = (viewDoc.field("script") != null ? "<script>" + viewDoc.field("script") + "</script>" : "");
+            //script = script.replace("$$this$$", "permeagility.plus.d3.Data?VIEW="+preview);
+            sb.append(form("svgform", hidden("format", "") + hidden("data", "")));
+            sb.append(chartDiv("chart"));
+            sb.append(additionalScript + "\n" + script);
+            return  div("component",sb.toString());
+        }
+        return "N/A no-doc";
+    }
 }

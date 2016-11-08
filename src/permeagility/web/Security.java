@@ -47,6 +47,7 @@ public class Security {
     public static boolean CACHE_TABLE_PRIVS = false;
     
     public static boolean authorized(String user, String className) {
+        if (DEBUG) System.out.println("Authorizing "+user+" to "+className);
         Set<String> uRoles = userRoles.get(user);
         Set<String> kRoles = keyRoles.get(className);
         return isRoleMatch(uRoles,kRoles);
@@ -101,13 +102,16 @@ public class Security {
                         if (n != null && roles != null) {
                                 if (DEBUG) System.out.println("Adding security keyrole "+n);
                                 entryCount++;
-                                Set<String> roleSet = new HashSet<>();
+                                Set<String> roleSet = keyRoles.get(n);
+                                if (roleSet == null) {
+                                    roleSet = new HashSet<>();
+                                    keyRoles.put(n, roleSet);
+                                }
                                 for (ODocument r : roles) {
                                     if (r != null) {
                                         roleSet.add(r.getIdentity().toString());
                                     }
                                 }
-                                keyRoles.put(n, roleSet);
                         }
                 }
                 System.out.println("Security.refreshSecurity() - loaded "+entryCount+" menuItems");
@@ -158,8 +162,10 @@ public class Security {
             System.out.println("Server.isRoleAuthorized: kRoles/uRoles is null");
             return authorized;
         }
+        if (DEBUG) System.out.println("Server.isRoleAuthorized: uRoles="+uRoles.size()+" kRoles="+kRoles.size());
         OUT: for (String ur: uRoles) {
             for (String kr: kRoles) {
+                if (DEBUG) System.out.println("Server.isRoleAuthorized: comparing "+ur+" with "+kr);
                 if (ur != null && kr != null && ur.equals(kr)) {
                     if (DEBUG) System.out.println("Server.isRoleAuthorized: Match on user role "+ur+" Authorized!");
                     authorized = true;

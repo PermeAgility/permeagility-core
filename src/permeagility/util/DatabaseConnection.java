@@ -426,5 +426,25 @@ public class DatabaseConnection {
                     return null;
             };
 
+        @Override
+        public OIndex<?> createIndex(String iType, ODocument metadata) {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
+
+        @Override
+        public OIndex<?> createIndex(INDEX_TYPE iType, ODocument metadata) {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
+
+        @Override
+        public String getDescription() {
+            return "Button";
+        }
+
+        @Override
+        public OProperty setDescription(String arg0) {
+            return this;
+        }
+
 	}
 }

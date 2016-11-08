@@ -2,14 +2,14 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.permeagility</groupId>
   <artifactId>permeagility</artifactId>
-  <version>0.7.5-SNAPSHOT</version>
+  <version>0.8.1-SNAPSHOT</version>
   <packaging>jar</packaging>
   <name>Permeagility Core</name>
   <description>The dynamic adaptive data management platform</description>
   <url>http://www.permeagility.com</url>
 
   <properties>
-    <orientdb.version>2.1.12</orientdb.version>
+    <orientdb.version>2.2.12</orientdb.version>
     <mainClass>permeagility.web.Server</mainClass>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.source>1.8</maven.compiler.source>
@@ -57,7 +57,7 @@
           
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.1</version>
+        <version>3.5.1</version>
       </plugin>
       
       <plugin>
@@ -147,11 +147,23 @@
       <version>${orientdb.version}</version>
     </dependency>
 
-    <!-- OrientDB client - for remote connection -->
+    <!-- OrientDB client - for remote connection 
     <dependency>
       <groupId>com.orientechnologies</groupId>
       <artifactId>orientdb-client</artifactId>
       <version>${orientdb.version}</version>
+    </dependency>
+-->
+<!-- https://mvnrepository.com/artifact/org.jboss.xnio/xnio-nio -->
+   <dependency>
+        <groupId>org.jboss.xnio</groupId>
+        <artifactId>xnio-api</artifactId>
+        <version>3.4.0.Final</version>
+    </dependency>
+   <dependency>
+        <groupId>org.jboss.xnio</groupId>
+        <artifactId>xnio-nio</artifactId>
+        <version>3.4.0.Final</version>
     </dependency>
 
  </dependencies>
