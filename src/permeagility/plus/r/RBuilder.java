@@ -233,7 +233,7 @@ public class RBuilder extends Table {
                        + "   "+PARM_PREFIX+"RScriptEditor.save();\n"
                        + "   var formData = new FormData();\n"
                        + "   formData.append('SUBMIT','UPDATE');\n"
-                            + addFormData("RScript")
+                            + addFormData(formName,"RScript")
                             + addFormData("name")
                             + addFormData("description")
                        + "   d3.xhr('').post(formData, function(error,data) {   \n"                        
@@ -249,6 +249,11 @@ public class RBuilder extends Table {
     public String addFormData(String name) {
         return "formData.append('"+PARM_PREFIX+name+"',document.getElementById('"+PARM_PREFIX+name+"').value);\n";
     }
+
+    public String addFormData(String formName, String name) {
+        return "formData.append('"+PARM_PREFIX+name+"',document.getElementById('"+formName+PARM_PREFIX+name+"').value);\n";
+    }
+ 
 
     private void runRProcess(DatabaseConnection con, HashMap<String,String> parms, StringBuilder errors) {
         String run = parms.get("EDIT_ID");

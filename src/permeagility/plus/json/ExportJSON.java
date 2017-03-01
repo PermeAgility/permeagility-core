@@ -20,6 +20,7 @@ import permeagility.util.DatabaseConnection;
 import permeagility.web.Weblet;
 import permeagility.web.Schema;
 
+/** Note: Uses the Download class to download the object */
 public class ExportJSON extends Weblet {
     
     @Override
