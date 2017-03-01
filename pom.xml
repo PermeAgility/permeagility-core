@@ -9,7 +9,7 @@
   <url>http://www.permeagility.com</url>
 
   <properties>
-    <orientdb.version>2.2.12</orientdb.version>
+    <orientdb.version>2.2.17</orientdb.version>
     <mainClass>permeagility.web.Server</mainClass>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.source>1.8</maven.compiler.source>
@@ -51,7 +51,17 @@
   
   <build>
     <sourceDirectory>src</sourceDirectory>
-    <resources><resource><directory>www</directory></resource></resources>
+    <resources>
+        <resource>
+            <directory>www</directory>
+        </resource>
+        <resource>
+            <directory>src</directory>
+            <includes>
+                <include>**/*.json</include>
+            </includes>
+        </resource>
+    </resources>
     
     <plugins>
           
@@ -165,8 +175,13 @@
         <artifactId>xnio-nio</artifactId>
         <version>3.4.0.Final</version>
     </dependency>
-
- </dependencies>
+    <dependency>
+      <groupId>com.permeagility</groupId>
+      <artifactId>permeagility</artifactId>
+      <version>0.8.1-SNAPSHOT</version>
+      <type>jar</type>
+    </dependency>
+  </dependencies>
  
  <profiles>
      <profile>
