@@ -729,6 +729,7 @@ public abstract class Weblet {
             +"<link rel=\"stylesheet\" type=\"text/css\" href=\"../js/codemirror/addon/tern/tern.css\" />\n"
             + "<script type=\"text/javascript\" src=\"../js/codemirror/lib/codemirror.js\"></script>\n"
             + "<script type=\"text/javascript\" src=\"../js/codemirror/mode/javascript/javascript.js\"></script>\n"
+            + "<script type=\"text/javascript\" src=\"../js/codemirror/mode/clike/clike.js\"></script>\n"
             + "<script type=\"text/javascript\" src=\"../js/codemirror/mode/css/css.js\"></script>\n"
             + "<script type=\"text/javascript\" src=\"../js/codemirror/mode/r/r.js\"></script>\n"
             + "<script type=\"text/javascript\" src=\"../js/codemirror/mode/sql/sql.js\"></script>\n"
@@ -749,9 +750,10 @@ public abstract class Weblet {
     }
 
     public String getCodeEditorControl(String formName, String controlName, String initialValue, String mode, String options) {
-        return "<textarea id=\""+controlName+"\" name=\""+controlName+"\">"+(initialValue==null ? "" : initialValue)+"</textarea>\n"
+        return "<textarea id=\""+formName+controlName+"\" name=\""+controlName+"\">"+(initialValue==null ? "" : initialValue)+"</textarea>\n"
             +" <script>\n"
-            + "var "+controlName+"Editor = CodeMirror.fromTextArea(document.getElementById(\""+controlName+"\")\n"
+            + "var "+controlName+"Editor = CodeMirror.fromTextArea(document.getElementById(\""+formName+controlName+"\")\n"
+//            + "var "+controlName+"Editor = CodeMirror.fromTextArea(document.body.lastchild\n"
             + ", { lineNumbers: true, mode: \""+mode+"\""
                             + ", theme: \""+EDITOR_THEME+"\", matchBrackets: true, extraKeys: {\"Ctrl-Space\": \"autocomplete\"}"
                             + ", viewportMargin: Infinity "+(options == null ? "" : options)+" });\n"
@@ -1081,6 +1083,11 @@ public abstract class Weblet {
                         rid = pick.getIdentity().toString();
                     }
                     if (rid.startsWith("#")) rid = rid.substring(1);
+                    // For some reason, map keys have single quotes around them now
+                    if (key.startsWith("'") && key.endsWith("'")) {
+                        //System.out.println("Removing single quotes from map key");
+                        key = key.substring(1,key.length() - 1);
+                    }
                     listmaps.add(key);
                     listvalues.add(rid);
                     listnames.add(toJSONString(getDescriptionFromDocument(con, pick)));

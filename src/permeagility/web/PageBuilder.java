@@ -135,8 +135,8 @@ public class PageBuilder extends Table {
                        + "   "+PARM_PREFIX+"pageScriptEditor.save();\n"
                        + "   var formData = new FormData();\n"
                        + "   formData.append('SUBMIT','UPDATE');\n"
-                            + addFormData("pageStyle")
-                            + addFormData("pageScript")
+                            + addFormData(formName,"pageStyle")
+                            + addFormData(formName,"pageScript")
                             + addFormData("name")
                             + addFormData("description")
                             + addFormData("_allowRead")
@@ -152,4 +152,9 @@ public class PageBuilder extends Table {
         return "formData.append('"+PARM_PREFIX+name+"',document.getElementById('"+PARM_PREFIX+name+"').value);\n";
     }
         
+    public String addFormData(String formName, String name) {
+        return "formData.append('"+PARM_PREFIX+name+"',document.getElementById('"+formName+PARM_PREFIX+name+"').value);\n";
+    }
+ 
+
 }
