@@ -1140,7 +1140,7 @@ public class Server {
 	}
 	
 	public final static List<String> getPickValues(String table, String column) {
-		if (pickValues.size() == 0) {
+		if (pickValues.isEmpty()) {
 			updatePickValues();  // There must be a few by default - empty means not loaded yet (Note: restart server if delete)
 		}
 		return pickValues.get(table+"."+column);
