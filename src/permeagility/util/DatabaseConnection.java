@@ -154,13 +154,13 @@ public class DatabaseConnection {
 		Long count = tableCountCache.get(table);
 		if (count != null) {
 			//System.out.println("Row count cache hit on table "+table);
-			return count.longValue();
+			return count;
 		}
 		//System.out.println("Counting rows of "+table);
 		try {
 			c.activateOnCurrentThread();
 			long cnt = c.countClass(table);
-			tableCountCache.put(table, new Long(cnt));
+			tableCountCache.put(table, cnt);
 			return cnt;
 		} catch (Exception e) {
 			System.out.println("Error counting class "+table);
@@ -361,11 +361,11 @@ public class DatabaseConnection {
             @Override public OProperty setMax(String max) { return null; }
             @Override public OIndex<?> createIndex(INDEX_TYPE iType) { return null; }
             @Override public OIndex<?> createIndex(String iType) {	return null;	}
-            @Override public OProperty dropIndexes() {	return null;	}
-            @Override public Set<OIndex<?>> getIndexes() {		return null;	}
-            @Override public OIndex<?> getIndex() {	return null;	}
+            @Override @Deprecated public OProperty dropIndexes() {	return null;	}
+            @Override @Deprecated public Set<OIndex<?>> getIndexes() {		return null;	}
+            @Override @Deprecated public OIndex<?> getIndex() {	return null;	}
             @Override public Collection<OIndex<?>> getAllIndexes() {	return null;		}
-            @Override public boolean isIndexed() {	return false;	}
+            @Override @Deprecated public boolean isIndexed() {	return false;	}
             @Override public String getRegexp() {		return null;	}
             @Override public OProperty setRegexp(String regexp) {			return null;	}
             @Override public String getCustom(String iName) {	return null;			}

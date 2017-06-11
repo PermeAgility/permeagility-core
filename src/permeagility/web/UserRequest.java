@@ -64,7 +64,7 @@ public class UserRequest extends Table {
                                         ODocument userRecord = serverCon.queryDocument("SELECT FROM OUser WHERE name='"+parms.get(PARM_PREFIX+"name")+"'");
                                         ODocument userProfile = serverCon.queryDocument("SELECT FROM "+Setup.TABLE_USERPROFILE+" WHERE name='"+parms.get(PARM_PREFIX+"name")+"'");
                                         if (userProfile != null && userRecord != null) {
-                                            Set<ODocument> allow = new HashSet();
+                                            Set<ODocument> allow = new HashSet<>();
                                             allow.add(userRecord);
                                             userProfile.field("_allow",allow);  // replace guest with the user    
                                             userProfile.save();

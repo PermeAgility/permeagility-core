@@ -32,6 +32,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+import java.util.Set;
 import permeagility.util.QueryResult;
 
 public class ImportJSON extends Weblet {
@@ -137,7 +138,7 @@ public class ImportJSON extends Weblet {
                     for (String column : map.keySet()) {
                         if (column.equals("")) sb.append(map.get(column));
                     }
-                    ArrayList fields = new ArrayList(map.keySet());
+                    ArrayList<String> fields = new ArrayList<>(map.keySet());
                     sb.append("Use this field as a primary key "+createList(con.getLocale(), "KEY_FOR_"+cname, null, fields, null, true, null, true));
                     
                     // then do the columns in the table
