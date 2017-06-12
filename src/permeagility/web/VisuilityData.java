@@ -230,6 +230,7 @@ public class VisuilityData extends Download {
         return assembleResult(nodes,links);
     }
 
+    @SuppressWarnings("unchecked")
     private byte[] getRow(DatabaseConnection con, String id, String detail) {
         StringBuilder nodes = new StringBuilder();
         StringBuilder links = new StringBuilder();

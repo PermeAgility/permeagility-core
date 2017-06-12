@@ -1503,6 +1503,7 @@ public class JSONObject {
      * @throws JSONException
      *             If the value is or contains an invalid number.
      */
+    @SuppressWarnings("unchecked")
     public static String valueToString(Object value) throws JSONException {
         if (value == null || value.equals(null)) {
             return "null";
@@ -1525,7 +1526,7 @@ public class JSONObject {
         if (value instanceof Boolean || value instanceof JSONObject
                 || value instanceof JSONArray) {
             return value.toString();
-        }
+        } 
         if (value instanceof Map) {
             return new JSONObject((Map<String, Object>)value).toString();
         }
@@ -1550,6 +1551,7 @@ public class JSONObject {
      *            The object to wrap
      * @return The wrapped value
      */
+    @SuppressWarnings("unchecked")
     public static Object wrap(Object object) {
         try {
             if (object == null) {
@@ -1601,6 +1603,7 @@ public class JSONObject {
         return this.write(writer, 0, 0);
     }
 
+    @SuppressWarnings("unchecked")
     static final Writer writeValue(Writer writer, Object value,
             int indentFactor, int indent) throws JSONException, IOException {
         if (value == null || value.equals(null)) {

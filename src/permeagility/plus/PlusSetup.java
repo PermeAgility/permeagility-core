@@ -22,8 +22,13 @@ import permeagility.util.Setup;
 import permeagility.web.Weblet;
 
 import com.orientechnologies.orient.core.record.impl.ODocument;
+import java.net.URL;
 import java.util.List;
+import permeagility.plus.json.ImportJSON;
+import permeagility.plus.json.JSONObject;
+import permeagility.plus.json.JSONTokener;
 import permeagility.util.QueryResult;
+import static permeagility.web.Weblet.paragraph;
 
 public abstract class PlusSetup extends Weblet {
 
@@ -133,4 +138,27 @@ public abstract class PlusSetup extends Weblet {
         Setup.checkCreateConstant(con,classname,info,"INSTALLED_VERSION",version==null ? "current" : version);	
     }
 	
+    public static void importData(DatabaseConnection con, String fileName, String className, String keyColumn, StringBuilder errors) {
+        System.out.println("Importing "+fileName+" into table "+className);
+        HashMap<String,String> parms = new HashMap<String,String>();
+        parms.put("KEY_FOR_"+className,keyColumn);
+        HashMap<String, HashMap<String,String>> classes = new HashMap<>();
+        try {
+            URL res = Thread.currentThread().getContextClassLoader().getResource(fileName);
+            if (res != null) {
+                JSONTokener jt = new JSONTokener(res.openStream());
+    //                    JSONObject jo = new JSONObject(fromText.replace("\\u0022", "\""));
+                JSONObject jo = new JSONObject(jt);
+                new ImportJSON().importObject(parms, true, con, className, jo, errors, classes);
+                errors.append(paragraph("success","Example shaders imported"));
+            } else {
+                errors.append(paragraph("error","Could not load samples - "+fileName+" not found in distribution"));
+                System.out.println("Error Importing "+fileName+" into table "+className);
+            }
+        } catch (Exception e) {
+            errors.append(paragraph("error","Error parsing JSON:"+e.getMessage()));
+            e.printStackTrace();
+        }
+    }
+    
 }

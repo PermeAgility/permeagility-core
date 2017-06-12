@@ -79,7 +79,7 @@ public class Download extends permeagility.web.Download {
         String className = d.getClassName();
         String[] columns = d.fieldNames();
         if (className != null) {
-            sb.append("\"rid\":\""+d.getIdentity().toString().substring(1)+"\"");
+            sb.append("\"@rid\":\""+d.getIdentity().toString().substring(1)+"\", \"@class\":\""+className+"\"");
             comma = "\n, ";
         }
         for (String p : columns) {
@@ -168,6 +168,26 @@ public class Download extends permeagility.web.Download {
                         }
                     }
                     sb.append("] ");
+                } else if (t == OType.LINKMAP) {
+                    Map<String,ODocument> map = d.field(p);
+                    String lcomma = "";
+                    sb.append("\""+p+"\": {");
+                    if (map != null) {
+                        for (String key : map.keySet()) {
+                            ODocument keyDoc = map.get(key);
+                            if (key != null && keyDoc != null ) {
+                                if (key.startsWith("'") && key.endsWith("'")) key = key.substring(1, key.length() - 1);
+                                sb.append(lcomma+"\""+key.trim()+"\": ");
+                                if (level < maxLevel) {
+                                    sb.append(exportDocument(con, keyDoc, maxLevel, level+1));
+                                } else {
+                                    sb.append("\""+keyDoc.getIdentity().toString().substring(1)+"\"");                    
+                                }
+                                lcomma = "\n ,";
+                            }
+                        }
+                    }
+                    sb.append("} ");
                 } else if (t == OType.BOOLEAN) {
                     sb.append("\""+p+"\":"+d.field(p));
                 } else if (t == OType.INTEGER || t == OType.LONG || t == OType.BYTE) {

@@ -222,7 +222,7 @@ public class Database implements Serializable {
 
     /** Create a plocal database and load starterdb.json if it exists - if no starter DatabaseSetup.Schema update will install what is needed */
     public void createLocal(String backupFile, String serverPass) {
-        if (url.startsWith("plocal") || url.startsWith("local")) {
+        if (url.startsWith("plocal") || url.startsWith("memory")) {
             System.out.println("*** Creating new database "+url+" in "+System.getProperty("user.dir"));
             ODatabaseDocumentTx d = new ODatabaseDocumentTx(url);
             if (!d.exists()) {

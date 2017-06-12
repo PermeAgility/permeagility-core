@@ -182,9 +182,9 @@ public class D3Builder extends Table {
                        + "   "+PARM_PREFIX+"dataScriptEditor.save();\n"
                        + "   var formData = new FormData();\n"
                        + "   formData.append('SUBMIT','UPDATE');\n"
-                            + addFormData("style")
-                            + addFormData("script")
-                            + addFormData("dataScript")
+                            + addFormData(formName,"style")
+                            + addFormData(formName,"script")
+                            + addFormData(formName,"dataScript")
                             + addFormData("name")
                             + addFormData("description")
                             + addFormData("plugins")
@@ -200,6 +200,11 @@ public class D3Builder extends Table {
         return "formData.append('"+PARM_PREFIX+name+"',document.getElementById('"+PARM_PREFIX+name+"').value);\n";
     }
     
+    public String addFormData(String formName, String name) {
+        return "formData.append('"+PARM_PREFIX+name+"',document.getElementById('"+formName+PARM_PREFIX+name+"').value);\n";
+    }
+ 
+
     public static String getPlugins(ODocument viewDoc) {
         StringBuilder result = new StringBuilder();
         List<ODocument> plugins = viewDoc.field("plugins");

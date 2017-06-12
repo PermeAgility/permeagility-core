@@ -17,13 +17,11 @@ package permeagility.web;
 
 import com.orientechnologies.orient.core.record.impl.ODocument;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Set;
 import javax.script.Invocable;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import permeagility.util.DatabaseConnection;
-import static permeagility.web.Security.DEBUG;
 
 /**
  * Run a JavaScript to generate a page, parms and con passed in and an HTML string is expected out

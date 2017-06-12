@@ -32,6 +32,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+import java.util.Set;
 import permeagility.util.QueryResult;
 
 public class ImportJSON extends Weblet {
@@ -137,7 +138,7 @@ public class ImportJSON extends Weblet {
                     for (String column : map.keySet()) {
                         if (column.equals("")) sb.append(map.get(column));
                     }
-                    ArrayList fields = new ArrayList(map.keySet());
+                    ArrayList<String> fields = new ArrayList<>(map.keySet());
                     sb.append("Use this field as a primary key "+createList(con.getLocale(), "KEY_FOR_"+cname, null, fields, null, true, null, true));
                     
                     // then do the columns in the table
@@ -166,11 +167,14 @@ public class ImportJSON extends Weblet {
     public ODocument importObject(HashMap<String,String> parms, boolean run, DatabaseConnection con, String classname, JSONObject acjo, StringBuilder errors, HashMap<String,HashMap<String,String>> classes) {
         if (DEBUG) System.out.println("importObject.JSONObject="+acjo.getClass().getName());
         String originalClassName = classname;
+        if (acjo.has("@class")) {
+            classname = acjo.getString("@class");
+        }
         String newClassName = parms.get("TABLE_FOR_"+classname);
         if (newClassName != null && !newClassName.isEmpty()) {
             classname = newClassName;
         }
-        OClass oclass = null;
+        OClass oclass = con.getSchema().getClass(classname);
         ODocument doc = null;
         String keycol = parms.get("KEY_FOR_"+classname);
         if (keycol != null && (keycol.isEmpty() || keycol.equals("null"))) keycol = null;
@@ -183,20 +187,25 @@ public class ImportJSON extends Weblet {
             } else {
                 if (!classes.containsKey(classname)) {
                  classes.put(classname, new HashMap<>());                    
-                 classes.get(classname).put("",paragraph("Table will be created called "+input("TABLE_FOR_"+classname,classname)));
+                if (oclass != null) {
+                    classes.get(classname).put("",paragraph("Existing table will be loaded called "+input("TABLE_FOR_"+classname,classname)));                    
+                } else {
+                    classes.get(classname).put("",paragraph("Table will be created called "+input("TABLE_FOR_"+classname,classname)));
+                }
                 }
             }
         } else {
             classname = originalClassName;
         }
-        if (oclass != null && doc == null) {
+        if (run && oclass != null && doc == null) {
            doc = con.create(oclass.getName());
         }
         JSONArray fields = acjo.names();
         for (int f = 0; fields != null && f < fields.length(); f++) {
             String colName = fields.getString(f);
             Object val = acjo.get(colName);  // get the value before changing the name to an identifier
-            if (colName.startsWith("@")) colName = colName.substring(1);
+//            if (colName.startsWith("@")) colName = colName.substring(1);
+            if (colName.startsWith("@")) continue;  // do not import these
             colName = makePrettyCamelCase(colName);
             String originalColName = colName;
             String newColName = parms.get("COLUMN_"+classname+"_"+colName);
@@ -219,7 +228,7 @@ public class ImportJSON extends Weblet {
                             ODocument subdoc;
                             subdoc = importObject(parms, run, con, colName, (JSONObject)ac, errors, classes);
                             OProperty oproperty = null;
-                            if (oclass != null && subdoc != null) {
+                            if (!colName.equals(classname) && oclass != null && subdoc != null) {
                                 oproperty = Setup.checkCreateColumn(con, oclass, colName, OType.LINKLIST, subdoc.getSchemaClass(), errors);
                             }
                             if (oproperty != null && subdoc != null) {
@@ -239,21 +248,55 @@ public class ImportJSON extends Weblet {
                 }
 
             } else if (val instanceof JSONObject) {
+                OProperty oproperty = oclass != null ? oclass.getProperty(colName) : null;  // See if property already exists
                 if (run) {
-                    ODocument subdoc = importObject(parms, run, con, colName, (JSONObject)val, errors, classes);
-                    if (DEBUG) System.out.println("importObject.subdoc="+subdoc);
-                    if (subdoc != null && doc != null) {
-                        OProperty oproperty = null;
-                        if (oclass != null) {
+                    if (oproperty == null) {
+                        ODocument subdoc = importObject(parms, run, con, colName, (JSONObject)val, errors, classes);
+                        if (DEBUG) System.out.println("importObject.subdoc="+subdoc);
+                        if (subdoc != null && doc != null) {
                             oproperty = Setup.checkCreateColumn(con, oclass, colName, OType.LINK, subdoc.getSchemaClass(), errors);
                         }
-                        if (oproperty != null && !subdoc.isEmpty()) {
+                        if (doc != null && oproperty != null && !subdoc.isEmpty()) {
                             doc.field(colName, subdoc);
                         }
+                    } else if (oproperty.getType() == OType.LINKMAP) {
+ //                       if (DEBUG) 
+                            System.out.println("importObject(into map of class "+oproperty.getLinkedClass().getName()+")");
+                        JSONObject j = (JSONObject)val;
+                        HashMap<String,ODocument> newMap = new HashMap<>();
+                        for (String n : j.keySet()) {
+                            System.out.println("key="+n);
+                            Object subval = j.get(n);
+                            if (subval instanceof JSONObject) {
+                                ODocument subdoc = importObject(parms, run, con, oproperty.getLinkedClass().getName(), (JSONObject)subval, errors, classes);
+                                if (subdoc != null && !subdoc.isEmpty()) {
+ //                               if (DEBUG) 
+                                    System.out.println("adding (into map) "+n+": "+subdoc);
+                                    newMap.put("'"+n+"'",subdoc);
+                                }
+                            }
+                        }
+                        if (doc != null && newMap.size() > 0) {
+                            doc.field(colName, newMap);
+                        }
+                    } else if (oproperty.getType() == OType.STRING) {
+                        System.out.println("Importing object into STRING");
+                        JSONObject j = (JSONObject)val;
+                        doc.field(colName,j.toString());
+                    } else {
+                        errors.append(paragraph("error", "I don't know how to import an object into the "+colName+" column of type "+oproperty.getType().name()));
                     }
                 } else {
-                    classes.get(classname).put(colName,paragraph("Column " + input("COLUMN_"+classname+"_"+colName,colName) + " is an object and it will be a LINK"));
-                    ODocument subdoc = importObject(parms, run, con, colName, (JSONObject)val, errors, classes);
+                    if (oproperty != null) {
+                        if (oproperty.getType() == OType.LINKMAP) {
+                            classes.get(classname).put(colName,paragraph("Column " + input("COLUMN_"+classname+"_"+colName,colName) + " is an object and it will use existing LINKMAP"));
+//                            ODocument subdoc = importObject(parms, run, con, colName, (JSONObject)val, errors, classes);
+                            
+                        }
+                    } else {
+                        classes.get(classname).put(colName,paragraph("Column " + input("COLUMN_"+classname+"_"+colName,colName) + " is an object and it will be a LINK"));
+                        ODocument subdoc = importObject(parms, run, con, colName, (JSONObject)val, errors, classes);
+                    }
                 }
             } else {
                 if (run) {
