@@ -147,7 +147,8 @@ public class Setup {
                 con.create(TABLE_COLUMNS).field("name","OUser").field("columnList","name,status,roles").save();				
                 con.create(TABLE_COLUMNS).field("name","ORole").field("columnList","name,mode,inheritedRole,rules").save();	
                 con.create(TABLE_COLUMNS).field("name","OFunction").field("columnList","name,language,idempotent,parameters,code").save();				
-                con.create(TABLE_COLUMNS).field("name","OSchedule").field("columnList","name,function,arguments,rule,status,starttime,start").save();				
+                con.create(TABLE_COLUMNS).field("name","OSchedule").field("columnList","name,function,arguments,rule,status,starttime").save();				
+                con.create(TABLE_COLUMNS).field("name","OSequence").field("columnList","name,type,start,incr,value").save();				
             }
 
             // This will ensure they are added to columns table in proper order
@@ -576,6 +577,7 @@ public class Setup {
             if (pickValuesTable.count() == 0) {
                 con.create(TABLE_PICKVALUES).field("name","OUser.status").field("values","ACTIVE,SUSPENDED").save();				
                 con.create(TABLE_PICKVALUES).field("name","OFunction.language").field("values","javascript").save();
+                con.create(TABLE_PICKVALUES).field("name","OSequence.type").field("values","CACHED,ORDERED").save();
                 con.create(TABLE_PICKVALUES).field("name","style.editorTheme").field("values","default,3024-day,3024-night,ambiance-mobile,ambiance,base16-dark,base16-light,blackboard,cobalt,colorforth,eclipse,elegant,erlang-dark,lesser-dark,mbo,mdn-like,midnight,monokai,neat,neo,night,paraiso-dark,paraiso-light,pastel-on-dark,rubyblue,solarized,the-matrix,tomorrow-night-bright,tomorrow-night-eighties,twilight,vibrant-ink,xq-dark,xq-light,zenburn").save();
             }
 
