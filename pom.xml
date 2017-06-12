@@ -1,60 +1,65 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
-  <groupId>com.permeagility</groupId>
-  <artifactId>permeagility</artifactId>
-  <version>0.8.1-SNAPSHOT</version>
-  <packaging>jar</packaging>
-  <name>Permeagility Core</name>
-  <description>The dynamic adaptive data management platform</description>
-  <url>http://www.permeagility.com</url>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    
+    <groupId>com.permeagility</groupId>
+    <artifactId>permeagility</artifactId>
+    <version>0.8.1-SNAPSHOT</version>
 
-  <properties>
-    <orientdb.version>2.2.21</orientdb.version>
-    <mainClass>permeagility.web.Server</mainClass>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <maven.compiler.source>1.8</maven.compiler.source>
-    <maven.compiler.target>1.8</maven.compiler.target>
-  </properties>
+    <packaging>jar</packaging>
+    <name>Permeagility Core</name>
+    <description>The dynamic adaptive data management platform</description>
+    <url>http://www.permeagility.com</url>
+
+    <properties>
+      <mainClass>permeagility.web.Server</mainClass>
+      <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+      <maven.compiler.source>1.8</maven.compiler.source>
+      <maven.compiler.target>1.8</maven.compiler.target>
+    </properties>
+
+
+    <licenses>
+      <license>
+        <name>The Apache License, Version 2.0</name>
+        <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      </license>
+    </licenses>
+
+    <developers>
+      <developer>
+        <name>Glenn Irwin</name>
+        <email>glenn@irwinideas.com</email>
+        <organization>PermeAgility</organization>
+        <organizationUrl>http://www.permeagility.com</organizationUrl>
+      </developer>
+    </developers>
   
-  
-  <licenses>
-    <license>
-      <name>The Apache License, Version 2.0</name>
-      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-    </license>
-  </licenses>
- 
-  <developers>
-    <developer>
-      <name>Glenn Irwin</name>
-      <email>glenn@irwinideas.com</email>
-      <organization>PermeAgility</organization>
-      <organizationUrl>http://www.permeagility.com</organizationUrl>
-    </developer>
-  </developers>
-  
 
-  <scm>
-    <connection>scm:git:https://github.com/PermeAgility/permeagility-core.git</connection>
-    <developerConnection>scm:git:https://github.com/PermeAgility/permeagility-core.git</developerConnection>
-    <url>git@github.com:PermeAgility/permeagility-core.git</url>
-    <tag>HEAD</tag>
-  </scm>
+    <scm>
+      <connection>scm:git:https://github.com/PermeAgility/permeagility-core.git</connection>
+      <developerConnection>scm:git:https://github.com/PermeAgility/permeagility-core.git</developerConnection>
+      <url>git@github.com:PermeAgility/permeagility-core.git</url>
+      <tag>HEAD</tag>
+</scm>
 
 
-<distributionManagement>
-  <snapshotRepository>
-    <id>ossrh</id>
-    <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-  </snapshotRepository>
-</distributionManagement>
+    <distributionManagement>
+      <snapshotRepository>
+        <id>ossrh</id>
+        <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+      </snapshotRepository>
+    </distributionManagement>
   
   <build>
+      
     <sourceDirectory>src</sourceDirectory>
     <resources>
+        <!-- The web site directory for images/javascript/etc... -->
         <resource>
             <directory>www</directory>
         </resource>
+        <!-- include any JSON data file with the source -->
         <resource>
             <directory>src</directory>
             <includes>
@@ -158,33 +163,21 @@
     <dependency>
       <groupId>com.orientechnologies</groupId>
       <artifactId>orientdb-core</artifactId>
-      <version>${orientdb.version}</version>
+      <version>2.2.21}</version>
     </dependency>
 
-    <!-- OrientDB client - for remote connection 
+    <!-- XNIO for fast connections -->
     <dependency>
-      <groupId>com.orientechnologies</groupId>
-      <artifactId>orientdb-client</artifactId>
-      <version>${orientdb.version}</version>
-    </dependency>
--->
-<!-- https://mvnrepository.com/artifact/org.jboss.xnio/xnio-nio -->
-   <dependency>
         <groupId>org.jboss.xnio</groupId>
         <artifactId>xnio-api</artifactId>
-        <version>3.4.0.Final</version>
+        <version>3.4.5.Final</version>
     </dependency>
    <dependency>
         <groupId>org.jboss.xnio</groupId>
         <artifactId>xnio-nio</artifactId>
-        <version>3.4.0.Final</version>
+        <version>3.4.5.Final</version>
     </dependency>
-    <dependency>
-      <groupId>com.permeagility</groupId>
-      <artifactId>permeagility</artifactId>
-      <version>0.8.1-SNAPSHOT</version>
-      <type>jar</type>
-    </dependency>
+
   </dependencies>
  
  <profiles>
