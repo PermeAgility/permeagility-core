@@ -78,6 +78,7 @@ public class Setup {
                 allRoles.add(role.getDocument());
                 if (!role.getName().equals("guest")) allRolesButGuest.add(role.getDocument());
                 if (role.getName().equals("admin")) adminRoles.add(role.getDocument());
+                if (role.getName().equals("server")) adminRoles.add(role.getDocument());
                 if (role.getName().equals("reader")) readerRoles.add(role.getDocument());
                 if (role.getName().equals("writer")) writerRoles.add(role.getDocument());
                 if (role.getName().equals("guest")) guestRoles.add(role.getDocument());
@@ -162,7 +163,7 @@ public class Setup {
 
             if (tableGroupTable.count() == 0) {
                     con.create(TABLE_TABLEGROUP).field("name","Application").field("tables","news,columns,constant,locale,pickList,pickValues,menu,menuItem,message,style,tableGroup,userProfile,auditTrail,-thumbnail").field("_allowRead", adminRoles.toArray()).save();
-                    con.create(TABLE_TABLEGROUP).field("name","System").field("tables","ORole,OUser,OFunction,OSchedule,-ORIDs,-E,-V,-_studio").field("_allowRead", adminRoles.toArray()).save();
+                    con.create(TABLE_TABLEGROUP).field("name","System").field("tables","ORole,OUser,OFunction,OSchedule,OSequence,-ORIDs,-E,-V,-_studio").field("_allowRead", adminRoles.toArray()).save();
                     con.create(TABLE_TABLEGROUP).field("name","Content").field("tables","").field("_allowRead", allRoles.toArray()).save();
                     con.create(TABLE_TABLEGROUP).field("name","Plus").field("tables","").field("_allowRead", adminRoles.toArray()).save();
             }
@@ -612,6 +613,7 @@ public class Setup {
                 mi_login.field("classname","permeagility.web.Login");
                 mi_login.field("active",true);
                 mi_login.field("_allowRead", allRoles);
+                mi_login.field("_allow", adminRoles);
                 mi_login.save();
 
                 ODocument mi_home = con.create(TABLE_MENUITEM);
@@ -620,6 +622,7 @@ public class Setup {
                 mi_home.field("classname","permeagility.web.Home");
                 mi_home.field("active",true);
                 mi_home.field("_allowRead", allRoles);
+                mi_home.field("_allow", adminRoles);
                 mi_home.save();
 
                 ODocument mi_password = con.create(TABLE_MENUITEM);
@@ -628,6 +631,7 @@ public class Setup {
                 mi_password.field("classname","permeagility.web.Profile");
                 mi_password.field("active",true);
                 mi_password.field("_allowRead", allRolesButGuest);
+                mi_password.field("_allow", adminRoles);
                 mi_password.save();
 
                 ODocument mi_userRequest = con.create(TABLE_MENUITEM);
@@ -636,6 +640,7 @@ public class Setup {
                 mi_userRequest.field("classname","permeagility.web.UserRequest");
                 mi_userRequest.field("active",true);
                 mi_userRequest.field("_allowRead", guestRoles);
+                mi_userRequest.field("_allow", adminRoles);
                 mi_userRequest.save();
 
                 ODocument mi_context = con.create(TABLE_MENUITEM);
@@ -644,6 +649,7 @@ public class Setup {
                 mi_context.field("classname","permeagility.web.Context");
                 mi_context.field("active",true);
                 mi_context.field("_allowRead", adminRoles);
+                mi_context.field("_allow", adminRoles);
                 mi_context.save();
 
                 ODocument mi_settings = con.create(TABLE_MENUITEM);
@@ -652,6 +658,7 @@ public class Setup {
                 mi_settings.field("classname","permeagility.web.Settings");
                 mi_settings.field("active",true);
                 mi_settings.field("_allowRead", adminRoles);
+                mi_settings.field("_allow", adminRoles);
                 mi_settings.save();
 
                 ODocument mi_shutdown = con.create(TABLE_MENUITEM);
@@ -660,6 +667,7 @@ public class Setup {
                 mi_shutdown.field("classname","permeagility.web.Shutdown");
                 mi_shutdown.field("active",true);
                 mi_shutdown.field("_allowRead", adminRoles);
+                mi_shutdown.field("_allow", adminRoles);
                 mi_shutdown.save();
 
                 ODocument mi_query = con.create(TABLE_MENUITEM);
@@ -668,6 +676,7 @@ public class Setup {
                 mi_query.field("classname","permeagility.web.Query");
                 mi_query.field("active",true);
                 mi_query.field("_allowRead", adminAndWriterRoles);
+                mi_query.field("_allow", adminRoles);
                 mi_query.save();
 
                 ODocument mi_schema = con.create(TABLE_MENUITEM);
@@ -676,6 +685,7 @@ public class Setup {
                 mi_schema.field("classname","permeagility.web.Schema");
                 mi_schema.field("active",true);
                 mi_schema.field("_allowRead", allRolesButGuest);
+                mi_schema.field("_allow", adminRoles);
                 mi_schema.save();
 
                 ODocument mi_table = con.create(TABLE_MENUITEM);
@@ -684,6 +694,7 @@ public class Setup {
                 mi_table.field("classname","permeagility.web.Table");
                 mi_table.field("active",true);
                 mi_table.field("_allowRead", allRolesButGuest);
+                mi_table.field("_allow", adminRoles);
                 mi_table.save();				
 
                 ODocument mi_visuility = con.create(TABLE_MENUITEM);
@@ -692,6 +703,7 @@ public class Setup {
                 mi_visuility.field("classname","permeagility.web.Visuility");
                 mi_visuility.field("active",true);
                 mi_visuility.field("_allowRead", adminAndWriterRoles);
+                mi_visuility.field("_allow", adminRoles);
                 mi_visuility.save();				
 
                 ODocument mi_visuilityData = con.create(TABLE_MENUITEM);
@@ -700,6 +712,7 @@ public class Setup {
                 mi_visuilityData.field("classname","permeagility.web.VisuilityData");
                 mi_visuilityData.field("active",true);
                 mi_visuilityData.field("_allowRead", allRolesButGuest);
+                mi_visuilityData.field("_allow", adminRoles);
                 mi_visuilityData.save();				
 
                 ODocument mi_backup = con.create(TABLE_MENUITEM);
@@ -708,6 +721,7 @@ public class Setup {
                 mi_backup.field("classname","permeagility.web.BackupRestore");
                 mi_backup.field("active",true);
                 mi_backup.field("_allowRead", adminRoles);
+                mi_backup.field("_allow", adminRoles);
                 mi_backup.save();				
 
                 ODocument mi_blank = con.create(TABLE_MENUITEM);
@@ -716,6 +730,7 @@ public class Setup {
                 mi_blank.field("description","Blank menu item");
                 mi_blank.field("_allow",adminRoles);
                 mi_blank.field("_allowRead",allRoles);
+                mi_blank.field("_allow",adminRoles);
                 mi_blank.save();
 
                 // Build default menu

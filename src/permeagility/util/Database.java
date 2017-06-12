@@ -259,7 +259,8 @@ public class Database implements Serializable {
                     if (osec.getRole("server") == null) {
                         System.out.println("Server role does not exist, Creating the server role");
                         ORole serverRole = osec.createRole("server", ALLOW_MODES.ALLOW_ALL_BUT);
-                        serverRole.addRule(ORule.ResourceGeneric.BYPASS_RESTRICTED, null, 15);
+                        serverRole.addRule(ORule.ResourceGeneric.BYPASS_RESTRICTED, null, 31);  // Needed so we can backup and restore all data
+                        serverRole.save();
                     }
                     if (osec.getUser("server") == null) {
                         System.out.println("Server user does not exist, Creating the server user");
