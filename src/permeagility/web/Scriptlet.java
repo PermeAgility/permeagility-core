@@ -37,7 +37,7 @@ public class Scriptlet extends Weblet {
             return new ScriptEngineManager().getEngineByName("nashorn");
         }
     };
-    
+
     public String getPage(DatabaseConnection con, HashMap<String,String> parms) {
     	StringBuilder sb = new StringBuilder();
         String styleScript = "";
@@ -49,14 +49,15 @@ public class Scriptlet extends Weblet {
             boolean authorized = false;
             if (roles != null) {
                 Set<String> uRoles = Security.getUserRoles(con);
-                //System.out.println("uRoles="+uRoles);
                 for (ODocument r : roles) {
-                    if (r != null) {
-                        if (uRoles.contains(r.getIdentity().toString())) {
-                            authorized = true;
-                            //System.out.println("This scriptlet is authorized via the menuItem");
-                        }
-                    }
+                    if (r != null && uRoles.contains(r.getIdentity().toString())) authorized = true;
+                }
+            }
+            roles = menuItem.field("_allow");
+            if (roles != null) {
+                Set<String> uRoles = Security.getUserRoles(con);
+                for (ODocument r : roles) {
+                    if (r != null && uRoles.contains(r.getIdentity().toString())) authorized = true;
                 }
             }
             if (authorized) {
@@ -66,22 +67,25 @@ public class Scriptlet extends Weblet {
                     Invocable invocable = (Invocable) engineHolder.get();
                     Object result = invocable.invokeFunction("getPage", con, parms);
                     StringBuilder requireScripts = new StringBuilder();
-                    if (parms.get("REQUIRESCRIPT") != null) {
-                        String[] req = parms.get("REQUIRESCRIPT").split(",");
+                    if (parms.get("REQUIRE") != null) {
+                        String[] req = parms.get("REQUIRE").split(",");
                         for (String r : req) {
-                            requireScripts.append(getScript(r)); 
+                            requireScripts.append(r.startsWith("http") ? script(r) : getScript(r));  // assume in /js directory unless http prefix
                         }
                     }
                     return layoutFlag != null && layoutFlag.equalsIgnoreCase("NONE")   // just the styles and content please
                              ? head(parms.get("SERVICE"), requireScripts + style(serviceStyleOverride + (styleScript.isEmpty() ? "" : styleScript)))
                                 + body(div("service",result != null ? result.toString() : "N/A"))
-                            : head(parms.get("SERVICE"), requireScripts + (styleScript.isEmpty() ? "" : style(styleScript)))  
+                            : head(parms.get("SERVICE"), requireScripts + (styleScript.isEmpty() ? "" : style(styleScript)))
                                 + body(standardLayout(con, parms, result != null ? result.toString() : "N/A"));   // full page with menu and header
+                } catch (AssertionError ae) {
+                    System.out.println("AssertionError in scriptlet: " + logicScript + " exception: "+ ae.getClass().getName()+" message=" + ae.getMessage());
+                    sb.append("Error in scriptlet: " + parms.get("ID") + " message=" + ae.getMessage());
                 } catch (Exception e) {
                     System.out.println("Error in scriptlet: " + logicScript + " exception: "+ e.getClass().getName()+" message=" + e.getMessage());
                     sb.append("Error in scriptlet: " + parms.get("ID") + " message=" + e.getMessage());
                 } finally {
-                }                          
+                }
             } else {
                 sb.append(paragraph("error","This scriptlet is not authorized for you to run it. allowRead="+roles));
             }

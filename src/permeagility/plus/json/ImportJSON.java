@@ -120,7 +120,8 @@ public class ImportJSON extends Weblet {
                 errors.append(paragraph("error","Nothing to parse"));
             } else {
                 try {
-                    jo = new JSONObject(fromText.replace("\\u0022", "\""));
+                    System.out.println("length="+fromText.length());
+                    jo = new JSONObject(fromText.replace("\\u0027", "\""));
                     ODocument doc;
                     doc = importObject(parms, run, con, parms.get("TABLE_FOR_"), jo, errors, classes);
                     parseSuccess = true;
@@ -146,7 +147,7 @@ public class ImportJSON extends Weblet {
                         if (!column.equals("")) sb.append(map.get(column));
                     }
                 }
-                sb.append(hidden("FROM_TEXT",fromText.replace("\"","\\u0022")));
+                sb.append(hidden("FROM_TEXT",fromText.replace("\"","\\u0027")));
                 sb.append(submitButton(con.getLocale(), "GO"));
             }
         } else {

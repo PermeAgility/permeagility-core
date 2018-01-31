@@ -1,7 +1,7 @@
 /target/
 /db/
 /testdb/
-/.DS_Store
+.DS_Store
 /db_saved/
 /backup/
 /plus/

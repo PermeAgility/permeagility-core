@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright 2015 PermeAgility Incorporated.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -42,7 +42,7 @@ public class Data extends Download {
                 String callback = parms.get("CALLBACK");
 
                 if (view != null && !view.equals("")) {
-			System.out.println("Return sample dataScript "+view);
+			//System.out.println("Return sample dataScript "+view);
 			ODocument viewDoc = con.get("#"+view);
 			if (viewDoc == null) {
 				return ("Could not retrieve data using "+parms.toString()).getBytes();
@@ -50,7 +50,7 @@ public class Data extends Download {
 				String sampleData = viewDoc.field("dataScript");
 				return sampleData == null ? "".getBytes() : sampleData.getBytes();
 			}
-                        
+
 		} else if ((fromTable != null && !fromTable.isEmpty()) || (fromSQL != null && !fromSQL.isEmpty())) {
                     if (callback != null && callback.isEmpty()) { callback = null; }
                     StringBuilder sb = new StringBuilder();
@@ -83,6 +83,6 @@ public class Data extends Download {
                 } else {
                     return "Bad parameters (must specify one of VIEW, FROMTABLE, or SQL), So sorry, no results".getBytes(Weblet.charset);
                 }
-        }	
+        }
 
 }

@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright 2015 PermeAgility Incorporated.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,6 +30,7 @@ public class Menu extends Weblet {
 
     public static boolean DEBUG = false;
     public static boolean HORIZONTAL_LAYOUT = false;
+    public static String PAGE_RUNNER = "permeagility.web.Scriptlet";
 
     private static ConcurrentHashMap<String, String> menuCache = new ConcurrentHashMap<>();
     private static Locale guestLocale = Locale.getDefault();  // Saves the locale of the guest menu cache
@@ -62,7 +63,7 @@ public class Menu extends Weblet {
 
         if (DEBUG) System.out.println("Menu: Getting menu for " + con.getUser());
         StringBuilder menu = new StringBuilder();
-        
+
         try { // Assemble menu based on the items the user can see
             QueryResult qr = con.query("SELECT FROM " + Setup.TABLE_MENU + " WHERE active=TRUE ORDER BY sortOrder");
             for (ODocument m : qr.get()) {
@@ -75,7 +76,7 @@ public class Menu extends Weblet {
                             String menuName = (String) i.field("name");
                             String menuDesc = (String) i.field("description");
                             String classname = (String) i.field("classname");
-                            if (i.field("active")) {
+                            if (i.field("active") != null && (Boolean)i.field("active") == true) {
                                 String pretty = Message.get(locale, "MENUITEM_" + menuName);
                                 if (menuName != null && ("MENUITEM_" + menuName).equals(pretty)) {  // No translation
                                     pretty = menuName;
@@ -90,18 +91,20 @@ public class Menu extends Weblet {
                                 }
                                 if (DEBUG) System.out.println("MenuItem2=" + pretty+" desc="+prettyDesc+" class="+classname);
                                 if (classname == null || Security.authorized(con.getUser(),classname)) {
-                                    if (i.field("classname") == null || ((String) i.field("classname")).equals("")) {
-                                        itemMenu.append((HORIZONTAL_LAYOUT ? "&nbsp;" : "<br>") + "\n");
+                                    if (menuName == null || menuName.equals("")) {
+                                        itemMenu.append((HORIZONTAL_LAYOUT ? "&nbsp;&nbsp;" : "<br>") + "\n");  // Spacer
                                     } else {
-                                        if (i.field("pageScript") != null) {
-                                            //System.out.println("Building a pageScript menu item now");
-                                            itemMenu.append(link((String) i.field("classname")+"?ID="+i.getIdentity().toString().substring(1), pretty, prettyDesc));
+                                        if (i.field("pageScript") != null) {   // Use page runner on pageScript
+                                            itemMenu.append(link(PAGE_RUNNER+"?ID="+i.getIdentity().toString().substring(1), pretty, prettyDesc));
                                         } else {
-                                            //System.out.println("Building a pageScript menu item now");
-                                            itemMenu.append(link((String) i.field("classname"), pretty, prettyDesc));
+                                            if (classname != null) {
+                                              itemMenu.append(link((String)i.field("classname"), pretty, prettyDesc));
+                                            } else {
+                                              System.out.println("Menu item "+i.getIdentity().toString()+" could not be added name="+menuName+" class="+classname);
+                                            }
                                         }
                                         itemMenu.append((HORIZONTAL_LAYOUT ? "&nbsp;" : "<br>") + "\n");
-                                    }                                    
+                                    }
                                     if (DEBUG) System.out.println("MenuItem3.added?=" + pretty+" desc="+prettyDesc+" class="+classname);
                                 } else {
                                     if (DEBUG) System.out.println("MenuItem="+pretty+" not authorized");

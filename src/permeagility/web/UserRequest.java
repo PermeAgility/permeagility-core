@@ -61,16 +61,18 @@ public class UserRequest extends Table {
                                     parms.put(PARM_PREFIX+"roles", roleDoc.getIdentity().toString().substring(1));
                                     if (insertRow(serverCon, "OUser", parms, errors)) {
                                         System.out.println("New user "+parms.get(PARM_PREFIX+"name")+" created");
-                                        ODocument userRecord = serverCon.queryDocument("SELECT FROM OUser WHERE name='"+parms.get(PARM_PREFIX+"name")+"'");
-                                        ODocument userProfile = serverCon.queryDocument("SELECT FROM "+Setup.TABLE_USERPROFILE+" WHERE name='"+parms.get(PARM_PREFIX+"name")+"'");
+                                        ODocument userRecord = serverCon.queryDocument("SELECT FROM OUser WHERE name='"+name+"'");
+                                        ODocument userProfile = serverCon.queryDocument("SELECT FROM "+Setup.TABLE_USERPROFILE+" WHERE name='"+name+"'");
                                         if (userProfile != null && userRecord != null) {
+                                            // Now update the user profile so the new user owns it
                                             Set<ODocument> allow = new HashSet<>();
                                             allow.add(userRecord);
                                             userProfile.field("_allow",allow);  // replace guest with the user    
                                             userProfile.save();
+                                            return paragraph("success",Message.get(locale, "USERREQUEST_CREATED"))+link("/",Message.get(locale, "HEADER_LOGO_DESC"));
+                                        } else {
+                                            return paragraph("error",Message.get(locale, "USERREQUEST_FAILED"));                                    
                                         }
-                                        return paragraph("success",Message.get(locale, "USERREQUEST_CREATED"))+link("/",Message.get(locale, "HEADER_LOGO_DESC"));
-                                        // Now update the user profile so the new user owns it
                                     }
                                 }
                             } else {
