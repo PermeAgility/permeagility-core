@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright 2015 PermeAgility Incorporated.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,10 +28,10 @@ import com.orientechnologies.orient.core.record.impl.ODocument;
 
 /**
  * Implements a hook that is called for all database updates
- * 
+ *
  * Currently only the Audit Trail functionality is implemented
  * Future versions will support configuring the running of a function when a change happens
- * 
+ *
  * The changes will all be logged in the table auditTrail
  * @author glenn
  *
@@ -55,7 +55,7 @@ public class RecordHook implements ORecordHook {
 
     @Override
     public RESULT onTrigger(TYPE iType, ORecord iRecord) {
-        if (ODatabaseRecordThreadLocal.INSTANCE.isDefined() && ODatabaseRecordThreadLocal.INSTANCE.get().getStatus() != STATUS.OPEN) return null;  // Not sure I need this - found in an example
+        if (ODatabaseRecordThreadLocal.instance().isDefined() && ODatabaseRecordThreadLocal.instance().get().getStatus() != STATUS.OPEN) return null;  // Not sure I need this - found in an example
         boolean typeRead = (iType == TYPE.BEFORE_READ || iType == TYPE.AFTER_READ);
         boolean typeDelete = iType == TYPE.BEFORE_DELETE;
         boolean typeFail = (iType == TYPE.CREATE_FAILED || iType == TYPE.DELETE_FAILED || iType == TYPE.UPDATE_FAILED || iType == TYPE.READ_FAILED);
@@ -67,7 +67,7 @@ public class RecordHook implements ORecordHook {
             if (iRecord instanceof ODocument) {
                 final ODocument document = (ODocument) iRecord;
                 String className = document.getClassName();
-                String user = iRecord.getDatabase().getUser().getName();  //ODatabaseRecordThreadLocal.INSTANCE.get().getUser().getName();
+                String user = iRecord.getDatabase().getUser().getName();  //ODatabaseRecordThreadLocal.instance().get().getUser().getName();
                 if (className != null && !className.equalsIgnoreCase("auditTrail")) {
                     if (DEBUG) System.out.println("RecordHook:onTrigger type="+iType.name()+" table="+className+" record="+iRecord.toJSON());
                     try {
@@ -94,7 +94,7 @@ public class RecordHook implements ORecordHook {
                     } catch (Exception e) {
                         System.err.println("Unable to write audit trail using user "+user+" with message "+e.getMessage());
                         e.printStackTrace();
-                    }		    		
+                    }
                 }
             }
         }
