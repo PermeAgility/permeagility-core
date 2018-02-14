@@ -3,7 +3,7 @@
 
     <groupId>com.permeagility</groupId>
     <artifactId>permeagility</artifactId>
-    <version>0.8.2-SNAPSHOT</version>
+    <version>0.8.2</version>
 
     <packaging>jar</packaging>
     <name>Permeagility Core</name>
@@ -39,7 +39,7 @@
       <connection>scm:git:https://github.com/PermeAgility/permeagility-core.git</connection>
       <developerConnection>scm:git:https://github.com/PermeAgility/permeagility-core.git</developerConnection>
       <url>git@github.com:PermeAgility/permeagility-core.git</url>
-      <tag>HEAD</tag>
+      <tag>v0.8.2</tag>
 </scm>
 
 
@@ -211,6 +211,7 @@
                     <goal>jar</goal>
                   </goals>
                     <configuration>
+                         <failOnError>false</failOnError>
                          <additionalparam>-quiet</additionalparam>
                          <additionalparam>-Xdoclint:none</additionalparam>
                     </configuration>
