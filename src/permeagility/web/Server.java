@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright 2015 PermeAgility Incorporated.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -79,10 +79,10 @@ import permeagility.util.PlusClassLoader;
 import permeagility.util.QueryResult;
 import permeagility.util.Setup;
 
-/** This is the PermeAgility web server - it handles security, database connections and some useful caches 
+/** This is the PermeAgility web server - it handles security, database connections and some useful caches
   * all web requests go through the service() function for each thread/socket
-  *  
-  *  Parameters: [port(1999)] [db(plocal:db)] [selftest] 
+  *
+  *  Parameters: [port(1999)] [db(plocal:db)] [selftest]
   */
 public class Server {
 
@@ -100,7 +100,7 @@ public class Server {
 
 	/* Overrideable constants */
 	public static boolean DEBUG = false;
-        public static int WEBSOCKET_QUEUE_CHUNK = 100;   // Number of message to spit out from queue before a pause 
+        public static int WEBSOCKET_QUEUE_CHUNK = 100;   // Number of message to spit out from queue before a pause
         public static int WEBSOCKET_PAUSE_MS = 50;
 	public static boolean ALLOW_KEEP_ALIVE = true;
 	public static boolean KEEP_ALIVE = false;  // if true Keep sockets alive by default, don't wait for browser to ask
@@ -112,12 +112,12 @@ public class Server {
 	public static int SESSION_TIMEOUT = 3600000; // One hour (in ms) - override with -1 to have no timeout
 	public static int GUEST_POOL_SIZE = 10;
 	public static double GUEST_POOL_GROWTH_STEP = 5;  // When growing the pool, increase by this size
-	public static double GUEST_POOL_GROWTH_FACTOR = 0.75; // When active connections reaches this portion of the MAX, increase the pool 
-	public static boolean ALLOW_GUEST_POOL_GROWTH = true;   // Will increase size by if active guest connections > 75% of pool 
+	public static double GUEST_POOL_GROWTH_FACTOR = 0.75; // When active connections reaches this portion of the MAX, increase the pool
+	public static boolean ALLOW_GUEST_POOL_GROWTH = true;   // Will increase size by if active guest connections > 75% of pool
 	public static int SERVER_POOL_SIZE = 5;
 	public static boolean LOGOUT_KILLS_USER = false; // Set this to true to kill all sessions for a user when a user logs out (more secure)
 	public static String LOCKOUT_MESSAGE = "<p>The system is unavailable because a system restore is being performed. Please try again later.</p><a href='/'>Try it now</a>";
-	
+
 	private static Database database;  // Server database connection (internal)
 	private static Database dbNone = null;  // Used for guest access, login and account request
 
@@ -127,34 +127,34 @@ public class Server {
 	static ConcurrentHashMap<String,String> sessions = new ConcurrentHashMap<>(); // Cookie (random+user) -> username
 	static ConcurrentHashMap<String,Locale> sessionsLocale = new ConcurrentHashMap<>(); // Cookie (random+user) -> locale
 	static ConcurrentHashMap<String,Database> sessionsDB = new ConcurrentHashMap<>();  // username -> Database pool
-	
+
 	private static ConcurrentHashMap<String,byte[]> transientImages = new ConcurrentHashMap<>();
 	private static ConcurrentHashMap<String,Date> transientImageDates = new ConcurrentHashMap<>();
 	private static ConcurrentHashMap<String,String> transientImageTypes = new ConcurrentHashMap<>();
 
 	private static ConcurrentHashMap<String,List<String>> pickValues = new ConcurrentHashMap<>();
-	
+
 	private static DatabaseHook databaseHook = null;
 	private static ClassLoader plusClassLoader;
 
         // Websocket op codes
         public static final int WSOC_CONTINUOUS = 0, WSOC_TEXT = 1, WSOC_BINARY = 2, WSOC_PING = 9, WSOC_PONG = 10, WSOC_CLOSING = 8;
-        
-        
+
+
         protected static ArrayList<WebsocketSender.EventStreamListener> eventStreamListeners = new ArrayList<>();
         protected static ArrayList<EventStreamFilter> eventStreamFilters = new ArrayList<>();
-        
+
 	private static ExecutorService executor = Executors.newCachedThreadPool();
 
-	public static void main(String[] args) {	
+	public static void main(String[] args) {
 
 		try { codeSource = new java.io.File(Server.class.getProtectionDomain().getCodeSource().getLocation().getPath()).getName();
 		} catch (Exception e) { e.printStackTrace(); }
-		
+
 		try {
 			HTTP_PORT = Integer.parseInt(args[0]);
 			if (HTTP_PORT < 0 || HTTP_PORT > 65535) HTTP_PORT = 1999;
-		}  
+		}
 		catch (Exception e) {
 			HTTP_PORT = 1999;
 		}
@@ -162,7 +162,7 @@ public class Server {
 			DB_NAME = args[1];
 		}
 		System.out.println("Using port "+HTTP_PORT+" on database "+DB_NAME);
-		
+
 		if (args.length > 2 && args[2].equals("selftest")) {
 			SELF_TEST = true;
 			System.out.println("selftest is specified: will exit after initialization");
@@ -178,14 +178,14 @@ public class Server {
 					System.out.println("Log directory created");
 				} else {
 					// Use plain file called log in the home directory to force console output
-					System.out.println("Log directory could not be created - cannot store logs");					
+					System.out.println("Log directory could not be created - cannot store logs");
 				}
 			}
 			if (logDir.isDirectory()) {
 				SimpleDateFormat dateTimeFormat = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault());
 				String logFilename = "pa_"+dateTimeFormat.format(new Date())+".log";
 				try {
-					PrintStream logPS = new PrintStream(new File(logDir,logFilename)); 
+					PrintStream logPS = new PrintStream(new File(logDir,logFilename));
 					System.setOut(logPS);
 					System.setErr(logPS);
 				} catch (Exception e) {
@@ -202,7 +202,7 @@ public class Server {
                             executor.execute(() -> {
                                 try {
                                     // Call the PermeAgility service and loop if returns true for keep alive
-                                    while(service(new BufferedChannelInputStream(accepted.getSourceChannel(),1024), new ChannelOutputStream(accepted.getSinkChannel()))) {}  
+                                    while(service(new BufferedChannelInputStream(accepted.getSourceChannel(),1024), new ChannelOutputStream(accepted.getSinkChannel()))) {}
                                     accepted.close();
                                     channel.resumeAccepts();
                                  } catch (Exception e) {
@@ -218,21 +218,21 @@ public class Server {
 
                 // Start the server and initialize
                 AcceptingChannel<? extends StreamConnection> server = null;
-                
+
 		try {
 			// Start the XNNIO server to make sure we get the port first
                         final XnioWorker worker = Xnio.getInstance().createWorker(OptionMap.EMPTY);
                         server = worker.createStreamConnectionServer(new InetSocketAddress(HTTP_PORT), acceptListener, OptionMap.EMPTY);
-                        
-			if (initializeServer()) {   
+
+			if (initializeServer()) {
                             System.out.println("Server initialization completed successfully");
                             // Add shutdown hook
                             Runtime.getRuntime().addShutdownHook(new Thread() {
                                 public void run() {
                                     System.out.println("ShutdownHook called - shutting down executors");
                                     executor.shutdown();
-                                    closeAllConnections(); 
-                                } 
+                                    closeAllConnections();
+                                }
                             });
                             if (SELF_TEST) {
                                 System.out.println("self test - exiting...");
@@ -256,9 +256,9 @@ public class Server {
 		}
                 // Stuff just runs now.
 	}
-		
+
 	public final static void exit(int returnCode) {
-            System.out.println("Server exit with status "+returnCode);     
+            System.out.println("Server exit with status "+returnCode);
             System.exit(returnCode);
 	}
 
@@ -272,7 +272,7 @@ public class Server {
 		String cookieValue = null;
 		String newCookieValue = null;
 		Locale requestLocale = null;
-		
+
 		boolean keep_alive = KEEP_ALIVE;  // Get the dynamic default
                 boolean websocket = false;
                 String websocket_version = "";
@@ -283,7 +283,7 @@ public class Server {
                 BitInputStream bitsIn = null;
 
         	Database userdb = null;
-                
+
             long startTime = System.currentTimeMillis();
             try {
 
@@ -308,7 +308,7 @@ public class Server {
                 if (st.hasMoreTokens()) {
                         file = st.nextToken();
                 } else {
-                        if (get.getBytes().length == 3) {  // EF BF BF (Not sure whether this means keep alive or not so FU!
+                        if (get.getBytes().length <= 3) {  // EF BF BF (Not sure whether this means keep alive or not so FU!
                                 //if (ALLOW_KEEP_ALIVE) keep_alive = true;    //System.out.println("EFBFBF? FU");
                                 return false;
                         } else {
@@ -322,7 +322,7 @@ public class Server {
                         if (st.hasMoreTokens()) {
                                 version = st.nextToken();
                         }
-                        // loop through the rest of the input lines 
+                        // loop through the rest of the input lines
                         String boundaryValue = null;
                         get = readLine(is);
                         while (is.available()>0 && !get.trim().equals("")) {
@@ -430,7 +430,7 @@ public class Server {
 
                         try {
                                 if (DEBUG) System.out.println("DATA="+file);
-                                byte[] theData = new byte[0]; 
+                                byte[] theData = new byte[0];
 
                                 // The little icon for browser tabs
                                 if (file.startsWith("/favicon.ico")) {
@@ -438,7 +438,7 @@ public class Server {
                                 }
 
                                 // Internal images and JavaScript - anyone can have them
-                                if (file.startsWith("/images/") 
+                                if (file.startsWith("/images/")
                                 || file.startsWith("/js/")) {
                                         if (DEBUG) System.out.println("Looking for resource "+file);
                                         if (file.contains("?")) {
@@ -501,7 +501,7 @@ public class Server {
                                 // Logout if logged in and login class requested
                                 if (userdb != null && className.equals(LOGIN_CLASS)) {  // If you ask to login and you are already connected, then you have asked to log out
                                         System.out.println("User "+userdb.getUser()+" logging out");
-                                        sessions.remove(cookieValue);  
+                                        sessions.remove(cookieValue);
                                                 // Should remove other cookies for this user (They asked to log out - their user ID will be removed from memory)
                                                 if (LOGOUT_KILLS_USER) {
                                                         String u = userdb.getUser();
@@ -510,7 +510,7 @@ public class Server {
                                                                 for (String c : sessions.keySet()) {
                                                                         String s = sessions.get(c);
                                                                         if (s != null && s.equals(u)) {
-                                                                                cookiesToRemove.add(c); 
+                                                                                cookiesToRemove.add(c);
                                                                         }
                                                                 }
                                                                 for (String c : cookiesToRemove) {
@@ -526,12 +526,12 @@ public class Server {
                                 }
 
                                 // If username specified in parms and we do not have a connection we must be logging in
-                                String parmUserName = parms.get("USERNAME"); 
+                                String parmUserName = parms.get("USERNAME");
                                 if (userdb == null || parmUserName != null) {
                                         if (parmUserName != null) {  // Trying to log in
                                                 try {
                                                         userdb = sessionsDB.get(parmUserName);
-                                                        if (userdb == null || !userdb.isPassword(parms.get("PASSWORD"))) { 	
+                                                        if (userdb == null || !userdb.isPassword(parms.get("PASSWORD"))) {
                                                                 if (userdb != null) {
                                                                         System.out.println("session with wrong password found - removing it");
                                                                         if (cookieValue != null) sessions.remove(cookieValue);
@@ -559,7 +559,7 @@ public class Server {
                                                         sessionsDB.put(parmUserName, userdb);
                                                 }
                                                 if (DEBUG) System.out.println("User "+userdb.getUser()+" logged in");
-                                        }		
+                                        }
 
                                         // Get database connection (guest) for non users
                                         if (userdb == null) {
@@ -576,7 +576,7 @@ public class Server {
                                                         }
                                                 } catch (Exception e) {
                                                         System.out.println("Error logging in with guest "+e);
-                                                }									
+                                                }
                                         }
                                 }
 
@@ -621,7 +621,7 @@ public class Server {
                                     bitsIn = new BitInputStream(is);  // Upgrade the input stream to be bitly
                                     websocket_sender = new WebsocketSender(os,userdb);  // The sender will upgrade the output stream
                                     executor.execute(websocket_sender);
-                                    
+
                                     // Websocket loop
                                     while (keep_alive) {
                                         int fin = bitsIn.readBits(1);
@@ -632,13 +632,13 @@ public class Server {
                                         if (paylen == 126) {
                                             paylen = bitsIn.readBits(16);
                                         } else if (paylen == 127) {
-                                            paylen = bitsIn.readBits(64);                                
+                                            paylen = bitsIn.readBits(64);
                                         }
                                         int[] masks = new int[4];
                                         masks[0] = (mask == 1 ? bitsIn.readBits(8): 0);
                                         masks[1] = (mask == 1 ? bitsIn.readBits(8): 0);
                                         masks[2] = (mask == 1 ? bitsIn.readBits(8): 0);
-                                        masks[3] = (mask == 1 ? bitsIn.readBits(8): 0); 
+                                        masks[3] = (mask == 1 ? bitsIn.readBits(8): 0);
                                         if (paylen > -1) {
                                             if (DEBUG) System.out.print("WebSocket header: fin="+fin+" rsv="+rsv+" op="+opCode+" mask="+mask+" paylen="+paylen);
 
@@ -667,20 +667,20 @@ public class Server {
                                             }
                                             // Process the request based on operation code
                                             switch (opCode) {
-                                                case WSOC_CLOSING:  
+                                                case WSOC_CLOSING:
                                                     websocket_sender.closed();
                                                     return false;
                                                 case WSOC_PING:
                                                     websocket_sender.pinged();
                                                     break;
-                                                case WSOC_PONG:  // Ignore a pong 
+                                                case WSOC_PONG:  // Ignore a pong
                                                     break;
                                                 case WSOC_BINARY:
                                                     System.out.println("Websocket received (and ignored) binary message: "+Dumper.hexDump(bytes));
                                                     break;
                                                 case WSOC_TEXT:  // Process text message - assuming JSON (and last in the switch)
                                                     JSONObject jmsg;
-                                                    try { 
+                                                    try {
                                                         jmsg = new JSONObject(msg.toString());
                                                     } catch (Exception e) {
                                                         System.out.println("Invalid JSON Websocket request (ignored): "+msg.toString());
@@ -693,7 +693,7 @@ public class Server {
                                                         System.out.println("Error processing Websocket request: "+msg.toString()+"\n"+e.getClass().getName()+"="+e.getMessage());
                                                         e.printStackTrace();
                                                     }
-                                                    break; 
+                                                    break;
                                             }
                                         } else {
                                             System.out.println("bad socket: paylen="+paylen);
@@ -753,14 +753,14 @@ public class Server {
                                 if (userdb != null) {
                                         if (DEBUG) System.out.println("Authorizing user "+userdb.getUser()+" for class "+className);
                                         if (Security.authorized(userdb.getUser(),className)) {
-                                                if (DEBUG) System.out.println("User "+userdb.getUser()+" is allowed to use "+className);								
+                                                if (DEBUG) System.out.println("User "+userdb.getUser()+" is allowed to use "+className);
                                         } else {
-                                            if (userdb.getUser().equals("admin") && className.equals("permeagility.web.Query")) { 
+                                            if (userdb.getUser().equals("admin") && className.equals("permeagility.web.Query")) {
                                                 // Allow admin to use Query tool if something needs to be fixed with security or the database
                                             } else {
                                                 System.out.println("User "+userdb.getUser()+" is attempting to use "+className+" without authorization");
                                                 parms.put("SECURITY_VIOLATION","You are not authorized to access "+className);
-                                                className = HOME_CLASS;							
+                                                className = HOME_CLASS;
                                             }
                                         }
                                 }
@@ -775,7 +775,7 @@ public class Server {
                                 if (DEBUG) System.out.println("LOADING HTML PAGE="+className+" PARAMETER="+parms.toString());
                                         DatabaseConnection con = null;
                                         try {
-                                                if (userdb != null) { 
+                                                if (userdb != null) {
                                                         con = userdb.getConnection();
                                                         if (con == null) {
                                                                 theData = "<BODY><P>Server is busy, please try again</P></BODY>".getBytes();
@@ -794,12 +794,12 @@ public class Server {
                                                 con = null;
                                         }
                                         if (userdb != null && con != null) {
-                                                userdb.freeConnection(con);							
+                                                userdb.freeConnection(con);
                                         }
                             } else if (classInstance instanceof Download) {
                                 Download downloadlet = (Download)classOf.newInstance();
                                         DatabaseConnection con = null;
-                                        if (userdb != null) { 
+                                        if (userdb != null) {
                                                 con = userdb.getConnection();
                                                 if (con != null) {
                                                         if (DEBUG) System.out.println("DOWNLOAD PAGE="+className+" PARAMETER="+parms.toString());
@@ -837,7 +837,7 @@ public class Server {
                                         os.write(("Date: " + new java.util.Date() + "\r\n").getBytes());
                                         os.write(("Server: PermeAgility 1.0\r\n").getBytes());
                                         os.write(("Content-type: text/html" + "\r\n\r\n").getBytes());
-                                } 
+                                }
                                 os.write(("<HTML><HEAD><TITLE>File Not Found</TITLE></HEAD>").getBytes());
                                 os.write(("<BODY><H1>HTTP Error 404: File Not Found</H1></BODY></HTML>").getBytes());
                                 os.flush();
@@ -849,8 +849,8 @@ public class Server {
                         os.write(("HTTP/1.1 501 Not Implemented\r\n").getBytes());
                         os.write(("Date: " + new java.util.Date() + "\r\n").getBytes());
                         os.write(("Server: PermeAgility 1.0\r\n").getBytes());
-                        os.write(("Content-type: text/html" + "\r\n\r\n").getBytes()); 
-                    }       
+                        os.write(("Content-type: text/html" + "\r\n\r\n").getBytes());
+                    }
                     os.write("<HTML><HEAD><TITLE>Not Implemented</TITLE></HEAD>".getBytes());
                     os.write("<BODY><H1>HTTP Error 501: Not Implemented</H1></BODY></HTML>".getBytes());
                     os.flush();
@@ -862,7 +862,7 @@ public class Server {
             }
 
             return keep_alive;
-	}   
+	}
 
 	/** Read a line from the input stream into a string buffer */
 	private final static String readLine(InputStream is) throws IOException {
@@ -876,12 +876,12 @@ public class Server {
             } while (c != 0x0A  && c != -1);
             return sb.toString();
 	}
-	
+
 	/** Read the multipart request and put into parms (files come this way and sometimes form fields)
 	 * If a file is uploaded, it will be put in a temp file and the file name will be in the parms */
 	private final static void readMultipartData(InputStream is, String boundaryValue, HashMap<String,String> parms) {
 		// Read a part until the boundary value is reached.
-		try { 
+		try {
 			if (is.available() == 0) { return; }
 			readLine(is);
 			if (is.available() == 0) { return; }
@@ -913,9 +913,9 @@ public class Server {
 			char[] boundary = boundaryValue.toCharArray();
 			char[] bcompare = new char[boundaryValue.length()];
 			int boundaryLength = boundaryValue.length();
-			
+
 			ByteArrayOutputStream content = new ByteArrayOutputStream();
-			
+
 			readLine(is); // Get to the content (past the /r/l)
 
 			if (DEBUG) System.out.println("Server.ReadMultipartData: content: available="+is.available()+" boundary="+boundaryValue);
@@ -951,9 +951,9 @@ public class Server {
 				content.writeTo(fo);
 				fo.close();
 				String scontent = temp.getAbsolutePath();
-				parms.put(content_name, scontent);				
-				parms.put(content_name+"_FILENAME", file_name);				
-				parms.put(content_name+"_TYPE", content_type);				
+				parms.put(content_name, scontent);
+				parms.put(content_name+"_FILENAME", file_name);
+				parms.put(content_name+"_TYPE", content_type);
 			} else if (content_name != null) {
 				String scontent = content.toString().trim();  // Remove trailing /r/l
 				String newValue = parms.get(content_name);
@@ -969,7 +969,7 @@ public class Server {
 			e.printStackTrace();
 		}
 	}
-	
+
         /* Return a file response and flush - file is streamed in 1024 byte chunks */
         private final static void returnFile(String filename, File thefile, boolean keep_alive, OutputStream os) throws Exception {
             os.write(getHeader(getContentType(filename), (int) thefile.length(), null, null, keep_alive).getBytes());
@@ -981,8 +981,8 @@ public class Server {
             iis.close();
             os.flush();
         }
-        
-	/** Get HTML header adding a cookie and content disposition 
+
+	/** Get HTML header adding a cookie and content disposition
 	 * @param keep_alive */
 	public final static String getHeader(String ct, int size, String newCookieValue, String content_disposition, boolean keep_alive) {
 		String responseHeader = "HTTP/1.1 200 OK\r\n"
@@ -1054,24 +1054,24 @@ public class Server {
 		return responseHeader;
 	}
 
-	/** Get the server's database connection 
+	/** Get the server's database connection
 	 *  (this is protected as only classes within this package should use this) */
 	protected final static DatabaseConnection getServerConnection() {
 		return database.getConnection();
 	}
-	
+
 	protected final static void freeServerConnection(DatabaseConnection dbc) {
 		if (dbc != null) database.freeConnection(dbc);
 	}
-	
+
 	protected final static String getServerUser() {
 		return database.getUser();
 	}
-	
+
 	protected final static String getClientVersion() {
 		return database.getClientVersion();
 	}
-	
+
 	/** Get the mime content type based on the filename */
 	public final static String getContentType(String name) {
 		if (name.endsWith(".html") || name.endsWith(".htm")) return "text/html";
@@ -1096,7 +1096,7 @@ public class Server {
 		transientImageTypes.put(name, type);
 		return name;
 	}
-	
+
 	/**  Call this when you update a table that the server or caches may be interested in   */
 	public final static void tableUpdated(String table) {
 		if (table.equalsIgnoreCase("metadata:schema")) {
@@ -1138,7 +1138,7 @@ public class Server {
 		if (DEBUG) System.out.println("Server: tableUpdated("+table+") - query cache updated");
 		Weblet.queryCache.refreshContains(table);
 	}
-	
+
 	public final static List<String> getPickValues(String table, String column) {
 		if (pickValues.isEmpty()) {
 			updatePickValues();  // There must be a few by default - empty means not loaded yet (Note: restart server if delete)
@@ -1162,9 +1162,9 @@ public class Server {
 			System.err.println("Error getting pickValues: "+e.getMessage());
 		} finally {
 			if (con != null) freeServerConnection(con);
-		}		
+		}
 	}
-	
+
 	public final static void viewPage(String url) {
 		Browser.displayURL("http://localhost:"+HTTP_PORT+"/"+url);
 	}
@@ -1181,16 +1181,16 @@ public class Server {
 			System.out.println("Cannot store init file");
 		}
 	}
-	
+
 	private final static String getLocalSetting(String key, String def) {
 		try {
 			localSettings.load(new FileReader(SETTINGS_FILE));
-		} catch (IOException fnf) { 
+		} catch (IOException fnf) {
 			System.out.println("Cannot open init file - assuming defaults");
 		}
-		return localSettings.getProperty(key,def);	
+		return localSettings.getProperty(key,def);
 	}
-	
+
 	static final boolean initializeServer() {
 		System.out.println("Initializing server using OrientDB Version "+OConstants.getVersion()+" Build number "+OConstants.getBuildNumber());
 		try {
@@ -1208,7 +1208,7 @@ public class Server {
 			}
 //                        database = new Database(DB_NAME, "admin", "admin");
 			database = new Database(DB_NAME, "server", (p == null ? "server" : p));
-			if (!database.isConnected() && !DB_NAME.startsWith("memory")) {    
+			if (!database.isConnected() && !DB_NAME.startsWith("memory")) {
                             System.out.println("Panic: Cannot login with server user, maybe this is first time so will try admin/admin");
                             database = new Database(DB_NAME, "admin", "admin");
 			}
@@ -1225,26 +1225,26 @@ public class Server {
 					}
 				} else {
 					System.out.println("***\n*** Exit condition: couldn't connect to remote as server, please add server OUser with admin role - Exiting.\n***");
-					exit(-1);					
+					exit(-1);
 				}
 			}
 			if (database.isConnected()) {
 				System.out.println("Connected to database name="+DB_NAME+" version="+database.getClientVersion());
 				DatabaseConnection con = getServerConnection();
-				
+
 				if (!Setup.checkInstallation(con)) {
 					System.out.println("---\n--- Warning condition: checkInstallation failed - check install messages in context\n---");
 				}
 
 				database.setPoolSize(SERVER_POOL_SIZE);
-				
+
 				// Initialize security
 				Security.refreshSecurity();
 				if (Security.keyRoleCount() < 1) {
 					System.out.println("***\n*** Exit condition: No key roles found for security - no functions to enable\n***");
 					exit(-1);
 				}
-				
+
 				// Initialize PlusClassLoader
 				plusClassLoader = PlusClassLoader.get();
 				if (plusClassLoader == null) {
@@ -1259,11 +1259,11 @@ public class Server {
 					System.out.println("***\n*** Exit condition: Could not apply constant overrides\n***");
 					exit(-1);
 				}
-				
+
 				Message.initialize(con);
-				
+
 				freeServerConnection(con);
-				
+
 				if (restore_lockout) restore_lockout = false;
 			} else {
                             System.out.println("Database not connected. Wha?");
@@ -1278,7 +1278,7 @@ public class Server {
 
 	/** Get the guest connection */
 	public final static Database getNonUserDatabase() {
-		if (dbNone == null)	{  
+		if (dbNone == null)	{
 			Database d = null;
 			try {
 				d = new Database(DB_NAME,"guest","guest");
@@ -1290,7 +1290,7 @@ public class Server {
 		}
 		return dbNone;
 	}
-	
+
 	protected final static void closeAllConnections() {
 		System.out.print("dropping all connections...");
 		for (Database d : sessionsDB.values()) {
@@ -1305,28 +1305,28 @@ public class Server {
 		System.gc();
 		System.out.println("done");
 	}
-	
+
     public final static Date getServerInitTime() {   return serverInitTime;  }
     public final static Date getSecurityRefreshTime() {   return Security.securityRefreshTime;  }
     public final static String getCodeSource() { return codeSource; }
     public final static String getDBName() { return DB_NAME; }
     public final static int getHTTPPort() { return HTTP_PORT; }
-	
+
     public final static void addEventStreamFilter(EventStreamFilter esf) {
         eventStreamFilters.add(esf);
     }
 
     /** Because Websocket is two-way asynchronous, this second thread will be opened to send messages
-    * while the original request thread will continue to process the inputs and call processRequest(msg,userdb) 
-    * when a text request comes in 
-    * 
+    * while the original request thread will continue to process the inputs and call processRequest(msg,userdb)
+    * when a text request comes in
+    *
     * Note: the request is executed from the input thread and puts messages onto the websocketMessageQueue
     */
     private static class WebsocketSender implements Runnable {
 
         BitOutputStream bitsOut;
         Database userdb;
-        ConcurrentLinkedDeque<String> webSocketMessageQueue = new ConcurrentLinkedDeque<>(); 
+        ConcurrentLinkedDeque<String> webSocketMessageQueue = new ConcurrentLinkedDeque<>();
         HashMap<String,Object> openLiveQueries = new HashMap<>();
 
         public WebsocketSender(OutputStream os, Database db) {
@@ -1338,8 +1338,8 @@ public class Server {
         boolean websocket_pinged = false;
         public void pinged() { websocket_pinged = true; }
 
-        public void closed() { 
-            websocket_alive = false; 
+        public void closed() {
+            websocket_alive = false;
             System.out.println("Live query unsubscribing");
             DatabaseConnection con = userdb.getDatabaseConnection();
             try {
@@ -1349,18 +1349,18 @@ public class Server {
                         System.out.println("Unsubscribe (during close) "+subject+" result: "+ures);
                     } catch (Exception e) {
                         e.printStackTrace();
-                        webSocketMessageQueue.add("{ \"type\": \"error\", \"message\": \""+e.getMessage()+"\" }");                                                                            
+                        webSocketMessageQueue.add("{ \"type\": \"error\", \"message\": \""+e.getMessage()+"\" }");
                     }                }
                 openLiveQueries.clear();
             } catch (Exception e) {
                 e.printStackTrace();
-                webSocketMessageQueue.add("{ \"type\": \"error\", \"message\": \""+e.getMessage()+"\" }");                                                                            
+                webSocketMessageQueue.add("{ \"type\": \"error\", \"message\": \""+e.getMessage()+"\" }");
             } finally {
                 userdb.freeConnection(con);
             }
         }
 
-        
+
         @Override public void run() {
 
             while(websocket_alive) {
@@ -1375,7 +1375,7 @@ public class Server {
                     }
                     // Send the messages in the queue
                     int pendingOut = Math.min(webSocketMessageQueue.size(),WEBSOCKET_QUEUE_CHUNK);
-                    if (pendingOut == 1) {                        
+                    if (pendingOut == 1) {
                         sendWebsocketMessage(bitsOut, WSOC_TEXT, webSocketMessageQueue.poll().getBytes(StandardCharsets.UTF_8));
                     } else if (pendingOut > 1) {
                         //if (DEBUG) System.out.println("Found "+pendingOut+" of "+webSocketMessageQueue.size()+" messages to send");
@@ -1392,7 +1392,7 @@ public class Server {
                 } catch (InterruptedException ie) {
                     System.out.println("Interrupted the websocket out thread - so?"+ie);
                 } catch (Exception e) {
-                    System.out.println("Exception in the websocket out thread - so I will close socket - goodbye"+e);                  
+                    System.out.println("Exception in the websocket out thread - so I will close socket - goodbye"+e);
                     websocket_alive = false;
                 }
             }
@@ -1413,7 +1413,7 @@ public class Server {
                 bitsOut.writeBits(16, bytes.length);
             } else {
                 bitsOut.writeBits(7, 127);  // put 127, then the length as a 64 bit (crazy, I know)
-                bitsOut.writeBits(64, bytes.length);                                                                            
+                bitsOut.writeBits(64, bytes.length);
             }
             // Write out the message
             if (bytes != null) {
@@ -1430,10 +1430,10 @@ public class Server {
             String type = jo.getString("type");
             if (type == null) {
                 System.out.println("WebSocket: type is null - sorry, no comprende");
-                
+
             } else if (type.equalsIgnoreCase("ping")) {
-                    webSocketMessageQueue.add("{ \"type\": \"pong\" }");                               
-                    
+                    webSocketMessageQueue.add("{ \"type\": \"pong\" }");
+
             } else if (type.equalsIgnoreCase("event") && jo.has("subject")) {
                 String subject = jo.getString("subject");
                 if (jo.has("data")) {
@@ -1451,28 +1451,28 @@ public class Server {
                         }
                     }
                 }
-                //webSocketMessageQueue.add("{ \"type\": \"event\", \"subject\": \""+jo.getString("subject")+"\" }");        
-                
+                //webSocketMessageQueue.add("{ \"type\": \"event\", \"subject\": \""+jo.getString("subject")+"\" }");
+
             } else if (type.equalsIgnoreCase("query") && jo.has("subject")) {
                 DatabaseConnection con = userdb.getDatabaseConnection();
                 try {
                     QueryResult result = con.query(jo.getString("subject"));
                     if (result.size() == 0) {
-                        webSocketMessageQueue.add("{ \"type\": \"event\", \"subject\": \""+jo.getString("subject")+"\" }");                                                                            
+                        webSocketMessageQueue.add("{ \"type\": \"event\", \"subject\": \""+jo.getString("subject")+"\" }");
                     } else {
                         long st = System.currentTimeMillis();
                         for (ODocument d : result.get()) {
-                            webSocketMessageQueue.add("{ \"type\": \"data\", \"data\": "+d.toJSON()+" }");                                                                        
+                            webSocketMessageQueue.add("{ \"type\": \"data\", \"data\": "+d.toJSON()+" }");
                         }
-                        webSocketMessageQueue.add("{ \"type\": \"eod\"}");    // end of data                                                                    
+                        webSocketMessageQueue.add("{ \"type\": \"eod\"}");    // end of data
                         System.out.println("Queued up "+result.size()+" rows in (ms)"+(System.currentTimeMillis() - st));
                     }
                 } catch (Exception e) {
-                    webSocketMessageQueue.add("{ \"type\": \"error\", \"message\": \""+e.getMessage()+"\" }");                                                                            
+                    webSocketMessageQueue.add("{ \"type\": \"error\", \"message\": \""+e.getMessage()+"\" }");
                 } finally {
-                    userdb.freeConnection(con);                                        
+                    userdb.freeConnection(con);
                 }
-                
+
             } else if (type.equalsIgnoreCase("update") && jo.has("subject")) {
                 DatabaseConnection con = userdb.getDatabaseConnection();
                 try {
@@ -1504,9 +1504,9 @@ public class Server {
                     if (DEBUG) System.out.println("UPDATE="+u);
                     Object result = con.update(u);
                 } catch (Exception e) {
-                    webSocketMessageQueue.add("{ \"type\": \"error\", \"message\": \""+e.getMessage()+"\" }");                                                                            
+                    webSocketMessageQueue.add("{ \"type\": \"error\", \"message\": \""+e.getMessage()+"\" }");
                 } finally {
-                    userdb.freeConnection(con);                                        
+                    userdb.freeConnection(con);
                 }
 
             } else if (type.equalsIgnoreCase("upsert") && jo.has("subject")) {
@@ -1541,11 +1541,11 @@ public class Server {
                     if (DEBUG) System.out.println("UPDATE="+u);
                     Object result = con.update(u);
                 } catch (Exception e) {
-                    webSocketMessageQueue.add("{ \"type\": \"error\", \"message\": \""+e.getMessage()+"\" }");                                                                            
+                    webSocketMessageQueue.add("{ \"type\": \"error\", \"message\": \""+e.getMessage()+"\" }");
                 } finally {
-                    userdb.freeConnection(con);                                        
+                    userdb.freeConnection(con);
                 }
-                
+
             } else if (type.equalsIgnoreCase("subscribe") && jo.has("subject") ) {
                 String subject = jo.getString("subject");
                 if (subject.equals("event")) {
@@ -1566,7 +1566,7 @@ public class Server {
                             }
                         } catch (Exception e) {
                             e.printStackTrace();
-                            webSocketMessageQueue.add("{ \"type\": \"error\", \"message\": \""+e.getMessage()+"\" }");                                                                            
+                            webSocketMessageQueue.add("{ \"type\": \"error\", \"message\": \""+e.getMessage()+"\" }");
                         } finally {
                             userdb.freeConnection(con);
                         }
@@ -1577,17 +1577,17 @@ public class Server {
                       try {
                           QueryResult result = con.query("SELECT FROM "+subject);
                           if (result.size() == 0) {
-                              webSocketMessageQueue.add("{ \"type\": \"event\", \"subject\": \""+subject+"\" }");                                                                            
+                              webSocketMessageQueue.add("{ \"type\": \"event\", \"subject\": \""+subject+"\" }");
                           } else {
                               for (ODocument d : result.get()) {
-                                  webSocketMessageQueue.add("{ \"type\": \"data\", \"subject\": \""+subject+"\", \"data\": "+d.toJSON()+" }");                                                                        
+                                  webSocketMessageQueue.add("{ \"type\": \"data\", \"subject\": \""+subject+"\", \"data\": "+d.toJSON()+" }");
                               }
-                              webSocketMessageQueue.add("{ \"type\": \"eod\", \"subject\": \""+subject+"\"}");    // end of data                                                                    
+                              webSocketMessageQueue.add("{ \"type\": \"eod\", \"subject\": \""+subject+"\"}");    // end of data
                           }
                       } catch (Exception e) {
-                          webSocketMessageQueue.add("{ \"type\": \"error\", \"message\": \""+e.getMessage()+"\" }");                                                                            
+                          webSocketMessageQueue.add("{ \"type\": \"error\", \"message\": \""+e.getMessage()+"\" }");
                       } finally {
-                          userdb.freeConnection(con);                                        
+                          userdb.freeConnection(con);
                       }
                     }
                 }
@@ -1602,7 +1602,7 @@ public class Server {
                     openLiveQueries.remove(subject);
                 } catch (Exception e) {
                     e.printStackTrace();
-                    webSocketMessageQueue.add("{ \"type\": \"error\", \"message\": \""+e.getMessage()+"\" }");                                                                            
+                    webSocketMessageQueue.add("{ \"type\": \"error\", \"message\": \""+e.getMessage()+"\" }");
                 } finally {
                     userdb.freeConnection(con);
                 }
@@ -1635,12 +1635,12 @@ public class Server {
             }
         }
 
-        class EventStreamListener {            
+        class EventStreamListener {
             String user = null;
-            
+
             public String getUser() { return user; }
             public EventStreamListener setUser(String u) { user = u; return this; }
-            
+
             public void onEvent(String subject, String data) throws OException {
                 if (DEBUG) System.out.println("Event: "+data);
                 webSocketMessageQueue.add("{ \"type\": \"event\", \"subject\": \""+subject+"\", \"data\": "+data+" }");
@@ -1651,7 +1651,7 @@ public class Server {
                 webSocketMessageQueue.add("{ \"type\": \"event\", \"subject\": \""+"unsubscribe"+"\" }");
             }
         }
-        
+
     }
 
     public interface EventStreamFilter {

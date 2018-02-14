@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright 2015 PermeAgility Incorporated.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -43,39 +43,39 @@ import permeagility.web.Security;
 public class DatabaseConnection {
 
 	public static boolean DEBUG = false;
-	
+
 	Database db = null;
 	ODatabaseDocumentTx c = null;
 	long lastAccess = System.currentTimeMillis();
-	
+
         // Row counts are shared by all users
 	private static ConcurrentHashMap<String,Long> tableCountCache = new ConcurrentHashMap<>();
-	
+
 	protected DatabaseConnection(Database _db, ODatabaseDocumentTx _c) {
 		db = _db;
 		c = _c;
 		if (DEBUG) System.out.println("New database connection initiated "+c.getName());
 	}
-	
+
 	protected void close() {
 			c.activateOnCurrentThread();
 			c.close();
 			c = null;
 	}
-	
+
 	public boolean isConnected() {
 		return c != null;
 	}
-        
+
         // The NewConnection functions are for thread processes that need another connection after the user has moved on from this one
         public DatabaseConnection getNewConnection() {
             return db.getConnection();
         }
-        
+
         public void freeNewConnection(DatabaseConnection con) {
             db.freeConnection(con);
         }
-	
+
 	/** Verification of password when changing password */
 	public boolean isPassword(String pass) {
 		return db.isPassword(pass);
@@ -85,23 +85,23 @@ public class DatabaseConnection {
 	public void setPassword(String pass) {
 		db.setPassword(pass);
 	}
-	
+
 	/** Return the user name */
 	public String getUser() {
 		return db.getUser();
 	}
-	
+
 	/** Return the user's locale */
 	public Locale getLocale() {
 		return db.getLocale();
 	}
-	
+
 	/** Allows overriding the locale for the connection. This is for supporting non-users changing the language for the request */
 	public void setLocale(Locale l) {
 		db.setLocale(l);
 	}
-	
-	/** Get the native connection object. A ODatabaseDocumentTx */ 
+
+	/** Get the native connection object. A ODatabaseDocumentTx */
 	public ODatabaseDocumentTx getDb() {
 		c.activateOnCurrentThread();
 		return c;
@@ -126,7 +126,7 @@ public class DatabaseConnection {
 			return c.getMetadata().getSecurity();
 		}
 	}
-	
+
 	/** Create a document - supply the classname */
 	public ODocument create(String className) {
 		c.activateOnCurrentThread();
@@ -142,7 +142,7 @@ public class DatabaseConnection {
 		c.activateOnCurrentThread();
 		c.commit();
 	}
-	
+
 	public void rollback() {
 		c.activateOnCurrentThread();
 		c.rollback();
@@ -167,7 +167,7 @@ public class DatabaseConnection {
 			return -1;
 		}
 	}
-	
+
 	/** Called when the table is changed to clear the rowcount cache */
 	public static void rowCountChanged(String table) {
 		tableCountCache.remove(table);
@@ -177,7 +177,7 @@ public class DatabaseConnection {
 	public static void clearRowCounts() {
 		tableCountCache.clear();
 	}
-	
+
 	/** Execute a query and return a QueryResult object */
     public synchronized QueryResult query(String expression) {
     	if (DEBUG) System.out.println("DatabaseConnection.DEBUG(query)="+expression+";");
@@ -216,7 +216,7 @@ public class DatabaseConnection {
        	c.activateOnCurrentThread();
        	return c.getRecord(new ORecordId(rid));
     }
-    
+
     /** Not used very often if at all. Dumps the contents of a result set to System.out */
     public static void dump(QueryResult rows) {
     	if (rows.size() > 0) {
@@ -238,7 +238,7 @@ public class DatabaseConnection {
     /** Flush the local cache */
     public void flush() {
         c.activateOnCurrentThread();
-        c.getLocalCache().invalidate();		
+        c.getLocalCache().invalidate();
     }
 
     public Collection<OProperty> getColumns(String table) {
@@ -279,8 +279,8 @@ public class DatabaseConnection {
         ArrayList<OProperty> newList = new ArrayList<>();
         for (String name : columnNames) {
             name = name.trim();
-            if (!name.startsWith("-")) {
-                if (name.trim().startsWith("button")) {
+            if (!name.startsWith("-") && !name.equals("")) {
+                if (name.startsWith("button")) {
                     OProperty bd = new ButtonProperty();
                     bd.setName(name.replace("(","_").replace(":","_").replace(")",""));
                     newList.add(bd);
@@ -327,7 +327,7 @@ public class DatabaseConnection {
         return result;  // will be empty but not null
     }
 
-    /** 
+    /**
      * Used to create a column for a button in the UI. These buttons can be invoked via columnOverride
      */
     class ButtonProperty implements OProperty {

@@ -32,8 +32,8 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 	public static boolean INSTALLED = false;  // Set via constant to complete installation
 	public static String INSTALLED_VERSION = "0";  // Set via constant to complete installation
 
-	public static String TABLE = "D3Script";
-	public static String TABLE_PLUGIN = "D3Plugin";
+	public static String TABLE = "d3Script";
+	public static String TABLE_PLUGIN = "d3Plugin";
 
 	public static String MENU_CLASS = "permeagility.plus.d3.D3Builder";
 	public static String DATA_CLASS = "permeagility.plus.d3.Data";

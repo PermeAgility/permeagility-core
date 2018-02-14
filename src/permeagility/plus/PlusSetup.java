@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright 2015 PermeAgility Incorporated.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -135,9 +135,9 @@ public abstract class PlusSetup extends Weblet {
 
     /** Update the INSTALLED_VERSION constant  */
     public static void setPlusVersion(DatabaseConnection con, String classname, String info, String version) {
-        Setup.checkCreateConstant(con,classname,info,"INSTALLED_VERSION",version==null ? "current" : version);	
+        Setup.checkCreateConstant(con,classname,info,"INSTALLED_VERSION",version==null ? "current" : version);
     }
-	
+
     public static void importData(DatabaseConnection con, String fileName, String className, String keyColumn, StringBuilder errors) {
         System.out.println("Importing "+fileName+" into table "+className);
         HashMap<String,String> parms = new HashMap<String,String>();
@@ -150,7 +150,7 @@ public abstract class PlusSetup extends Weblet {
     //                    JSONObject jo = new JSONObject(fromText.replace("\\u0022", "\""));
                 JSONObject jo = new JSONObject(jt);
                 new ImportJSON().importObject(parms, true, con, className, jo, errors, classes);
-                errors.append(paragraph("success","Example shaders imported"));
+                errors.append(paragraph("success","Samples imported"));
             } else {
                 errors.append(paragraph("error","Could not load samples - "+fileName+" not found in distribution"));
                 System.out.println("Error Importing "+fileName+" into table "+className);
@@ -160,5 +160,5 @@ public abstract class PlusSetup extends Weblet {
             e.printStackTrace();
         }
     }
-    
+
 }
