@@ -40,13 +40,14 @@
       <developerConnection>scm:git:https://github.com/PermeAgility/permeagility-core.git</developerConnection>
       <url>git@github.com:PermeAgility/permeagility-core.git</url>
       <tag>v0.8.2</tag>
-</scm>
+    </scm>
 
 
     <distributionManagement>
       <snapshotRepository>
         <id>ossrh</id>
         <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        <layout>default</layout>
       </snapshotRepository>
     </distributionManagement>
 
