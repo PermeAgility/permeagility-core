@@ -870,4 +870,3 @@ createFilter();
 //Do this to get Visuility to load data
 //getMore("TABLE","menu");
 //getMore("ROW","24:10");
-
