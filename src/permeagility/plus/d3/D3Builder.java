@@ -84,7 +84,7 @@ public class D3Builder extends Table {
             }
         }
         
-        // If nothing else happened, show the list of R Scripts owned by the user
+        // If nothing else happened, show the list of D3 Scripts owned by the user
         if (sb.length() == 0) {
             try {
                 parms.put("SERVICE", "D3 Builder");
@@ -188,7 +188,7 @@ public class D3Builder extends Table {
                             + addFormData("name")
                             + addFormData("description")
                             + addFormData("plugins")
-                       + "   d3.xhr('').post(formData, function(error,data) {   \n"                        
+                       + "   fetch('', { method: \"POST\", body: formData } ).then(data => {   \n"                        
                        + "      d3.select('#previewFrame').attr('src','permeagility.plus.d3.D3Builder?PREVIEW="+edit_id+"');\n"
                        + "      d3.select('#headerservice').text(document.getElementById('"+PARM_PREFIX+"name').value);\n"
                        + "   });\n"

@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright 2015 PermeAgility Incorporated.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,7 +36,7 @@ import java.util.Set;
 import permeagility.util.QueryResult;
 
 public class ImportJSON extends Weblet {
-    
+
     public static boolean DEBUG = false;
 
     @Override
@@ -55,7 +55,7 @@ public class ImportJSON extends Weblet {
             JSONObject jo = null;
             if (fromURL != null && !fromURL.isEmpty()) {
                 errors.append(paragraph("Using URL: "+fromURL));
-                try {            
+                try {
                     URL tURL = new URL(fromURL);
                     Object o = tURL.getContent();
                     if (DEBUG) System.out.println("Received from: "+tURL.getQuery()+" content="+o);
@@ -69,7 +69,7 @@ public class ImportJSON extends Weblet {
             } else if (fromFile != null && !fromFile.isEmpty()) {
                 if (DEBUG) System.out.println("Using File: "+fromFile);
                 errors.append(paragraph("Using File: "+fromFile));
-                try { 
+                try {
                     FileInputStream fis = new FileInputStream(fromFile);
       //              ByteArrayInputStream bis = new ByteArrayInputStream(bytes.toStream());
                     StringBuilder content_type = new StringBuilder();
@@ -120,11 +120,12 @@ public class ImportJSON extends Weblet {
                 errors.append(paragraph("error","Nothing to parse"));
             } else {
                 try {
-                    jo = new JSONObject(fromText.replace("\\u0022", "\""));
+                    if (DEBUG) System.out.println("length="+fromText.length());
+                    jo = new JSONObject(fromText.replace("\\u0027", "\""));
                     ODocument doc;
                     doc = importObject(parms, run, con, parms.get("TABLE_FOR_"), jo, errors, classes);
                     parseSuccess = true;
-                    if (run) errors.append(paragraph("success","Successfully parsed and imported "+parms.get("TABLE_FOR_")));                    
+                    if (run) errors.append(paragraph("success","Successfully parsed and imported "+parms.get("TABLE_FOR_")));
                 } catch (Exception e) {
                     errors.append(paragraph("error","Error parsing JSON:"+e.getMessage()));
                     e.printStackTrace();
@@ -140,24 +141,24 @@ public class ImportJSON extends Weblet {
                     }
                     ArrayList<String> fields = new ArrayList<>(map.keySet());
                     sb.append("Use this field as a primary key "+createList(con.getLocale(), "KEY_FOR_"+cname, null, fields, null, true, null, true));
-                    
+
                     // then do the columns in the table
                     for (String column : map.keySet()) {
                         if (!column.equals("")) sb.append(map.get(column));
                     }
                 }
-                sb.append(hidden("FROM_TEXT",fromText.replace("\"","\\u0022")));
+                sb.append(hidden("FROM_TEXT",fromText.replace("\"","\\u0027")));
                 sb.append(submitButton(con.getLocale(), "GO"));
             }
         } else {
-            sb.append(table("layout", 
+            sb.append(table("layout",
                      row(column("label", "From URL") + column(input("FROM_URL", parms.get("FROM_URL"))))
                     + row(column("label", "From File") + column(fileInput("FROM_FILE")))
                     + row(column("label", "or paste here:") + column(textArea("FROM_TEXT", parms.get("FROM_TEXT"), 30, 100)))
                     + row(column("") + column(submitButton(con.getLocale(), "PREVIEW")))
             ));
         }
-        return head("Import JSON") + body(standardLayout(con, parms, 
+        return head("Import JSON") + body(standardLayout(con, parms,
                 paragraph("banner", "Import JSON to a table")
                 +form(sb.toString() + errors.toString())
             ));
@@ -179,16 +180,16 @@ public class ImportJSON extends Weblet {
         String keycol = parms.get("KEY_FOR_"+classname);
         if (keycol != null && (keycol.isEmpty() || keycol.equals("null"))) keycol = null;
         String keyval = null;  // Hold a key value for resolution against a primary key
-        
+
         if (classname != null && !classname.isEmpty()) {
             if (run) {
                 String ccTable = makePrettyCamelCase(classname);
                 oclass = Setup.checkCreateTable(con.getSchema(), classname, errors);
             } else {
                 if (!classes.containsKey(classname)) {
-                 classes.put(classname, new HashMap<>());                    
+                 classes.put(classname, new HashMap<>());
                 if (oclass != null) {
-                    classes.get(classname).put("",paragraph("Existing table will be loaded called "+input("TABLE_FOR_"+classname,classname)));                    
+                    classes.get(classname).put("",paragraph("Existing table will be loaded called "+input("TABLE_FOR_"+classname,classname)));
                 } else {
                     classes.get(classname).put("",paragraph("Table will be created called "+input("TABLE_FOR_"+classname,classname)));
                 }
@@ -217,7 +218,7 @@ public class ImportJSON extends Weblet {
                 keyval = val.toString();
                 if (DEBUG) System.out.println("keyval="+keyval);
             }
-            if (val instanceof JSONArray) {                
+            if (val instanceof JSONArray) {
                 JSONArray array = (JSONArray)val;
                 List<ODocument> docList = new ArrayList<>();
                 for (int j = 0; j < array.length(); j++) {
@@ -239,7 +240,7 @@ public class ImportJSON extends Weblet {
                             if (classes.containsKey(classname)) {  // must be at the top level
                                 classes.get(classname).put(colName,paragraph("Column " + input("COLUMN_"+classname+"_"+colName,colName) + " is an array and it will be a LINKLIST"));
                             }
-                            importObject(parms, run, con, colName, (JSONObject)ac, errors, classes);                            
+                            importObject(parms, run, con, colName, (JSONObject)ac, errors, classes);
                         }
                     }
                 }
@@ -260,18 +261,16 @@ public class ImportJSON extends Weblet {
                             doc.field(colName, subdoc);
                         }
                     } else if (oproperty.getType() == OType.LINKMAP) {
- //                       if (DEBUG) 
-                            System.out.println("importObject(into map of class "+oproperty.getLinkedClass().getName()+")");
+                        if (DEBUG)  System.out.println("importObject(into map of class "+oproperty.getLinkedClass().getName()+")");
                         JSONObject j = (JSONObject)val;
                         HashMap<String,ODocument> newMap = new HashMap<>();
                         for (String n : j.keySet()) {
-                            System.out.println("key="+n);
+                            if (DEBUG) System.out.println("key="+n);
                             Object subval = j.get(n);
                             if (subval instanceof JSONObject) {
                                 ODocument subdoc = importObject(parms, run, con, oproperty.getLinkedClass().getName(), (JSONObject)subval, errors, classes);
                                 if (subdoc != null && !subdoc.isEmpty()) {
- //                               if (DEBUG) 
-                                    System.out.println("adding (into map) "+n+": "+subdoc);
+                                    if (DEBUG) System.out.println("adding (into map) "+n+": "+subdoc);
                                     newMap.put("'"+n+"'",subdoc);
                                 }
                             }
@@ -280,7 +279,7 @@ public class ImportJSON extends Weblet {
                             doc.field(colName, newMap);
                         }
                     } else if (oproperty.getType() == OType.STRING) {
-                        System.out.println("Importing object into STRING");
+                        if (DEBUG) System.out.println("Importing object into STRING");
                         JSONObject j = (JSONObject)val;
                         doc.field(colName,j.toString());
                     } else {
@@ -291,7 +290,7 @@ public class ImportJSON extends Weblet {
                         if (oproperty.getType() == OType.LINKMAP) {
                             classes.get(classname).put(colName,paragraph("Column " + input("COLUMN_"+classname+"_"+colName,colName) + " is an object and it will use existing LINKMAP"));
 //                            ODocument subdoc = importObject(parms, run, con, colName, (JSONObject)val, errors, classes);
-                            
+
                         }
                     } else {
                         classes.get(classname).put(colName,paragraph("Column " + input("COLUMN_"+classname+"_"+colName,colName) + " is an object and it will be a LINK"));
@@ -310,9 +309,9 @@ public class ImportJSON extends Weblet {
                     }
                 } else {
                     classes.get(classname).put(colName,paragraph("Column "+input("COLUMN_"+classname+"_"+colName,colName)
-                            +" of type " + val.getClass().getName() 
+                            +" of type " + val.getClass().getName()
                             + " will be a "+determineOTypeFromClassName(val.getClass().getName())
-                    ));                    
+                    ));
                 }
             }
         }
@@ -329,11 +328,11 @@ public class ImportJSON extends Weblet {
                         errors.append(paragraph("Resolved reference to "+doc.getClassName()+" using "+keycol+"="+keyval));
                         doc.delete();
                         return qr.get(0);
-                    }        
+                    }
                 } else {
                     errors.append(paragraph("error", "Could not resolve key value "+keyval+" from "+keycol+" in "+classname));
                     return null;
-                }                
+                }
             } else {
                 doc.save();
             }

@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright 2015 PermeAgility Incorporated.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,7 +30,7 @@ import java.util.Locale;
 public class PageBuilder extends Table {
 
     public final String TABLE_NAME = "menuItem";
-    
+
     @Override
     public String getPage(DatabaseConnection con, HashMap<String, String> parms) {
 
@@ -44,18 +44,18 @@ public class PageBuilder extends Table {
         // If there was an update do it
         String update = processSubmit(con, parms, TABLE_NAME, errors);
         if (update != null) { return update; }
-        
+
         // If nothing else happened, show the list of Scripts owned by the user
         if (sb.length() == 0) {
             try {
                 parms.put("SERVICE", "Page Builder");
-                sb.append(getTable(con, parms, TABLE_NAME, "SELECT FROM " + TABLE_NAME+" WHERE classname = 'permeagility.web.Scriptlet' AND _allow contains(name='"+con.getUser()+"')", null, 0, "button_VIEW_View,name,description,-"));
+                sb.append(getTable(con, parms, TABLE_NAME, "SELECT FROM " + TABLE_NAME+" WHERE name != '' AND (classname is null OR classname = '') AND _allow contains(name='"+con.getUser()+"')", null, 0, "name,description,-"));
             } catch (Exception e) {
                 e.printStackTrace();
                 sb.append("Error retrieving Script table: " + e.getMessage());
             }
         }
-        
+
         return head("Page Builder", getScripts(con) + additionalStyle)
                 + body(standardLayout(con, parms,
                     ((Security.getTablePriv(con, TABLE_NAME) & PRIV_CREATE) > 0
@@ -98,12 +98,12 @@ public class PageBuilder extends Table {
         styleEditor = getCodeEditorControl(formName, PARM_PREFIX + "pageStyle", init, "css");
 
         init = initialValues.field("pageScript");
-        if (init == null) init = "// Page Script "+new Date()+" by "+con.getUser()+"\n";
-        scriptEditor = getCodeEditorControl(formName, PARM_PREFIX + "pageScript", init, "application/json");                    
+        if (init == null) init = "// (con,parms) return page - written "+new Date()+" by "+con.getUser()+"\n";
+        scriptEditor = getCodeEditorControl(formName, PARM_PREFIX + "pageScript", init, "application/json");
 
-        browser = frame("browserFrame","permeagility.web.Schema");                    
+        browser = frame("browserFrame","permeagility.web.Schema");
 
-        String resultView = 
+        String resultView =
             (readOnly ? "" :
                 button("UpdateButton", "UPDATEBUTTON","UPDATE",Message.get(con.getLocale(),"SAVE_AND_RUN"))
                 +"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
@@ -140,7 +140,7 @@ public class PageBuilder extends Table {
                             + addFormData("name")
                             + addFormData("description")
                             + addFormData("_allowRead")
-                       + "   d3.xhr('').post(formData, function(error,data) {   \n"                        
+                       + "   d3.xhr('').post(formData, function(error,data) {   \n"
                        + "      d3.select('#previewFrame').attr('src','permeagility.web.Scriptlet?LAYOUT=none&ID="+edit_id+"');\n"
                        + "      d3.select('#headerservice').text(document.getElementById('"+PARM_PREFIX+"name').value);\n"
                        + "   });\n"
@@ -151,10 +151,10 @@ public class PageBuilder extends Table {
     public String addFormData(String name) {
         return "formData.append('"+PARM_PREFIX+name+"',document.getElementById('"+PARM_PREFIX+name+"').value);\n";
     }
-        
+
     public String addFormData(String formName, String name) {
         return "formData.append('"+PARM_PREFIX+name+"',document.getElementById('"+formName+PARM_PREFIX+name+"').value);\n";
     }
- 
+
 
 }

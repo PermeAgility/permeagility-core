@@ -1,9 +1,9 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    
+
     <groupId>com.permeagility</groupId>
     <artifactId>permeagility</artifactId>
-    <version>0.8.2-SNAPSHOT</version>
+    <version>0.8.3-SNAPSHOT</version>
 
     <packaging>jar</packaging>
     <name>Permeagility Core</name>
@@ -33,14 +33,14 @@
         <organizationUrl>http://www.permeagility.com</organizationUrl>
       </developer>
     </developers>
-  
+
 
     <scm>
       <connection>scm:git:https://github.com/PermeAgility/permeagility-core.git</connection>
       <developerConnection>scm:git:https://github.com/PermeAgility/permeagility-core.git</developerConnection>
       <url>git@github.com:PermeAgility/permeagility-core.git</url>
-      <tag>HEAD</tag>
-</scm>
+      <tag>v0.8.2</tag>
+    </scm>
 
 
     <distributionManagement>
@@ -48,10 +48,15 @@
         <id>ossrh</id>
         <url>https://oss.sonatype.org/content/repositories/snapshots</url>
       </snapshotRepository>
+      <repository>
+        <id>ossrh</id>
+        <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+      </repository>
     </distributionManagement>
-  
+
   <build>
-      
+    <defaultGoal>exec:exec</defaultGoal>  <!-- type: mvn      to run the server for testing -->
+
     <sourceDirectory>src</sourceDirectory>
     <resources>
         <!-- The web site directory for images/javascript/etc... -->
@@ -66,21 +71,21 @@
             </includes>
         </resource>
     </resources>
-    
+
     <plugins>
-          
+
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.5.1</version>
+        <version>3.7.0</version>
         <configuration>
             <compilerArgument>-Xlint:unchecked</compilerArgument>
             <showDeprecation>true</showDeprecation>
         </configuration>
       </plugin>
-      
+
       <plugin>
         <artifactId>maven-antrun-plugin</artifactId>
-        <version>1.6</version>
+        <version>1.8</version>
         <executions>
           <execution>
               <id>defaultrun</id>
@@ -114,7 +119,7 @@
           </execution>
           </executions>
       </plugin>
-    
+
       <plugin>
 	    <!-- Build an executable JAR -->
         <groupId>org.apache.maven.plugins</groupId>
@@ -136,59 +141,75 @@
 	      </execution>
 	    </executions>
      </plugin>
-     
+
+     <plugin>  <!-- This allows running server in place with mvn command -->
+           <groupId>org.codehaus.mojo</groupId>
+           <artifactId>exec-maven-plugin</artifactId>
+           <version>1.6.0</version>
+           <configuration>
+               <executable>java</executable>
+               <arguments>
+                <argument>-XX:MaxDirectMemorySize=2G</argument>
+                <argument>-jar</argument>
+                   <argument>${project.build.directory}/permeagility-${project.version}-jar-with-dependencies.jar</argument>
+               </arguments>
+               <workingDirectory>${basedir}</workingDirectory>
+           </configuration>
+       </plugin>
+
        <!-- This will activate the release profile -->
         <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-release-plugin</artifactId>
-            <version>2.5</version>
+            <version>2.5.3</version>
             <configuration>
               <tagNameFormat>v@{project.version}</tagNameFormat>
               <autoVersionSubmodules>true</autoVersionSubmodules>
               <useReleaseProfile>false</useReleaseProfile>
-              <releaseProfiles>release</releaseProfiles>  
+              <releaseProfiles>release</releaseProfiles>
               <arguments>-Prelease</arguments>
               <goals>deploy</goals>
             </configuration>
         </plugin>
-            
+
      </plugins>
- 
+
     </build>
-    
+
   <dependencies>
 
     <!--  OrientDB core -->
     <dependency>
       <groupId>com.orientechnologies</groupId>
       <artifactId>orientdb-core</artifactId>
-      <version>2.2.21</version>
+      <version>2.2.37</version>
     </dependency>
 
     <!-- XNIO for fast connections -->
     <dependency>
         <groupId>org.jboss.xnio</groupId>
         <artifactId>xnio-api</artifactId>
-        <version>3.4.5.Final</version>
+        <version>3.8.4.Final</version>
+      <type>jar</type>
     </dependency>
    <dependency>
         <groupId>org.jboss.xnio</groupId>
         <artifactId>xnio-nio</artifactId>
-        <version>3.4.5.Final</version>
+        <version>3.8.4.Final</version>
     </dependency>
 
   </dependencies>
- 
+
  <profiles>
      <profile>
          <id>release</id>
          <build>
          <plugins>
-                   
+
             <plugin>
               <groupId>org.apache.maven.plugins</groupId>
               <artifactId>maven-source-plugin</artifactId>
-              <version>2.2.1</version>
+              <version>3.0.1</version>
               <executions>
                 <execution>
                   <id>attach-sources</id>
@@ -198,11 +219,11 @@
                 </execution>
               </executions>
             </plugin>
-            
+
             <plugin>
               <groupId>org.apache.maven.plugins</groupId>
               <artifactId>maven-javadoc-plugin</artifactId>
-              <version>2.9.1</version>
+              <version>3.0.0</version>
               <executions>
                 <execution>
                   <id>attach-javadocs</id>
@@ -210,17 +231,18 @@
                     <goal>jar</goal>
                   </goals>
                     <configuration>
+                         <failOnError>false</failOnError>
                          <additionalparam>-quiet</additionalparam>
                          <additionalparam>-Xdoclint:none</additionalparam>
                     </configuration>
                 </execution>
               </executions>
             </plugin>
-            
-                <plugin>
+
+            <plugin>
               <groupId>org.apache.maven.plugins</groupId>
               <artifactId>maven-gpg-plugin</artifactId>
-              <version>1.5</version>
+              <version>1.6</version>
               <executions>
                 <execution>
                   <id>sign-artifacts</id>
@@ -235,16 +257,15 @@
             <plugin>
               <groupId>org.sonatype.plugins</groupId>
               <artifactId>nexus-staging-maven-plugin</artifactId>
-              <version>1.6.3</version>
+              <version>1.6.8</version>
               <extensions>true</extensions>
               <configuration>
                 <serverId>ossrh</serverId>
                 <nexusUrl>https://oss.sonatype.org/</nexusUrl>
-                <autoReleaseAfterClose>false</autoReleaseAfterClose>
               </configuration>
             </plugin>
-             
-         </plugins>    
+
+         </plugins>
          </build>
      </profile>
 </profiles>

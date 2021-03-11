@@ -191,15 +191,19 @@ public class Table extends Weblet {
         String submit = parms.get("SUBMIT");
         String editId = parms.get("EDIT_ID");
 
+        if (DEBUG) System.out.println("In Table.processSubmit() submit="+submit);
+
         // Show edit form if row selected for edit
         if (editId != null && submit == null) {
             return head("Edit", getScripts(con))
                     + body(standardLayout(con, parms, getTableRowForm(con, table, parms)));
         }
+
         // If no submit, we are done here
         if (submit == null || submit.isEmpty()) {
             return null;
         }
+
         // Process cancel action
         if (submit.equals("CANCEL")) {
             return redirectUsingSource(parms, "TABLENAME=" + table);

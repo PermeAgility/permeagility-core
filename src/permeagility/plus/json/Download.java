@@ -201,7 +201,12 @@ public class Download extends permeagility.web.Download {
                 } else if (t == OType.STRING) {
                     String content = d.field(p);
                     if (content != null && !content.isEmpty()) {
-                        content = content.replace("\"","\\\"").replace("\\s","\\u005cs").replace("\t","\\t").replace("\r","\\r").replace("\n","\\n");
+                        content = content
+                                .replace("\\","\\u005c")
+                                .replace("\"","\\\"")
+                                .replace("\t","\\t")
+                                .replace("\r","\\r")
+                                .replace("\n","\\n");
                     }
                     sb.append("\""+p+"\":\""+(content == null ? "" : content)+"\"");                
                 } else {
