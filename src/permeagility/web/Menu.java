@@ -94,7 +94,8 @@ public class Menu extends Weblet {
                                     if (menuName == null || menuName.equals("")) {
                                         itemMenu.append((HORIZONTAL_LAYOUT ? "&nbsp;&nbsp;" : "<br>") + "\n");  // Spacer
                                     } else {
-                                        if (i.field("pageScript") != null) {   // Use page runner on pageScript
+                                        String pageScript = i.field("pageScript");
+                                        if (pageScript != null && !pageScript.equals("")) {   // Use page runner on pageScript
                                             itemMenu.append(link(PAGE_RUNNER+"?ID="+i.getIdentity().toString().substring(1), pretty, prettyDesc));
                                         } else {
                                             if (classname != null) {

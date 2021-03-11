@@ -34,55 +34,74 @@ public class Data extends Download {
 
 	@Override
 	public byte[] getBytes(DatabaseConnection con, HashMap<String, String> parms) {
-
-		// For view builder sample views
+	
+		// For view builder sample views.  The other stuff has been implemented elsewhere
 		String view = parms.get("VIEW");
-                String fromTable = parms.get("FROMTABLE");
-                String fromSQL = parms.get("SQL");
-                String callback = parms.get("CALLBACK");
+        String fromTable = parms.get("FROMTABLE");
+        String fromQueries = parms.get("QUERIES");  // List of queries (will use as JSON attribute names)
+        String fromSQL = parms.get("SQL");
+        String callback = parms.get("CALLBACK");
 
-                if (view != null && !view.equals("")) {
-			//System.out.println("Return sample dataScript "+view);
+            if (view != null && !view.equals("")) {
+			System.out.println("Build view "+view);
 			ODocument viewDoc = con.get("#"+view);
 			if (viewDoc == null) {
 				return ("Could not retrieve data using "+parms.toString()).getBytes();
 			} else {
 				String sampleData = viewDoc.field("dataScript");
-				return sampleData == null ? "".getBytes() : sampleData.getBytes();
+				return sampleData == null ? "".getBytes() : sampleData.replace("'","\"").getBytes();
 			}
+                         
+		} else if ((fromTable != null && !fromTable.isEmpty()) 
+            || (fromQueries != null && !fromQueries.isEmpty())
+            || (fromSQL != null && !fromSQL.isEmpty())) {
+                if (callback != null && callback.isEmpty()) { callback = null; }
+                StringBuilder sb = new StringBuilder();
+                int depth = -1;  // unlimited is the default
+                try { depth = Integer.parseInt(parms.get("DEPTH")); } catch (Exception e) {}  // It will either parse or not
 
-		} else if ((fromTable != null && !fromTable.isEmpty()) || (fromSQL != null && !fromSQL.isEmpty())) {
-                    if (callback != null && callback.isEmpty()) { callback = null; }
-                    StringBuilder sb = new StringBuilder();
-
-                    int depth = -1;  // unlimited is the default
-                    try { depth = Integer.parseInt(parms.get("DEPTH")); } catch (Exception e) {}  // It will either parse or not
-
-                    if ((fromTable == null || fromTable.isEmpty()) && (fromSQL == null || fromSQL.isEmpty())) {
-                        return null;
-                    } else {
-                        try {
-                            if (fromSQL == null || fromSQL.isEmpty()) {
-                                fromSQL = "SELECT FROM "+fromTable;
-                            }
-                            QueryResult qr = con.query(fromSQL);
-                            if (callback != null) { sb.append(callback+"("); }
-                            sb.append("{ \""+(fromTable==null ? "data" : fromTable)+"\":[ ");
-                            String comma = "";
-                            for (ODocument d : qr.get()) {
-                                sb.append(comma+permeagility.plus.json.Download.exportDocument(con, d, depth, 0));
-                                comma = ", \n";
-                            }
-                            sb.append(" ] }");
-                            if (callback != null) { sb.append(")"); }
-                        } catch (Exception e) {
-                            e.printStackTrace();
+                if (callback != null) { sb.append(callback+"("); }
+                if (fromQueries != null && !fromQueries.isEmpty()) {
+                    sb.append("{ ");
+                    String[] queries = fromQueries.split(",",0);
+                    String comma = "";
+                    for (String q : queries) {
+                        String qx = parms.get(q);
+                        System.out.println("query "+q+" = "+qx);
+                        if (qx != null && !qx.isEmpty()) {
+                            sb.append(comma);
+                            appendSQL(con, sb, qx, q, depth);
+                            comma = ", \n";
                         }
                     }
-                    return sb.toString().getBytes(Weblet.charset);
+                    sb.append("}");                        
                 } else {
-                    return "Bad parameters (must specify one of VIEW, FROMTABLE, or SQL), So sorry, no results".getBytes(Weblet.charset);
-                }
-        }
+                    sb.append("{ ");
+                    appendSQL(con, sb, fromSQL, fromTable, depth);
+                    sb.append("}");                        
+                }                        
+                if (callback != null) { sb.append(")"); }
+                return sb.toString().getBytes(Weblet.charset);
+            } else {
+                return "Bad parameters (must specify one of VIEW, FROMTABLE, SQL, or QUERIES), So sorry, no results".getBytes(Weblet.charset);
+            }
+        }	
 
+        void appendSQL(DatabaseConnection con, StringBuilder sb, String sql, String fromTable, int depth) {
+            sb.append("\""+(fromTable==null ? "data" : fromTable)+"\": [ ");
+            try {
+                if (sql == null || sql.isEmpty()) {
+                    sql = "SELECT FROM "+fromTable;
+                }
+                QueryResult qr = con.query(sql);
+                String comma = "";
+                for (ODocument d : qr.get()) {
+                    sb.append(comma+permeagility.plus.json.Download.exportDocument(con, d, depth, 0));
+                    comma = ", \n";
+                }
+            } catch (Exception e) {
+                e.printStackTrace();  // Query errors show up here
+            }
+            sb.append(" ] "); 
+        }
 }

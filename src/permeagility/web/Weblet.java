@@ -705,6 +705,14 @@ public abstract class Weblet {
         }
     }
 
+    public static String getD3V3Script() {
+        if (D3_MIN) {
+            return "<script  type='text/javascript' src=\"/js/d3_v3/d3.min.js\"></script>\n";
+        } else {
+            return "<script  type='text/javascript' src=\"/js/d3_v3/d3.js\"></script>\n";
+        }
+    }
+
     public static String getDateControlScript(Locale locale) {
 //		System.out.println("Getting date control script for locale "+locale.getLanguage());
 //              TODO: May need more intelligence here to ensure the locale has a file for JS Calendar ( or just replace the whole thing)
