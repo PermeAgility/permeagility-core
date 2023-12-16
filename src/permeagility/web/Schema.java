@@ -16,17 +16,18 @@
 package permeagility.web;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import com.arcadedb.database.Document;
+import com.arcadedb.schema.DocumentType;
+import com.arcadedb.schema.Type;
 
 import permeagility.util.DatabaseConnection;
 import permeagility.util.QueryResult;
 import permeagility.util.Setup;
 
-import com.orientechnologies.orient.core.metadata.schema.OClass;
-import com.orientechnologies.orient.core.metadata.schema.OType;
-import com.orientechnologies.orient.core.record.impl.ODocument;
-
 public class Schema extends Weblet {
 
+    public static boolean DEBUG = false;
     public static int NUMBER_OF_COLUMNS = 4;
     public static boolean ADD_NAME_TO_NEW_TABLE = true;   // Will always add a name field to a new table (if you don't like it, delete it or change this constant)
 
@@ -34,7 +35,8 @@ public class Schema extends Weblet {
     public String getPage(DatabaseConnection con, java.util.HashMap<String, String> parms) {
         parms.put("SERVICE", Message.get(con.getLocale(), "SCHEMA_EDITOR"));
         StringBuilder errors = new StringBuilder();
-
+        HTMX_MODE = parms.get("HTMX") != null ? true : false;
+        String HTMX_MODAL = parms.get("HTMX_MODAL");
         String submit = (String) parms.get("SUBMIT");
         if (submit != null) {
             if (submit.equals("NEW_TABLE")) {
@@ -44,14 +46,14 @@ public class Schema extends Weblet {
                 } else {
                     try {
                         String camel = makePrettyCamelCase(tn);
-                        OClass newclass = con.getSchema().createClass(camel);
+                        DocumentType newclass = con.getSchema().getOrCreateDocumentType(camel);
                         if (newclass != null) {
                             errors.append(paragraph("success", Message.get(con.getLocale(), "NEW_TABLE_CREATED", camel, makeCamelCasePretty(camel))));
                             if (ADD_NAME_TO_NEW_TABLE) {
-                                Setup.checkCreateColumn(con, newclass, "name", OType.STRING, errors);
+                                Setup.checkCreateColumn(con, newclass, "name", Type.STRING, errors);
                                 //newclass.createProperty("name", OType.STRING).setNotNull(false).setMandatory(false);
                             }
-                            Server.tableUpdated("metadata:schema");
+                            Server.tableUpdated(con, "metadata:schema");
                         } else {
                             errors.append(paragraph("warning", "New table returned null class"));
                         }
@@ -66,13 +68,15 @@ public class Schema extends Weblet {
         int cellCount = 0;
         StringBuilder rows = new StringBuilder();
         StringBuilder columns = new StringBuilder();
-        QueryResult schemas = con.query("SELECT from " + Setup.TABLE_TABLEGROUP + " WHERE _allowRead in [" + Security.getUserRolesList(con) + "] ORDER BY name");
-        QueryResult tables = con.query("SELECT name, superClass FROM (SELECT expand(classes) FROM metadata:schema) WHERE abstract=false ORDER BY name");
+        QueryResult schemas = con.query("SELECT FROM " + Setup.TABLE_TABLEGROUP /*  + " WHERE _allowRead in [" + Security.getUserRolesList(con) + "]"*/ +" ORDER BY name");
+        //QueryResult tables = con.query("SELECT name, superClass FROM (SELECT expand(classes) FROM metadata:schema) WHERE abstract=false ORDER BY name");
+        Collection<? extends DocumentType> tables = con.getSchema().getTypes();
+        if (DEBUG) System.out.println("Retrieved "+tables.size()+" DocumentTypes");
         ArrayList<String> tablesInGroups = new ArrayList<>();
-        for (ODocument schema : schemas.get()) {
-            String groupName = schema.field("name");
+        for (Document schema : schemas.get()) {
+            String groupName = schema.getString("name");
             StringBuilder tablelist = new StringBuilder();
-            String tablesf = schema.field("tables");
+            String tablesf = schema.getString("tables");
             String table[] = {};
             if (tablesf != null) {
                 table = tablesf.split(",");
@@ -101,12 +105,17 @@ public class Schema extends Weblet {
                     //System.out.println("Table privs for table "+tableName+" for user "+con.getUser()+" privs="+privs);
                     if (privs > 0) {
                         tableName = tableName.trim();
-                        if (con.getSchema().getClass(tableName) != null) {
-                            tablelist.append(link("permeagility.web.Table?TABLENAME=" + tableName, pretty) + br());
+                        if (con.getSchema().existsType(tableName)) {
+                            if (HTMX_MODE) {
+//                                tablelist.append(linkHTMX("/"+parms.get("HTMX")+"/" + tableName, pretty, "_on=\"on click call UIkit.modal(#"+HTMX_MODAL+").hide();\"") + br());
+                                tablelist.append(linkHTMX("/"+parms.get("HTMX")+"/" + tableName, pretty, "_on=\"on click call alert('Trying to close "+HTMX_MODAL+"')\"") + br());
+                            } else {
+                                tablelist.append(link("permeagility.web.Table?TABLENAME=" + tableName, pretty) + br());
+                            }
                             groupHasTable = true;
                         } else {
                             if (!tableName.isEmpty()) {
-                                System.out.println("permeagility.web.Schema: Table " + tableName + " not found - will not be shown");
+                                if (DEBUG) System.out.println("permeagility.web.Schema: Table " + tableName + " not found - will not be shown");
                             }
                         }
                     }
@@ -127,15 +136,20 @@ public class Schema extends Weblet {
         if (Security.isDBA(con)) {
             StringBuilder tablelist = new StringBuilder();
             tablelist.append(paragraph("banner", Message.get(con.getLocale(), "TABLE_NONGROUPED")));
-            for (ODocument row : tables.get()) {
-                String tablename = row.field("name");
+            for (DocumentType row : tables) {
+                String tablename = row.getName();
                 if (!tablesInGroups.contains(tablename)) {
                     if (Security.getTablePriv(con, tablename) > 0) {
                         String pretty = Message.get(con.getLocale(), "TABLE_" + tablename);
                         if (pretty != null && ("TABLE_" + tablename).equals(pretty)) {
                             pretty = makeCamelCasePretty(tablename);
                         }
-                        tablelist.append(link("permeagility.web.Table?TABLENAME=" + (String) tablename, pretty) + br());
+                        if (HTMX_MODE) {
+//                            tablelist.append(linkHTMX("/"+parms.get("HTMX")+"/" + tablename, pretty, "_on=\"on click call alert('Trying to close "+HTMX_MODAL+"')\"") + br());
+                            tablelist.append(linkHTMX("/"+parms.get("HTMX")+"/" + tablename, pretty) + br());
+                        } else {
+                            tablelist.append(link("permeagility.web.Table?TABLENAME=" + tablename, pretty) + br());
+                        }
                     }
                 }
             }
@@ -148,7 +162,17 @@ public class Schema extends Weblet {
         }
 
         // Return result
-        return head(Message.get(con.getLocale(), "SCHEMA_EDITOR"))
+        if (HTMX_MODE) {
+            return errors.toString()
+                    + table("layout", rows.toString()) + br()
+                    + (Security.isDBA(con)
+                            ? popupFormHTMX("NEWTABLE_Ungrouped", "/"+parms.get("HTMX"), "PUT", Message.get(con.getLocale(), "NEW_TABLE"), "NEWTABLENAME",
+                                    input("NEWTABLENAME", "") + "&nbsp;&nbsp;"
+                                    + submitButton(con.getLocale(), "NEW_TABLE")
+                            )
+                            : "");
+        }
+        return head(con, Message.get(con.getLocale(), "SCHEMA_EDITOR"))
                 + body(standardLayout(con, parms,
                                 errors.toString()
                                 + table("layout", rows.toString()) + br()
@@ -170,16 +194,17 @@ public class Schema extends Weblet {
 
         // Add tables in groups (similar code to Schema - should be combined in one place - need one more use - and this should be it)
         QueryResult schemas = con.query("SELECT from tableGroup");
-        QueryResult tables = con.query("SELECT name, superClass FROM (SELECT expand(classes) FROM metadata:schema) WHERE abstract=false ORDER BY name");
+        //QueryResult tables = con.query("SELECT name, superClass FROM (SELECT expand(classes) FROM metadata:schema) WHERE abstract=false ORDER BY name");
+        Collection<? extends DocumentType> tables = con.getSchema().getTypes();
         ArrayList<String> tablesInGroups = new ArrayList<>();
-        for (ODocument schema : schemas.get()) {
+        for (Document schema : schemas.get()) {
             StringBuilder tablelist = new StringBuilder();
-            String tablesf = schema.field("tables");
+            String tablesf = schema.getString("tables");
             String table[] = {};
             if (tablesf != null) {
                 table = tablesf.split(",");
             }
-            String groupName = (String) schema.field("name");
+            String groupName = schema.getString("name");
             tablelist.append(paragraph("banner", groupName));
             //boolean groupHasTable = false;
             for (String tableName : table) {
@@ -208,8 +233,8 @@ public class Schema extends Weblet {
         // Add the non grouped (new) tables
         StringBuilder tablelist = new StringBuilder();
         tablelist.append(paragraph("banner", Message.get(con.getLocale(), "TABLE_NONGROUPED")));
-        for (ODocument row : tables.get()) {
-            String tablename = row.field("name");
+        for (DocumentType row : tables) {
+            String tablename = row.getName();
             if (!tablesInGroups.contains(tablename)) {
                 if (Security.getTablePriv(con, tablename) > 0) {
                     if (tableInit.length() > 0) {

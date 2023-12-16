@@ -17,12 +17,12 @@ package permeagility.plus.merge;
 
 import java.util.HashMap;
 
+import com.arcadedb.schema.DocumentType;
+import com.arcadedb.schema.Schema;
+import com.arcadedb.schema.Type;
+
 import permeagility.util.DatabaseConnection;
 import permeagility.util.Setup;
-
-import com.orientechnologies.orient.core.metadata.schema.OClass;
-import com.orientechnologies.orient.core.metadata.schema.OSchema;
-import com.orientechnologies.orient.core.metadata.schema.OType;
 
 public class PlusSetup extends permeagility.plus.PlusSetup {
 
@@ -41,7 +41,7 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 	@Override public boolean isInstalled() { return INSTALLED; }
 	
 	@Override public boolean install(DatabaseConnection con, HashMap<String,String> parms, StringBuilder errors) {
-		OSchema oschema = con.getSchema();
+		Schema oschema = con.getSchema();
 		String newTableGroup = pickTableGroup(con, parms);
 		
 		if (isNullOrBlank(newTableGroup) || isNullOrBlank(parms.get("MENU")) || isNullOrBlank(parms.get("ROLES"))) {
@@ -49,20 +49,20 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 			return false;
 		}
 		
-		OClass table = Setup.checkCreateTable(con, oschema, MERGE_TABLE, errors, newTableGroup);
-		Setup.checkCreateColumn(con, table, "name", OType.STRING, errors);
-		Setup.checkCreateColumn(con, table, "fromTable", OType.STRING, errors);
-		Setup.checkCreateColumn(con, table, "fromKey", OType.STRING, errors);
-		Setup.checkCreateColumn(con, table, "toTable", OType.STRING, errors);
-		Setup.checkCreateColumn(con, table, "toKey", OType.STRING, errors);
-		Setup.checkCreateColumn(con, table, "created", OType.DATETIME, errors);
-		Setup.checkCreateColumn(con, table, "executed", OType.DATETIME, errors);
+		DocumentType table = Setup.checkCreateTable(con, oschema, MERGE_TABLE, errors, newTableGroup);
+		Setup.checkCreateColumn(con, table, "name", Type.STRING, errors);
+		Setup.checkCreateColumn(con, table, "fromTable", Type.STRING, errors);
+		Setup.checkCreateColumn(con, table, "fromKey", Type.STRING, errors);
+		Setup.checkCreateColumn(con, table, "toTable", Type.STRING, errors);
+		Setup.checkCreateColumn(con, table, "toKey", Type.STRING, errors);
+		Setup.checkCreateColumn(con, table, "created", Type.DATETIME, errors);
+		Setup.checkCreateColumn(con, table, "executed", Type.DATETIME, errors);
 		
-		OClass logTable = Setup.checkCreateTable(con, oschema, ATTR_TABLE, errors, newTableGroup);
-		Setup.checkCreateColumn(con, logTable, "path", OType.LINK, table, errors);
-		Setup.checkCreateColumn(con, logTable, "fromColumn", OType.STRING, errors);
-		Setup.checkCreateColumn(con, logTable, "toColumn", OType.STRING, errors);
-		Setup.checkCreateColumn(con, logTable, "linkProperty", OType.STRING, errors);
+		DocumentType logTable = Setup.checkCreateTable(con, oschema, ATTR_TABLE, errors, newTableGroup);
+		Setup.checkCreateColumn(con, logTable, "path", Type.LINK, table, errors);
+		Setup.checkCreateColumn(con, logTable, "fromColumn", Type.STRING, errors);
+		Setup.checkCreateColumn(con, logTable, "toColumn", Type.STRING, errors);
+		Setup.checkCreateColumn(con, logTable, "linkProperty", Type.STRING, errors);
 
 		Setup.createMenuItem(con,getName(),getInfo(),MENU_CLASS,parms.get("MENU"),parms.get("ROLES"));	
 		

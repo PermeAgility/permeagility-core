@@ -15,70 +15,47 @@
  */
 package permeagility.util;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
 
 import com.arcadedb.database.Document;
-import com.arcadedb.database.RID;
 import com.arcadedb.query.sql.executor.ResultSet;
-import java.util.ArrayList;
+import com.arcadedb.serializer.json.JSONObject;
 
-public class QueryResult {
+public class QueryResultCache {
 	
 	public static boolean DEBUG = false;
 	    
 	ResultSet result;
 	Date time = new Date();
-	List<Document> documents;
-	String[] columns = null;
-	String type;
+	List<JSONObject> documents = new ArrayList<JSONObject>();
+    String type = null;
+    String[] columns = null;
 
-    public QueryResult(ResultSet _result) {
+    public QueryResultCache(ResultSet _result) {
     	result = _result;
-		documents = result.toDocuments();
-		if (documents.size() > 0) {
-			Document first = documents.get(0);
-			columns = first.getPropertyNames().toArray(new String[0]);
-			type = first.getTypeName();
-		}
+        if (DEBUG) System.out.println("QueryResultCache: caching result");
+		List<Document> docs = result.toDocuments();
+        for (Document doc : docs) {
+            JSONObject jdoc = doc.toJSON();
+            jdoc.put("rid",doc.getIdentity().toString());
+            documents.add(jdoc);
+            if (columns == null) columns = doc.getPropertyNames().toArray(new String[0]);
+            if (type == null) type = doc.getTypeName();
+        }
+        if (DEBUG) dump();
     }
 	    
-    public List<Document> get() {
-    	return documents;
-    }
-    
-    public List<String> getIds() {
-        List<String> list = new ArrayList<>();
-        for (Document d : get()) {
-            list.add(d.getIdentity().toString());
-        }
-        return list;
-    }
-    
-    public Date getTime() {	return time; }
-	public String getType() { return type;	}
-
-    public Document get(int i) { return documents.get(i); }
-    
-	public String[] getColumns() {
-		if (documents.size() > 0) {
-			return columns;
-		}
-		return null;
-	}
-		
+    public List<JSONObject> get() { return documents; }
+    public Date getTime() { return time; }
+    public String getType() { return type; }
+    public JSONObject get(int i) { return documents.get(i); }
+	public String[] getColumns() { return documents.size() > 0 ? columns : null; }
 	public int size() { return documents.size(); }
-	
-    public String getColumnName(int i) { 
-		if (columns != null && columns.length > i) {
-			return columns[i]; 
-		} else {
-			System.out.println("Trying to get column name for "+i+" not found or null");
-			return null;
-		}
-    }
-  
+    public String getColumnName(int i) { return columns[i]; }
+    
     // Should be deprecated to getObject?
 	public Object getValue(int row, String column) {
 		try {
@@ -92,29 +69,10 @@ public class QueryResult {
 	public Object getObject(int row, String column) {
 		return documents.get(row).get(column);
 	}
-
-	public int findFirstRow(String column, String value) {
-		// simple table lookup
-		if (DEBUG) System.out.print("FindFirstRow where "+column+" = "+value+"...");
-		for (int i=0;i<size();i++) {
-			String o = getStringValue(i,column);
-			if (o == null && column.equals("rid")) {
-				Document d = get(i);
-				o = d.getIdentity().toString();
-			}
-			if (o == null && value == null) return i;
-			if (o != null && value != null && o.equals(value)) {
-				if (DEBUG) System.out.println("row found");
-				return i;
-			}
-		}
-		if (DEBUG) System.out.println("NOT found");
-		return -1;
-	}
 	
-	public RID getIdentity(int row) {
-		return documents.get(row).getIdentity();
-	}
+//	public RID getIdentity(int row) {
+//		return documents.get(row).getIdentity();
+//	}
 	
 	public String getStringValue(int row, String column) {
 		Object o = getValue(row, column);
@@ -176,35 +134,56 @@ public class QueryResult {
 	}
 
 	/** Add another queryResult to this one - like a Union */
-	public void append(QueryResult other) {
-		for (Document o : other.documents) {
+	public void append(QueryResultCache other) {
+		for (JSONObject o : other.documents) {
 			documents.add(o);
 		}
 	}
 
 	/** Add another document to this queryResult - like a Union */
-	public void append(Document doc) {
+	public void append(JSONObject doc) {
 		documents.add(doc);
 	}
 	
-	public void dump() {
-		System.out.println("Dumping contents of result of type "+type);
-		if (documents.size() > 0) {
-			Set<String> pnames = documents.get(0).getPropertyNames();
-			for (String header : pnames) {
-				System.out.print(header+"\t");
+    public int findFirstRow(String column, String value) {
+		// simple table lookup
+		if (DEBUG) System.out.print("FindFirstRow where "+column+" = "+value+"...");
+		for (int i=0;i<size();i++) {
+			String o = getStringValue(i,column);
+			if (o == null && value == null) return i;
+			if (o != null && value != null && o.equals(value)) {
+				if (DEBUG) System.out.println("row found");
+				return i;
 			}
-			System.out.println("");
-			for (Document row : documents) {
-				for (String pname : pnames) {
-					System.out.print(""+row.get(pname)+"\t");
-				}
-			}
-			System.out.println("");
-		} else {
-			System.out.println("QueryResult.dump - No rows");
 		}
+		if (DEBUG) System.out.println("NOT found");
+		return -1;
 	}
+	
+
+	  public void dump() {
+		System.out.println("Dump of "+getType()+" that will be cached");
+    	if (documents.size() > 0) {
+            System.out.print("rid\t");
+            for (String header : columns) {
+                System.out.print(header+"\t");
+            }
+            System.out.println("");
+            for (JSONObject row : documents) {
+                System.out.print(""+row.get("rid")+"\t");
+                for (String pname : columns) {
+                    if (row.has(pname)) {
+                        System.out.print(""+row.get(pname)+"\t");
+                    } else {
+                        System.out.print("null\t");
+                    }
+                }
+                System.out.println("");
+            }
+    	} else {
+            System.out.println("QueryResult.dump - No rows");
+    	}
+    }
 
 }
 

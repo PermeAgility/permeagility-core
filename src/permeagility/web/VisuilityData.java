@@ -21,13 +21,15 @@ import java.util.HashMap;
 import permeagility.util.DatabaseConnection;
 import permeagility.util.QueryResult;
 
-import com.orientechnologies.orient.core.metadata.schema.OClass;
-import com.orientechnologies.orient.core.metadata.schema.OProperty;
-import com.orientechnologies.orient.core.metadata.schema.OType;
-import com.orientechnologies.orient.core.record.impl.ODocument;
 import java.util.List;
 import java.util.Set;
 import java.util.Stack;
+
+import com.arcadedb.database.Document;
+import com.arcadedb.schema.DocumentType;
+import com.arcadedb.schema.Property;
+import com.arcadedb.schema.Type;
+
 import static permeagility.web.Table.PRIV_READ;
 import static permeagility.web.Table.SHOW_ALL_RELATED_TABLES;
 
@@ -83,9 +85,9 @@ public class VisuilityData extends Download {
             nodeComma = "\n,";
 
             // Related tables
-            for (OClass c : con.getSchema().getClasses()) {
-                    for (OProperty p : c.properties()) {
-                            if (p.getLinkedClass() != null && p.getLinkedClass().getName().equals(table)) {
+            for (DocumentType c : con.getSchema().getTypes()) {
+                    for (Property p : c.getProperties()) {
+                            if (p.getOfType() != null && p.getOfType().equals(table)) {
                                     nodes.append(nodeComma+"{ \"id\":\"table."+c.getName()+"\""
                                                     + ",\"name\":\""+c.getName()+"\", \"description\":\"table "+c.getName()+"\""
                                                     + " }");
@@ -101,7 +103,7 @@ public class VisuilityData extends Download {
                 QueryResult rows = con.query("SELECT FROM "+table);
                 String rowTarget = "table."+table+"";
                 int rowCount = 0;
-                for (ODocument row : rows.get()) {
+                for (Document row : rows.get()) {
                     rowCount++;
                     String desc = Weblet.getDescriptionFromDocument(con, row);
                     nodes.append(nodeComma+"{ \"id\":\"row."+row.getIdentity().toString().substring(1)+"\""
@@ -121,11 +123,11 @@ public class VisuilityData extends Download {
             }
 
             // Columns - C
-            Collection<OProperty> cols = con.getColumns(table);
+            Collection<Property> cols = con.getColumns(table);
             String columnTarget = "table."+table;
             int colCount = 0;
             columnTarget = "table."+table+"";
-            for (OProperty col : cols) {
+            for (Property col : cols) {
                 colCount++;
                 if (detail != null && detail.equalsIgnoreCase("C") && !col.getName().startsWith("_")) {
                     nodes.append(nodeComma+"{ \"id\":\"column."+table+"."+col.getName()+"\""
@@ -138,7 +140,7 @@ public class VisuilityData extends Download {
                     columnTarget = "column."+table+"."+col.getName();
                 }
                 // Connect to a table if the property is a relationship
-                String lc = col.getLinkedClass() != null ? col.getLinkedClass().getName() : null; 
+                String lc = col.getOfType() != null ? col.getOfType() : null; 
                 if (lc != null) {
                     nodes.append(nodeComma+"{ \"id\":\"table."+lc+"\""
                         + ",\"name\":\""+lc+"\", \"description\":\"table "+lc+"\""
@@ -163,9 +165,9 @@ public class VisuilityData extends Download {
 
         // Related tables
         int relCount = 0;
-        for (OClass c : con.getSchema().getClasses()) {
-            for (OProperty p : c.properties()) {
-                if (p.getLinkedClass() != null && p.getLinkedClass().getName().equals(table)) {
+        for (DocumentType c : con.getSchema().getTypes()) {
+            for (Property p : c.getProperties()) {
+                if (p.getOfType() != null && p.getOfType().equals(table)) {
                     relCount++;
                     nodes.append(nodeComma+"{ \"id\":\"table."+c.getName()+"\""
                         + ",\"name\":\""+c.getName()+"\", \"description\":\"table "+c.getName()+"\""
@@ -183,7 +185,7 @@ public class VisuilityData extends Download {
             QueryResult rows = con.query("SELECT FROM "+table);
             String rowTarget = "table."+table+"";
             int rowCount = 0;
-            for (ODocument row : rows.get()) {
+            for (Document row : rows.get()) {
                 rowCount++;
                 nodes.append(nodeComma+"{ \"id\":\"row."+row.getIdentity().toString().substring(1)+"\""
                     + ",\"name\":\""+Weblet.getDescriptionFromDocument(con, row)+"\""
@@ -200,11 +202,11 @@ public class VisuilityData extends Download {
         }
 
         // Columns - C
-        Collection<OProperty> cols = con.getColumns(table);
+        Collection<Property> cols = con.getColumns(table);
         String columnTarget = "table."+table;
         int colCount = 0;
         columnTarget = "table."+table+"";
-        for (OProperty col : cols) {
+        for (Property col : cols) {
             colCount++;
             if (detail != null && detail.equalsIgnoreCase("C")) {
                 nodes.append(nodeComma+"{ \"id\":\"column."+table+"."+col.getName()+"\""
@@ -217,7 +219,7 @@ public class VisuilityData extends Download {
                 columnTarget = "column."+table+"."+col.getName();
             }
             // Connect to a table if the property is a relationship
-            String lc = col.getLinkedClass() != null ? col.getLinkedClass().getName() : null; 
+            String lc = col.getOfType() != null ? col.getOfType() : null; 
             if (lc != null) {
                 nodes.append(nodeComma+"{ \"id\":\"table."+lc+"\""
                     + ",\"name\":\""+lc+"\", \"description\":\"table "+lc+"\""
@@ -236,19 +238,19 @@ public class VisuilityData extends Download {
         StringBuilder links = new StringBuilder();
         String linkComma = "";
         String nodeComma = "";
-        ODocument viewDoc = con.get(id);
+        Document viewDoc = con.get(id);
         if (viewDoc == null) {
             return ("Could not retrieve row using id:"+id).getBytes();
         } else {
-            String classname = viewDoc.getClassName();
-            Collection<OProperty> cols = con.getColumns(classname);
+            String classname = viewDoc.getTypeName();
+            Collection<Property> cols = con.getColumns(classname);
             String classDesc = Weblet.getDescriptionFromDocument(con, viewDoc);
             nodes.append("{ \"id\": \"row."+id+"\", \"name\":\""+classDesc+"\""
                     +", \"description\":\"row "+id+" "+classname+" "+classDesc+"\" }");
             nodeComma = "\n,";
             if (detail != null && detail.equalsIgnoreCase("T")) {
                 // Make a table node for the row
-                String table = viewDoc.getClassName();
+                String table = viewDoc.getTypeName();
                 nodes.append(nodeComma+"{ \"id\":\"table."+table+"\""
                     + ",\"name\":\""+table+"\", \"description\":\"table "+table+"\""
                     + " }");
@@ -259,48 +261,32 @@ public class VisuilityData extends Download {
             }
             String dataTarget = "row."+id;  // For stringing data columns together in order
             int colCount = 0;
-            for (OProperty col : cols) {
+            for (Property col : cols) {
                 String colName = col.getName();
-                Object colData = viewDoc.field(colName);
-                if (colData instanceof ODocument) {
-                    ODocument ld = (ODocument)colData;
+                Object colData = viewDoc.get(colName);
+                if (colData instanceof Document) {
+                    Document ld = (Document)colData;
                     String refId = ld.getIdentity().toString().substring(1);
                     String docName = Weblet.getDescriptionFromDocument(con, ld);
                     // Should be a link to the other row
                     nodes.append(nodeComma+"{ \"id\":\"row."+refId+"\""
                             + ",\"name\":\""+docName+"\""
-                            + ",\"description\":\"row "+refId+" "+ld.getClassName()+" "+docName+"\""
+                            + ",\"description\":\"row "+refId+" "+ld.getTypeName()+" "+docName+"\""
                             + " }");
                     nodeComma = "\n,";
                     links.append(linkComma+"{ \"targetId\":\"row."+refId+"\""
                             +", \"sourceId\":\"row."+id+"\""
                             +" }");
                     linkComma = "\n,";
-                } else if (colData instanceof Set) {
-                    Set<ODocument> set = (Set<ODocument>)colData;
-                    for (ODocument ld : set) {
+                 } else if (colData instanceof List) {
+                    List<Document> set = (List<Document>)colData;
+                    for (Document ld : set) {
                         String refId = ld.getIdentity().toString().substring(1);
                         String docName = Weblet.getDescriptionFromDocument(con, ld);
                         // Should be a link to the other row
                         nodes.append(nodeComma+"{ \"id\":\"row."+refId+"\""
                                 + ",\"name\":\""+docName+"\""
-                                + ",\"description\":\"row "+refId+" "+ld.getClassName()+" "+docName+"\""
-                                + " }");
-                        nodeComma = "\n,";
-                        links.append(linkComma+"{ \"targetId\":\"row."+refId+"\""
-                                +", \"sourceId\":\"row."+id+"\""
-                                +" }");
-                        linkComma = "\n,";
-                    }
-                } else if (colData instanceof List) {
-                    List<ODocument> set = (List<ODocument>)colData;
-                    for (ODocument ld : set) {
-                        String refId = ld.getIdentity().toString().substring(1);
-                        String docName = Weblet.getDescriptionFromDocument(con, ld);
-                        // Should be a link to the other row
-                        nodes.append(nodeComma+"{ \"id\":\"row."+refId+"\""
-                                + ",\"name\":\""+docName+"\""
-                                + ",\"description\":\"row "+refId+" "+ld.getClassName()+" "+docName+"\""
+                                + ",\"description\":\"row "+refId+" "+ld.getTypeName()+" "+docName+"\""
                                 + " }");
                         nodeComma = "\n,";
                         links.append(linkComma+"{ \"targetId\":\"row."+refId+"\""
@@ -327,11 +313,11 @@ public class VisuilityData extends Download {
             
             Stack<String> tables = new Stack<>();
             Stack<String> columns = new Stack<>();
-            Stack<OType> types = new Stack<>();
+            Stack<Type> types = new Stack<>();
 
-            for (OClass c : con.getSchema().getClasses()) {
-                for (OProperty p : c.properties()) {
-                    if (p.getLinkedClass() != null && p.getLinkedClass().getName().equals(classname)) {
+            for (DocumentType c : con.getSchema().getTypes()) {
+                for (Property p : c.getProperties()) {
+                    if (p.getOfType() != null && p.getOfType().equals(classname)) {
                         if (SHOW_ALL_RELATED_TABLES || (Security.getTablePriv(con, c.getName()) & PRIV_READ) > 0) {
                             tables.push(c.getName());
                             columns.push(p.getName());
@@ -343,12 +329,12 @@ public class VisuilityData extends Download {
             while (!tables.empty()) {
                 String relTable = tables.pop();
                 String col = columns.pop();
-                OType fkType = types.pop();
+                Type fkType = types.pop();
                 String operator;
                 if ((Security.getTablePriv(con, relTable) & PRIV_READ) > 0) {
-                    if (fkType == OType.LINKLIST || fkType == OType.LINKSET || fkType == OType.LINKBAG) {
+                    if (fkType == Type.LIST) {
                         operator = "contains";
-                    } else if (fkType == OType.LINKMAP) {
+                    } else if (fkType == Type.MAP) {
                         operator = "constainsvalue";
                     } else {
                         operator = "=";
@@ -356,7 +342,7 @@ public class VisuilityData extends Download {
                     String query = "SELECT FROM " + relTable + " WHERE "+col+" "+operator+" #"+id;
                     if (DEBUG) System.out.println("related query="+query);
                     QueryResult rel = con.query(query);
-                    for (ODocument rd : rel.get()) {
+                    for (Document rd : rel.get()) {
                         String relId = rd.getIdentity().toString().substring(1);
                         String relName = Weblet.getDescriptionFromDocument(con, rd);
                         nodes.append(nodeComma+"{ \"id\":\"row."+relId+"\""

@@ -22,29 +22,19 @@ import permeagility.web.Message;
 import permeagility.web.Security;
 import permeagility.web.Table;
 
-import com.orientechnologies.orient.core.record.impl.ODocument;
-import com.orientechnologies.orient.core.record.impl.ORecordBytes;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.SequenceInputStream;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.util.Date;
 import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
+
+import com.arcadedb.database.Document;
+import com.arcadedb.database.MutableDocument;
+
 import permeagility.web.Server;
-import static permeagility.web.Table.PARM_PREFIX;
 import permeagility.web.Thumbnail;
-import static permeagility.web.Weblet.div;
-import static permeagility.web.Weblet.getSplitScript;
-import static permeagility.web.Weblet.hidden;
-import static permeagility.web.Weblet.paragraph;
-import static permeagility.web.Weblet.popupBox;
-import static permeagility.web.Weblet.popupForm;
-import static permeagility.web.Weblet.script;
 
 public class RBuilder extends Table {
 
@@ -81,7 +71,7 @@ public class RBuilder extends Table {
 
         // PDF Preview
         if (preview != null && !preview.equals("null")) {
-            ODocument viewDoc = con.get(preview);
+            Document viewDoc = con.get(preview);
             if (viewDoc == null) {
                 errors.append(paragraph("Could not retrieve preview using " + preview));
             } else {
@@ -93,7 +83,7 @@ public class RBuilder extends Table {
                 } else {
                     sb.append(paragraph("warning","No Results"));
                 }
-                return head("R Builder", serviceStyleOverride) + body(errors.toString()+div("service",sb.toString()));
+                return head(con, "R Builder", serviceStyleOverride) + body(errors.toString()+div("service",sb.toString()));
             }
         }
 
@@ -101,17 +91,17 @@ public class RBuilder extends Table {
         if (viewText != null && !viewText.equals("null")) {
             if (processes.get(viewText) != null) {
                 errors.append(paragraph("warning", "Process is still running"));
-                return head("R Builder - Text result view") + body(errors.toString());
+                return head(con, "R Builder - Text result view") + body(errors.toString());
             } else {
-                ODocument doc = con.get(viewText);
+                Document doc = con.get(viewText);
                 if (doc == null) {
                     errors.append(paragraph("error", "View text - document is null"));
                 } else {
-                    String textResult = doc.field("textResult");
+                    String textResult = doc.getString("textResult");
                     if (textResult == null) {
                         textResult = "No results found";
                     }
-                    return head("R Builder - Text result view") + bodyOnLoad("<pre>"+textResult+"</pre>", "window.scrollTo(0, document.body.scrollHeight);");
+                    return head(con, "R Builder - Text result view") + bodyOnLoad("<pre>"+textResult+"</pre>", "window.scrollTo(0, document.body.scrollHeight);");
                 }
             }
         }
@@ -127,7 +117,7 @@ public class RBuilder extends Table {
         }
         
         // Return the default result
-        return head("R Builder", getScripts(con))
+        return head(con, "R Builder", getScripts(con))
         + body(standardLayout(con, parms,
             ((Security.getTablePriv(con, PlusSetup.TABLE) & PRIV_CREATE) > 0
                 ? popupForm("CREATE_NEW_ROW", null, Message.get(locale, "CREATE_ROW"), null, "NAME",
@@ -142,26 +132,26 @@ public class RBuilder extends Table {
         ));
     }
 
-    public boolean updateBlobFromFile(ODocument doc, String table, String blobName, String blobFile) {
+    public boolean updateBlobFromFile(Document doc, String table, String blobName, String blobFile) {
         if (doc != null) {
             try {
                 if (blobFile != null && !blobFile.trim().equals("")) {
                     System.out.println("Writing blob " + blobFile + " to " + table + " row=" + doc.getIdentity().toString());
-                    ORecordBytes record = new ORecordBytes();
-                    try {
-                        ByteArrayOutputStream fo = new ByteArrayOutputStream();
-                        fo.write("application/pdf".getBytes());
-                        fo.write(0x00);
-                        fo.write((doc.field("name") + ".pdf").getBytes());
-                        fo.write(0x00);
-                        record.fromInputStream(new SequenceInputStream(
-                                new ByteArrayInputStream(fo.toByteArray()), new FileInputStream(blobFile)
-                        ));
-                    } catch (IOException ioe) {
-                        ioe.printStackTrace();
-                    }
-                    record.save();
-                    doc.field(blobName, record);
+         //           ORecordBytes record = new ORecordBytes();
+         //           try {
+         //               ByteArrayOutputStream fo = new ByteArrayOutputStream();
+         //               fo.write("application/pdf".getBytes());
+         //               fo.write(0x00);
+         //               fo.write((doc.field("name") + ".pdf").getBytes());
+         //               fo.write(0x00);
+         //               record.fromInputStream(new SequenceInputStream(
+         //                       new ByteArrayInputStream(fo.toByteArray()), new FileInputStream(blobFile)
+         //               ));
+         //           } catch (IOException ioe) {
+         //               ioe.printStackTrace();
+         //           }
+         //           record.save();
+         //           doc.field(blobName, record);
                     Thumbnail.createThumbnail(table, doc, blobName);
                 }
             } catch (Exception e) {
@@ -186,7 +176,7 @@ public class RBuilder extends Table {
     @Override
     public String getTableRowFields(DatabaseConnection con, String table, HashMap<String, String> parms, String columnOverride) {
         String edit_id = parms.get("EDIT_ID");
-        ODocument initialValues = null;
+        Document initialValues = null;
         if (edit_id != null) {
             initialValues = con.get(edit_id);
             if (initialValues == null) {
@@ -198,7 +188,7 @@ public class RBuilder extends Table {
             readOnly = Security.isReadOnlyDocument(con, initialValues);
         }
         String formName = (edit_id == null ? "NEWROW" : "UPDATEROW");
-        String init = initialValues != null ? initialValues.field("RScript") : null;
+        String init = initialValues != null ? initialValues.getString("RScript") : null;
         if (init == null) init = "# R Script "+new Date()+"\n";
         String scriptEditor = getCodeEditorControl(formName, PARM_PREFIX + "RScript", init, "text/x-rsrc", readOnly ? ",readOnly:true" : null);                    
         String resultText = frame("resultFrame","permeagility.plus.r.RBuilder?VIEWTEXT="+edit_id);  //"<iframe id='resultFrame' width='100%' height='100%'></iframe>\n";
@@ -258,7 +248,7 @@ public class RBuilder extends Table {
     private void runRProcess(DatabaseConnection con, HashMap<String,String> parms, StringBuilder errors) {
         String run = parms.get("EDIT_ID");
         System.out.println("Build R Process " + run);
-        ODocument runDoc = con.get(run);
+        MutableDocument runDoc = (MutableDocument)con.get(run);
         if (runDoc == null) {
             errors.append(paragraph("Could not retrieve run details using " + run));
         } else if (processes.get(run) != null) {
@@ -270,8 +260,8 @@ public class RBuilder extends Table {
 
                 File rscript = File.createTempFile("RScript", ".r");
                 System.out.println("Temp rscript file created " + rscript.getAbsolutePath());
-                String rsrc = runDoc.field("RScript");
-                runDoc.field("status", "Running");
+                String rsrc = runDoc.getString("RScript");
+                runDoc.set("status", "Running");
                 // Write the script to the file - put output to pdf instruction and PermeAgilityCSV function at the top
                 Files.write(rscript.toPath(), ("#---- PermeAgility Header ----#\npdf(\"" + pdf.getAbsolutePath() + "\")\n").getBytes(), StandardOpenOption.WRITE);
                 String rCode = "library(httr)\n"
@@ -286,7 +276,7 @@ public class RBuilder extends Table {
                 File output = File.createTempFile("RProcess", ".out");
                 System.out.println("Temp output file created " + output.getAbsolutePath());
 
-                String execCommand = R_COMMAND + " --quiet --vanilla -f " + rscript.getAbsolutePath() + " 1>" + output.getAbsolutePath() + " 2>&1";
+                //String execCommand = R_COMMAND + " --quiet --vanilla -f " + rscript.getAbsolutePath() + " 1>" + output.getAbsolutePath() + " 2>&1";
                 String execCommands[] = {"/bin/bash", "-c", R_COMMAND+" --quiet --vanilla -f " + rscript.getAbsolutePath() + " 1>" + output.getAbsolutePath() + " 2>&1"};
 
                 System.out.println("Running command " + execCommands[2]);
@@ -310,21 +300,22 @@ public class RBuilder extends Table {
                     //sb.append("<p>"+ result.toString().substring(endOfHeader > rCode.length() ? endOfHeader : 0)+"</p>");
                     String textResult = result.toString().substring(endOfHeader > rCode.length() ? endOfHeader+38 : 0)
                             .replace("<", "&lt;").replace(">", "&gt;").replace("\n", "<br>");
-                    runDoc.field("textResult", textResult);
+                    runDoc.set("textResult", textResult);
                     if (updateBlobFromFile(runDoc, "RScript", "PDFResult", pdf.getAbsolutePath())) {
-                        runDoc.field("status", "Finished");
+                        runDoc.set("status", "Finished");
                     } else {
-                        runDoc.field("status", "No PDF");
+                        runDoc.set("status", "No PDF");
                     }
                     runDoc.save();
                     processes.remove(runDocId);
+                    fis.close();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            parms.put("SERVICE", "Running:" + runDoc.field("name"));
+            parms.put("SERVICE", "Running:" + runDoc.getString("name"));
         }
     }
     

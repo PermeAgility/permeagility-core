@@ -19,12 +19,6 @@ import java.util.Date;
 
 import permeagility.util.DatabaseConnection;
 
-import com.orientechnologies.orient.core.db.ODatabase.STATUS;
-import com.orientechnologies.orient.core.db.ODatabaseRecordThreadLocal;
-import com.orientechnologies.orient.core.hook.ORecordHook;
-import com.orientechnologies.orient.core.metadata.schema.OType;
-import com.orientechnologies.orient.core.record.ORecord;
-import com.orientechnologies.orient.core.record.impl.ODocument;
 
 /**
  * Implements a hook that is called for all database updates
@@ -36,7 +30,7 @@ import com.orientechnologies.orient.core.record.impl.ODocument;
  * @author glenn
  *
  */
-public class RecordHook implements ORecordHook {
+public class RecordHook /* implements ORecordHook */ {
 
     public static boolean DEBUG = false;
 
@@ -47,7 +41,7 @@ public class RecordHook implements ORecordHook {
 
     public RecordHook() {
     }
-
+/* 
     @Override
     public void onUnregister() {
         System.out.println("Unregistering the RecordHook");
@@ -106,5 +100,5 @@ public class RecordHook implements ORecordHook {
         if (DEBUG) System.out.println("Hook:gdem");
         return DISTRIBUTED_EXECUTION_MODE.BOTH;
     }
-
+*/
 }

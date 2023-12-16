@@ -21,6 +21,7 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
 import java.text.DecimalFormat;
@@ -34,7 +35,7 @@ import permeagility.plus.json.JSONObject;
 import permeagility.util.Database;
 import permeagility.util.DatabaseConnection;
 import permeagility.util.PlusClassLoader;
-import permeagility.util.QueryResult;
+import permeagility.util.QueryResultCache;
 import permeagility.util.Setup;
 
 public class Context extends Weblet {
@@ -59,7 +60,7 @@ public class Context extends Weblet {
 //    static String downloadURL = "Test";
 
     public String getPage(DatabaseConnection con, java.util.HashMap<String, String> parms) {
-        return head("Context")
+        return head(con, "Context")
                 + body(standardLayout(con, parms, getHTML(con, parms)));
     }
 
@@ -100,7 +101,7 @@ public class Context extends Weblet {
                     try {
                         String fileName = "plus" + plusFileURL.substring(plusFileURL.lastIndexOf(File.separator));
                         if (DEBUG) System.out.println("Downloading "+plusFileURL+" to "+fileName);
-                        URL latestURL = new URL(plusFileURL);
+                        URL latestURL = new URI(plusFileURL).toURL();
                         URLConnection yc = latestURL.openConnection();
                         int dlLength = yc.getContentLength();
                         InputStream input = yc.getInputStream();
@@ -191,7 +192,7 @@ public class Context extends Weblet {
             if (DEBUG) System.out.println("Context: Checking for updated version");
             try {
                 StringBuilder jsonString = new StringBuilder();
-                URL latestURL = new URL("https://api.github.com/repos/permeagility/permeagility-core/releases/latest");
+                URL latestURL = new URI("https://api.github.com/repos/permeagility/permeagility-core/releases/latest").toURL();
                 URLConnection yc = latestURL.openConnection();
                 BufferedReader in = new BufferedReader(new InputStreamReader(yc.getInputStream()));
                 String inputLine;
@@ -225,7 +226,7 @@ public class Context extends Weblet {
             new Thread() {
                 @Override public void run() {
                     try {
-                        URL latestURL = new URL(downloadURL);
+                        URL latestURL = new URI(downloadURL).toURL();
                         URLConnection yc = latestURL.openConnection();
                         int dlLength = yc.getContentLength();
                         InputStream input = yc.getInputStream();
@@ -258,7 +259,8 @@ public class Context extends Weblet {
             }
             //ln -sf permeagility-0.6.1.jar permeagility.jar
             try {
-                Process proc = Runtime.getRuntime().exec("ln -sf "+latestVersion+" permeagility.jar");
+                String[] cmd = {"ln -sf "+latestVersion+" permeagility.jar"};
+                Process proc = Runtime.getRuntime().exec(cmd);
                 int procStat = proc.waitFor();
                 if (procStat == 0) {
                     updateApplied.append(paragraph("success","The symbolic link has been updated - restart the server using the shutdown (with restart)"));
@@ -302,7 +304,7 @@ public class Context extends Weblet {
         StringBuilder cacheList = new StringBuilder();
         Object[] keys = getCache().keySet().toArray();
         for (Object key : keys) {
-            QueryResult qr = getCache().get(key);
+            QueryResultCache qr = getCache().get(key);
             if (qr != null) {
                 cacheList.append(row("data", column(30, link("permeagility.web.Context?TABLENAME=" + key, (String) key)) + column(10, "" + (qr.size())) + column(20, qr.getTime().toString())));
             }
@@ -320,7 +322,7 @@ public class Context extends Weblet {
             String setupClassName = "permeagility.plus." + (m.indexOf("-",5) > 0 ? m.substring(5,m.indexOf("-",5)) : m.substring(5)) + ".PlusSetup";
             try {
                 Class<?> classOf = Class.forName(setupClassName, true, PlusClassLoader.get());
-                Object classInstance = classOf.newInstance();
+                Object classInstance = classOf.getDeclaredConstructor().newInstance();
                 if (classInstance instanceof PlusSetup) {
                     StringBuilder errors = new StringBuilder();
                     PlusSetup plusSetup = (PlusSetup) classInstance;
@@ -379,7 +381,7 @@ public class Context extends Weblet {
                 }
                 Database udb = Server.sessionsDB.get(usr);
                 if (udb != null) {
-                    sessionReport.append(usr + " sessions=" + scnt + " active=" + udb.getActiveCount() + " pooled=" + udb.getPooledCount() + "<BR>");
+                    sessionReport.append(usr + " sessions=" + scnt + "<BR>");
                 }
             }
         }
@@ -451,7 +453,7 @@ public class Context extends Weblet {
     public static String getURL(String url) {
          try {
             StringBuilder jsonString = new StringBuilder();
-             URL latestURL = new URL(url);
+             URL latestURL = new URI(url).toURL();
              URLConnection yc = latestURL.openConnection();
              BufferedReader in = new BufferedReader(new InputStreamReader(yc.getInputStream()));
              String inputLine;

@@ -21,18 +21,21 @@ import permeagility.util.DatabaseConnection;
 import permeagility.util.Setup;
 import permeagility.web.Weblet;
 
-import com.orientechnologies.orient.core.metadata.schema.OClass;
-import com.orientechnologies.orient.core.metadata.schema.OProperty;
-import com.orientechnologies.orient.core.metadata.schema.OType;
-import com.orientechnologies.orient.core.record.impl.ODocument;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
-import java.util.Set;
+
+import com.arcadedb.database.Document;
+import com.arcadedb.database.MutableDocument;
+import com.arcadedb.schema.DocumentType;
+import com.arcadedb.schema.Property;
+import com.arcadedb.schema.Type;
+
 import permeagility.util.QueryResult;
 
 public class ImportJSON extends Weblet {
@@ -56,7 +59,7 @@ public class ImportJSON extends Weblet {
             if (fromURL != null && !fromURL.isEmpty()) {
                 errors.append(paragraph("Using URL: "+fromURL));
                 try {
-                    URL tURL = new URL(fromURL);
+                    URL tURL = new URI(fromURL).toURL();
                     Object o = tURL.getContent();
                     if (DEBUG) System.out.println("Received from: "+tURL.getQuery()+" content="+o);
                     if (o != null && o instanceof InputStream) {
@@ -108,6 +111,7 @@ public class ImportJSON extends Weblet {
                         fromText = content.toString();
                         if (DEBUG) System.out.println("content="+fromText);
                     }
+                    fis.close();
                 } catch (Exception e) {
                     errors.append(paragraph("error","Nothing to parse. error="+e.getMessage()));
                     e.printStackTrace();
@@ -122,9 +126,9 @@ public class ImportJSON extends Weblet {
                 try {
                     if (DEBUG) System.out.println("length="+fromText.length());
                     jo = new JSONObject(fromText.replace("\\u0027", "\""));
-                    ODocument doc;
+                    Document doc;
                     doc = importObject(parms, run, con, parms.get("TABLE_FOR_"), jo, errors, classes);
-                    parseSuccess = true;
+                    if (doc != null) parseSuccess = true;
                     if (run) errors.append(paragraph("success","Successfully parsed and imported "+parms.get("TABLE_FOR_")));
                 } catch (Exception e) {
                     errors.append(paragraph("error","Error parsing JSON:"+e.getMessage()));
@@ -158,14 +162,14 @@ public class ImportJSON extends Weblet {
                     + row(column("") + column(submitButton(con.getLocale(), "PREVIEW")))
             ));
         }
-        return head("Import JSON") + body(standardLayout(con, parms,
+        return head(con, "Import JSON") + body(standardLayout(con, parms,
                 paragraph("banner", "Import JSON to a table")
                 +form(sb.toString() + errors.toString())
             ));
     }
 
     /* Import a JSON Object as a Document */
-    public ODocument importObject(HashMap<String,String> parms, boolean run, DatabaseConnection con, String classname, JSONObject acjo, StringBuilder errors, HashMap<String,HashMap<String,String>> classes) {
+    public Document importObject(HashMap<String,String> parms, boolean run, DatabaseConnection con, String classname, JSONObject acjo, StringBuilder errors, HashMap<String,HashMap<String,String>> classes) {
         if (DEBUG) System.out.println("importObject.JSONObject="+acjo.getClass().getName());
         String originalClassName = classname;
         if (acjo.has("@class")) {
@@ -175,8 +179,8 @@ public class ImportJSON extends Weblet {
         if (newClassName != null && !newClassName.isEmpty()) {
             classname = newClassName;
         }
-        OClass oclass = con.getSchema().getClass(classname);
-        ODocument doc = null;
+        DocumentType oclass = con.getSchema().getType(classname);
+        MutableDocument doc = null;
         String keycol = parms.get("KEY_FOR_"+classname);
         if (keycol != null && (keycol.isEmpty() || keycol.equals("null"))) keycol = null;
         String keyval = null;  // Hold a key value for resolution against a primary key
@@ -220,21 +224,21 @@ public class ImportJSON extends Weblet {
             }
             if (val instanceof JSONArray) {
                 JSONArray array = (JSONArray)val;
-                List<ODocument> docList = new ArrayList<>();
+                List<Document> docList = new ArrayList<>();
                 for (int j = 0; j < array.length(); j++) {
                     Object ac = array.get(j);
                     if (DEBUG) System.out.println("Array[" + j + "]=" + ac.getClass().getName() + ":" + ac.toString());
                     if (ac instanceof JSONObject) {
                         if (run) {
-                            ODocument subdoc;
+                            Document subdoc;
                             subdoc = importObject(parms, run, con, colName, (JSONObject)ac, errors, classes);
-                            OProperty oproperty = null;
-                            if (!colName.equals(classname) && oclass != null && subdoc != null) {
-                                oproperty = Setup.checkCreateColumn(con, oclass, colName, OType.LINKLIST, subdoc.getSchemaClass(), errors);
-                            }
-                            if (oproperty != null && subdoc != null) {
-                                docList.add(subdoc);
-                            }
+                            Property oproperty = null;
+                  //          if (!colName.equals(classname) && oclass != null && subdoc != null) {
+                  //              oproperty = Setup.checkCreateColumn(con, oclass, colName, Type.LINKLIST, subdoc.getSchemaClass(), errors);
+                  //          }
+                  //          if (oproperty != null && subdoc != null) {
+                  //              docList.add(subdoc);
+                  //          }
                         } else {
                             if (DEBUG) System.out.println("className="+classname+" colName="+colName);
                             if (classes.containsKey(classname)) {  // must be at the top level
@@ -245,72 +249,72 @@ public class ImportJSON extends Weblet {
                     }
                 }
                 if (run && doc != null && docList.size() > 0) {
-                    doc.field(colName, docList);
+                    doc.set(colName, docList);
                 }
 
             } else if (val instanceof JSONObject) {
-                OProperty oproperty = oclass != null ? oclass.getProperty(colName) : null;  // See if property already exists
+                Property oproperty = oclass != null ? oclass.getProperty(colName) : null;  // See if property already exists
                 if (run) {
                     if (oproperty == null) {
-                        ODocument subdoc = importObject(parms, run, con, colName, (JSONObject)val, errors, classes);
+                        Document subdoc = importObject(parms, run, con, colName, (JSONObject)val, errors, classes);
                         if (DEBUG) System.out.println("importObject.subdoc="+subdoc);
-                        if (subdoc != null && doc != null) {
-                            oproperty = Setup.checkCreateColumn(con, oclass, colName, OType.LINK, subdoc.getSchemaClass(), errors);
-                        }
-                        if (doc != null && oproperty != null && !subdoc.isEmpty()) {
-                            doc.field(colName, subdoc);
-                        }
-                    } else if (oproperty.getType() == OType.LINKMAP) {
-                        if (DEBUG)  System.out.println("importObject(into map of class "+oproperty.getLinkedClass().getName()+")");
+            //            if (subdoc != null && doc != null) {
+            //                oproperty = Setup.checkCreateColumn(con, oclass, colName, Type.LINK, subdoc.getSchemaClass(), errors);
+            //            }
+            //            if (doc != null && oproperty != null && !subdoc.isEmpty()) {
+            //                doc.set(colName, subdoc);
+            //            }
+                    } else if (oproperty.getType() == Type.MAP) {
+                        if (DEBUG)  System.out.println("importObject(into map of class "+oproperty.getOfType()+")");
                         JSONObject j = (JSONObject)val;
-                        HashMap<String,ODocument> newMap = new HashMap<>();
+                        HashMap<String,Object> newMap = new HashMap<>();
                         for (String n : j.keySet()) {
                             if (DEBUG) System.out.println("key="+n);
                             Object subval = j.get(n);
                             if (subval instanceof JSONObject) {
-                                ODocument subdoc = importObject(parms, run, con, oproperty.getLinkedClass().getName(), (JSONObject)subval, errors, classes);
-                                if (subdoc != null && !subdoc.isEmpty()) {
+                                Document subdoc = importObject(parms, run, con, oproperty.getOfType(), (JSONObject)subval, errors, classes);
+                                if (subdoc != null ) {
                                     if (DEBUG) System.out.println("adding (into map) "+n+": "+subdoc);
                                     newMap.put("'"+n+"'",subdoc);
                                 }
                             }
                         }
                         if (doc != null && newMap.size() > 0) {
-                            doc.field(colName, newMap);
+                            doc.set(colName, newMap);
                         }
-                    } else if (oproperty.getType() == OType.STRING) {
+                    } else if (oproperty.getType() == Type.STRING) {
                         if (DEBUG) System.out.println("Importing object into STRING");
                         JSONObject j = (JSONObject)val;
-                        doc.field(colName,j.toString());
+                        doc.set(colName,j.toString());
                     } else {
                         errors.append(paragraph("error", "I don't know how to import an object into the "+colName+" column of type "+oproperty.getType().name()));
                     }
                 } else {
                     if (oproperty != null) {
-                        if (oproperty.getType() == OType.LINKMAP) {
+                        if (oproperty.getType() == Type.MAP) {
                             classes.get(classname).put(colName,paragraph("Column " + input("COLUMN_"+classname+"_"+colName,colName) + " is an object and it will use existing LINKMAP"));
 //                            ODocument subdoc = importObject(parms, run, con, colName, (JSONObject)val, errors, classes);
 
                         }
                     } else {
                         classes.get(classname).put(colName,paragraph("Column " + input("COLUMN_"+classname+"_"+colName,colName) + " is an object and it will be a LINK"));
-                        ODocument subdoc = importObject(parms, run, con, colName, (JSONObject)val, errors, classes);
+                        Document subdoc = importObject(parms, run, con, colName, (JSONObject)val, errors, classes);
                     }
                 }
             } else {
                 if (run) {
-                    OProperty oproperty = null;
+                    Property oproperty = null;
                     if (oclass != null) {
-                        oproperty = Setup.checkCreateColumn(con, oclass, colName, determineOTypeFromClassName(val.getClass().getName()), errors);
+                        oproperty = Setup.checkCreateColumn(con, oclass, colName, determineTypeFromClassName(val.getClass().getName()), errors);
                     }
                     if (doc != null && oproperty != null && val != null && !val.toString().equals("null")) {
                         if (DEBUG) System.out.println("importObject.Setting field "+colName+" to "+val);
-                        doc.field(colName, val);
+                        doc.set(colName, val);
                     }
                 } else {
                     classes.get(classname).put(colName,paragraph("Column "+input("COLUMN_"+classname+"_"+colName,colName)
                             +" of type " + val.getClass().getName()
-                            + " will be a "+determineOTypeFromClassName(val.getClass().getName())
+                            + " will be a "+determineTypeFromClassName(val.getClass().getName())
                     ));
                 }
             }
@@ -318,14 +322,14 @@ public class ImportJSON extends Weblet {
         if (doc != null) {
             if (keycol != null) {
                 if (keyval != null && !keyval.equals("null")) {
-                    String q = "SELECT FROM "+doc.getClassName()+" WHERE "+keycol+" = "+wrapWithQuotes(keyval);
+                    String q = "SELECT FROM "+doc.getTypeName()+" WHERE "+keycol+" = "+wrapWithQuotes(keyval);
                     if (DEBUG) System.out.println("Resolving "+keycol+" with "+q);
                     QueryResult qr = con.query(q);
                     if (qr.size() == 0) {
-                        errors.append(paragraph("Did not resolve reference SELECT FROM "+doc.getClassName()+" WHERE "+keycol+"="+wrapWithQuotes(keyval)));
+                        errors.append(paragraph("Did not resolve reference SELECT FROM "+doc.getTypeName()+" WHERE "+keycol+"="+wrapWithQuotes(keyval)));
                         doc.save();
                     } else {
-                        errors.append(paragraph("Resolved reference to "+doc.getClassName()+" using "+keycol+"="+keyval));
+                        errors.append(paragraph("Resolved reference to "+doc.getTypeName()+" using "+keycol+"="+keyval));
                         doc.delete();
                         return qr.get(0);
                     }
@@ -342,20 +346,20 @@ public class ImportJSON extends Weblet {
     /**
      * Determine the best lossless OrientDB representation of the given java classname (fully qualified) of an object given in a result set (not necessarily the most efficient storage or what you expect) Note: This is a good candidate to be a general utility function but this is the only place it is used right now
      */
-    public OType determineOTypeFromClassName(String className) {
-        OType otype = OType.STRING;  // Default
+    public Type determineTypeFromClassName(String className) {
+        Type otype = Type.STRING;  // Default
         if (className.endsWith("JSONObject$Null")) {
-            otype = OType.LINK;
+            otype = Type.LINK;
         } else if (className.endsWith("JSONObject")) {
-            otype = OType.LINK;
+            otype = Type.LINK;
         } else if (className.equals("java.math.BigDecimal")) {
-            otype = OType.DECIMAL;
+            otype = Type.DECIMAL;
         } else if (className.equals("java.util.Date")) {
-            otype = OType.DATETIME;
+            otype = Type.DATETIME;
         } else if (className.equals("java.lang.Double")) {
-            otype = OType.DOUBLE;
+            otype = Type.DOUBLE;
         } else if (className.equals("java.lang.Integer")) {
-            otype = OType.INTEGER;
+            otype = Type.INTEGER;
         }
         if (DEBUG) System.out.println(className+" becomes "+otype);
         return otype;

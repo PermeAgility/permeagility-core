@@ -15,11 +15,11 @@
  */
 package permeagility.plus.csv;
 
-import com.orientechnologies.orient.core.metadata.schema.OType;
-import com.orientechnologies.orient.core.record.impl.ODocument;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Set;
+
+import com.arcadedb.database.Document;
+
 import permeagility.util.DatabaseConnection;
 import permeagility.util.QueryResult;
 import permeagility.web.Weblet;
@@ -50,12 +50,12 @@ public class Download extends permeagility.web.Download {
                     fromSQL = "SELECT FROM "+fromTable;
                 }
                 QueryResult qr = con.query(fromSQL);
-                String[] columns = null;
+                Set<String> columns = null;
                 // Get first document for columns
                 if (qr.size() > 0) {
                     String comma = "";
-                    ODocument firstDoc = qr.get(0);
-                    columns = firstDoc.fieldNames();               
+                    Document firstDoc = qr.get(0);
+                    columns = firstDoc.getPropertyNames();               
                     for (String p : columns) {
                         sb.append(comma);
                         sb.append(p);
@@ -63,7 +63,7 @@ public class Download extends permeagility.web.Download {
                     }
                     sb.append("\n");
                 }
-                for (ODocument d : qr.get()) {
+                for (Document d : qr.get()) {
                     sb.append(exportDocument(con, d, columns)+"\n");
                 }
             } catch (Exception e) {
@@ -73,55 +73,55 @@ public class Download extends permeagility.web.Download {
         return sb.toString().getBytes(Weblet.charset);
     }
     
-    String exportDocument(DatabaseConnection con, ODocument d, String[] columns) {
+    String exportDocument(DatabaseConnection con, Document d, Set<String> columns) {
         StringBuilder sb = new StringBuilder();
         String comma = "";
-        for (String p : columns) {
-            OType t = d.fieldType(p);
-            sb.append(comma);
-            if (t == OType.LINK) {
-                ODocument ld = (ODocument)d.field(p);
-                if (ld == null) {
-                } else {
-                    sb.append(ld.getIdentity().toString().substring(1));                    
-                }
-            } else if (t == OType.LINKSET) {
-                Set<ODocument> set = d.field(p);
-                String lcomma = "";
-                if (set != null) {
-                    for (ODocument sd : set) {
-                        if (sd != null) {
-                            sb.append(lcomma+sd.getIdentity().toString().substring(1));                    
-                            lcomma = "/";
-                        }
-                    }
-                }
-            } else if (t == OType.LINKLIST) {
-                List<ODocument> set = d.field(p);
-                String lcomma = "";
-                if (set != null) {
-                    for (ODocument sd : set) {
-                        if (sd != null) {
-                            sb.append(lcomma+sd.getIdentity().toString().substring(1));                    
-                        }
-                        lcomma = "/";
-                    }
-                }
-            } else if (t == OType.DATE || t == OType.DATETIME) {
-                sb.append(""+d.field(p));
-            } else if (t == OType.EMBEDDED || t == OType.EMBEDDEDLIST || t == OType.EMBEDDEDMAP || t == OType.EMBEDDEDSET) {
-                sb.append("\""+d.field(p)+"\"");                
-            } else if (t == OType.STRING) {
-                String content = d.field(p);
-                if (content != null && !content.isEmpty()) {
-                    content = content.replace("\"","\\\"").replace("\\s","\\u005cs").replace("\t","\\t").replace("\r","\\r").replace("\n","\\n");
-                }
-                sb.append("\""+(content == null ? "" : content)+"\"");                
-            } else {
-                sb.append(""+d.field(p));
-            }
-            comma = ",";
-        }
+ //       for (String p : columns) {
+ //           Type t = d.getType(p);
+ //           sb.append(comma);
+ //           if (t == OType.LINK) {
+ //               ODocument ld = (ODocument)d.field(p);
+ //               if (ld == null) {
+ //               } else {
+ //                   sb.append(ld.getIdentity().toString().substring(1));                    
+ //               }
+ //           } else if (t == OType.LINKSET) {
+ //               Set<ODocument> set = d.field(p);
+ //               String lcomma = "";
+ //               if (set != null) {
+ //                   for (ODocument sd : set) {
+ //                       if (sd != null) {
+ //                           sb.append(lcomma+sd.getIdentity().toString().substring(1));                    
+ //                           lcomma = "/";
+ //                       }
+ //                   }
+ //               }
+ //           } else if (t == OType.LINKLIST) {
+ //               List<ODocument> set = d.field(p);
+ //               String lcomma = "";
+ //               if (set != null) {
+ //                   for (ODocument sd : set) {
+ //                       if (sd != null) {
+ //                           sb.append(lcomma+sd.getIdentity().toString().substring(1));                    
+ //                       }
+ //                       lcomma = "/";
+ //                   }
+ //               }
+ //           } else if (t == OType.DATE || t == OType.DATETIME) {
+ //               sb.append(""+d.field(p));
+ //           } else if (t == OType.EMBEDDED || t == OType.EMBEDDEDLIST || t == OType.EMBEDDEDMAP || t == OType.EMBEDDEDSET) {
+ //               sb.append("\""+d.field(p)+"\"");                
+ //           } else if (t == OType.STRING) {
+ //               String content = d.field(p);
+ //               if (content != null && !content.isEmpty()) {
+ //                   content = content.replace("\"","\\\"").replace("\\s","\\u005cs").replace("\t","\\t").replace("\r","\\r").replace("\n","\\n");
+ //               }
+ //               sb.append("\""+(content == null ? "" : content)+"\"");                
+ //           } else {
+ //               sb.append(""+d.field(p));
+ //           }
+ //           comma = ",";
+ //       }
         return sb.toString();
     }
 

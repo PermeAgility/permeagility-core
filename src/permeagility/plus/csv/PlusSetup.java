@@ -37,7 +37,7 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 	@Override   // Override as there are no tables for this plugin
 	public String getAddForm(DatabaseConnection con) {
 		return "Add to menu"+createListFromTable("MENU", "", con, "menu")
-				+"<br>Roles: "+linkSetControl(con, "ROLES", "OIdentity", getCache().getResult(con,getQueryForTable(con, "OIdentity")), con.getLocale(), null);
+				+"<br>Roles: "/*+linkSetControl(con, "ROLES", "OIdentity", getCache().getResult(con,getQueryForTable(con, "OIdentity")), con.getLocale(), null)*/;
 	}
 	
 	@Override   // Override as there are no tables for this plugin

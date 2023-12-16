@@ -17,29 +17,29 @@ package permeagility.util;
 
 import java.lang.reflect.Field;
 
-import com.orientechnologies.orient.core.record.impl.ODocument;
+import com.arcadedb.database.Document;
+
 
 /** Use database table to load static constants into classes */
 public class ConstantOverride {
 
-    public static boolean DEBUG = false;
+    public static boolean DEBUG = true;
 
     public static boolean apply(DatabaseConnection con) {
         System.out.println("Refreshing system constants");
-        String query = "SELECT classname, field, value FROM constant";
-        if (DEBUG) System.out.println(query);
+        String query = "SELECT FROM constant";
         String className = null;
         String field = null;
         String value = null;
         try {
             QueryResult result = con.query(query);
-            for (ODocument row : result.get()) {
-                className = (String)row.field("classname");
-                field = (String)row.field("field");
-                value = (String)row.field("value");
+            for (Document row : result.get()) {
+                className = row.getString("classname");
+                field = row.getString("field");
+                value = row.getString("value");
                 try {
                     Class<?> c = Class.forName( className, true, PlusClassLoader.get() );
-                    Object o = c.newInstance();
+                    Object o = c.getDeclaredConstructor().newInstance();
                     try {
                             Field f = c.getField(field);
                             Class<?> t = f.getType();

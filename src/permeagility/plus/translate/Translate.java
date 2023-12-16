@@ -15,12 +15,11 @@
  */
 package permeagility.plus.translate;
 
+import java.net.URI;
 import java.net.URL;
-import java.util.Date;
 import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import com.arcadedb.database.Document;
+import com.arcadedb.database.MutableDocument;
 
 import permeagility.util.DatabaseConnection;
 import permeagility.util.QueryResult;
@@ -28,7 +27,6 @@ import permeagility.util.Setup;
 import permeagility.web.Server;
 import permeagility.web.Table;
 
-import com.orientechnologies.orient.core.record.impl.ODocument;
 
 public class Translate extends Table {
 
@@ -55,7 +53,7 @@ public class Translate extends Table {
 				if (deleteRow(con, tableName, parms, errors)) {
 					submit = null;
 				} else {
-					return head("Could not delete")
+					return head(con, "Could not delete")
 							+ body(standardLayout(con, parms, getTableRowForm(con, tableName, parms) + errors.toString()));
 				}
 			} else if (submit.equals("UPDATE")) {
@@ -63,7 +61,7 @@ public class Translate extends Table {
 				if (updateRow(con, tableName, parms, errors)) {
 					submit = null;
 				} else {
-					return head("Could not update", getDateControlScript(con.getLocale())+getColorControlScript())
+					return head(con, "Could not update", getDateControlScript(con.getLocale())+getColorControlScript())
 							+ body(standardLayout(con, parms, getTableRowForm(con, tableName, parms) + errors.toString()));
 				}
 			} 
@@ -84,12 +82,12 @@ public class Translate extends Table {
 		
 		// Show edit form if row selected for edit
 		if (editId != null && submit == null && connect == null) {
-			return head("Edit", getDateControlScript(con.getLocale())+getColorControlScript())
+			return head(con, "Edit", getDateControlScript(con.getLocale())+getColorControlScript())
 					+ body(standardLayout(con, parms, getTableRowForm(con, tableName, parms)));
 		}
 		
 		if (run != null) {
-			ODocument fromLocale = con.get(run);
+			Document fromLocale = con.get(run);
 			String toLocale = parms.get("TO_LOCALE");
 			if (toLocale == null || fromLocale == null || submit == null || !submit.equals("GO")) {
 				sb.append(paragraph("banner","New locale messages to generate"));
@@ -108,13 +106,13 @@ public class Translate extends Table {
 						+row(column("")+column(submitButton(con.getLocale(),"GO")+" warning: can take a while"))
 				)));
 			} else {
-				ODocument oldLocale = con.queryDocument("SELECT FROM "+Setup.TABLE_LOCALE+" WHERE name='"+toLocale+"'");
-				ODocument newLocale;
+				Document oldLocale = con.queryDocument("SELECT FROM "+Setup.TABLE_LOCALE+" WHERE name='"+toLocale+"'");
+				MutableDocument newLocale;
 				if (oldLocale == null) {
 					newLocale = con.create(Setup.TABLE_LOCALE);
-					newLocale.field("name",toLocale).field("description",parms.get("DESCRIPTION")).field("active",false).save();
+					newLocale.set("name",toLocale).set("description",parms.get("DESCRIPTION")).set("active",false).save();
 				} else {
-					newLocale = oldLocale;
+					newLocale = (MutableDocument)oldLocale;
 				}
 				
 				if (fromLocale != null && newLocale != null) {
@@ -141,14 +139,14 @@ public class Translate extends Table {
 
 					if (doMessages != null && doMessages.equals("on")) {
 						QueryResult qr = con.query("SELECT FROM message WHERE locale=#"+run);
-						for (ODocument m : qr.get()) {
-							String messageName = m.field("name");
-							ODocument newMessage = null;
+						for (Document m : qr.get()) {
+							String messageName = m.getString("name");
+							Document newMessage = null;
 							newMessage = con.queryDocument("SELECT FROM "+Setup.TABLE_MESSAGE+" WHERE name='"+messageName+"' AND locale="+newLocale.getIdentity().toString());
 							if (newMessage != null && replace == false) {
 								continue;
 							}
-                                                        String fromText = m.field("description");
+                                                        String fromText = m.getString("description");
                                                         String originalText = fromText;
                                                         fromText = fromText.replace("{0}", "0").replace("{1}", "1").replace("{2}", "2").replace("{3}", "3");
                                                         String newText = translate(fromLocale, toLocale, sb, fromText, email);
@@ -161,10 +159,10 @@ public class Translate extends Table {
 					
 					if (doMenus != null && doMenus.equals("on")) {
 						QueryResult qr = con.query("SELECT FROM menu");
-						for (ODocument m : qr.get()) {
-							String menuName = m.field("name");
+						for (Document m : qr.get()) {
+							String menuName = m.getString("name");
 							if (menuName != null && !menuName.trim().equals("")) {
-								ODocument newMessage = con.queryDocument("SELECT FROM "+Setup.TABLE_MESSAGE+" WHERE name='MENU_"+menuName+"' AND locale="+newLocale.getIdentity().toString());
+								Document newMessage = con.queryDocument("SELECT FROM "+Setup.TABLE_MESSAGE+" WHERE name='MENU_"+menuName+"' AND locale="+newLocale.getIdentity().toString());
 								if (newMessage != null && replace == false) {
 									continue;
 								}
@@ -178,12 +176,12 @@ public class Translate extends Table {
 							}
 						}
 						qr = con.query("SELECT FROM menuItem");
-						for (ODocument m : qr.get()) {
-							String menuName = m.field("name");
-							String menuDesc = m.field("description");
+						for (Document m : qr.get()) {
+							String menuName = m.getString("name");
+							String menuDesc = m.getString("description");
 							if (menuName != null && !menuName.trim().equals("")) {
-								ODocument newMessage = con.queryDocument("SELECT FROM "+Setup.TABLE_MESSAGE+" WHERE name='MENUITEM_"+menuName+"' AND locale="+newLocale.getIdentity().toString());
-								ODocument newMessageDesc = con.queryDocument("SELECT FROM "+Setup.TABLE_MESSAGE+" WHERE name='MENUITEMDESC_"+menuName+"' AND locale="+newLocale.getIdentity().toString());
+								Document newMessage = con.queryDocument("SELECT FROM "+Setup.TABLE_MESSAGE+" WHERE name='MENUITEM_"+menuName+"' AND locale="+newLocale.getIdentity().toString());
+								Document newMessageDesc = con.queryDocument("SELECT FROM "+Setup.TABLE_MESSAGE+" WHERE name='MENUITEMDESC_"+menuName+"' AND locale="+newLocale.getIdentity().toString());
 								if (newMessage == null || replace == true) {
 									String originalText = menuName;
 									String fromText = menuName;
@@ -207,10 +205,10 @@ public class Translate extends Table {
 
 					if (doTableGroups != null && doTableGroups.equals("on")) {
 						QueryResult qr = con.query("SELECT name FROM "+Setup.TABLE_TABLEGROUP);
-						for (ODocument m : qr.get()) {
-							String tName = m.field("name");
+						for (Document m : qr.get()) {
+							String tName = m.getString("name");
 							if (tName != null && !tName.trim().equals("")) {
-								ODocument newMessage = con.queryDocument("SELECT FROM "+Setup.TABLE_MESSAGE+" WHERE name='TABLEGROUP_"+tName+"' AND locale="+newLocale.getIdentity().toString());
+								Document newMessage = con.queryDocument("SELECT FROM "+Setup.TABLE_MESSAGE+" WHERE name='TABLEGROUP_"+tName+"' AND locale="+newLocale.getIdentity().toString());
 								if (newMessage != null && replace == false) {
 									continue;
 								}
@@ -226,10 +224,10 @@ public class Translate extends Table {
 
 					if (doTables != null && doTables.equals("on")) {
 						QueryResult qr = con.query("SELECT name FROM (select expand(classes) from metadata:schema)");
-						for (ODocument m : qr.get()) {
-							String tName = m.field("name");
+						for (Document m : qr.get()) {
+							String tName = m.getString("name");
 							if (tName != null && !tName.trim().equals("")) {
-								ODocument newMessage = con.queryDocument("SELECT FROM "+Setup.TABLE_MESSAGE+" WHERE name='TABLE_"+tName+"' AND locale="+newLocale.getIdentity().toString());
+								Document newMessage = con.queryDocument("SELECT FROM "+Setup.TABLE_MESSAGE+" WHERE name='TABLE_"+tName+"' AND locale="+newLocale.getIdentity().toString());
 								if (newMessage != null && replace == false) {
 									continue;
 								}
@@ -245,13 +243,13 @@ public class Translate extends Table {
 
 					if (doColumns != null && doColumns.equals("on")) {
 						QueryResult qrTables = con.query("SELECT name FROM (select expand(classes) from metadata:schema)");
-                                                for (ODocument tabDoc : qrTables.get()) {
-                                                    String tabName = tabDoc.field("name");
+                                                for (Document tabDoc : qrTables.get()) {
+                                                    String tabName = tabDoc.getString("name");
                                                     QueryResult qr = con.query("select distinct(name) as name from (select expand(properties) from (select expand(classes) from metadata:schema) where name='"+tabName+"')");
-                                                    for (ODocument m : qr.get()) {
-                                                            String cName = m.field("name");
+                                                    for (Document m : qr.get()) {
+                                                            String cName = m.getString("name");
                                                             if (cName != null && !cName.trim().equals("")) {
-                                                                    ODocument newMessage = con.queryDocument("SELECT FROM "+Setup.TABLE_MESSAGE+" WHERE name='COLUMN_"+tabName+"."+cName+"' AND locale="+newLocale.getIdentity().toString());
+                                                                    Document newMessage = con.queryDocument("SELECT FROM "+Setup.TABLE_MESSAGE+" WHERE name='COLUMN_"+tabName+"."+cName+"' AND locale="+newLocale.getIdentity().toString());
                                                                     if (newMessage != null && replace == false) {
                                                                             continue;
                                                                     }
@@ -268,9 +266,9 @@ public class Translate extends Table {
 
 					if (doNews != null && doNews.equals("on")) {
 						QueryResult qr = con.query("SELECT FROM "+Setup.TABLE_NEWS+" WHERE (archive is null OR archive=false) AND locale=#"+run);
-						for (ODocument newsDoc : qr.get()) {
-							String cName = newsDoc.field("name");
-							String cDesc = newsDoc.field("description");
+						for (Document newsDoc : qr.get()) {
+							String cName = newsDoc.getString("name");
+							String cDesc = newsDoc.getString("description");
 							QueryResult existingArticles = con.query("SELECT FROM "+Setup.TABLE_NEWS+" WHERE name='"+cName+"' AND locale="+newLocale.getIdentity().toString());
 							if (existingArticles != null && existingArticles.size() > 0 && replace == false) {
 								continue;
@@ -282,13 +280,13 @@ public class Translate extends Table {
 								String newText = translate(fromLocale, toLocale, sb, cName, email);
 								String newDesc = translate(fromLocale, toLocale, sb, cDesc, email);
 								if (newText != null && newDesc != null) {
-									ODocument newsArticle = con.create(Setup.TABLE_NEWS);
-									newsArticle.field("name",newText);
-									newsArticle.field("description",newDesc);
-									newsArticle.field("dateline",(Date)newsDoc.field("dateline"));
-									newsArticle.field("locale",newLocale);
-									newsArticle.field("archive",false);
-									newsArticle.field("_allowRead",(Set)newsDoc.field("_allowRead"));
+									MutableDocument newsArticle = con.create(Setup.TABLE_NEWS);
+									newsArticle.set("name",newText);
+									newsArticle.set("description",newDesc);
+									newsArticle.set("dateline",newsDoc.getDate("dateline"));
+									newsArticle.set("locale",newLocale);
+									newsArticle.set("archive",false);
+						//			newsArticle.field("_allowRead",(Set)newsDoc.get("_allowRead"));
 									newsArticle.save();
 								}
 								translateCount++;
@@ -297,7 +295,7 @@ public class Translate extends Table {
 					}
 
 					if (translateCount > 0) {
-						Server.tableUpdated(Setup.TABLE_LOCALE);
+						Server.tableUpdated(con, Setup.TABLE_LOCALE);
 					}
 					sb.append(paragraph("Translated "+translateCount+" messages"));
 				}
@@ -314,28 +312,28 @@ public class Translate extends Table {
 	    		sb.append("Error retrieving locales: "+e.getMessage());
 	    	}
 		}
-		return 	head("Translate")+body(standardLayout(con, parms, errors.toString() + sb.toString() ));
+		return 	head(con, "Translate")+body(standardLayout(con, parms, errors.toString() + sb.toString() ));
 	}
 
-	public String translate(ODocument fromLocale, String toLocale, StringBuilder sb, String fromText, String email) {
+	public String translate(Document fromLocale, String toLocale, StringBuilder sb, String fromText, String email) {
 		fromText = fromText.trim().replace("\n"," ").replace("\r"," ").replace(" ", "%20");
 		String newText = null;
 		try {
-			URL tURL = new URL("http://api.mymemory.translated.net/get?q="+fromText+email+"&langpair="+fromLocale.field("name")+"|"+toLocale);
+			URL tURL = new URI("http://api.mymemory.translated.net/get?q="+fromText+email+"&langpair="+fromLocale.getString("name")+"|"+toLocale).toURL();
 			if (tURL != null) {
-				ODocument rDoc = new ODocument().fromJSON(tURL.openStream());
-				if (rDoc != null) {
-					Map<String,Object> rdm = rDoc.field("responseData");
-					newText = (String)rdm.get("translatedText");
-					System.out.println(fromText+"=>"+newText);
-					sb.append(paragraph("&nbsp;&nbsp;&nbsp;from: "+fromText+"<br>&nbsp;&nbsp;&nbsp;to: "+newText));
-					List<Map<String,Object>> matches = rDoc.field("matches");
-					if (matches != null) {
-						for (Map<String,Object> match : matches) {
-							sb.append(paragraph("match: qual="+match.get("quality")+" t="+match.get("translation")+" created="+match.get("created-by")));
-						}
-					}
-				}									
+		//		MutableDocument rDoc = new MutableDocument().fromJSON(tURL.openStream());
+		//		if (rDoc != null) {
+		//			Map<String,Object> rdm = rDoc.getMap("responseData");
+		//			newText = (String)rdm.get("translatedText");
+		//			System.out.println(fromText+"=>"+newText);
+		//			sb.append(paragraph("&nbsp;&nbsp;&nbsp;from: "+fromText+"<br>&nbsp;&nbsp;&nbsp;to: "+newText));
+		//			List<Map<String,Object>> matches = rDoc.field("matches");
+		//			if (matches != null) {
+		//				for (Map<String,Object> match : matches) {
+		//					sb.append(paragraph("match: qual="+match.get("quality")+" t="+match.get("translation")+" created="+match.get("created-by")));
+		//				}
+		//			}
+		//		}									
 			}
 		} catch (Exception e) {
 			sb.append(paragraph(e.getMessage()));
@@ -344,19 +342,19 @@ public class Translate extends Table {
 	}
 
 	/** Updates or inserts a message - will replace {0}, {1}... in new text if the original had them */
-	public boolean updateMessage(DatabaseConnection con, String messageName, String originalText, String newText, ODocument newLocale) {
+	public boolean updateMessage(DatabaseConnection con, String messageName, String originalText, String newText, Document newLocale) {
 		newText = replaceIfOriginal(newText, originalText, "{0}");
 		newText = replaceIfOriginal(newText, originalText, "{1}");
 		newText = replaceIfOriginal(newText, originalText, "{2}");
 		newText = replaceIfOriginal(newText, originalText, "{3}");
-		ODocument newMessage = null;
-		newMessage = con.queryDocument("SELECT FROM "+Setup.TABLE_MESSAGE+" WHERE name='"+messageName+"' and locale="+newLocale.getIdentity().toString());
+		MutableDocument newMessage = null;
+		newMessage = (MutableDocument)con.queryDocument("SELECT FROM "+Setup.TABLE_MESSAGE+" WHERE name='"+messageName+"' and locale="+newLocale.getIdentity().toString());
 		if (newMessage == null) {
 			newMessage = con.create(Setup.TABLE_MESSAGE);
 		}
-		newMessage.field("name",messageName);
-		newMessage.field("description",newText);
-		newMessage.field("locale",newLocale);
+		newMessage.set("name",messageName);
+		newMessage.set("description",newText);
+		newMessage.set("locale",newLocale);
 		newMessage.save();
 		return true;
 	}

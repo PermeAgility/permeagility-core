@@ -17,11 +17,12 @@ package permeagility.plus.d3;
 
 import java.util.HashMap;
 
+import com.arcadedb.database.Document;
+
 import permeagility.util.DatabaseConnection;
 import permeagility.web.Download;
 import permeagility.web.Weblet;
 
-import com.orientechnologies.orient.core.record.impl.ODocument;
 import permeagility.util.QueryResult;
 
 public class Data extends Download {
@@ -44,11 +45,11 @@ public class Data extends Download {
 
             if (view != null && !view.equals("")) {
 			System.out.println("Build view "+view);
-			ODocument viewDoc = con.get("#"+view);
+			Document viewDoc = con.get("#"+view);
 			if (viewDoc == null) {
 				return ("Could not retrieve data using "+parms.toString()).getBytes();
 			} else {
-				String sampleData = viewDoc.field("dataScript");
+				String sampleData = viewDoc.getString("dataScript");
 				return sampleData == null ? "".getBytes() : sampleData.replace("'","\"").getBytes();
 			}
                          
@@ -95,7 +96,7 @@ public class Data extends Download {
                 }
                 QueryResult qr = con.query(sql);
                 String comma = "";
-                for (ODocument d : qr.get()) {
+                for (Document d : qr.get()) {
                     sb.append(comma+permeagility.plus.json.Download.exportDocument(con, d, depth, 0));
                     comma = ", \n";
                 }

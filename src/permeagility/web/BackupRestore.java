@@ -21,11 +21,11 @@ import java.text.DecimalFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 
 import permeagility.util.DatabaseConnection;
 
-import com.orientechnologies.orient.core.command.OCommandOutputListener;
-import com.orientechnologies.orient.core.db.tool.ODatabaseExport;
+import com.arcadedb.integration.exporter.Exporter;
 
 public class BackupRestore extends Weblet {
 
@@ -39,7 +39,7 @@ public class BackupRestore extends Weblet {
         StringBuilder errors = new StringBuilder();
 
         if (!Security.isDBA(con)) {
-        return head(service)+standardLayout(con, parms,paragraph("error",Message.get(locale, "RESTORE_ACCESS")));
+        return head(con, service)+standardLayout(con, parms,paragraph("error",Message.get(locale, "RESTORE_ACCESS")));
         }
 
         File backupDir = new File("backup");
@@ -65,16 +65,13 @@ public class BackupRestore extends Weblet {
                         errors.append(paragraph("error",Message.get(locale,"BACKUP_FILENAME_NEEDED")));
                 } else {
                         try {
-                                ODatabaseExport exp = new ODatabaseExport(con.getDb(), "backup/"+backupName, new OCommandOutputListener() {
-                                        public void onMessage(String iText) {
-                                                if (exportLog == null) exportLog = new StringBuilder();
-                                                exportLog.append(paragraph("Export message: "+iText));
-                                                System.out.println("Export Message: "+iText);
-                                        }});
-                                exp.exportDatabase();
-                                exp.close();
+                                Exporter exp = new Exporter(con.getDb(), "backup/"+backupName);
+                                Map<String, Object> results = exp.exportDatabase();
+                                for (String k : results.keySet()) {
+                                    errors.append(paragraph(k + ": " + results.get(k)));
+                                }
                                 errors.append(paragraph("success",Message.get(locale,"BACKUP_SUCCESS")+backupName));
-                        } catch (IOException e1) {
+                        } catch (Exception e1) {
                                 e1.printStackTrace();
                                 errors.append(paragraph("error",Message.get(locale,"BACKUP_FAIL")+e1.getLocalizedMessage()));
                         }
@@ -83,7 +80,7 @@ public class BackupRestore extends Weblet {
 
         if (submit != null && submit.equals("RESTORE_NOW")) {
             if (!Server.getDBName().startsWith("plocal")) {
-            return head(service)+standardLayout(con, parms,paragraph("error",Message.get(locale, "RESTORE_PLOCAL")));
+            return head(con, service)+standardLayout(con, parms,paragraph("error",Message.get(locale, "RESTORE_PLOCAL")));
             }
 
             if (parms.get("CONFIRM") != null && parms.get("CONFIRM").equals("YES") && parms.get("RESTORE") != null) {
@@ -171,7 +168,7 @@ public class BackupRestore extends Weblet {
                     restore_thread.start();
                     return redirect(parms, "/");
             } else {
-                return head(service)+
+                return head(con, service)+
                 standardLayout(con, parms,
                     errors
                     +paragraph("banner",Message.get(locale, "CONFIRM_RESTORE",parms.get("RESTORE")))
@@ -211,7 +208,7 @@ public class BackupRestore extends Weblet {
             }
         }
         String backupFilename = "Backup_"+formatDate(locale,new Date(),"yyyy-MM-dd_HH-mm");
-    	return head(service,getSortTableScript())+
+    	return head(con, service,getSortTableScript())+
 	    standardLayout(con, parms,
 	    	errors
     		+paragraph("banner",Message.get(locale, "BACKUP_THE_DATABASE"))

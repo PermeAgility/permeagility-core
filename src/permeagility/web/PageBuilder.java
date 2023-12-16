@@ -19,9 +19,10 @@ import java.util.HashMap;
 
 import permeagility.util.DatabaseConnection;
 
-import com.orientechnologies.orient.core.record.impl.ODocument;
 import java.util.Date;
 import java.util.Locale;
+
+import com.arcadedb.database.Document;
 
 /**
  * JavaScript Page Builder - edits and previews pages
@@ -49,14 +50,14 @@ public class PageBuilder extends Table {
         if (sb.length() == 0) {
             try {
                 parms.put("SERVICE", "Page Builder");
-                sb.append(getTable(con, parms, TABLE_NAME, "SELECT FROM " + TABLE_NAME+" WHERE name != '' AND (classname is null OR classname = '') AND _allow contains(name='"+con.getUser()+"')", null, 0, "name,description,-"));
+                sb.append(getTable(con, parms, TABLE_NAME, "SELECT FROM " + TABLE_NAME+" WHERE name != '' AND (classname is null OR classname = '')", null, 0, "name,description,-"));
             } catch (Exception e) {
                 e.printStackTrace();
                 sb.append("Error retrieving Script table: " + e.getMessage());
             }
         }
 
-        return head("Page Builder", getScripts(con) + additionalStyle)
+        return head(con, "Page Builder", getScripts(con) + additionalStyle)
                 + body(standardLayout(con, parms,
                     ((Security.getTablePriv(con, TABLE_NAME) & PRIV_CREATE) > 0
                     ? popupForm("CREATE_NEW_ROW", null, Message.get(locale, "CREATE_ROW"), null, "NAME",
@@ -77,7 +78,7 @@ public class PageBuilder extends Table {
     /** Returns the Style and Script editor along with a schema and preview in a split pane  */
     @Override public String getTableRowFields(DatabaseConnection con, String table, HashMap<String, String> parms, String columnOverride) {
         String edit_id = (parms != null ? parms.get("EDIT_ID") : null);
-        ODocument initialValues = null;
+        Document initialValues = null;
         if (edit_id != null) {
             initialValues = con.get(edit_id);
             if (initialValues == null) {
@@ -86,22 +87,19 @@ public class PageBuilder extends Table {
         }
         boolean readOnly = false;  // Assume a new doc
         if (initialValues != null) {
-            readOnly = Security.isReadOnlyDocument(con, initialValues);
+    //        readOnly = Security.isReadOnlyDocument(con, initialValues);
         }
         String styleEditor = "";
         String scriptEditor = "";
-        String browser = "";
         String formName = (edit_id == null ? "NEWROW" : "UPDATEROW");
 
-        String init = initialValues.field("pageStyle");
-        if (init == null) init = "/* CSS Styles */\n";
+        String init = initialValues.getString("pageStyle");
+        if (init == null) init = "<style type='text/css'>\n/* CSS Styles here */</style>\n";
         styleEditor = getCodeEditorControl(formName, PARM_PREFIX + "pageStyle", init, "css");
 
-        init = initialValues.field("pageScript");
+        init = initialValues.getString("pageScript");
         if (init == null) init = "// (con,parms) return page - written "+new Date()+" by "+con.getUser()+"\n";
-        scriptEditor = getCodeEditorControl(formName, PARM_PREFIX + "pageScript", init, "application/json");
-
-        browser = frame("browserFrame","permeagility.web.Schema");
+        scriptEditor = getCodeEditorControl(formName, PARM_PREFIX + "pageScript", init, "htmlmixed");
 
         String resultView =
             (readOnly ? "" :
@@ -110,7 +108,7 @@ public class PageBuilder extends Table {
                 + popupBox("UPDATE_NAME", null, Message.get(con.getLocale(), "DETAILS"), null, "NAME",
                         paragraph("banner", Message.get(con.getLocale(), "DETAILS"))
                         + hidden("TABLENAME", TABLE_NAME)
-                        + super.getTableRowFields(con, TABLE_NAME, parms, "name,description,_allowRead,-")
+                        + super.getTableRowFields(con, TABLE_NAME, parms, "name,description,-")
                 )
                 +"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
             )
@@ -120,14 +118,15 @@ public class PageBuilder extends Table {
                     + (readOnly ? "" : deleteButton(con.getLocale())+"<br>")
                     + submitButton(con.getLocale(), "COPY")
             )
-            +"<br>"+frame("previewFrame","permeagility.web.Scriptlet?LAYOUT=none&ID="+edit_id);
+            +"<br>"+frame(400,"previewFrame","permeagility.web.Scriptlet?LAYOUT=none&ID="+edit_id);
 
         return getSplitScript()
-               +div("leftHand","split split-horizontal",div("styleEditor","split content",styleEditor)+div("scriptEditor",scriptEditor))
-               +div("rightHand","split split-horizontal",div("dataEditor","split content",browser)+div("resultView",resultView))
-               +script("Split(['#leftHand', '#rightHand'], { gutterSize: 8, minSize: [5,5], cursor: 'col-resize' });\n"
-                        + "Split(['#styleEditor', '#scriptEditor'], { direction: 'vertical', sizes: [20, 95], minSize: [5,90], gutterSize: 8, cursor: 'row-resize' });\n"
-                        + "Split(['#dataEditor', '#resultView'], { direction: 'vertical', sizes: [20, 95], minSize: [5,90], gutterSize: 8, cursor: 'row-resize' });\n"
+               +div("leftHand","split split-horizontal",div("styleEditor","split content", styleEditor)+div("scriptEditor","split content",scriptEditor))
+               +div("rightHand","split ",div("resultView","split content", resultView))
+               +script("Split(['#leftHand', '#rightHand'], { gutterSize: 8, minSize: [50,50], cursor: 'col-resize' });\n"
+                        + "Split(['#styleEditor', '#scriptEditor'], { direction: 'vertical', gutterSize: 8, cursor: 'row-resize' });\n"
+                   //     + "Split(['#styleEditor', '#scriptEditor'], { direction: 'vertical', sizes: [50, 50], minSize: [10,10], gutterSize: 2, cursor: 'row-resize' });\n"
+                  //      + "Split(['#resultView'], { direction: 'vertical', sizes: [20, 95], minSize: [5,90], gutterSize: 8, cursor: 'row-resize' });\n"
                        +(readOnly ? "" :
                         "d3.select('#headerservice').text(document.getElementById('"+PARM_PREFIX+"name').value);\n"
                        + "d3.select('#UpdateButton').on('click', function() { \n"
@@ -139,12 +138,12 @@ public class PageBuilder extends Table {
                             + addFormData(formName,"pageScript")
                             + addFormData("name")
                             + addFormData("description")
-                            + addFormData("_allowRead")
-                       + "   d3.xhr('').post(formData, function(error,data) {   \n"
+                            //+ addFormData("_allowRead")
+                        + "   fetch('', { method: \"POST\", body: formData } ).then(data => {   \n"                        
                        + "      d3.select('#previewFrame').attr('src','permeagility.web.Scriptlet?LAYOUT=none&ID="+edit_id+"');\n"
-                       + "      d3.select('#headerservice').text(document.getElementById('"+PARM_PREFIX+"name').value);\n"
-                       + "   });\n"
-                       + "});\n")
+                        + "      d3.select('#headerservice').text(document.getElementById('"+PARM_PREFIX+"name').value);\n"
+                        + "   });\n"
+                        + "});\n")
                 );
     }
 

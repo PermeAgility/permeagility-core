@@ -20,12 +20,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.arcadedb.database.Document;
+import com.arcadedb.schema.Property;
+
 import permeagility.util.DatabaseConnection;
 import permeagility.util.QueryResult;
 
-import com.orientechnologies.orient.core.metadata.schema.OProperty;
-import com.orientechnologies.orient.core.record.impl.ODocument;
-import com.orientechnologies.orient.core.record.impl.ORecordBytes;
 import java.util.Locale;
 
 public class Query extends Weblet {
@@ -37,7 +37,7 @@ public class Query extends Weblet {
         parms.put("SERVICE", Message.get(locale, "SQL_WEBLET"));
         String query = (String)parms.get("SQL");
         return 	
-            head(Message.get(locale, "SQL_WEBLET")+"&nbsp;"+query,getSortTableScript())+
+            head(con, Message.get(locale, "SQL_WEBLET")+"&nbsp;"+query,getSortTableScript())+
             body( standardLayout(con, parms,  
                 getSQLBuilder(con)
                 +form("QUERY","#",
@@ -123,23 +123,23 @@ public class Query extends Weblet {
 
     public String getRow(DatabaseConnection con, QueryResult rs, int r, ArrayList<String> columns) {
         StringBuilder sb = new StringBuilder();
-        ODocument row = rs.get(r);
+        Document row = rs.get(r);
         if (row.getIdentity().toString().contains("-")) {
             sb.append(column(paragraphRight(row.getIdentity().toString())));
         } else {
-            sb.append(column(paragraphRight(link("permeagility.web.Table?TABLENAME="+row.getClassName()+"&EDIT_ID="+row.getIdentity().toString().substring(1), row.getIdentity().toString(), "_blank"))));			
+            sb.append(column(paragraphRight(link("permeagility.web.Table?TABLENAME="+row.getTypeName()+"&EDIT_ID="+row.getIdentity().toString().substring(1), row.getIdentity().toString(), "_blank"))));			
         }
         for (String colName : columns) {
-            Object o = row.field(colName);
+            Object o = row.get(colName);
             if (DEBUG) System.out.println(colName+"="+(o == null ? "null" : o.getClass().getName()));
-            if (o instanceof ODocument) {  // OrientDB Link  
-                ODocument d = row.field(colName);
+            if (o instanceof Document) {  // OrientDB Link  
+                Document d = row.getEmbedded(colName);
                 sb.append(column(paragraphRight(d == null ? "null" : getDocumentLink(con, d))));
             } else if (o instanceof Boolean) { // OrientDB boolean
-                sb.append(column(paragraphRight(""+row.field(colName))));
+                sb.append(column(paragraphRight(row.getString(colName))));
             } else if (o instanceof Byte) { // OrientDB boolean
-                sb.append(column(paragraphRight(""+row.field(colName))));
-            } else if (o instanceof ORecordBytes) { // PermeAgility Image/Blob or other?
+                sb.append(column(paragraphRight(row.getString(colName))));
+   /*          } else if (o instanceof ORecordBytes) { // PermeAgility Image/Blob or other?
                 String out;
                 //ORecordBytes or = (ORecordBytes)o;
                 StringBuilder desc = new StringBuilder();
@@ -149,15 +149,15 @@ public class Query extends Weblet {
                 } else {
                         out = column(Message.get(con.getLocale(), "THUMBNAIL_NOT_FOUND",colName,row.getIdentity().toString()));					
                 } 
-                sb.append(out);
+                sb.append(out);  */
             } else if (o instanceof List) {  // LinkList
                 @SuppressWarnings("unchecked")
-                List<ODocument> l = (List<ODocument>)o;
+                List<Document> l = (List<Document>)o;
                 StringBuilder ll = new StringBuilder();
                 if (l != null) {
                         for (Object od : l) {
-                                if (od instanceof ODocument) {
-                                        ODocument d = (ODocument)od;
+                                if (od instanceof Document) {
+                                        Document d = (Document)od;
                                         ll.append(getDocumentLink(con, d)+br());
                                 } else {
                                         ll.append(od+br());							
@@ -167,12 +167,12 @@ public class Query extends Weblet {
                 sb.append(column(ll.toString()));
             } else if (o instanceof Set) {  // LinkSet
                 @SuppressWarnings("unchecked")
-                Set<ODocument> l = (Set<ODocument>)o;
+                Set<Document> l = (Set<Document>)o;
                 StringBuilder ll = new StringBuilder();
                 if (l != null) {
                         for (Object od : l) {
-                                if (od instanceof ODocument) {
-                                        ODocument d = (ODocument)od;
+                                if (od instanceof Document) {
+                                        Document d = (Document)od;
                                         ll.append(getDocumentLink(con, d)+br());
                                 } else {
                                         ll.append(od+br());							
@@ -182,13 +182,13 @@ public class Query extends Weblet {
                 sb.append(column(ll.toString()));
             } else if (o instanceof Map) {    // LinkMap
                 @SuppressWarnings("unchecked")
-                Map<String,ODocument> l = (Map<String,ODocument>)o;
+                Map<String,Document> l = (Map<String,Document>)o;
                 StringBuilder ll = new StringBuilder();
                 if (l != null) {
                         for (String k : l.keySet()) {
                                 Object d = l.get(k);
-                                if (d != null && d instanceof ODocument) {
-                                        ll.append(k+":"+getDocumentLink(con, (ODocument)d)+br());
+                                if (d != null && d instanceof Document) {
+                                        ll.append(k+":"+getDocumentLink(con, (Document)d)+br());
                                 } else {
                                         ll.append(k+":"+d+br());							
                                 }
@@ -196,23 +196,23 @@ public class Query extends Weblet {
                 }
                 sb.append(column(ll.toString()));
             } else if (o instanceof Number) {
-                sb.append(column(paragraphRight(""+row.field(colName))));
+                sb.append(column(paragraphRight(row.getString(colName))));
             } else {
                 if (colName.toUpperCase().endsWith("PASSWORD")) {
                         sb.append(column("---"));					
                 } else {
-                        sb.append(column(""+row.field(colName)));
+                        sb.append(column(row.getString(colName)));
                 }
             }
         }
         return sb.toString();
     }
 	
-    public String getDocumentLink(DatabaseConnection con, ODocument d) {
-        if (d == null || d.getClassName() == null) {
+    public String getDocumentLink(DatabaseConnection con, Document d) {
+        if (d == null || d.getTypeName() == null) {
             return ""+d;
         } else {
-            return link("permeagility.web.Table?TABLENAME="+d.getClassName()+"&EDIT_ID="+d.getIdentity().toString().substring(1)
+            return link("permeagility.web.Table?TABLENAME="+d.getTypeName()+"&EDIT_ID="+d.getIdentity().toString().substring(1)
                 , getDescriptionFromDocument(con, d)
                 , "_blank");
         }
@@ -223,17 +223,17 @@ public class Query extends Weblet {
         StringBuilder columnInit = new StringBuilder();  // JSON list of tables and columns
 
         // Add tables in groups (similar code to Schema - should be combined in one place - need one more use)
-        QueryResult schemas = con.query("SELECT from tableGroup");
+        QueryResult schemas = con.query("SELECT FROM tableGroup");
         QueryResult tables = con.query("SELECT name, superClass FROM (SELECT expand(classes) FROM metadata:schema) WHERE abstract=false ORDER BY name");
         ArrayList<String> tablesInGroups = new ArrayList<String>(); 
-        for (ODocument schema : schemas.get()) {
+        for (Document schema : schemas.get()) {
             StringBuilder tablelist = new StringBuilder();
-            String tablesf = schema.field("tables");
+            String tablesf = schema.getString("tables");
             String table[] = {};
             if (tablesf != null) {
                 table = tablesf.split(",");
             }
-            String groupName = (String)schema.field("name");
+            String groupName = schema.getString("name");
             tablelist.append(paragraph("banner", groupName));
             //boolean groupHasTable = false;
             for (String tableName : table) {
@@ -260,8 +260,8 @@ public class Query extends Weblet {
         // Add the non grouped (new) tables
         StringBuilder tablelist = new StringBuilder();
         tablelist.append(paragraph("banner",Message.get(con.getLocale(), "TABLE_NONGROUPED")));
-        for (ODocument row : tables.get()) {
-            String tablename = row.field("name");
+        for (Document row : tables.get()) {
+            String tablename = row.getString("name");
             if (!tablesInGroups.contains(tablename)) {
                 if (Security.getTablePriv(con, tablename) > 0) {
                     if (tableInit.length()>0) tableInit.append(", ");
@@ -271,12 +271,12 @@ public class Query extends Weblet {
         }
 
         // Columns - this will be slow as tables grow (could do an angular get when user selects table - later)
-        for (ODocument t : tables.get()) {
-            String tName = t.field("name");
-            for (OProperty col : con.getColumns(tName)) {
+        for (Document t : tables.get()) {
+            String tName = t.getString("name");
+            for (Property col : con.getColumns(tName)) {
                 String cName = col.getName();
                 Integer cType = col.getType().getId();
-                String cClass = col.getLinkedClass() != null ? col.getLinkedClass().getName() : null;
+                String cClass = col.getType().isLink() ? "col.getLinkedClass().getName()" : null;
                 if (columnInit.length()>0) columnInit.append(", ");
                 columnInit.append("{ table:'"+tName+"', column:'"+cName+"', type:'"+Message.get(con.getLocale(),Table.getTypeName(cType))+(cClass == null ? "" : " to "+cClass)+"'}");
             }

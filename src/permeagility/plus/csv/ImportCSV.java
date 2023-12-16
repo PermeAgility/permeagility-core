@@ -15,21 +15,24 @@
  */
 package permeagility.plus.csv;
 
-import com.orientechnologies.orient.core.metadata.schema.OClass;
 import java.util.HashMap;
 
 import permeagility.util.DatabaseConnection;
 import permeagility.web.Weblet;
 
-import com.orientechnologies.orient.core.metadata.schema.OType;
-import com.orientechnologies.orient.core.record.impl.ODocument;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.StringReader;
+import java.net.URI;
 import java.net.URL;
 import java.util.Scanner;
+
+import com.arcadedb.database.MutableDocument;
+import com.arcadedb.schema.DocumentType;
+import com.arcadedb.schema.Type;
+
 import permeagility.util.Setup;
 import permeagility.web.Table;
 
@@ -58,7 +61,7 @@ public class ImportCSV extends Weblet {
             if (fromURL != null && !fromURL.isEmpty()) {
                 errors.append(paragraph("Using URL: "+fromURL));
                 try {            
-                    URL tURL = new URL(fromURL);
+                    URL tURL = new URI(fromURL).toURL();
                     Object o = tURL.getContent();
                     if (DEBUG) System.out.println("Received from: "+tURL.getQuery()+" content="+o);
                     if (o != null && o instanceof InputStream) {
@@ -110,6 +113,7 @@ public class ImportCSV extends Weblet {
                         fromText = content.toString();
                         if (DEBUG) System.out.println("content="+fromText);
                     }
+                    fis.close();
                 } catch (Exception e) {
                     errors.append(paragraph("error","Nothing to parse. error="+e.getMessage()));
                     e.printStackTrace();
@@ -127,12 +131,12 @@ public class ImportCSV extends Weblet {
                     if (columns.length == 0) {
                         errors.append(paragraph("error","No column names found in first line"));                
                     }
-                    ODocument doc = null;
-                    OClass docClass = null;
+                    MutableDocument doc = null;
+                    DocumentType docClass = null;
                     if (run) {
                         docClass = Setup.checkCreateTable(con.getSchema(), toTable, errors);
                     }
-                    OType[] types = new OType[columns.length];
+                    Type[] types = new Type[columns.length];
                     while ((line = from.readLine()) != null) {
                         String data[] = splitCSV(line);
                         if (data.length > 1) {
@@ -148,15 +152,15 @@ public class ImportCSV extends Weblet {
                                     if (types[i] == null) {
                                         String selType = parms.get("COLUMN_"+columns[i]+"_TYPE");
                                         if (selType != null && !selType.isEmpty()) {
-                                            types[i] = Table.getOTypeFromName(selType);
+                                            types[i] = Table.getTypeFromName(selType);
                                         }
                                         if (types[i] == null) {
-                                            types[i] = determineOTypeFromColumnNameAndData(columns[i], data[i]);
+                                            types[i] = determineTypeFromColumnNameAndData(columns[i], data[i]);
                                         }
                                     }
                                     if (run && doc != null && docClass != null) {
                                         Setup.checkCreateColumn(con, docClass, colName, types[i], errors);
-                                        doc.field(colName,data[i]);
+                                        doc.set(colName,data[i]);
                                     }
                                     if (DEBUG) System.out.print(" "+columns[i]+" = "+data[i]);
                                 } else {
@@ -165,7 +169,7 @@ public class ImportCSV extends Weblet {
                             }
                         }
                         if (DEBUG) System.out.println();
-                        if (run && doc != null && !doc.isEmpty()) {
+                        if (run && doc != null ) {
                             doc.save();
                         }
                     }
@@ -191,7 +195,7 @@ public class ImportCSV extends Weblet {
                     + row(column("") + column(submitButton(con.getLocale(), "PREVIEW")))
             ));
         }
-        return head("Import CSV") + body(standardLayout(con, parms, 
+        return head(con, "Import CSV") + body(standardLayout(con, parms, 
                 paragraph("banner", "Import CSV to a table")
                 +form(sb.toString() + errors.toString())
             ));
@@ -200,24 +204,24 @@ public class ImportCSV extends Weblet {
     /**
      * Determine the best lossless OrientDB representation of the given column
      */
-    public OType determineOTypeFromColumnNameAndData(String columnName, String data) {
-        OType otype = OType.STRING;  // Default
+    public Type determineTypeFromColumnNameAndData(String columnName, String data) {
+        Type otype = Type.STRING;  // Default
         
         // Try whole number
         try { long x = Long.parseLong(data);
-                return OType.LONG;
+                return Type.LONG;
         } catch (Exception e) {}
         
         // Try floating point number
         try { double x = Double.parseDouble(data);
-            return OType.DOUBLE;
+            return Type.DOUBLE;
         } catch (Exception e) {}
         
         columnName = columnName.toUpperCase();
         if (columnName.endsWith("DATE")) {
-            otype = OType.DATE;
+            otype = Type.DATE;
         } else if (columnName.endsWith("TIME")) {
-            otype = OType.DATETIME;
+            otype = Type.DATETIME;
         }
         return otype;
     }

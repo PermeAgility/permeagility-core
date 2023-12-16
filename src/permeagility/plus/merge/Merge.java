@@ -17,17 +17,19 @@ package permeagility.plus.merge;
 
 import java.util.HashMap;
 
+import com.arcadedb.database.Document;
+import com.arcadedb.database.MutableDocument;
+import com.arcadedb.schema.DocumentType;
+import com.arcadedb.schema.Property;
+import com.arcadedb.schema.Schema;
+import com.arcadedb.schema.Type;
+
 import permeagility.util.DatabaseConnection;
 import permeagility.util.QueryResult;
 import permeagility.web.Message;
 import permeagility.web.Security;
 import permeagility.web.Table;
 
-import com.orientechnologies.orient.core.metadata.schema.OClass;
-import com.orientechnologies.orient.core.metadata.schema.OProperty;
-import com.orientechnologies.orient.core.metadata.schema.OSchema;
-import com.orientechnologies.orient.core.metadata.schema.OType;
-import com.orientechnologies.orient.core.record.impl.ODocument;
 import permeagility.util.Setup;
 
 public class Merge extends Table {
@@ -62,7 +64,7 @@ public class Merge extends Table {
                 if (deleteRow(con, tableName, parms, errors)) {
                     submit = null;
                 } else {
-                    return head("Could not delete")
+                    return head(con, "Could not delete")
                             + body(standardLayout(con, parms, getTableRowForm(con, tableName, parms) + errors.toString()));
                 }
             } else if (submit.equals("UPDATE")) {
@@ -70,7 +72,7 @@ public class Merge extends Table {
                 if (updateRow(con, tableName, parms, errors)) {
                     submit = null;
                 } else {
-                    return head("Could not update", getDateControlScript(con.getLocale()) + getColorControlScript())
+                    return head(con, "Could not update", getDateControlScript(con.getLocale()) + getColorControlScript())
                             + body(standardLayout(con, parms, getTableRowForm(con, tableName, parms) + errors.toString()));
                 }
             }
@@ -93,7 +95,7 @@ public class Merge extends Table {
         // Show edit form if row selected for edit
         if (editId != null && submit == null && connect == null) {
             toTable = tableName;
-            return head("Edit", getDateControlScript(con.getLocale()) + getColorControlScript())
+            return head(con, "Edit", getDateControlScript(con.getLocale()) + getColorControlScript())
                     + body(standardLayout(con, parms, getTableRowForm(con, toTable, parms)));
         }
 */
@@ -103,17 +105,17 @@ public class Merge extends Table {
             int updateCount = 0;
             System.out.println("Running merge path " + run);
             //editId = null;
-            ODocument mDoc = con.get(run);
+            Document mDoc = con.get(run);
             if (mDoc != null) {
-                fromTable = mDoc.field("fromTable");
-                toTable = mDoc.field("toTable");
-                fromKey = mDoc.field("fromKey");
-                toKey = mDoc.field("toKey");
+                fromTable = mDoc.getString("fromTable");
+                toTable = mDoc.getString("toTable");
+                fromKey = mDoc.getString("fromKey");
+                toKey = mDoc.getString("toKey");
             }
-            OSchema oschema = con.getSchema();
-            OClass fromClass = oschema.getClass(fromTable);
+            Schema oschema = con.getSchema();
+            DocumentType fromClass = oschema.getType(fromTable);
             System.out.println("Merge from " + fromTable + " to " + toTable);
-            OClass toClass = Setup.checkCreateTable(oschema, tableName, errors);
+            DocumentType toClass = Setup.checkCreateTable(oschema, tableName, errors);
             QueryResult fromResult = null;
             QueryResult toResult = null;
             try {
@@ -142,13 +144,13 @@ public class Merge extends Table {
                     int toIndex = 0;
                     String lastFromKey = null;
                     while (fromIndex < fromResult.size()) {
-                        ODocument fromDoc = fromResult.get(fromIndex);
-                        ODocument toDoc = null;
+                        Document fromDoc = fromResult.get(fromIndex);
+                        MutableDocument toDoc = null;
                         if (toIndex < toResult.size()) {
-                            toDoc = toResult.get(toIndex);
+                            toDoc = (MutableDocument)toResult.get(toIndex);
                         }
-                        Object fromId = fromDoc.field(fromKey);
-                        Object toId = (toDoc != null ? toDoc.field(toKey) : null);
+                        Object fromId = fromDoc.get(fromKey);
+                        Object toId = (toDoc != null ? toDoc.get(toKey) : null);
                         if (fromId == null) {
                             sb.append(paragraph("error", "Cannot merge a null key"));
                             fromIndex++;
@@ -193,7 +195,7 @@ public class Merge extends Table {
                         sb.append(paragraph("warning", "Zero inserts or updates"));
                     }
                 } else {
-                    sb.append(paragraph("error", "No columns mapped from table " + fromTable + " to table " + toTable + " in merge path " + mDoc.field("name")));
+                    sb.append(paragraph("error", "No columns mapped from table " + fromTable + " to table " + toTable + " in merge path " + mDoc.getString("name")));
                 }
             }
         }
@@ -207,7 +209,7 @@ public class Merge extends Table {
                 sb.append("Error retrieving import patterns: " + e.getMessage());
             }
         }
-        return head("Merge", getDateControlScript(con.getLocale()) + getColorControlScript())
+        return head(con, "Merge", getDateControlScript(con.getLocale()) + getColorControlScript())
                 + body(standardLayout(con, parms,
                                 errors.toString()
                                 + ((Security.getTablePriv(con, PlusSetup.MERGE_TABLE) & PRIV_CREATE) > 0
@@ -221,9 +223,9 @@ public class Merge extends Table {
                         ));
     }
 
-    public int insertDocument(DatabaseConnection con, ODocument doc, QueryResult columnMap, String toTable) {
-        OClass tableClass = con.getSchema().getClass(toTable);
-        ODocument newdoc = con.create(toTable);
+    public int insertDocument(DatabaseConnection con, Document doc, QueryResult columnMap, String toTable) {
+        DocumentType tableClass = con.getSchema().getType(toTable);
+        MutableDocument newdoc = con.create(toTable);
         if (newdoc == null || tableClass == null) {
             System.out.println("Could not create new document of type " + toTable);
             return 0;
@@ -231,20 +233,20 @@ public class Merge extends Table {
         return 1 + mergeDocument(con, doc, newdoc, columnMap);
     }
 
-    public int mergeDocument(DatabaseConnection con, ODocument fromDoc, ODocument toDoc, QueryResult columnMap) {
+    public int mergeDocument(DatabaseConnection con, Document fromDoc, MutableDocument toDoc, QueryResult columnMap) {
         if (fromDoc == null || toDoc == null || columnMap == null) {
             System.out.println("Merge: What the?");
             return 0;
         }
         StringBuilder errors = new StringBuilder();
         int mergeCount = 0;
-        OClass tableClass = toDoc.getSchemaClass();
-        for (ODocument cm : columnMap.get()) {
+        DocumentType tableClass = toDoc.getType();
+        for (Document cm : columnMap.get()) {
             try {
-                String fromCol = cm.field("fromColumn");
-                String toCol = cm.field("toColumn");
-                String linkProp = cm.field("linkProperty");
-                OProperty toProp = tableClass.getProperty(toCol);
+                String fromCol = cm.getString("fromColumn");
+                String toCol = cm.getString("toColumn");
+                String linkProp = cm.getString("linkProperty");
+                Property toProp = tableClass.getProperty(toCol);
                 if (fromCol == null || fromCol.equals("")) {
                     System.out.println("fromColumn is null");
                 } else if (toCol == null || toCol.equals("")) {
@@ -252,39 +254,39 @@ public class Merge extends Table {
                 } else {
                     if (toProp == null) {
                         System.out.println("toColumn property can not be found in the target class");
-                        toProp = Setup.checkCreateColumn(con, tableClass, toCol, fromDoc.fieldType(fromCol), errors);                    
+                        toProp = Setup.checkCreateColumn(con, tableClass, toCol, fromDoc.getType().getProperty(fromCol).getType(), errors);                    
                     }
-                    OClass linkedClass = toProp.getLinkedClass();
-                    Object data = fromDoc.field(fromCol);
-                    Object toData = toDoc.field(toCol);
+                    String linkedClass = toProp.getOfType();
+                    Object data = fromDoc.get(fromCol);
+                    Object toData = toDoc.get(toCol);
                     if (data != null) {
                         if (linkedClass != null) {
-                            if (linkProp != null && toProp.getType() == OType.LINK) {
-                                String q = "SELECT FROM " + linkedClass.getName() + " WHERE " + linkProp + " = " + (data instanceof String ? "'" + data + "'" : data.toString());
+                            if (linkProp != null && toProp.getType() == Type.LINK) {
+                                String q = "SELECT FROM " + linkedClass + " WHERE " + linkProp + " = " + (data instanceof String ? "'" + data + "'" : data.toString());
                                 //System.out.println("query="+q);
                                 QueryResult refs = con.query(q);
                                 if (refs != null && refs.size() > 0) {
-                                    ODocument linkDoc = refs.get(0);
-                                    if (toData == null || !((ODocument) toData).getIdentity().equals(linkDoc.getIdentity())) {
-                                        toDoc.field(toCol, linkDoc);
+                                    Document linkDoc = refs.get(0);
+                                    if (toData == null || !((Document) toData).getIdentity().equals(linkDoc.getIdentity())) {
+                                        toDoc.set(toCol, linkDoc);
                                         mergeCount++;
                                     }
                                 } else {
-                                    System.out.println("Could not find document for link to " + linkedClass.getName() + " where " + linkProp + "=" + data);
+                                    System.out.println("Could not find document for link to " + linkedClass + " where " + linkProp + "=" + data);
                                 }
                             } else {
                                 System.out.println("Linked class found but linkProperty not defined or link is multiple type");
                             }
                         } else if (toData == null || !data.toString().equals(toData.toString())) {
-                            if (toProp.getType() == OType.BOOLEAN) {
+                            if (toProp.getType() == Type.BOOLEAN) {
                                 String first = data.toString().substring(0, 1).toUpperCase();
                                 if (first.equals("T") || first.equals("Y")) {
-                                    toDoc.field(toCol, true);
+                                    toDoc.set(toCol, true);
                                 } else {
-                                    toDoc.field(toCol, false);
+                                    toDoc.set(toCol, false);
                                 }
                             } else {
-                                toDoc.field(toCol, data);
+                                toDoc.set(toCol, data);
                             }
                             mergeCount++;
                         }

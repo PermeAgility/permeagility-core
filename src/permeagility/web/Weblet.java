@@ -17,12 +17,16 @@ package permeagility.web;
 
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -35,11 +39,12 @@ import java.util.Stack;
 import permeagility.util.DatabaseConnection;
 import permeagility.util.QueryCache;
 import permeagility.util.QueryResult;
+import permeagility.util.QueryResultCache;
 import permeagility.util.Setup;
 
-import com.orientechnologies.orient.core.id.ORID;
-import com.orientechnologies.orient.core.id.ORecordId;
-import com.orientechnologies.orient.core.record.impl.ODocument;
+import com.arcadedb.database.Document;
+import com.arcadedb.database.RID;
+import com.arcadedb.serializer.json.JSONObject;
 
 /** The Weblet help you build web pages with simple functional coding - can't be explained here - see examples */
 public abstract class Weblet {
@@ -48,19 +53,20 @@ public abstract class Weblet {
     public static final Charset charset = Charset.forName("UTF-8");
 
     // These values can be overridden using the constant override - use permeagility.web.Context as this class is abstract
+//    public static boolean DEBUG = false;
     public static int START_HOUR = 0;
     public static boolean TOP_OF_DAY = true;
     public static boolean INCLUSIVE_END_DAY = true;
     public static String INT_FORMAT = "#,##0";
     public static String FLOAT_FORMAT = "#,##0.00";
     public static String DATE_FORMAT = "yyyy-MM-dd";
-    public static String TIME_FORMAT = "HH:mm:ss";
+    public static String TIME_FORMAT = "H:mm:ss";
     public static String DECIMAL_FORMAT = "#,##0;(#,##0)";
     public static String DATE_CONTROL_FORMAT = "%Y-%m-%d";
     public static String TIME_CONTROL_FORMAT = "%k:%M:%S";
     // Must be a valid JS Calendar style Working: blue2, brown, green, win2k-1, win2k-2, win2k-cold-1, win2k-cold-2   Not working: blue, system, tas
     public static String DATE_CONTROL_STYLE = "blue2";  
-    public static String DEFAULT_STYLE = "default";
+    public static String DEFAULT_STYLE = "dark (horizontal menu)";
     public static String POPUP_SUFFIX = "..";
     public static boolean JQUERY_MIN = true;  // Set to true to reduce download time but sacrifice debug messages of any value
     public static boolean ANGULAR_MIN = true;  // Set to true to reduce download time but sacrifice debug messages of any value
@@ -68,6 +74,9 @@ public abstract class Weblet {
     public static boolean SPLIT_MIN = true;
     public static boolean LOAD_ANIMATION = true;
     public static boolean LOAD_ANIM_MIN = true;
+    public static boolean HYPERSCRIPT_MIN = false;
+    public static boolean HTMX_MIN = false;
+    protected boolean HTMX_MODE = false;   // descendent instances can set this flag
     
     public static String NONE_STRING = "null";  // this is what a null reference will convert to on description lookups (when something is deleted)
 
@@ -76,16 +85,10 @@ public abstract class Weblet {
     public static String SCREEN_FADE = "<div class=\"screenfade\"></div>";  // Injected into body to provide background 'blur' for a popup
 
     static QueryCache queryCache = new QueryCache();  // protected so that server can refresh it
-
-    public static QueryCache getCache() {
-            return queryCache;
-    }
-
-    private DatabaseConnection internal_con;  // This will use the user's connection to get styles
+    public static QueryCache getCache() { return queryCache; }
 
     protected byte[] doPage(DatabaseConnection con, HashMap<String, String> parms) {
-            internal_con = con; // For style retrieval
-            StringBuilder response = new StringBuilder();
+             StringBuilder response = new StringBuilder();
             response.append("<!DOCTYPE html>\n<html>\n");
             response.append(getPage(con, parms));
             response.append("</html>\n");
@@ -94,18 +97,24 @@ public abstract class Weblet {
 
     public abstract String getPage(DatabaseConnection con, java.util.HashMap<String, String> parms);
 
-    public String head(String s) { return head(s, ""); }
+    public String head(DatabaseConnection con, String s) { return head(con, s, ""); }
 
-    public String head(String s, String script) {
+    public String head(DatabaseConnection con, String s, String script) {
         return "<head>\n" + "<meta http-equiv=\"Content-Type\" content=\"text/html; charset="+CHARACTER_ENCODING+"\">\n"
             + "<meta http-equiv=\"Pragma\" content=\"no-cache\">\n" + "<meta http-equiv=\"Expires\" content=\"-1\">\n"
             + "<meta http-equiv=\"Cache-Control\" content=\"no-cache\">\n"
             + "<meta name=\"GENERATOR\" content=\"HTML Document generated by PermeAgility\">\n" 
             + "<title>" + s + "</title>\n"
-            + (LOAD_ANIMATION ? "<script src=\"/js/pace/pace.min.js\"></script>\n"
-                            + "<link href=\"/js/pace/themes/orange/pace-theme-minimal.css\" rel=\"stylesheet\" />\n"
-                : "")
-            + "<style type=\"text/css\">\n" + getStyles() + "</style>\n"
+      //      + (LOAD_ANIMATION ? "<script src=\"/js/pace/pace.min.js\"></script>\n"
+      //                      + "<link href=\"/js/pace/themes/orange/pace-theme-minimal.css\" rel=\"stylesheet\" />\n"
+      //          : "")
+            + "<style type=\"text/css\">\n" + getStyles(con) + "</style>\n"
+            // Add HyperScript
+            + (HYPERSCRIPT_MIN ? "<script type=\"text/javascript\" src=\"/js/_hyperscript.min.js\"></script>\n"
+                            : "<script type=\"text/javascript\" src=\"/js/_hyperscript.js\"></script>\n")
+            // Add HTMX
+            + (HTMX_MIN ? "<script type=\"text/javascript\" src=\"/js/htmx.min.js\"></script>\n"
+                            : "<script type=\"text/javascript\" src=\"/js/htmx.js\"></script>\n")
             // Add JQuery
             + (JQUERY_MIN ? "<script type=\"text/javascript\" src=\"/js/jquery-2.1.3.min.js\"></script>\n"
                             : "<script type=\"text/javascript\" src=\"/js/jquery-2.1.3.js\"></script>\n")
@@ -176,15 +185,21 @@ public abstract class Weblet {
             + "</head>\n";
     }
 
-
+    public String headMinimum(DatabaseConnection con, String title, String script) {
+    return "<head>\n" + "<meta http-equiv=\"Content-Type\" content=\"text/html; charset="+CHARACTER_ENCODING+"\">\n"
+        + "<meta http-equiv=\"Pragma\" content=\"no-cache\">\n" + "<meta http-equiv=\"Expires\" content=\"-1\">\n"
+        + "<meta http-equiv=\"Cache-Control\" content=\"no-cache\">\n"
+        + "<meta name=\"GENERATOR\" content=\"HTML Document generated by PermeAgility\">\n" 
+        + "<title>" + title + "</title>\n"
+        + "<style type=\"text/css\">\n" + getStyles(con) + "</style>\n"
+        + script + "\n"
+        + "</head>\n";
+    }
+    public static String bodyMinimum(String att, String s) { return "<body "+att+">"+"\n" + s + "</body>"; }
     public static String body(String s) { return "<body "+BODY_OPTIONS+">"+"\n" + s +SCREEN_FADE+ "</body>"; }
     public static String body(String c, String s) { return "<body "+BODY_OPTIONS+" class=\"" + c + "\">"+"\n" + s +SCREEN_FADE+ "</body>"; }
     public static String bodyOnLoad(String s, String l) { return "<body "+BODY_OPTIONS+" onLoad=\"" + l + "\">"+"\n" + s + SCREEN_FADE + "</body>"; }
-
-    /** Use spans for styles */
     public static String span(String id, String s) { return "<span id=\"" + id + "\">\n" + s + "</span>\n"; }
-    
-    /** Use divs for content */
     public static String div(String id, String contents) { return "<div "+(id == null ? "" : "id=\"" + id + "\"")+">\n" + (contents == null ? "" : contents) + "</div>\n"; }
     public static String div(String id, String classes, String contents) { return "<div "+(id == null ? "" : "id=\"" + id + "\"")+(classes == null ? "" : " class=\""+classes+"\"")+">\n" + (contents == null ? "" : contents) + "</div>\n"; }
 
@@ -200,12 +215,6 @@ public abstract class Weblet {
                 + div("header", (new Header()).getHTML(con, parms)) 
                 + div("service", html);			
         }
-    }
-
-    public String pleaseWait(String url) {
-        return head("Please Wait", 
-            "<script language=JavaScript>\n" + "function init(){\n" + "	window.location = \"" + url + "\";\n" + "}	\n" + "</script>\n")
-            + "<body onload=init()>\n" + br() + br() + "<center><img src=\"../images/hourglass.gif\"></center>" + "</body>\n";
     }
 
     public String redirect(HashMap<String,String> parms, Object object) {
@@ -256,64 +265,34 @@ public abstract class Weblet {
 
     /*   Table */
     public static String table(String s) { return table(0, s); }  // Default table has no border
+    public static String table(int border, String s) { return "<table"+(border>0 ? " border=\"" + border + "\"" : "")+">\n" + s + "</table>\n"; }
+    public static String table(String c, String s) { return "<table class=\"" + c + "\">\n" + s + "</table>\n"; }
 
-    public static String table(int border, String s) {
-        return "<table"+(border>0 ? " border=\"" + border + "\"" : "")+">\n" + s + "</table>\n";
+    public static String tableHTMX(String name, String c, String s) {
+        String onLoad="";
+        if (c.equals("sortable")) {
+            onLoad = "_=\"on load if sorttable exists call sorttable.makeSortable(document.getElementById('"+name+"'))\"";
+        }
+        return "<table id=\""+name+"\" class=\"" + c + "\" "+onLoad+">\n" + s + "</table>\n";
     }
 
-    public static String table(String c, String s) {
-        return "<table class=\"" + c + "\">\n" + s + "</table>\n";
-    }
-
-    public static String tableStart(int border) {
-        return "<table"+(border>0 ? " border=\"" + border + "\"" : "")+">\n";
-    }
-
-    public static String tableStart(String c) {
-        return "<table class=\"" + c + "\">\n";
-    }
-
-    public static String tableStart(String width, String c) {
-        return "<table width=\""+width+"\" class=\"" + c + "\">\n";
-    }
-
-    public static String tableEnd() {
-        return "</table>\n";
-    }
+    public static String tableStart(int border) { return "<table"+(border>0 ? " border=\"" + border + "\"" : "")+">\n"; }
+    public static String tableStart(String c) { return "<table class=\"" + c + "\">\n"; }
+    public static String tableStart(String width, String c) { return "<table width=\""+width+"\" class=\"" + c + "\">\n"; }
+    public static String tableEnd() { return "</table>\n"; }
 
     /* Table Header, Body, Footer */
     public static String tableHeader(String c, String s) {
         return "<thead class=\"" + c + "\">" + s + "</thead>\n";
     }
 
-    public static String tableHeader(String s) {
-        return "<thead>\n" + s + "</thead>\n";
-    }
-
-    public static String tableBody(String c, String s) {
-        return "<tbody class=\"" + c + "\">" + s + "</tbody>\n";
-    }
-
-    public static String tableBody(String s) {
-        return "<tbody>\n" + s + "</tbody>\n";
-    }
-
-    public static String tableFooter(String c, String s) {
-        return "<tfoot class=\"" + c + "\">\n" + s + "</tfoot>\n";
-    }
-
-    public static String tableFooter(String s) {
-        return "<tfoot>" + s + "</tfoot>\n";
-    }
-
-    /*  Rows  */
-    public static String row(String c, String s) {
-        return "<tr class=\"" + c + "\">\n" + s + "</tr>\n";
-    }
-
-    public static String row(String s) {
-        return "<tr valign=\"TOP\">\n" + s + "</tr>\n";
-    }
+    public static String tableHeader(String s) { return "<thead>\n" + s + "</thead>\n"; }
+    public static String tableBody(String c, String s) { return "<tbody class=\"" + c + "\">" + s + "</tbody>\n"; }
+    public static String tableBody(String s) { return "<tbody>\n" + s + "</tbody>\n"; }
+    public static String tableFooter(String c, String s) { return "<tfoot class=\"" + c + "\">\n" + s + "</tfoot>\n"; }
+    public static String tableFooter(String s) { return "<tfoot>" + s + "</tfoot>\n"; }
+    public static String row(String c, String s) { return "<tr class=\"" + c + "\">\n" + s + "</tr>\n";  }
+    public static String row(String s) { return "<tr valign=\"TOP\">\n" + s + "</tr>\n"; }
 
     public static String rowOnClick(String c, String s, String onClick) {
         return rowOnClick(c, s, onClick, null);
@@ -323,23 +302,14 @@ public abstract class Weblet {
         return "<tr class=\"" + c + "\" href=\"" + onClick + "\" "+(title!=null ? " title=\""+title+"\"" : "")+" >\n" + (s == null ? "&nbsp;" : s) + "</tr>\n";
     }
 
-    /* Column headers - they should be used like a column */
-    public static String columnHeader(String c, String s) {
-        return "<th class=\"" + c + "\">\n" + s + "</th>\n";
+    public static String rowOnClickHTMX(String c, String s, String onClick, String title) {
+        return "<tr class=\"" + c + "\" hx-target=\"#service\" hx-trigger=\"click\" hx-get=\"" + onClick + "\" "+(title!=null ? " title=\""+title+"\"" : "")+" >\n" + (s == null ? "&nbsp;" : s) + "</tr>\n";
     }
 
-    public static String columnHeader(String s) {
-        return "<th>\n" + s + "</th>\n";
-    }
-
-    public static String columnHeaderNoSort(String s) {
-        return "<th class=\"sorttable_nosort\">\n" + s + "</th>\n";
-    }
-
-    /* Columns */
-    public static String column(String s) {
-        return "<td>" + (s == null ? "&nbsp;" : s) + "</td>\n";
-    }
+    public static String columnHeader(String c, String s) { return "<th class=\"" + c + "\">\n" + s + "</th>\n"; }
+    public static String columnHeader(String s) { return "<th>\n" + s + "</th>\n"; }
+    public static String columnHeaderNoSort(String s) { return "<th class=\"sorttable_nosort\">\n" + s + "</th>\n"; }
+    public static String column(String s) { return "<td>" + (s == null ? "&nbsp;" : s) + "</td>\n"; }
 
     public static String column(String c, String s) {
         return "<td class=\"" + c + "\">" + (s == null ? "&nbsp;" : s) + "</td>\n";
@@ -390,7 +360,7 @@ public abstract class Weblet {
     }
 
     public static String columnCenter(int width, String s) {
-        return "<td align=\"canter\" width=\"" + width + "%\">" + (s == null ? "&nbsp;" : s) + "</td>\n";
+        return "<td align=\"center\" width=\"" + width + "%\">" + (s == null ? "&nbsp;" : s) + "</td>\n";
     }
 
     public static String columnSpan(int width, String s) {
@@ -425,7 +395,10 @@ public abstract class Weblet {
         return "<td colspan=\"" + span + "\" nowrap width=\"" + width + "%\" class=\"" + c + "\">" + (s == null ? "&nbsp;" : s) + "</td>\n";
     }
 
-    /*  Forms  */
+    public static String formHTMX(String n, String action, String method, String s) {
+        return "<form " + (n==null ? "" : "name=\""+n+"\"" ) + " hx-target=\"#service\" hx-"+method.toLowerCase()+"=\"" + (action==null ? "" : action) + "\" "+
+                "hx-swap=\"innerHTML\" enctype=\"multipart/form-data\">\n" + s + "</form>\n";
+    }
     public static String form(String n, String action, String s) {
         return "<form " + (n==null ? "" : "name=\""+n+"\"" ) + " action=\"" + (action==null ? "" : action) + "\" "+
                 "method=\"POST\" enctype=\"multipart/form-data\">\n" + s + "</form>\n";
@@ -449,6 +422,19 @@ public abstract class Weblet {
     }
 
     /** Creates a link which will popup a form containing the content given as a parameter */
+    public static String popupFormHTMX(String formName, String action, String method, String linkText, String focusField, String content) {
+        return "<a href=\"#popup-"+formName+"\" class=\"popbox\">"+linkText+POPUP_SUFFIX+"</a>\n"
+                +"<div id=\"popup-"+formName+"\" class=\"modal\">\n"
+                +"  <div class=\"pop-content\">\n"
+                +"    <form  id=\""+formName+"\" name=\""+formName+"\" enctype=\"multipart/form-data\""
+                +"           hx-"+method.toLowerCase()+"=\""+action+"\" hx-target=\"#service\" hx-swap=\"innerHTML\" class=\"form-container\">\n"
+                +        content + "&nbsp;<a href=\"#\" class=\"box-close\">x</a>\n"
+                +"    </form>\n"
+                +"  </div>\n"
+                +"</div>\n";
+    }
+
+    /** Creates a link which will popup a form containing the content given as a parameter */
     public static String popupBox(String formName, String action, String linkText, String linkClass, String focusField, String content) {
         return "<a class=\"popuplink\">"+linkText+POPUP_SUFFIX+"</a>\n<div class=\"canpopup\">\n" +content +"\n</div>\n";
     }
@@ -461,10 +447,11 @@ public abstract class Weblet {
     public static String frame(String id, String src) {
         return "<iframe id='"+id+"' "+(src == null ? "" : " src='"+src+"'")+" width='100%' height='100%'></iframe>\n";
     }
-    
-    public static String fieldSet(String s) {
-        return "<fieldset>" + s + "</fieldset>";
+    public static String frame(int height, String id, String src) {
+        return "<iframe id='"+id+"' "+(src == null ? "" : " src='"+src+"'")+" width='100%' height='"+height+"px'></iframe>\n";
     }
+    
+    public static String fieldSet(String s) { return "<fieldset>" + s + "</fieldset>"; }
 
     public static String hidden(String n, Object value) { return hidden(n, value, ""); }
 
@@ -603,6 +590,26 @@ public abstract class Weblet {
             return confirmButton(locale, "DELETE", "DELETE_MESSAGE");
     }
 
+    public String cancelButton(Locale locale, String table) {  // HTMX Version
+            return "<button hx-target=\"#service\" hx-swap=\"innerHTML\" hx-get=\""
+                +"/"+this.getClass().getName()+"/"+table+"\"" 
+                + "  class=\"button\" name=\"SUBMIT\" value=\"" + "CANCEL" + "\">"
+            + Message.get(locale,"CANCEL") + "</button>";
+    }
+
+    public String deleteButton(Locale locale, String table, String edit_id) {  // HTMX Version
+        if (HTMX_MODE) {
+            return "<button hx-target=\"#service\" hx-swap=\"innerHTML\" hx-delete=\""
+                +"/"+this.getClass().getName()+"/"+table+"/"+edit_id+"\"" 
+                + (isReadOnly() ? "DISABLED" : "") 
+                + "  class=\"button\" name=\"SUBMIT\" value=\"" + "DELETE" + "\">"
+         //   + " onclick=\"javascript:if (confirm('" + Message.get(locale, "DELETE_MESSAGE") + "')) return true; else return false; \">"
+            + Message.get(locale,"DELETE") + "</button>";
+        } else {
+            return deleteButton(locale);
+        }
+    }
+
     public String deleteButton(Locale locale, String confirm) {
         return confirmButton(locale, "DELETE", confirm);
     }
@@ -647,6 +654,15 @@ public abstract class Weblet {
 
     public static String link(String ref, String desc) {
             return "<a href=\"" + ref + "\">" + desc + "</a>\n";
+    }
+
+    public static String linkHTMX(String ref, String desc) {
+        return linkHTMX(ref, desc, "");
+    }
+
+    public static String linkHTMX(String ref, String desc, String extra) {
+        return "<span hx-target=\"#service\" hx-trigger=\"click\" hx-swap=\"innerHTML\" hx-get=\"" 
+                + ref + "\" "+extra+" >" + desc + "</span>\n";
     }
 
     public static String linkNewWindow(String ref, String desc) {
@@ -730,27 +746,29 @@ public abstract class Weblet {
     public static String EDITOR_THEME = "night";
 
     public static String getCodeEditorScript() {
-        return "<link rel=\"stylesheet\" type=\"text/css\" href=\"../js/codemirror/lib/codemirror.css\" />\n"
-            +(EDITOR_THEME != null && !EDITOR_THEME.equals("default") ? "<link rel=\"stylesheet\" type=\"text/css\" href=\"../js/codemirror/theme/"+EDITOR_THEME+".css\" />\n" : "")
-            +"<link rel=\"stylesheet\" type=\"text/css\" href=\"../js/codemirror/addon/hint/show-hint.css\" />\n"
-            +"<link rel=\"stylesheet\" type=\"text/css\" href=\"../js/codemirror/addon/dialog/dialog.css\" />\n"
-            +"<link rel=\"stylesheet\" type=\"text/css\" href=\"../js/codemirror/addon/tern/tern.css\" />\n"
-            + "<script type=\"text/javascript\" src=\"../js/codemirror/lib/codemirror.js\"></script>\n"
-            + "<script type=\"text/javascript\" src=\"../js/codemirror/mode/javascript/javascript.js\"></script>\n"
-            + "<script type=\"text/javascript\" src=\"../js/codemirror/mode/clike/clike.js\"></script>\n"
-            + "<script type=\"text/javascript\" src=\"../js/codemirror/mode/css/css.js\"></script>\n"
-            + "<script type=\"text/javascript\" src=\"../js/codemirror/mode/r/r.js\"></script>\n"
-            + "<script type=\"text/javascript\" src=\"../js/codemirror/mode/sql/sql.js\"></script>\n"
-            + "<script type=\"text/javascript\" src=\"../js/codemirror/addon/dialog/dialog.js\"></script>\n"
-            + "<script type=\"text/javascript\" src=\"../js/codemirror/addon/tern/tern.js\"></script>\n"
-            + "<script type=\"text/javascript\" src=\"../js/codemirror/addon/hint/show-hint.js\"></script>\n"
-            + "<script type=\"text/javascript\" src=\"../js/codemirror/addon/hint/javascript-hint.js\"></script>\n"
-            + "<script type=\"text/javascript\" src=\"../js/codemirror/addon/hint/css-hint.js\"></script>\n"
-            + "<script type=\"text/javascript\" src=\"../js/codemirror/addon/lint/lint.js\"></script>\n"
-            + "<script type=\"text/javascript\" src=\"../js/codemirror/addon/lint/javascript-lint.js\"></script>\n"
-            + "<script type=\"text/javascript\" src=\"../js/codemirror/addon/lint/css-lint.js\"></script>\n"
-            + "<script type=\"text/javascript\" src=\"../js/codemirror/addon/selection/active-line.js\"></script>\n"
-            + "<script type=\"text/javascript\" src=\"../js/codemirror/addon/edit/matchbrackets.js\"></script>\n";
+        return "<link rel=\"stylesheet\" type=\"text/css\" href=\"/js/codemirror/lib/codemirror.css\" />\n"
+            +(EDITOR_THEME != null && !EDITOR_THEME.equals("default") ? "<link rel=\"stylesheet\" type=\"text/css\" href=\"/js/codemirror/theme/"+EDITOR_THEME+".css\" />\n" : "")
+            +"<link rel=\"stylesheet\" type=\"text/css\" href=\"/js/codemirror/addon/hint/show-hint.css\" />\n"
+            +"<link rel=\"stylesheet\" type=\"text/css\" href=\"/js/codemirror/addon/dialog/dialog.css\" />\n"
+            +"<link rel=\"stylesheet\" type=\"text/css\" href=\"/js/codemirror/addon/tern/tern.css\" />\n"
+            + "<script type=\"text/javascript\" src=\"/js/codemirror/lib/codemirror.js\"></script>\n"
+            + "<script type=\"text/javascript\" src=\"/js/codemirror/mode/javascript/javascript.js\"></script>\n"
+            + "<script type=\"text/javascript\" src=\"/js/codemirror/mode/clike/clike.js\"></script>\n"
+            + "<script type=\"text/javascript\" src=\"/js/codemirror/mode/css/css.js\"></script>\n"
+            + "<script type=\"text/javascript\" src=\"/js/codemirror/mode/r/r.js\"></script>\n"
+            + "<script type=\"text/javascript\" src=\"/js/codemirror/mode/xml/xml.js\"></script>\n"
+            + "<script type=\"text/javascript\" src=\"/js/codemirror/mode/sql/sql.js\"></script>\n"
+            + "<script type=\"text/javascript\" src=\"/js/codemirror/mode/htmlmixed/htmlmixed.js\"></script>\n"
+            + "<script type=\"text/javascript\" src=\"/js/codemirror/addon/dialog/dialog.js\"></script>\n"
+            + "<script type=\"text/javascript\" src=\"/js/codemirror/addon/tern/tern.js\"></script>\n"
+            + "<script type=\"text/javascript\" src=\"/js/codemirror/addon/hint/show-hint.js\"></script>\n"
+            + "<script type=\"text/javascript\" src=\"/js/codemirror/addon/hint/javascript-hint.js\"></script>\n"
+            + "<script type=\"text/javascript\" src=\"/js/codemirror/addon/hint/css-hint.js\"></script>\n"
+            + "<script type=\"text/javascript\" src=\"/js/codemirror/addon/lint/lint.js\"></script>\n"
+            + "<script type=\"text/javascript\" src=\"/js/codemirror/addon/lint/javascript-lint.js\"></script>\n"
+            + "<script type=\"text/javascript\" src=\"/js/codemirror/addon/lint/css-lint.js\"></script>\n"
+            + "<script type=\"text/javascript\" src=\"/js/codemirror/addon/selection/active-line.js\"></script>\n"
+            + "<script type=\"text/javascript\" src=\"/js/codemirror/addon/edit/matchbrackets.js\"></script>\n";
     }
 
     public String getCodeEditorControl(String formName, String controlName, String initialValue, String mode) {
@@ -768,10 +786,7 @@ public abstract class Weblet {
             + "</script>\n";				
     }
 
-    public int countLines(String string) {
-        return countLines(string, 80);
-    }
-        
+    public int countLines(String string) { return countLines(string, 80);  }
     public int countLines(String string, int lineLength) {
         if (string == null || string.isEmpty()) return 1;
         int lineBreakThreshold = lineLength/10;
@@ -788,21 +803,13 @@ public abstract class Weblet {
         return lines > 0 ? lines : 1;
     }
 
-    public static String getSortTableScript() {
-            return "<script src=\"/js/sorttable.js\"></script>\n";
-    }
+    public static String getSortTableScript() { return "<script src=\"/js/sorttable.js\"></script>\n"; }
 
-    public static String getScript(String name) {
-            return "<script src=\"/js/"+name+"\"></script>\n";
-    }
+    public static String getScript(String name) { return "<script src=\"/js/"+name+"\"></script>\n"; }
 
-    public static String script(String script) {
-            return "<script>"+script+"</script>\n";
-    }
+    public static String script(String script) { return "<script>"+script+"</script>\n"; }
 
-    public static String style(String script) {
-            return "<style type=\"text/css\">\n" + script + "</style>\n";
-    }
+    public static String style(String script) { return "<style type=\"text/css\">\n" + script + "</style>\n"; }
 
     public String getColorControl(String formName, String controlName, String initialValue) {
             return "<input id='"+controlName+"' name='"+controlName+"' class='color' value='"+initialValue+"'>";
@@ -813,8 +820,8 @@ public abstract class Weblet {
     public String getDateControl(String formName, String controlName, String initialValue) {
         dateControlCount++;
         String varName = "dateControl" + dateControlCount;
-        return "<input type=\"text\" name=\""+controlName+"\" id=\""+varName+"\" value=\""+initialValue+"\" /></td>\n"
-            +"<td><img src=\"/js/jscalendar-1.0/img.gif\" id=\""+varName+"_TRIG"+"\" style=\"cursor: pointer; z-index: 1000;\" title=\"Date selector\"\n"
+        return "<input type=\"text\" name=\""+controlName+"\" id=\""+varName+"\" value=\""+initialValue+"\" />\n"
+            +"<img src=\"/js/jscalendar-1.0/img.gif\" id=\""+varName+"_TRIG"+"\" style=\"cursor: pointer; z-index: 1000;\" title=\"Date selector\"\n"
             +" onmouseover=\"this.style.background='red';\" onmouseout=\"this.style.background=''\" />\n"
             +"<script type=\"text/javascript\">\n"
             +"Calendar.setup({\n"
@@ -856,38 +863,38 @@ public abstract class Weblet {
     }
 
     /** Build a list of checkboxes based on a query  */
-    public static String multiCheckboxList(String name, QueryResult qr, Locale l, Set<ODocument> picked) {
+    public static String multiCheckboxList(String name, QueryResult qr, Locale l, Set<Document> picked) {
         List<String> names = new ArrayList<>(qr.size());
         List<String> values = new ArrayList<>(qr.size());
         List<String> tooltips = new ArrayList<>(qr.size());
         List<String> checks = new ArrayList<>(qr.size());
-        for(ODocument row : qr.get()) {
-            String rid = row.field("rid");
+        for(Document row : qr.get()) {
+            String rid = row.getString("rid");
             if (rid == null) {
                 rid = row.getIdentity().toString().substring(1);
             }
             values.add(rid);
-            names.add((String)row.field("name"));
+            names.add((String)row.getString("name"));
             checks.add((picked != null && picked.contains(row) ? "Y" : null));
         }
         return multiCheckboxList(name, names, values, tooltips, checks, l);
     }
 
-    public static String multiCheckboxListWithGoto(String name, String table, QueryResult qr, Locale l, Set<ODocument> picked) {
+    public static String multiCheckboxListWithGoto(String name, String table, QueryResult qr, Locale l, Set<Document> picked) {
 	    List<String> names = new ArrayList<>(qr.size());
 	    List<String> values = new ArrayList<>(qr.size());
 	    List<String> tooltips = new ArrayList<>(qr.size());
 	    List<String> checks = new ArrayList<>(qr.size());
-	    for(ODocument row : qr.get()) {
-	    	String rid = row.field("rid");
+	    for(Document row : qr.get()) {
+	    	String rid = row.getString("rid");
 	    	if (rid == null) {
 	    		rid = row.getIdentity().toString().substring(1);
 	    	}
 	    	values.add(rid);
-	    	names.add((String)row.field("name") + "&nbsp;&nbsp;&nbsp;"+linkNewWindow("/permeagility.web.Table"
+	    	names.add(row.getString("name") + "&nbsp;&nbsp;&nbsp;"+linkNewWindow("/permeagility.web.Table"
 					+"?TABLENAME="+table
 					+"&EDIT_ID="+rid, Message.get(l, "GOTO_ROW")));
-	    	tooltips.add((String)row.field("tooltip"));
+	    	tooltips.add(row.getString("tooltip"));
 	    	checks.add((picked != null && picked.contains(row) ? "Y" : null));
 	    }
 	    return multiCheckboxList(name, names, values, tooltips, checks, l);
@@ -917,7 +924,7 @@ public abstract class Weblet {
     	return sb.toString();
     }
 
-    public String linkSetControl(DatabaseConnection con, String name, String table, QueryResult qr, Locale l, Set<ODocument> picked) {
+    public String linkSetControl(DatabaseConnection con, String name, String table, QueryResult qr, Locale l, Set<Document> picked) {
         if (qr == null) {
                 return paragraph("error","Cannot produce list for table "+table+" query is empty");
         }
@@ -925,8 +932,8 @@ public abstract class Weblet {
         List<String> values = new ArrayList<>(qr.size());
         List<String> tooltips = new ArrayList<>(qr.size());
         List<String> checks = new ArrayList<>(qr.size());
-        for(ODocument row : qr.get()) {
-            String rid = row.field("rid");
+        for(Document row : qr.get()) {
+            String rid = row.getString("rid");
             if (rid == null) {
                 rid = row.getIdentity().toString();
             }
@@ -934,17 +941,17 @@ public abstract class Weblet {
             //System.out.println("adding rid "+rid);
             values.add(rid);
             names.add(toJSONString(getDescriptionFromDocument(con, row)));
-            tooltips.add(toJSONString((String)row.field("tooltip")));
+            tooltips.add(toJSONString(row.getString("tooltip")));
             boolean pick = false;
             if (picked != null) { // Find in the list of picked, hope it isn't long
                 for (Object p : picked) {
-                    ORID id = null;
+                    RID id = null;
                     if (p == null) {
 
-                    } else if (p instanceof ORecordId) {
-                            id = ((ORecordId)p).getIdentity();
+            //        } else if (p instanceof Record) {
+            //                id = ((Record)p).getIdentity();
                     } else {  // Assume ODocument
-                            id = ((ODocument)p).getIdentity();
+                            id = ((Document)p).getIdentity();
                     }
                     if (id != null && id.toString().substring(1).equals(rid)) {
                             pick = true;
@@ -980,7 +987,7 @@ public abstract class Weblet {
   	return result.toString();
   }
 
-    public String linkListControl(DatabaseConnection con, String name, String table, QueryResult qr, Locale l, List<ODocument> picked) {
+    public String linkListControl(DatabaseConnection con, String name, String table, QueryResultCache qr, Locale l, List<RID> picked) {
         if (qr == null) {
                 return paragraph("error","Cannot produce list for table "+table+" query is empty");
         }
@@ -994,21 +1001,19 @@ public abstract class Weblet {
         List<String> listtooltips = new ArrayList<>(qr.size());
         List<String> listchecks = new ArrayList<>(qr.size());
         if (picked != null) {
-            for(ODocument pick : picked) {
+            for(RID pickedRID : picked) {
+                Document pick = con.get(pickedRID);
                 if (pick != null) {
-                    String rid = pick.field("rid");
-                    if (rid == null) {
-                            rid = pick.getIdentity().toString();
-                    }
+                    String rid = pickedRID.toString();
                     if (rid.startsWith("#")) rid = rid.substring(1);
                     listvalues.add(rid);
                     listnames.add(toJSONString(getDescriptionFromDocument(con, pick)));
-                    listtooltips.add(toJSONString((String)pick.field("tooltip")));
+                    listtooltips.add(toJSONString((String)pick.getString("tooltip")));
                     Integer active = listMap.get(rid);
                     if (active == null) {
-                            active = new Integer(1);
+                            active = Integer.valueOf(1);
                     } else {
-                            active = new Integer(active.intValue()+1);
+                            active = Integer.valueOf(active.intValue()+1);
                     }
                     //System.out.println("Adding to listValues: "+rid+" active="+active);
                     listMap.put(rid, active);	    	
@@ -1016,20 +1021,17 @@ public abstract class Weblet {
                 }
             }
         }
-        for(ODocument row : qr.get()) {
-            String rid = row.field("rid");
-            if (rid == null) {
-                    rid = row.getIdentity().toString();
-            }
+        for(JSONObject row : qr.get()) {
+            String rid = row.getString("rid");
             if (rid.startsWith("#")) rid = rid.substring(1);
             values.add(rid);
-            names.add(toJSONString((String)row.field("name")));
-            tooltips.add(toJSONString((String)row.field("tooltip")));
+            names.add(toJSONString(row.getString("name")));
+            tooltips.add(toJSONString(row.getString("tooltip")));
             Integer active = listMap.get(rid);
             if (active == null) {
-                    active = new Integer(0);
+                    active = Integer.valueOf(0);
             } else {
-                    active = new Integer(active.intValue());
+                    active = Integer.valueOf(active.intValue());
             }
             checks.add(active.toString());
         }
@@ -1068,7 +1070,7 @@ public abstract class Weblet {
         return result.toString();
     }
 
-    public String linkMapControl(DatabaseConnection con, String name, String table, QueryResult qr, Locale l, Map<String,ODocument> picked) {
+    public String linkMapControl(DatabaseConnection con, String name, String table, QueryResultCache qr, Locale l, Map<String,Object> picked) {
         if (qr == null) {
                 return paragraph("error","Cannot produce list for table "+table+" query is empty");
         }
@@ -1084,12 +1086,10 @@ public abstract class Weblet {
         List<String> listchecks = new ArrayList<>(qr.size());
         if (picked != null) {
             for (String key : picked.keySet()) {
-                ODocument pick = picked.get(key);
+                RID pickedRID = (RID)picked.get(key);
+                Document pick = con.get(pickedRID);
                 if (pick != null) {
-                    String rid = pick.field("rid");
-                    if (rid == null) {
-                        rid = pick.getIdentity().toString();
-                    }
+                    String rid = pickedRID.toString();
                     if (rid.startsWith("#")) rid = rid.substring(1);
                     // For some reason, map keys have single quotes around them now
                     if (key.startsWith("'") && key.endsWith("'")) {
@@ -1099,12 +1099,12 @@ public abstract class Weblet {
                     listmaps.add(key);
                     listvalues.add(rid);
                     listnames.add(toJSONString(getDescriptionFromDocument(con, pick)));
-                    listtooltips.add(toJSONString((String)pick.field("tooltip")));
+                    listtooltips.add(toJSONString(pick.getString("tooltip")));
                     Integer active = listMap.get(rid);
                     if (active == null) {
-                        active = new Integer(1);
+                        active = Integer.valueOf(1);
                     } else {
-                        active = new Integer(active.intValue()+1);
+                        active = Integer.valueOf(active.intValue()+1);
                     }
                     //System.out.println("Adding to listValues: "+rid+" active="+active);
                     listMap.put(rid, active);	    	
@@ -1112,20 +1112,17 @@ public abstract class Weblet {
                 }
             }
         }
-        for(ODocument row : qr.get()) {
-            String rid = row.field("rid");
-            if (rid == null) {
-                    rid = row.getIdentity().toString();
-            }
+        for(JSONObject row : qr.get()) {
+            String rid = row.getString("rid");
             if (rid.startsWith("#")) rid = rid.substring(1);
             values.add(rid);
-            names.add(toJSONString((String)row.field("name")));
-            tooltips.add(toJSONString((String)row.field("tooltip")));
+            names.add(toJSONString(row.getString("name")));
+            tooltips.add(toJSONString(row.getString("tooltip")));
             Integer active = listMap.get(rid);
             if (active == null) {
-                    active = new Integer(0);
+                    active = Integer.valueOf(0);
             } else {
-                    active = new Integer(active.intValue());
+                    active = Integer.valueOf(active.intValue());
             }
             checks.add(active.toString());
         }
@@ -1167,10 +1164,10 @@ public abstract class Weblet {
 
     public static String getQueryForTable(DatabaseConnection con, String table) {
             String query = "SELECT FROM "+table;
-            QueryResult lists = getCache().getResult(con, "SELECT tablename, query FROM "+Setup.TABLE_PICKLIST+" WHERE tablename='"+table+"'");
-            if (lists != null && lists.size()>0) {
-                    return lists.getStringValue(0, "query");
-            }
+        //    QueryResult lists = getCache().getResult(con, "SELECT FROM "+Setup.TABLE_PICKLIST+" WHERE tablename='"+table+"'");
+        //    if (lists != null && lists.size()>0) {
+        //            return lists.getStringValue(0, "query");
+        //    }
             return query;
     }
 
@@ -1179,28 +1176,27 @@ public abstract class Weblet {
             return text==null ? "" : text.replace("\\","\\\\").replace("'","\\'");
     }
 
-    public static String getDescriptionFromDocument(DatabaseConnection con, ODocument document) {
+    public static String getDescriptionFromDocument(DatabaseConnection con, Document document) {
         if (document == null) {
             return NONE_STRING;
-        } else if (document.getClassName() == null) {
-            String name = document.field("name");
+        } else if (document.getTypeName() == null || document.has("name")) {
+            String name = document.getString("name");
             if (name != null) {
                     return name;
             } else {
                     return NONE_STRING;
             }
         } else {
-            //System.out.println("document="+document.getIdentity()+" class="+document.getClassName());
-            return getDescriptionFromTable(con, document.getClassName(), document.getIdentity().toString());
+            System.out.println("Doing table lookup for document description.  document="+document.getIdentity()+" class="+document.getTypeName());
+            return getDescriptionFromTable(con, document.getTypeName(), document.getIdentity().toString());
         }
     }
 
     public static String getDescriptionFromTable(DatabaseConnection con, String table, String id) {
-        //System.out.println("GetDescriptionFromTable table="+table+" id="+id);
         if (id == null || id.equals("")) return NONE_STRING;
         //System.out.println(getQueryForTable(con, table));
         if (!id.startsWith("#")) id = "#"+id;
-        QueryResult qr = getCache().getResult(con, getQueryForTable(con, table));
+        QueryResultCache qr = getCache().getResult(con, getQueryForTable(con, table));
         if (qr != null) {
             int r = qr.findFirstRow("rid", id);
             if (r > -1) {
@@ -1228,7 +1224,7 @@ public abstract class Weblet {
 
     public static String createListFromCache(String name, String initial, DatabaseConnection con, String query
                     , String attributes, boolean allowNull, String classname, boolean enabled) {
-        QueryResult qr = queryCache.getResult(con, query);
+        QueryResultCache qr = queryCache.getResult(con, query);
         StringBuilder sb = new StringBuilder(1024);
         sb.append("<SELECT " + (enabled ? "" : "DISABLED") + (classname != null ? " class=\"" + classname + "\"" : "") + " id=\"" + name + "\" name=\"" + name + "\" " + (attributes != null ? attributes : "") + ">\n");
         if (initial == null && allowNull) {
@@ -1237,23 +1233,18 @@ public abstract class Weblet {
             sb.append("<OPTION VALUE=null>"+Message.get(con.getLocale(), "OPTION_NONE")+"\n");
         }
         if (qr != null) {
-            for (ODocument item : qr.get()) {
-                String id = item.getIdentity().toString();
-                if (item.field("rid") != null) {
-                    String d = item.field("rid");
-                    if (d != null) {
-                        id = d;
-                    }
-                }
-            if (id.startsWith("#")) id = id.substring(1);
+            for (JSONObject item : qr.get()) {
+                String id = item.getString("rid");
+                if (id.startsWith("#")) id = id.substring(1);
                 String itemname = null;
-                itemname = item.field("name");
+                itemname = item.getString("name");
                 if (itemname == null) {
-                    itemname = item.field("Name");					
+                    itemname = item.getString("Name");					
                 }
-                if (itemname == null && item.fields()>0) {
-                    itemname = item.field(item.fieldNames()[1]).toString();
+                if (itemname == null && qr.getColumns().length>0) {
+                    itemname = item.getString((String)qr.getColumns()[0]);
                 }
+                //System.out.println("createListFromCache options initial="+initial+" id="+id+" itemname="+itemname);  // to debug pre-selected item
                 sb.append("<OPTION ");
                 if (initial != null && (initial.equals(id) || initial.equals(itemname))) {
                     sb.append("SELECTED=\"yes\" ");
@@ -1318,22 +1309,19 @@ public abstract class Weblet {
             return sb.toString();
     }
 
-    public String getStyles() {
-            if (internal_con != null && internal_con.isConnected()) {
-                    QueryResult qr = queryCache.getResult(internal_con, "SELECT CSSStyle FROM style WHERE name='"+ DEFAULT_STYLE + "'");
-                    if (qr != null && qr.size() > 0) {
-                            String style =  qr.getStringValue(0, "CSSStyle");
-                            if (style == null || style.equals("")) {
-                                    System.out.println("***Weblet.getStyles()*** Unable to find style "+DEFAULT_STYLE+" in CSSStyle column of style table");
-                                    return Setup.DEFAULT_STYLESHEET;
-                            } else {
-                                    return style;
-                            }
-                    }
-                    System.out.println("***Weblet.getStyles()*** Unable to load style sheet called: "+DEFAULT_STYLE);
-            } else {
-                    System.out.println("***Weblet.getStyles()*** No database connection to use to retrieve stylesheets");
+    public String getStyles(DatabaseConnection con) {
+//            QueryResult qr = queryCache.getResult(con, "SELECT CSSStyle FROM style WHERE name='"+ DEFAULT_STYLE + "'");
+            QueryResultCache qr = queryCache.getResult(con, "SELECT FROM style WHERE name='"+ DEFAULT_STYLE + "'");
+            if (qr != null && qr.size() > 0) {
+                String style =  qr.getStringValue(0, "CSSStyle");
+                if (style == null || style.equals("")) {
+                        System.out.println("***Weblet.getStyles()*** Unable to find style "+DEFAULT_STYLE+" in CSSStyle column of style table");
+                        return Setup.DEFAULT_STYLESHEET;
+                } else {
+                        return style;
+                }
             }
+            System.out.println("***Weblet.getStyles()*** Unable to load style sheet called: "+DEFAULT_STYLE);
             return Setup.DEFAULT_STYLESHEET;
     }
 
@@ -1371,7 +1359,7 @@ public abstract class Weblet {
     public static BigDecimal roundDouble(double value, int precision) {
             try {
                     BigDecimal n = new BigDecimal(value);
-                    return n.setScale(precision, BigDecimal.ROUND_HALF_UP);
+                    return n.setScale(precision, RoundingMode.HALF_UP);
             } catch (Exception e) {
                     return new BigDecimal(0.0);
             }
@@ -1409,7 +1397,7 @@ public abstract class Weblet {
             DecimalFormat numberFormat = new DecimalFormat(format);
             numberFormat.setDecimalFormatSymbols(new DecimalFormatSymbols(locale));
             numberFormat.applyPattern(format);
-            return ((n.doubleValue() == 0.0 ? numberFormat.format(new Double(0.0)) : numberFormat.format(roundDouble(n.doubleValue(),precision))));
+            return ((n.doubleValue() == 0.0 ? numberFormat.format(Double.valueOf(0.0)) : numberFormat.format(roundDouble(n.doubleValue(),precision))));
     }
 
     /**
@@ -1464,7 +1452,16 @@ public abstract class Weblet {
     public static String formatDatetime(Locale locale, Date dateToFormat) {
         return formatDate(locale, dateToFormat, DATE_FORMAT+" "+TIME_FORMAT);
     }
-    
+
+    /** Format a date based on locale and return the formatted date as a string */
+    public static String formatDatetime(Locale locale, LocalDateTime dateToFormat) {
+            if (dateToFormat == null) {
+                    return "";
+            }
+            DateTimeFormatter dateTimeFormat = DateTimeFormatter.ofPattern(DATE_FORMAT + " " + TIME_FORMAT);
+            return dateTimeFormat.format(dateToFormat);
+    }
+
     /** Format a date based on locale and return the formatted date as a string */
     public static String formatDate(Locale locale, Date dateToFormat, String format) {
             if (dateToFormat == null) {
@@ -1499,6 +1496,14 @@ public abstract class Weblet {
     /** Parse a string datetime based on locale and return the date   */
     public static Date parseDatetime(Locale locale, String dayString) {
         return parseDate(locale, dayString, DATE_FORMAT+" "+TIME_FORMAT);
+    }
+
+    public static LocalDateTime parseLocalDatetime(Locale locale, String dtString) {
+        try {
+            return LocalDateTime.parse(dtString, new DateTimeFormatterBuilder().appendPattern(DATE_FORMAT+" "+TIME_FORMAT).toFormatter());
+        } catch (Exception e) {
+            return null;
+        } 
     }
 
     /** If an overridden version of this returns true, then the generated fields will be disabled */

@@ -24,7 +24,7 @@ public class ExportCSV extends Weblet {
     
     @Override
     public String getPage(DatabaseConnection con, HashMap<String, String> parms) {
-         return head("Export CSV") + body(standardLayout(con, parms, 
+         return head(con, "Export CSV") + body(standardLayout(con, parms, 
                 paragraph("banner", "Export CSV from a table")
                 +table("layout", 
                     row(column("label", "From Table") + column(Schema.getTableSelector(con,"selectedTable")))

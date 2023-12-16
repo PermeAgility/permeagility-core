@@ -22,10 +22,10 @@ import permeagility.util.DatabaseConnection;
 public class Login extends Weblet {
 
 	public String getPage(DatabaseConnection con, java.util.HashMap<String,String> parms) {
-		return getHTML(parms);
+		return getHTML(con, parms);
 	}
 	
-	public String getHTML(java.util.HashMap<String,String> parms) {
+	public String getHTML(DatabaseConnection con, java.util.HashMap<String,String> parms) {
 	
 		String error = null;
 		if (parms.get("USERNAME") != null || parms.get("PASSWORD") != null) {
@@ -48,7 +48,7 @@ public class Login extends Weblet {
 			}
 		}
 		return
-			head(Message.get(locale, "LOGIN_TITLE"))+
+			head(con, Message.get(locale, "LOGIN_TITLE"))+
 			bodyOnLoad(
 				link(Server.HOME_CLASS,image(Header.LOGO_FILE))+br()
 				+form("LOGIN",destinationClass,

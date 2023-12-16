@@ -20,30 +20,32 @@ import java.util.concurrent.ConcurrentHashMap;
 /*
  * A cache of queries - by user id
  */
-@SuppressWarnings("serial")
-public class QueryCache extends ConcurrentHashMap<String,QueryResult> {
+public class QueryCache extends ConcurrentHashMap<String,QueryResultCache> {
 	    	
 	public static boolean DEBUG = false;
+	public static boolean ENABLED = true;
 	
 	/*
 	 * Get a cached result. If it is not in the cache, it will be added
 	 * Note: Cache items are unique to each user
 	 */
-	public QueryResult getResult(DatabaseConnection con, String query) {
+	public QueryResultCache getResult(DatabaseConnection con, String query) {
 		String user = con.getUser();
-		QueryResult cresult = get(user+query);
-		if (cresult != null) {
-			if (DEBUG) System.out.println("Cache hit found table!");
-			return cresult;
+		if (ENABLED) {
+			QueryResultCache cresult = get(user+query);
+			if (cresult != null) {
+				if (DEBUG) System.out.println("QueryCache: Cache hit found: "+query);
+				return cresult;
+			}
 		}
 		try {
-			QueryResult qr = con.query(query);
+			QueryResultCache qr = con.queryToCache(query);
 			query = query.replace('\n', ' ');  // Causes problems in cache keys
 			put(user+query, qr);
-			if (DEBUG) System.out.println("Added "+user+query+" to cache of "+size());
+			if (DEBUG) System.out.println("QueryCache: Added "+user+query+" to cache of "+size());
 			return qr;
 		} catch (Exception e) {
-			System.out.println("Cannot produce query result: "+query+" for user "+user+"\nmessage="+e.getMessage());
+			System.out.println("QueryCache: Cannot produce query result: "+query+" for user "+user+"\nmessage="+e.getMessage());
 			e.printStackTrace();
 			return null;
 		}
@@ -56,13 +58,13 @@ public class QueryCache extends ConcurrentHashMap<String,QueryResult> {
 	public synchronized void refresh(String query) {
 		if (containsKey(query)) {
 			remove(query);
-			System.out.println("Cache entry removed");
+			System.out.println("QueryCache.refresh Cache entry removed");
 		} else {
 			if (query.equals("ALL")) {
-				System.out.println("Clearing all of queryCache");
+				System.out.println("QueryCache.refresh Clearing all of queryCache");
 				clear();
 			} else {
-				System.out.println("Could not find cache entry "+query);
+				System.out.println("QueryCache.refresh Could not find cache entry "+query);
 			}
 		}
 	}

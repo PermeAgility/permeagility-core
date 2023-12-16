@@ -15,10 +15,13 @@
  */
 package permeagility.web;
 
-import com.orientechnologies.orient.core.record.impl.ODocument;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
+
+import com.arcadedb.database.Document;
+import com.arcadedb.database.MutableDocument;
+
 import permeagility.util.DatabaseConnection;
 import permeagility.util.Setup;
 
@@ -28,7 +31,7 @@ public class UserRequest extends Table {
     public static String ACCEPT_TO_ROLE = null;
 
      public String getPage(DatabaseConnection con, java.util.HashMap<String,String> parms) {
-	return head(Message.get(con.getLocale(),"REQUEST_LOGIN"),getDateControlScript(con.getLocale())+getColorControlScript())+
+	return head(con, Message.get(con.getLocale(),"REQUEST_LOGIN"),getDateControlScript(con.getLocale())+getColorControlScript())+
 	    body(getHTML(con,parms));
     }
         
@@ -36,7 +39,7 @@ public class UserRequest extends Table {
     	StringBuilder errors = new StringBuilder();
         Locale locale = con.getLocale();
     	if (parms.get("SUBMIT") != null) {
-            DatabaseConnection serverCon = Server.getServerConnection();
+            DatabaseConnection serverCon = Server.database.getConnection();
             if (serverCon != null) {
                 try {
                     String name = parms.get(PARM_PREFIX+"name");
@@ -50,7 +53,7 @@ public class UserRequest extends Table {
                         if (insertRow(con, Setup.TABLE_USERPROFILE, parms, errors)) {
                             if (ACCEPT_TO_ROLE != null && !ACCEPT_TO_ROLE.isEmpty()) {
                                 System.out.println("Automatically creating the user "+name+" with ACCEPT_TO_ROLE="+ACCEPT_TO_ROLE);
-                                ODocument roleDoc = serverCon.queryDocument("SELECT FROM ORole WHERE name='"+ACCEPT_TO_ROLE+"'");
+                                Document roleDoc = serverCon.queryDocument("SELECT FROM ORole WHERE name='"+ACCEPT_TO_ROLE+"'");
                                 if (roleDoc == null) {
                                     System.out.println("ERROR in UserRequest: ORole "+ACCEPT_TO_ROLE+" not found");
                                     errors.append("Could not find role "+ACCEPT_TO_ROLE);
@@ -61,13 +64,13 @@ public class UserRequest extends Table {
                                     parms.put(PARM_PREFIX+"roles", roleDoc.getIdentity().toString().substring(1));
                                     if (insertRow(serverCon, "OUser", parms, errors)) {
                                         System.out.println("New user "+parms.get(PARM_PREFIX+"name")+" created");
-                                        ODocument userRecord = serverCon.queryDocument("SELECT FROM OUser WHERE name='"+name+"'");
-                                        ODocument userProfile = serverCon.queryDocument("SELECT FROM "+Setup.TABLE_USERPROFILE+" WHERE name='"+name+"'");
+                                        Document userRecord = serverCon.queryDocument("SELECT FROM OUser WHERE name='"+name+"'");
+                                        MutableDocument userProfile = (MutableDocument)serverCon.queryDocument("SELECT FROM "+Setup.TABLE_USERPROFILE+" WHERE name='"+name+"'");
                                         if (userProfile != null && userRecord != null) {
                                             // Now update the user profile so the new user owns it
-                                            Set<ODocument> allow = new HashSet<>();
+                                            Set<Document> allow = new HashSet<>();
                                             allow.add(userRecord);
-                                            userProfile.field("_allow",allow);  // replace guest with the user    
+                                            userProfile.set("_allow",allow);  // replace guest with the user    
                                             userProfile.save();
                                             return paragraph("success",Message.get(locale, "USERREQUEST_CREATED"))+link("/",Message.get(locale, "HEADER_LOGO_DESC"));
                                         } else {
@@ -84,7 +87,7 @@ public class UserRequest extends Table {
                     errors.append(paragraph("error",Message.get(locale,"USERREQUEST_ERROR")+e.getMessage()));
                     e.printStackTrace();
                 } finally {
-                    Server.freeServerConnection(serverCon);
+                    //Server.freeServerConnection(serverCon);
                 }
             }
     	}

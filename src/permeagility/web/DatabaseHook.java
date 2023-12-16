@@ -15,22 +15,17 @@
  */
 package permeagility.web;
 
-import com.orientechnologies.orient.core.Orient;
-import com.orientechnologies.orient.core.db.ODatabaseInternal;
-import com.orientechnologies.orient.core.db.ODatabaseLifecycleListener;
-import com.orientechnologies.orient.core.metadata.schema.OClass;
-import com.orientechnologies.orient.core.record.impl.ODocument;
 
-public class DatabaseHook implements ODatabaseLifecycleListener {
+public class DatabaseHook /*  implements DatabaseLifecycleListener */ {
 	
 	public static boolean DEBUG = false;
 	private static RecordHook hook = new RecordHook();
 	
 	public DatabaseHook() {
 	    if (DEBUG) System.out.println("DatabaseHook:constructor - adding myself as a DbLifeCycleListener");
-		Orient.instance().addDbLifecycleListener(this);
+		//Orient.instance().addDbLifecycleListener(this);
 	}
-
+/*
 	@Override
 	public PRIORITY getPriority() {
 		if (DEBUG) System.out.println("DatabaseHook:gp");
@@ -74,5 +69,5 @@ public class DatabaseHook implements ODatabaseLifecycleListener {
     public void onLocalNodeConfigurationRequest(ODocument od) {
 	if (DEBUG) System.out.println("DatabaseHook:onLocalNodeConfigurationRequest: "+od);
     }
-	 
+	  */
 }

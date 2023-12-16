@@ -15,11 +15,13 @@
  */
 package permeagility.web;
 
-import com.orientechnologies.orient.core.record.impl.ODocument;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
+
+import com.arcadedb.database.Document;
+import com.arcadedb.database.RID;
 
 import permeagility.util.DatabaseConnection;
 import permeagility.util.QueryResult;
@@ -29,7 +31,7 @@ import permeagility.util.Setup;
 public class Menu extends Weblet {
 
     public static boolean DEBUG = false;
-    public static boolean HORIZONTAL_LAYOUT = false;
+    public static boolean HORIZONTAL_LAYOUT = true;
     public static String PAGE_RUNNER = "permeagility.web.Scriptlet";
 
     private static ConcurrentHashMap<String, String> menuCache = new ConcurrentHashMap<>();
@@ -37,7 +39,8 @@ public class Menu extends Weblet {
 
     @Override  // This is generally not used because the getHTML is generally called from standardLayout()
     public String getPage(DatabaseConnection con, HashMap<String, String> parms) {
-        return head("Menu") + body("menu", getHTML(con, parms));
+//        return head(con, "Menu") + body("menu", getHTML(con, parms));
+        return getHTML(con, parms);
     }
 
     public String getHTML(DatabaseConnection con, HashMap<String, String> parms) {
@@ -66,17 +69,18 @@ public class Menu extends Weblet {
 
         try { // Assemble menu based on the items the user can see
             QueryResult qr = con.query("SELECT FROM " + Setup.TABLE_MENU + " WHERE active=TRUE ORDER BY sortOrder");
-            for (ODocument m : qr.get()) {
+            for (Document m : qr.get()) {
                 StringBuilder itemMenu = new StringBuilder();
-                List<ODocument> items = m.field("items");
+                List<RID> items = m.getList("items");
                 if (items != null) {
-                    for (ODocument i : items) {
+                    for (RID rid : items) {
+                        Document i = con.get(rid);
                         if (i != null) {
-                            if (DEBUG) System.out.println("MenuItem=" + i.field("name")+" class="+i.field("classname")+" active="+i.field("active"));
-                            String menuName = (String) i.field("name");
-                            String menuDesc = (String) i.field("description");
-                            String classname = (String) i.field("classname");
-                            if (i.field("active") != null && (Boolean)i.field("active") == true) {
+                            if (DEBUG) System.out.println("MenuItem=" + i.getString("name")+" class="+i.getString("classname")+" active="+i.getString("active"));
+                            String menuName =  i.getString("name");
+                            String menuDesc =  i.getString("description");
+                            String classname = (String) i.getString("classname");
+                            if (i.get("active") != null && i.getBoolean("active") == true) {
                                 String pretty = Message.get(locale, "MENUITEM_" + menuName);
                                 if (menuName != null && ("MENUITEM_" + menuName).equals(pretty)) {  // No translation
                                     pretty = menuName;
@@ -90,16 +94,20 @@ public class Menu extends Weblet {
                                     prettyDesc = "";
                                 }
                                 if (DEBUG) System.out.println("MenuItem2=" + pretty+" desc="+prettyDesc+" class="+classname);
-                                if (classname == null || Security.authorized(con.getUser(),classname)) {
+                                String authClass = classname;
+                                //if (authClass.contains("?")) {
+                                //    authClass = authClass.substring(0, authClass.indexOf("?"));
+                                //}
+                                if (classname == null || Security.authorized(con.getUser(),authClass)) {
                                     if (menuName == null || menuName.equals("")) {
                                         itemMenu.append((HORIZONTAL_LAYOUT ? "&nbsp;&nbsp;" : "<br>") + "\n");  // Spacer
                                     } else {
-                                        String pageScript = i.field("pageScript");
+                                        String pageScript = i.getString("pageScript");
                                         if (pageScript != null && !pageScript.equals("")) {   // Use page runner on pageScript
                                             itemMenu.append(link(PAGE_RUNNER+"?ID="+i.getIdentity().toString().substring(1), pretty, prettyDesc));
                                         } else {
                                             if (classname != null) {
-                                              itemMenu.append(link((String)i.field("classname"), pretty, prettyDesc));
+                                              itemMenu.append(link(classname, pretty, prettyDesc));
                                             } else {
                                               System.out.println("Menu item "+i.getIdentity().toString()+" could not be added name="+menuName+" class="+classname);
                                             }
@@ -118,7 +126,7 @@ public class Menu extends Weblet {
                         }
                     }
                     if (itemMenu.length() > 0) {
-                        String menuHeader = (String) m.field("name");
+                        String menuHeader = (String) m.getString("name");
                         String pretty = Message.get(locale, "MENU_" + menuHeader);
                         if (menuHeader != null && ("MENU_" + menuHeader).equals(pretty)) {  // No translation
                             pretty = menuHeader;
@@ -147,11 +155,11 @@ public class Menu extends Weblet {
 
     // Override links to use menuitem class
     public static String link(String ref, String name, String desc) {
-        return "<a class=\"menuitem\" href=\"" + ref + "\" title=\"" + desc + "\">" + name + "</a>\n";
+        return "<a hx-get='/" + ref + "' hx-target='#service' hx-trigger='click' hx-swap='innerHTML' class='menuitem' href='/" + ref + "' title='" + desc + "'>" + name + "</a>\n";
     }
 
     public static String linkNewWindow(String ref, String name, String desc) {
-        return "<a class=\"menuitem\" href=\"" + ref + "\" target=\"_blank\" title=\"" + desc + "\">" + name + "</a>\n";
+        return "<a class='menuitem' href='" + ref + "' target='_blank' title='" + desc + "''>" + name + "</a>\n";
     }
 
     public static void clearMenu(String user) {

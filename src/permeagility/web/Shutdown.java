@@ -31,7 +31,7 @@ public class Shutdown extends Weblet {
         }
 
         if (parms.get("SUBMIT") == null || !parms.get("SUBMIT").equals("CONFIRM_SHUTDOWN")) {
-            return head(service)
+            return head(con, service)
                     + standardLayout(con, parms,
                             errors
                             + paragraph("banner", Message.get(con.getLocale(), "CONFIRM_SHUTDOWN"))

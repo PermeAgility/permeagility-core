@@ -15,16 +15,18 @@
  */
 package permeagility.web;
 
-import com.orientechnologies.orient.core.metadata.schema.OProperty;
-import com.orientechnologies.orient.core.record.impl.ODocument;
 import java.util.Collection;
+
+import com.arcadedb.database.Document;
+import com.arcadedb.schema.Property;
+
 import permeagility.util.DatabaseConnection;
 import permeagility.util.Setup;
 
 public class Profile extends Table {
    
     public String getPage(DatabaseConnection con, java.util.HashMap<String,String> parms) {
-		return head(Message.get(con.getLocale(),"UPDATE_PROFILE",con.getUser()))+
+		return head(con, Message.get(con.getLocale(),"UPDATE_PROFILE",con.getUser()))+
 		    standardLayout(con, parms, body(getHTML(con, parms)));
     }
 
@@ -55,7 +57,7 @@ public class Profile extends Table {
         }
 
         // Get the user profile id for this user - if none (admin) then no fields will be shown
-        ODocument up = con.queryDocument("SELECT FROM "+Setup.TABLE_USERPROFILE+" WHERE name='"+con.getUser()+"'");
+        Document up = con.queryDocument("SELECT FROM "+Setup.TABLE_USERPROFILE+" WHERE name='"+con.getUser()+"'");
         if (up != null) {
            parms.put("EDIT_ID", up.getIdentity().toString().substring(1));
         }       
@@ -63,8 +65,8 @@ public class Profile extends Table {
         // Build a column list for the profile without the name and password
         StringBuilder profileColumns = new StringBuilder();
         profileColumns.append("-");  // Keep name/password from being added again
-        Collection<OProperty> profColumns = con.getColumns(Setup.TABLE_USERPROFILE);
-        for (OProperty p : profColumns) {
+        Collection<Property> profColumns = con.getColumns(Setup.TABLE_USERPROFILE);
+        for (Property p : profColumns) {
             String pcName = p.getName();
             if (!pcName.equals("name") && !pcName.equals("password")) {
                 profileColumns.append(",");

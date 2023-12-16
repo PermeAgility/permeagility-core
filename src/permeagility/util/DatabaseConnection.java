@@ -17,26 +17,18 @@ package permeagility.util;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import permeagility.web.Server;
 
-import com.orientechnologies.orient.core.collate.OCollate;
-import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
-import com.orientechnologies.orient.core.id.ORecordId;
-import com.orientechnologies.orient.core.index.OIndex;
-import com.orientechnologies.orient.core.metadata.schema.OClass;
-import com.orientechnologies.orient.core.metadata.schema.OClass.INDEX_TYPE;
-import com.orientechnologies.orient.core.metadata.schema.OProperty;
-import com.orientechnologies.orient.core.metadata.schema.OSchema;
-import com.orientechnologies.orient.core.metadata.schema.OType;
-import com.orientechnologies.orient.core.metadata.security.OSecurity;
-import com.orientechnologies.orient.core.record.impl.ODocument;
-import com.orientechnologies.orient.core.sql.OCommandSQL;
-import com.orientechnologies.orient.core.sql.query.OSQLSynchQuery;
+import com.arcadedb.database.Document;
+import com.arcadedb.database.MutableDocument;
+import com.arcadedb.database.RID;
+import com.arcadedb.query.sql.executor.ResultSet;
+import com.arcadedb.schema.DocumentType;
+import com.arcadedb.schema.Property;
+import com.arcadedb.schema.Schema;
 import permeagility.web.Security;
 
 /** This abstracts the native database connections a bit and give us somewhere to put some helper functions */
@@ -45,36 +37,29 @@ public class DatabaseConnection {
 	public static boolean DEBUG = false;
 
 	Database db = null;
-	ODatabaseDocumentTx c = null;
+	com.arcadedb.database.Database c = null;
 	long lastAccess = System.currentTimeMillis();
 
         // Row counts are shared by all users
 	private static ConcurrentHashMap<String,Long> tableCountCache = new ConcurrentHashMap<>();
 
-	protected DatabaseConnection(Database _db, ODatabaseDocumentTx _c) {
+	protected DatabaseConnection(Database _db, com.arcadedb.database.Database _c) {
 		db = _db;
 		c = _c;
 		if (DEBUG) System.out.println("New database connection initiated "+c.getName());
 	}
 
-	protected void close() {
-			c.activateOnCurrentThread();
-			c.close();
-			c = null;
-	}
-
-	public boolean isConnected() {
-		return c != null;
-	}
+	public void close() { c.close(); }
+	public boolean isConnected() { return c != null && c.isOpen(); }
 
         // The NewConnection functions are for thread processes that need another connection after the user has moved on from this one
-        public DatabaseConnection getNewConnection() {
-            return db.getConnection();
-        }
+//        public DatabaseConnection getNewConnection() {
+//            return db.getConnection();
+//        }
 
-        public void freeNewConnection(DatabaseConnection con) {
-            db.freeConnection(con);
-        }
+ //       public void freeNewConnection(DatabaseConnection con) {
+ //           db.freeConnection(con);
+ //       }
 
 	/** Verification of password when changing password */
 	public boolean isPassword(String pass) {
@@ -82,166 +67,165 @@ public class DatabaseConnection {
 	}
 
 	/** Should only be called when the password is changed by the user (this does not actually change the password) */
-	public void setPassword(String pass) {
-		db.setPassword(pass);
-	}
+	public void setPassword(String pass) { db.setPassword(pass); }
 
 	/** Return the user name */
-	public String getUser() {
-		return db.getUser();
-	}
+	public String getUser() { return db.getUser(); }
 
 	/** Return the user's locale */
-	public Locale getLocale() {
-		return db.getLocale();
-	}
+	public Locale getLocale() { return db.getLocale(); }
 
 	/** Allows overriding the locale for the connection. This is for supporting non-users changing the language for the request */
-	public void setLocale(Locale l) {
-		db.setLocale(l);
-	}
+	public void setLocale(Locale l) { db.setLocale(l); }
 
 	/** Get the native connection object. A ODatabaseDocumentTx */
-	public ODatabaseDocumentTx getDb() {
-		c.activateOnCurrentThread();
-		return c;
-	}
+	public com.arcadedb.database.Database getDb() { return c; }
 
 	/** Get the OrientDB OSchema object */
-	public OSchema getSchema() {
-		if (c == null) {
-			return null;
-		} else {
-			c.activateOnCurrentThread();
-			return c.getMetadata().getSchema();
-		}
-	}
+	public com.arcadedb.schema.Schema getSchema() { return c.getSchema(); }
 
 	/** Get the OrientDB OSecurity object */
-	public OSecurity getSecurity() {
-		if (c == null) {
+	public com.arcadedb.security.SecurityManager getSecurity() {
+	//	if (c == null) {
 			return null;
-		} else {
-			c.activateOnCurrentThread();
-			return c.getMetadata().getSecurity();
-		}
+	//	} else {
+	//		return c.getConfiguration().;
+	//	}
 	}
 
-	/** Create a document - supply the classname */
-	public ODocument create(String className) {
-		c.activateOnCurrentThread();
-		return c.newInstance(className);
-	}
-
-	public void begin() {
-		c.activateOnCurrentThread();
-		c.begin();
-	}
-
-	public void commit() {
-		c.activateOnCurrentThread();
-		c.commit();
-	}
-
-	public void rollback() {
-		c.activateOnCurrentThread();
-		c.rollback();
-	}
+	public void begin() { c.begin(); }
+	public void commit() { c.commit(); }
+	public void rollback() { c.rollback(); }
 
 	/** Returns total number of rows in table from cache if found */
 	public long getRowCount(String table) {
 		// Find in cache?
 		Long count = tableCountCache.get(table);
 		if (count != null) {
-			//System.out.println("Row count cache hit on table "+table);
+			if (DEBUG) System.out.println("DatabaseConnection.getRowCount cache hit on table "+table);
 			return count;
 		}
-		//System.out.println("Counting rows of "+table);
+		System.out.println("Counting rows of "+table);
 		try {
-			c.activateOnCurrentThread();
-			long cnt = c.countClass(table);
-			tableCountCache.put(table, cnt);
+			long cnt = c.countType(table, false);
+			if (cnt > 0) tableCountCache.put(table, cnt);  // Don't put into cache until actual rows
 			return cnt;
 		} catch (Exception e) {
-			System.out.println("Error counting class "+table);
+			System.out.println("DatabaseConnection.getRowCount Error counting class "+table);
+            e.printStackTrace();
 			return -1;
 		}
 	}
 
 	/** Called when the table is changed to clear the rowcount cache */
-	public static void rowCountChanged(String table) {
-		tableCountCache.remove(table);
-	}
+	public static void rowCountChanged(String table) { tableCountCache.remove(table); }
 
 	/** Called when the database is restored */
-	public static void clearRowCounts() {
-		tableCountCache.clear();
+	public static void clearRowCounts() { tableCountCache.clear(); }
+
+	/** Create a document - supply the classname */
+	public MutableDocument create(String typeName) {
+         if (!c.isTransactionActive()) {
+            System.out.println("DatabaseConnection.create: no active transaction");
+        }
+		return c.newDocument(typeName);
 	}
 
 	/** Execute a query and return a QueryResult object */
     public synchronized QueryResult query(String expression) {
-    	if (DEBUG) System.out.println("DatabaseConnection.DEBUG(query)="+expression+";");
+        boolean closethis = false;
+        if (!c.isTransactionActive()) {
+            System.out.println("DatabaseConnection.query: no active transaction, will create a default one for this query");
+            begin();
+            closethis = true;
+        }
+    	if (DEBUG) System.out.println("DatabaseConnection.query="+expression+";");
     	if (expression == null) { return null; }
        	lastAccess = System.currentTimeMillis();
-        c.activateOnCurrentThread();
-    	List<ODocument> result = c.query(new OSQLSynchQuery<>(expression));
-    	return new QueryResult(result);
+        ResultSet result = c.query("SQL", expression);
+        QueryResult qr = new QueryResult(result);
+        if (closethis) {
+            commit();
+        }
+    	return qr;
+    }
+
+   	/** Execute a query and return a QueryResultCache object */
+    public synchronized QueryResultCache queryToCache(String expression) {
+        boolean closethis = false;
+        if (!c.isTransactionActive()) {
+            System.out.println("DatabaseConnection.query: no active transaction, will create a default one for this query");
+            begin();
+            closethis = true;
+        }
+    	if (DEBUG) System.out.println("DatabaseConnection.queryToCache="+expression+";");
+    	if (expression == null) { return null; }
+       	lastAccess = System.currentTimeMillis();
+        ResultSet result = c.query("SQL", expression);
+        QueryResultCache qr = new QueryResultCache(result);
+        if (closethis) {
+            commit();
+        }
+    	return qr;
     }
 
     /** Get the first document found by this query */
-    public synchronized ODocument queryDocument(String expression) {
-    	if (DEBUG) System.out.println("DatabaseConnection.DEBUG(queryDocument)="+expression+";");
+    public synchronized Document queryDocument(String expression) {
+       boolean closethis = false;
+        if (!c.isTransactionActive()) {
+            System.out.println("DatabaseConnection(queryDocument): no active transaction, will create a default one for this query");
+            begin();
+            closethis = true;
+        }
+    	if (DEBUG) System.out.println("DatabaseConnection.queryDocument="+expression+";");
     	if (expression == null) { return null; }
        	lastAccess = System.currentTimeMillis();
-       	c.activateOnCurrentThread();
-    	List<ODocument> result = c.query(new OSQLSynchQuery<>(expression));
-    	if (result != null && result.size() > 0) {
-    		return result.get(0);
-    	} else {
-    		return null;
-    	}
+       	ResultSet result = c.query("SQL",expression);
+        Document d = result.hasNext() ? result.toDocuments().get(0) : null;
+        if (closethis) {
+            commit();
+        }
+  		return d;
     }
 
-    /** Execute an update statement */
+    /** Execute an update statement or a script if newline characters found */
     public synchronized Object update(String expression) {
-        if (DEBUG) System.out.println("DatabaseConnection.DEBUG(update)="+expression+";");
+        boolean closethis = false;
+        if (!c.isTransactionActive()) {
+            System.out.println("DatabaseConnection.update: no active transaction, will create a default one for this query");
+            begin();
+            closethis = true;
+        }
+       if (DEBUG) System.out.println("DatabaseConnection.update="+expression+";");
        	lastAccess = System.currentTimeMillis();
-       	c.activateOnCurrentThread();
-        return c.command(new OCommandSQL(expression)).execute();  // run the query return the resulting object
+        Object ro = c.command(expression.contains("\n") ? "SQLSCRIPT" : "SQL",expression);
+        if (closethis) {
+            commit();
+        }
+      	return ro;  // run the query return the resulting object
     }
 
-    /** Get a document by its RID */
-    public synchronized ODocument get(String rid) {
-       	lastAccess = System.currentTimeMillis();
-       	c.activateOnCurrentThread();
-       	return c.getRecord(new ORecordId(rid));
+    public synchronized Document get(String rid) {
+        if (rid == null || rid.isEmpty()) {
+            return null;
+        }
+        return get(new RID(getDb(),rid.startsWith("#") ? rid : "#"+rid));
     }
-
-    /** Not used very often if at all. Dumps the contents of a result set to System.out */
-    public static void dump(QueryResult rows) {
-    	if (rows.size() > 0) {
-            for (String header : rows.get(0).fieldNames()) {
-                System.out.print(header+"\t");
-            }
-            System.out.println("");
-            for (ODocument row : rows.result) {
-                for (Object data : row.fieldValues()) {
-                    System.out.print(""+data+"\t");
-                }
-            }
-            System.out.println("");
-    	} else {
-            System.out.println("No rows");
-    	}
+    public synchronized Document get(RID rid) {
+        lastAccess = System.currentTimeMillis();
+        if (!c.isTransactionActive()) {
+            System.out.println("DatabaseConnection.get: no active transaction, will create a default one for this query");
+        }
+       	return c.lookupByRID(rid, true).asDocument();
     }
 
     /** Flush the local cache */
     public void flush() {
-        c.activateOnCurrentThread();
-        c.getLocalCache().invalidate();
+        System.out.println("DatabaseConnection(flush) called - not implemented");
+        //c.getLocalCache().invalidate();
     }
 
-    public Collection<OProperty> getColumns(String table) {
+    public Collection<Property> getColumns(String table) {
         return getColumns(table, null);
     }
 
@@ -250,22 +234,27 @@ public class DatabaseConnection {
      * overrides column order based on value in columnList in columns table and add inherited columns as well
      * returns an empty list if table not found
      */
-    public Collection<OProperty> getColumns(String table, String columnOverride) {
-        ArrayList<OProperty> result = new ArrayList<>();
+    public Collection<Property> getColumns(String table, String columnOverride) {
+        ArrayList<Property> result = new ArrayList<>();
 
         // Original list of columns
-        OSchema schema = getSchema();
-        OClass tableClass = schema.getClass(table);
+        Schema schema = getSchema();
+        DocumentType tableClass = schema.getOrCreateDocumentType(table);
         if (tableClass == null) {
             System.out.println("Server: getColumns(tableClass not found for "+table+")");
             return result;
         }
-        result.addAll(tableClass.properties());
-
+        result.addAll(tableClass.getProperties());
+        if (DEBUG) {
+            for (Property p : result) {
+                System.out.println("Found "+table+"."+p.getName()+" of type "+p.getType().toString()+" of Type "+p.getOfType());
+            }
+        }
+        
         // List of columns to override natural (apparently random) order
         QueryResult columnList = null;
         if (columnOverride == null) {
-            columnList = query("SELECT columnList FROM "+Setup.TABLE_COLUMNS+" WHERE name='"+table+"'");
+            columnList = query("SELECT FROM "+Setup.TABLE_COLUMNS+" WHERE name='"+table+"'");
         }
         boolean addDynamicColumns = true;
         String list = (columnOverride == null ? (columnList != null && columnList.size() > 0 ? columnList.getStringValue(0, "columnList") : "") : columnOverride);
@@ -276,17 +265,17 @@ public class DatabaseConnection {
                 addDynamicColumns = false;
             }
         }
-        ArrayList<OProperty> newList = new ArrayList<>();
+        ArrayList<Property> newList = new ArrayList<>();
         for (String name : columnNames) {
             name = name.trim();
             if (!name.startsWith("-") && !name.equals("")) {
                 if (name.startsWith("button")) {
-                    OProperty bd = new ButtonProperty();
-                    bd.setName(name.replace("(","_").replace(":","_").replace(")",""));
-                    newList.add(bd);
+                    //Property bd = new ButtonProperty();
+                    //bd.setName(name.replace("(","_").replace(":","_").replace(")",""));
+                    //newList.add(bd);
                 } else {
                     boolean found = false;
-                    for (OProperty p : result) {
+                    for (Property p : result) {
                         String pname = p.getName();
                         if (pname.equals(name)) {
                             found = true;
@@ -307,7 +296,7 @@ public class DatabaseConnection {
             }
         }
         if (addDynamicColumns) {
-            for (OProperty col : result) {
+            for (Property col : result) {
                 String name = col.getName();
                 boolean found = false;
                 for (String cn : columnNames) {
@@ -330,9 +319,9 @@ public class DatabaseConnection {
     /**
      * Used to create a column for a button in the UI. These buttons can be invoked via columnOverride
      */
-    class ButtonProperty implements OProperty {
+/*     class ButtonProperty implements Property {
             String name;
-            @Override public OProperty setType(OType t) { return this; }
+            @Override public Property setType(Type t) { return this; }
             @Override public boolean isMandatory() { return false; }
             @Override public int compareTo(OProperty o) { return 0; }
             @Override public String getName() { return name; }
@@ -386,6 +375,6 @@ public class DatabaseConnection {
             }
             @Override public String getDescription() { return "Button";  }
             @Override public OProperty setDescription(String arg0) { return this; }
+	} */
 
-	}
 }

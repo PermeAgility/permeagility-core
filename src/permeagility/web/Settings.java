@@ -17,11 +17,13 @@ package permeagility.web;
 
 import java.util.HashMap;
 
+import com.arcadedb.database.Document;
+import com.arcadedb.database.MutableDocument;
+
 import permeagility.util.DatabaseConnection;
 import permeagility.util.QueryResult;
 import permeagility.util.Setup;
 
-import com.orientechnologies.orient.core.record.impl.ODocument;
 import java.util.Date;
 
 public class Settings extends Weblet {
@@ -35,18 +37,18 @@ public class Settings extends Weblet {
 		
 		// Get current style
 		QueryResult currentStyleResult = con.query("SELECT FROM "+Setup.TABLE_CONSTANT+" WHERE classname='permeagility.web.Context' AND field='DEFAULT_STYLE'");
-		ODocument styleConstant = null;
+		MutableDocument styleConstant = null;
 		String currentStyleName = null;
 		if (currentStyleResult != null && currentStyleResult.size()>0) {
-			styleConstant = currentStyleResult.get(0);
-			currentStyleName = styleConstant.field("value");
-			if (DEBUG) System.out.println("Settings: CurrentStyle="+styleConstant.field("value"));
+			styleConstant = currentStyleResult.get(0).modify();
+			currentStyleName = styleConstant.getString("value");
+			if (DEBUG) System.out.println("Settings: CurrentStyle="+styleConstant.getString("value"));
 		} else {
 			System.out.println("Settings: Could not determine current style setting");
 		}
 
 		// Get current table row limit
-		QueryResult currentRowCountResult = con.query("SELECT value FROM "+Setup.TABLE_CONSTANT+" WHERE classname='permeagility.web.Table' AND field='ROW_COUNT_LIMIT'");
+		QueryResult currentRowCountResult = con.query("SELECT FROM "+Setup.TABLE_CONSTANT+" WHERE classname='permeagility.web.Table' AND field='ROW_COUNT_LIMIT'");
 		String currentRowCount = "";
 		if (currentRowCountResult != null && currentRowCountResult.size()>0) {
 			currentRowCount = currentRowCountResult.getStringValue(0, "value");
@@ -59,21 +61,21 @@ public class Settings extends Weblet {
 			String setStyle = parms.get("SET_STYLE");
 			if (setStyle != null && !setStyle.equals(styleConstant.getIdentity().toString())) {
 				try {
-					ODocument style = con.get(setStyle);
-					styleConstant.field("value", style.field("name").toString());
-					currentStyleName = style.field("name");
-					String theme = style.field("editorTheme");
+					Document style = con.get("#"+setStyle);
+					styleConstant.set("value", style.getString("name"));
+					currentStyleName = style.getString("name");
+					String theme = style.getString("editorTheme");
 					styleConstant.save();
 					
-					Boolean horiz = style.field("horizontal");
-					if (horiz == null) horiz = new Boolean(false);
+					Boolean horiz = style.getBoolean("horizontal");
+					if (horiz == null) horiz = Boolean.valueOf(false);
 					setCreateConstant(con,"permeagility.web.Menu","HORIZONTAL_LAYOUT",""+horiz);
 					if (theme != null && !theme.equals("")) {
-						setCreateConstant(con,"permeagility.web.Context","EDITOR_THEME",""+style.field("editorTheme"));
+						setCreateConstant(con,"permeagility.web.Context","EDITOR_THEME",""+style.getString("editorTheme"));
 					}
-					setCreateConstant(con,"permeagility.web.Header","LOGO_FILE",(String)style.field("logo"));
+					setCreateConstant(con,"permeagility.web.Header","LOGO_FILE",(String)style.getString("logo"));
 					Menu.clearCache();
-					Server.tableUpdated("constant");
+					Server.tableUpdated(con, "constant");
 					errors.append(paragraph("success",Message.get(con.getLocale(),"SYSTEM_STYLE_UPDATED")));
 				} catch (Exception e) {
 					errors.append(paragraph("error","Error setting style: "+e.getLocalizedMessage()));
@@ -94,7 +96,7 @@ public class Settings extends Weblet {
                             try {
                                 con.update("UPDATE "+Setup.TABLE_CONSTANT+" SET value = '"+newRowCount+"' WHERE classname='permeagility.web.Table' AND field='ROW_COUNT_LIMIT'");
                                 currentRowCount = setRowCount;
-                                Server.tableUpdated("constant");
+                                Server.tableUpdated(con, "constant");
                                 errors.append(paragraph("success",Message.get(con.getLocale(),"ROW_COUNT_LIMIT_UPDATED",setRowCount)));
                             } catch (Exception e) {
                                 errors.append(paragraph("error","Error setting table rowcount limit: "+e.getLocalizedMessage()));
@@ -103,21 +105,21 @@ public class Settings extends Weblet {
                     }
 		
 		}
-		
 		String selectedStyleID = "";
 
 		// Need to retrieve the style to get its RID to set the default for the pick list
 		try {
-                    QueryResult selectedStyle = con.query("SELECT from "+Setup.TABLE_STYLE+" WHERE name='"+currentStyleName+"'");
+                    QueryResult selectedStyle = con.query("SELECT FROM "+Setup.TABLE_STYLE+" WHERE name='"+currentStyleName+"'");
                     selectedStyleID = (selectedStyle == null || selectedStyle.size() == 0 ? "" : selectedStyle.get(0).getIdentity().toString().substring(1));
 		} catch (Exception e) {
                     errors.append(paragraph("error","Selected style does not exist"));
 		}
-		return head(service)+
+		String styleList = createListFromTable("SET_STYLE", selectedStyleID, con, "style", null, false, null, true);
+		return head(con, service)+
 	    standardLayout(con, parms,errors
 	    	+form(
                     table("layout",
-                        row(column("label",Message.get(con.getLocale(), "SET_STYLE"))+column(createListFromTable("SET_STYLE", selectedStyleID, con, "style", null, false, null, true)))
+                        row(column("label",Message.get(con.getLocale(), "SET_STYLE"))+column(styleList))
                         +row(column("label",Message.get(con.getLocale(), "SET_ROWCOUNT"))+column(input("SET_ROWCOUNT", currentRowCount)))
                         +row(column("")+column(submitButton(con.getLocale(), "SUBMIT_BUTTON")))
                     )
@@ -127,14 +129,14 @@ public class Settings extends Weblet {
 
     public static boolean setCreateConstant(DatabaseConnection con, String classname, String field, String value) {
     	try {
-            ODocument currentSetting = con.queryDocument("SELECT FROM "+Setup.TABLE_CONSTANT+" WHERE classname='"+classname+"' AND field='"+field+"'");
+            MutableDocument currentSetting = con.queryDocument("SELECT FROM "+Setup.TABLE_CONSTANT+" WHERE classname='"+classname+"' AND field='"+field+"'").modify();
             if (currentSetting == null) {
                 currentSetting = con.create(Setup.TABLE_CONSTANT);
-                currentSetting.field("classname",classname);
-                currentSetting.field("field",field);
+                currentSetting.set("classname",classname);
+                currentSetting.set("field",field);
             }
-            currentSetting.field("description","assigned by "+con.getUser()+" on "+(new Date()));
-            currentSetting.field("value",value);
+            currentSetting.set("description","assigned by "+con.getUser()+" on "+(new Date()));
+            currentSetting.set("value",value);
             currentSetting.save();
     	} catch (Exception e) {
             e.printStackTrace();

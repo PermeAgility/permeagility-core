@@ -19,17 +19,12 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import com.orientechnologies.orient.core.metadata.schema.OClass;
-import com.orientechnologies.orient.core.metadata.schema.OProperty;
-import com.orientechnologies.orient.core.metadata.schema.OSchema;
-import com.orientechnologies.orient.core.metadata.schema.OType;
-import com.orientechnologies.orient.core.metadata.security.ORole;
-import com.orientechnologies.orient.core.metadata.security.ORule;
-import com.orientechnologies.orient.core.metadata.security.ORule.ResourceGeneric;
-import com.orientechnologies.orient.core.metadata.security.OSecurity;
-import com.orientechnologies.orient.core.record.impl.ODocument;
-import java.util.HashSet;
-import java.util.Set;
+import com.arcadedb.database.Document;
+import com.arcadedb.database.MutableDocument;
+import com.arcadedb.schema.DocumentType;
+import com.arcadedb.schema.Property;
+import com.arcadedb.schema.Schema;
+import com.arcadedb.schema.Type;
 
 import permeagility.web.Message;
 import permeagility.web.Security;
@@ -41,6 +36,7 @@ public class Setup {
     static StringBuilder installMessages = new StringBuilder();
 
     public static boolean RESTRICTED_BY_ROLE = true;
+    private static String SETUP_DEBUG_FLAG = "true";    // default setting for debug constants
 
     public static final String TABLE_THUMBNAIL = "thumbnail";
     public static final String TABLE_CONSTANT = "constant";
@@ -57,24 +53,89 @@ public class Setup {
     public static final String TABLE_AUDIT = "auditTrail";
     public static final String TABLE_PICKVALUES = "pickValues";
 
+    public static String schemaScript = 
+    """
+      CREATE DOCUMENT TYPE constant IF NOT EXISTS;
+      CREATE DOCUMENT TYPE locale IF NOT EXISTS;
+      CREATE DOCUMENT TYPE message IF NOT EXISTS;
+      CREATE DOCUMENT TYPE style IF NOT EXISTS;
+      CREATE DOCUMENT TYPE pickList IF NOT EXISTS;
+      CREATE DOCUMENT TYPE tableGroup IF NOT EXISTS;
+      CREATE DOCUMENT TYPE columns IF NOT EXISTS;
+      CREATE DOCUMENT TYPE menu IF NOT EXISTS;
+      CREATE DOCUMENT TYPE menuItem IF NOT EXISTS;
+      CREATE DOCUMENT TYPE news IF NOT EXISTS;
+      CREATE DOCUMENT TYPE pickValues IF NOT EXISTS;
+      CREATE DOCUMENT TYPE userProfile IF NOT EXISTS;
+      CREATE PROPERTY constant.classname IF NOT EXISTS STRING;
+      CREATE PROPERTY constant.description IF NOT EXISTS STRING;
+      CREATE PROPERTY constant.field IF NOT EXISTS STRING;
+      CREATE PROPERTY constant.value IF NOT EXISTS STRING;
+      CREATE PROPERTY locale.name IF NOT EXISTS STRING;
+      CREATE PROPERTY locale.description IF NOT EXISTS STRING;
+      CREATE PROPERTY locale.active IF NOT EXISTS BOOLEAN;
+      CREATE PROPERTY message.name IF NOT EXISTS STRING;
+      CREATE PROPERTY message.description IF NOT EXISTS STRING;
+      CREATE PROPERTY message.locale IF NOT EXISTS LINK OF locale;
+      CREATE PROPERTY style.name IF NOT EXISTS STRING;
+      CREATE PROPERTY style.horizontal IF NOT EXISTS BOOLEAN;
+      CREATE PROPERTY style.logo IF NOT EXISTS STRING;
+      CREATE PROPERTY style.editorTheme IF NOT EXISTS STRING;
+      CREATE PROPERTY style.CSSStyle IF NOT EXISTS STRING;
+      CREATE PROPERTY pickList.tablename IF NOT EXISTS STRING;
+      CREATE PROPERTY pickList.query IF NOT EXISTS STRING;
+      CREATE PROPERTY pickList.description IF NOT EXISTS STRING;
+      CREATE PROPERTY tableGroup.name IF NOT EXISTS STRING;
+      CREATE PROPERTY tableGroup.tables IF NOT EXISTS STRING;
+      CREATE PROPERTY columns.name IF NOT EXISTS STRING;
+      CREATE PROPERTY columns.columnList IF NOT EXISTS STRING;
+      CREATE PROPERTY menu.name IF NOT EXISTS STRING;
+      CREATE PROPERTY menu.active IF NOT EXISTS BOOLEAN;
+      CREATE PROPERTY menu.description IF NOT EXISTS STRING;
+      CREATE PROPERTY menu.sortOrder IF NOT EXISTS INTEGER;
+      CREATE PROPERTY menuItem.name IF NOT EXISTS STRING;
+      CREATE PROPERTY menuItem.classname IF NOT EXISTS STRING;
+      CREATE PROPERTY menuItem.active IF NOT EXISTS BOOLEAN;
+      CREATE PROPERTY menuItem.description IF NOT EXISTS STRING;
+      CREATE PROPERTY menuItem.pageScript IF NOT EXISTS STRING;
+      CREATE PROPERTY menuItem.pageStyle IF NOT EXISTS STRING;
+      CREATE PROPERTY menu.items IF NOT EXISTS LIST OF menuItem;
+      CREATE PROPERTY news.name IF NOT EXISTS STRING;
+      CREATE PROPERTY news.description IF NOT EXISTS STRING;
+      CREATE PROPERTY news.dateline IF NOT EXISTS DATETIME;
+      CREATE PROPERTY news.locale IF NOT EXISTS LINK OF locale;
+      CREATE PROPERTY news.archive IF NOT EXISTS BOOLEAN;
+      CREATE PROPERTY pickValues.name IF NOT EXISTS STRING;
+      CREATE PROPERTY pickValues.values IF NOT EXISTS STRING;
+      CREATE PROPERTY userProfile.name IF NOT EXISTS STRING;
+      CREATE PROPERTY userProfile.password IF NOT EXISTS STRING;
+      """;
+
+    /* This should not be run inside a transaction */
     public static boolean checkInstallation(DatabaseConnection con) {
         try {
-            OSchema oschema = con.getSchema();
-            OSecurity osecurity = con.getSecurity();
-            System.out.print("DatabaseSetup.checkInstallation ");
+            con.begin();
+            System.out.println("DatabaseSetup.checkInstallation ");
+            con.update(schemaScript);
+            System.out.println("DatabaseSetup.checkInstallation finished schemaScript");
+            con.commit();
 
+            con.begin();
+            Schema oschema = con.getSchema();
+     //       com.arcadedb.security.SecurityManager osecurity = con.getSecurity();
+/* 
             // Setup roles lists for use later on in this script
-            Set<ODocument> allRoles = new HashSet<>();
-            Set<ODocument> allRolesButGuest = new HashSet<>();
-            Set<ODocument> adminRoles = new HashSet<>();
-            Set<ODocument> adminAndWriterRoles = new HashSet<>();
-            Set<ODocument> readerRoles = new HashSet<>();
-            Set<ODocument> writerRoles = new HashSet<>();
-            Set<ODocument> guestRoles = new HashSet<>();
-            Set<ODocument> userRoles = new HashSet<>();
-            List<ODocument> qr = osecurity.getAllRoles();
-            for (ODocument roleDoc : qr) {
-                ORole role = osecurity.getRole(roleDoc);
+            Set<Document> allRoles = new HashSet<>();
+            Set<Document> allRolesButGuest = new HashSet<>();
+            Set<Document> adminRoles = new HashSet<>();
+            Set<Document> adminAndWriterRoles = new HashSet<>();
+            Set<Document> readerRoles = new HashSet<>();
+            Set<Document> writerRoles = new HashSet<>();
+            Set<Document> guestRoles = new HashSet<>();
+            Set<Document> userRoles = new HashSet<>();
+            List<Document> qr = osecurity.getAllRoles();
+            for (Document roleDoc : qr) {
+                Role role = osecurity.getRole(roleDoc);
                 allRoles.add(role.getDocument());
                 if (!role.getName().equals("guest")) allRolesButGuest.add(role.getDocument());
                 if (role.getName().equals("admin")) adminRoles.add(role.getDocument());
@@ -86,8 +147,7 @@ public class Setup {
                 if (role.getName().equals("admin") || role.getName().equals("writer")) adminAndWriterRoles.add(role.getDocument());
             }
 
-            //ODocument adminUser = con.queryDocument("SELECT FROM OUser WHERE name='admin'");  // Not actually used
-            ODocument guestUser = con.queryDocument("SELECT FROM OUser WHERE name='guest'");
+            Document guestUser = con.queryDocument("SELECT FROM User WHERE name='guest'");
 
             if (guestRoles.isEmpty()) {
                 ODocument guestRole = (ODocument)con.update("insert into ORole set name = 'guest', mode = 0");
@@ -132,44 +192,38 @@ public class Setup {
             con.update("GRANT READ on database.systemclusters TO writer");
             con.update("GRANT READ on database.cluster.ORole TO reader");
             con.update("GRANT READ on database.cluster.ORole TO writer");
-
+*/
             // columns must be first as it will receive the properties as they are created by checkCreateProperty
-            System.out.print(TABLE_COLUMNS+" ");
-            OClass columnsTable = Setup.checkCreateTable(oschema, TABLE_COLUMNS, installMessages);
+            System.out.println(TABLE_COLUMNS+" ");
+            DocumentType columnsTable = Setup.checkCreateTable(oschema, TABLE_COLUMNS, installMessages);
             // Need to create first two column manually then we can call the function that adds it to the new columns
             if (columnsTable != null && !columnsTable.existsProperty("name")) {
-                columnsTable.createProperty("name", OType.STRING);
+                columnsTable.createProperty("name", Type.STRING);
             }
             if (columnsTable != null && !columnsTable.existsProperty("columnList")) {
-                columnsTable.createProperty("columnList", OType.STRING);
-            }
-            if (columnsTable.count() == 0) { // If first time, setup columns for 'O' tables
-                con.create(TABLE_COLUMNS).field("name","OUser").field("columnList","name,status,roles").save();
-                con.create(TABLE_COLUMNS).field("name","ORole").field("columnList","name,mode,inheritedRole,rules").save();
-                con.create(TABLE_COLUMNS).field("name","OFunction").field("columnList","name,language,idempotent,parameters,code").save();
-                con.create(TABLE_COLUMNS).field("name","OSchedule").field("columnList","name,function,arguments,rule,status,starttime").save();
-                con.create(TABLE_COLUMNS).field("name","OSequence").field("columnList","name,type,start,incr,value").save();
+                columnsTable.createProperty("columnList", Type.STRING);
             }
 
             // This will ensure they are added to columns table in proper order
-            Setup.checkCreateColumn(con, columnsTable, "name", OType.STRING, installMessages);
-            Setup.checkCreateColumn(con, columnsTable, "columnList", OType.STRING, installMessages);
-
+            Setup.checkCreateColumn(con, columnsTable, "name", Type.STRING, installMessages);
+            Setup.checkCreateColumn(con, columnsTable, "columnList", Type.STRING, installMessages);
+ 
             // Create early so we can automatically add tables to them
-            System.out.print(TABLE_TABLEGROUP+" ");
-            OClass tableGroupTable = Setup.checkCreateTable(oschema, TABLE_TABLEGROUP, installMessages);
-            Setup.checkTableSuperclass(oschema, tableGroupTable, "ORestricted", installMessages);
-            Setup.checkCreateColumn(con, tableGroupTable, "name", OType.STRING, installMessages);
-            Setup.checkCreateColumn(con, tableGroupTable, "tables", OType.STRING, installMessages);
+            System.out.println(TABLE_TABLEGROUP+" ");
+            DocumentType tableGroupTable = Setup.checkCreateTable(oschema, TABLE_TABLEGROUP, installMessages);
+            //Setup.checkTableSuperclass(oschema, tableGroupTable, "ORestricted", installMessages);
+            Setup.checkCreateColumn(con, tableGroupTable, "name", Type.STRING, installMessages);
+            Setup.checkCreateColumn(con, tableGroupTable, "tables", Type.STRING, installMessages);
 
-            if (tableGroupTable.count() == 0) {
-                    con.create(TABLE_TABLEGROUP).field("name","Application").field("tables","news,columns,constant,locale,pickList,pickValues,menu,menuItem,message,style,tableGroup,userProfile,auditTrail,-thumbnail").field("_allowRead", adminRoles.toArray()).save();
-                    con.create(TABLE_TABLEGROUP).field("name","System").field("tables","ORole,OUser,OFunction,OSchedule,OSequence,-ORIDs,-E,-V,-_studio").field("_allowRead", adminRoles.toArray()).save();
-                    con.create(TABLE_TABLEGROUP).field("name","Content").field("tables","").field("_allowRead", allRoles.toArray()).save();
-                    con.create(TABLE_TABLEGROUP).field("name","Plus").field("tables","").field("_allowRead", adminRoles.toArray()).save();
+            if (con.getRowCount(TABLE_TABLEGROUP) == 0) {
+                    con.create(TABLE_TABLEGROUP).set("name","Application").set("tables","news,columns,constant,locale,pickList,pickValues,menu,menuItem,message,style,tableGroup,userProfile,auditTrail,-thumbnail").save();
+                 //   con.create(TABLE_TABLEGROUP).set("name","System").set("tables","ORole,OUser,OFunction,OSchedule,OSequence,-ORIDs,-E,-V,-_studio").save();
+                    con.create(TABLE_TABLEGROUP).set("name","Content").set("tables","").save();
+                    con.create(TABLE_TABLEGROUP).set("name","Plus").set("tables","").save();
             }
-
-            System.out.print(TABLE_THUMBNAIL+" ");
+  
+/* 
+            System.out.println(TABLE_THUMBNAIL+" ");
             OClass thumbnailTable = Setup.checkCreateTable(oschema, TABLE_THUMBNAIL, installMessages);
             Setup.checkCreateColumn(con, thumbnailTable, "name", OType.STRING, installMessages);
             Setup.checkCreateColumn(con, thumbnailTable, "table", OType.STRING, installMessages);
@@ -181,15 +235,34 @@ public class Setup {
             Setup.checkCreateColumn(con, thumbnailTable, "height", OType.INTEGER, installMessages);
             Setup.checkCreateColumn(con, thumbnailTable, "small", OType.CUSTOM, installMessages);
             Setup.checkCreateColumn(con, thumbnailTable, "medium", OType.CUSTOM, installMessages);
+*/
+            System.out.println(TABLE_CONSTANT+" ");
+            DocumentType constantTable = Setup.checkCreateTable(oschema, TABLE_CONSTANT, installMessages);
+            Setup.checkCreateColumn(con, constantTable, "classname", Type.STRING, installMessages);
+            Setup.checkCreateColumn(con, constantTable, "description", Type.STRING, installMessages);
+            Setup.checkCreateColumn(con, constantTable, "field", Type.STRING, installMessages);
+            Setup.checkCreateColumn(con, constantTable, "value", Type.STRING, installMessages);
 
-            System.out.print(TABLE_CONSTANT+" ");
-            OClass constantTable = Setup.checkCreateTable(oschema, TABLE_CONSTANT, installMessages);
-            Setup.checkCreateColumn(con, constantTable, "classname", OType.STRING, installMessages);
-            Setup.checkCreateColumn(con, constantTable, "description", OType.STRING, installMessages);
-            Setup.checkCreateColumn(con, constantTable, "field", OType.STRING, installMessages);
-            Setup.checkCreateColumn(con, constantTable, "value", OType.STRING, installMessages);
-
-            System.out.print(TABLE_AUDIT+" ");
+            if (con.getRowCount(TABLE_CONSTANT) == 0) {
+                System.out.println("Inserting constants");
+                con.create(TABLE_CONSTANT).set("classname","permeagility.web.Server").set("description","Server debug flag").set("field","DEBUG").set("value",SETUP_DEBUG_FLAG).save();
+                con.create(TABLE_CONSTANT).set("classname","permeagility.web.Server").set("description","Use images/js in jar").set("field","WWW_IN_JAR").set("value","true").save();
+                con.create(TABLE_CONSTANT).set("classname","permeagility.web.RecordHook").set("description","Audit all changes to the database").set("field","AUDIT_WRITES").set("value","true").save();
+                con.create(TABLE_CONSTANT).set("classname","permeagility.web.Security").set("description","Security debug flag").set("field","DEBUG").set("value","false").save();
+                con.create(TABLE_CONSTANT).set("classname","permeagility.web.Table").set("description","Table debug flag").set("field","DEBUG").set("value",SETUP_DEBUG_FLAG).save();
+                con.create(TABLE_CONSTANT).set("classname","permeagility.web.Table").set("description","Table page count").set("field","ROW_COUNT_LIMIT").set("value","200").save();
+                con.create(TABLE_CONSTANT).set("classname","permeagility.web.Table").set("description","Show related tables even if no privilege").set("field","SHOW_ALL_RELATED_TABLES").set("value","true").save();
+                con.create(TABLE_CONSTANT).set("classname","permeagility.web.Context").set("description","Style sheet").set("field","DEFAULT_STYLE").set("value","dark (horizontal menu)").save();
+                con.create(TABLE_CONSTANT).set("classname","permeagility.web.Context").set("description","Code editor theme").set("field","EDITOR_THEME").set("value","blackboard").save();
+                con.create(TABLE_CONSTANT).set("classname","permeagility.web.Header").set("description","Logo for header").set("field","LOGO_FILE").set("value","Logo-yel.svg").save();
+                con.create(TABLE_CONSTANT).set("classname","permeagility.web.Menu").set("description","Menu direction (true=horizontal, false=vertical)").set("field","HORIZONTAL_LAYOUT").set("value","true").save();
+                con.create(TABLE_CONSTANT).set("classname","permeagility.web.Schema").set("description","Number of columns in tables view").set("field","NUMBER_OF_COLUMNS").set("value","8").save();
+                con.create(TABLE_CONSTANT).set("classname","permeagility.util.Setup").set("description","When true, ORestricted tables will be by user (Change OIdentity pickList if setting to true)").set("field","RESTRICTED_BY_ROLE").set("value","false").save();
+                con.create(TABLE_CONSTANT).set("classname","permeagility.web.UserRequest").set("description","Automatically assign new users to this role, leave blank to prevent automatic new user creation").set("field","ACCEPT_TO_ROLE").set("value","user").save();
+            }
+ 
+/* 
+            System.out.println(TABLE_AUDIT+" ");
             OClass auditTable = Setup.checkCreateTable(oschema, TABLE_AUDIT, installMessages);
             Setup.checkCreateColumn(con, auditTable, "timestamp", OType.DATETIME, installMessages);
             Setup.checkCreateColumn(con, auditTable, "action", OType.STRING, installMessages);
@@ -199,51 +272,34 @@ public class Setup {
             Setup.checkCreateColumn(con, auditTable, "recordVersion", OType.LONG, installMessages);
             Setup.checkCreateColumn(con, auditTable, "detail", OType.STRING, installMessages);
 
-            if (constantTable.count() == 0) {
-                con.create(TABLE_CONSTANT).field("classname","permeagility.web.Server").field("description","Server debug flag").field("field","DEBUG").field("value","false").save();
-                con.create(TABLE_CONSTANT).field("classname","permeagility.web.Server").field("description","Use images/js in jar").field("field","WWW_IN_JAR").field("value","true").save();
-                con.create(TABLE_CONSTANT).field("classname","permeagility.web.RecordHook").field("description","Audit all changes to the database").field("field","AUDIT_WRITES").field("value","true").save();
-                con.create(TABLE_CONSTANT).field("classname","permeagility.web.Security").field("description","Security debug flag").field("field","DEBUG").field("value","false").save();
-                con.create(TABLE_CONSTANT).field("classname","permeagility.web.Table").field("description","Table debug flag").field("field","DEBUG").field("value","false").save();
-                con.create(TABLE_CONSTANT).field("classname","permeagility.web.Table").field("description","Table page count").field("field","ROW_COUNT_LIMIT").field("value","200").save();
-                con.create(TABLE_CONSTANT).field("classname","permeagility.web.Table").field("description","Show related tables even if no privilege").field("field","SHOW_ALL_RELATED_TABLES").field("value","true").save();
-                con.create(TABLE_CONSTANT).field("classname","permeagility.web.Context").field("description","Style sheet").field("field","DEFAULT_STYLE").field("value","dark (horizontal menu)").save();
-                con.create(TABLE_CONSTANT).field("classname","permeagility.web.Context").field("description","Code editor theme").field("field","EDITOR_THEME").field("value","blackboard").save();
-                con.create(TABLE_CONSTANT).field("classname","permeagility.web.Header").field("description","Logo for header").field("field","LOGO_FILE").field("value","Logo-yel.svg").save();
-                con.create(TABLE_CONSTANT).field("classname","permeagility.web.Menu").field("description","Menu direction (true=horizontal, false=vertical)").field("field","HORIZONTAL_LAYOUT").field("value","true").save();
-                con.create(TABLE_CONSTANT).field("classname","permeagility.web.Schema").field("description","Number of columns in tables view").field("field","NUMBER_OF_COLUMNS").field("value","8").save();
-                con.create(TABLE_CONSTANT).field("classname","permeagility.util.Setup").field("description","When true, ORestricted tables will be by user (Change OIdentity pickList if setting to true)").field("field","RESTRICTED_BY_ROLE").field("value","false").save();
-                con.create(TABLE_CONSTANT).field("classname","permeagility.web.UserRequest").field("description","Automatically assign new users to this role, leave blank to prevent automatic new user creation").field("field","ACCEPT_TO_ROLE").field("value","user").save();
-            }
+     */  
+            System.out.println(TABLE_LOCALE+" ");
+            DocumentType localeTable = Setup.checkCreateTable(oschema, TABLE_LOCALE, installMessages);
+            Setup.checkCreateColumn(con, localeTable, "name", Type.STRING, installMessages);
+            Setup.checkCreateColumn(con, localeTable, "description", Type.STRING, installMessages);
+            Setup.checkCreateColumn(con, localeTable, "active", Type.BOOLEAN, installMessages);
 
-            System.out.print(TABLE_LOCALE+" ");
-            OClass localeTable = Setup.checkCreateTable(oschema, TABLE_LOCALE, installMessages);
-            Setup.checkCreateColumn(con, localeTable, "name", OType.STRING, installMessages);
-            Setup.checkCreateColumn(con, localeTable, "description", OType.STRING, installMessages);
-            Setup.checkCreateColumn(con, localeTable, "active", OType.BOOLEAN, installMessages);
-
-            ODocument loc;  // Locale
-            if (localeTable.count() == 0) {
+            MutableDocument loc;  // Locale
+            if (con.getRowCount(TABLE_LOCALE) == 0) {
                 loc = con.create(TABLE_LOCALE);
-                loc.field("name","en");
-                loc.field("description","English");
-                loc.field("active",true);
+                loc.set("name","en");
+                loc.set("description","English");
+                loc.set("active",true);
                 loc.save();
                 installMessages.append(Weblet.paragraph("CheckInstallation: Created English locale(en)"));
             } else {
-                loc = con.queryDocument("SELECT FROM locale WHERE name='en'");
+                loc = con.queryDocument("SELECT FROM locale WHERE name='en'").modify();
             }
 
-            System.out.print(TABLE_MESSAGE+" ");
-            OClass messageTable = Setup.checkCreateTable(oschema, TABLE_MESSAGE, installMessages);
-            Setup.checkCreateColumn(con, messageTable, "name", OType.STRING, installMessages);
-            Setup.checkCreateColumn(con, messageTable, "description", OType.STRING, installMessages);
-            Setup.checkCreateColumn(con, messageTable, "locale", OType.LINK, localeTable, installMessages);
+            System.out.println(TABLE_MESSAGE+" ");
+            DocumentType messageTable = Setup.checkCreateTable(oschema, TABLE_MESSAGE, installMessages);
+            Setup.checkCreateColumn(con, messageTable, "name", Type.STRING, installMessages);
+            Setup.checkCreateColumn(con, messageTable, "description", Type.STRING, installMessages);
+            Setup.checkCreateColumn(con, messageTable, "locale", Type.LINK, localeTable, installMessages);
 
             Message.initialize(con);
 
             int mCount = 0;
-
             // These are the data types that can be used
             mCount += checkCreateMessage(con, loc, "DATATYPE_FLOAT", "Floating point number (double)");
             mCount += checkCreateMessage(con, loc, "DATATYPE_INT", "Whole number (integer)");
@@ -254,9 +310,8 @@ public class Setup {
             mCount += checkCreateMessage(con, loc, "DATATYPE_DECIMAL", "Decimal (Currency)");
             mCount += checkCreateMessage(con, loc, "DATATYPE_BLOB", "Binary (image/file)");
             mCount += checkCreateMessage(con, loc, "DATATYPE_LINK", "Link (single reference)");
-            mCount += checkCreateMessage(con, loc, "DATATYPE_LINKLIST", "Link list (ordered)");
-            mCount += checkCreateMessage(con, loc, "DATATYPE_LINKSET", "Link set (unordered)");
-            mCount += checkCreateMessage(con, loc, "DATATYPE_LINKMAP", "Link map (with names, ordered)");
+            mCount += checkCreateMessage(con, loc, "DATATYPE_LIST", "Link list (ordered)");
+            mCount += checkCreateMessage(con, loc, "DATATYPE_MAP", "Link map (with names, ordered)");
 
             // These are core messages
             mCount += checkCreateMessage(con, loc, "HEADER_TITLE", "The dynamic adaptive data management platform");
@@ -453,38 +508,37 @@ public class Setup {
             mCount += checkCreateMessage(con, loc, "SAVE_AND_RUN", "Save/Run");
             mCount += checkCreateMessage(con, loc, "DETAILS", "Details");
             mCount += checkCreateMessage(con, loc, "MORE", "More");
-
-            if (mCount > 0) {
+             if (mCount > 0) {
                     installMessages.append(Weblet.paragraph("CheckInstallation: Created "+mCount+" messages"));
-                    Server.tableUpdated("message");
+                    Server.tableUpdated(con, "message");
             }
+            
+            System.out.println(TABLE_NEWS+" ");
+            DocumentType newsTable = Setup.checkCreateTable(oschema, TABLE_NEWS, installMessages);
+      //      Setup.checkTableSuperclass(oschema, newsTable, "ORestricted", installMessages);
+            Setup.checkCreateColumn(con, newsTable, "name", Type.STRING, installMessages);
+            Setup.checkCreateColumn(con, newsTable, "description", Type.STRING, installMessages);
+            Setup.checkCreateColumn(con, newsTable, "dateline", Type.DATETIME, installMessages);
+            Setup.checkCreateColumn(con, newsTable, "locale", Type.LINK, localeTable, installMessages);
+            Setup.checkCreateColumn(con, newsTable, "archive", Type.BOOLEAN, installMessages);
 
-            System.out.print(TABLE_NEWS+" ");
-            OClass newsTable = Setup.checkCreateTable(oschema, TABLE_NEWS, installMessages);
-            Setup.checkTableSuperclass(oschema, newsTable, "ORestricted", installMessages);
-            Setup.checkCreateColumn(con, newsTable, "name", OType.STRING, installMessages);
-            Setup.checkCreateColumn(con, newsTable, "description", OType.STRING, installMessages);
-            Setup.checkCreateColumn(con, newsTable, "dateline", OType.DATETIME, installMessages);
-            Setup.checkCreateColumn(con, newsTable, "locale", OType.LINK, localeTable, installMessages);
-            Setup.checkCreateColumn(con, newsTable, "archive", OType.BOOLEAN, installMessages);
-
-            if (newsTable.count() == 0) {
-                ODocument n1 = con.create(TABLE_NEWS);
-                n1.field("name","Welcome to PermeAgility");
-                n1.field("description","The core template for big data applications in a micro service. Now with Visuility! Default logins are:\n"
+            if (con.getRowCount(TABLE_NEWS) == 0) {
+                MutableDocument n1 = con.create(TABLE_NEWS);
+                n1.set("name","Welcome to PermeAgility");
+                n1.set("description","The core template for big data applications in a micro service. Now with Visuility! Default logins are:\n"
                     + "<ul><li><a href='permeagility.web.Home?USERNAME=admin&PASSWORD=admin'>admin/admin</a></li>\n"
                     + "<li><a href='permeagility.web.Home?USERNAME=writer&PASSWORD=writer'>writer/writer</a></li>\n"
                     + "<li><a href='permeagility.web.Home?USERNAME=reader&PASSWORD=reader'>reader/reader</a></li></ul>\n"
                     + "<br><img height='60%' align='right' src='images/Logo.svg'>");
-                n1.field("dateline",new Date());
-                n1.field("locale",loc);
-                n1.field("archive",false);
-                n1.field("_allowRead", guestRoles.toArray());
+                n1.set("dateline",new Date());
+                n1.set("locale",loc);
+                n1.set("archive",false);
+                //n1.set("_allowRead", guestRoles.toArray());
                 n1.save();
 
-                ODocument n2 = con.create(TABLE_NEWS);
-                n2.field("name","Welcome admin");
-                n2.field("description","Tips for administrators\n"
+                MutableDocument n2 = con.create(TABLE_NEWS);
+                n2.set("name","Welcome admin");
+                n2.set("description","Tips for administrators\n"
                     + "<ul>\n"
                     + "<li>Use the backup tool - you can deploy backup files as starter databases</li>\n"
                     + "<li>Copy the main menu as a backup when making menu changes</li>\n"
@@ -492,269 +546,262 @@ public class Setup {
                     + "<li>If a system table is deleted or truncated, it will be restored to factory settings during startup</li>\n"
                     + "<li>see <a target='_blank' href='http://www.permeagility.com'>www.permeagility.com</a> for more information</li>\n"
                     + "</ul>\n");
-                n2.field("dateline",new Date());
-                n2.field("locale",loc);
-                n2.field("archive",false);
-                n2.field("_allowRead", adminRoles.toArray());
+                n2.set("dateline",new Date());
+                n2.set("locale",loc);
+                n2.set("archive",false);
+               // n2.set("_allowRead", adminRoles.toArray());
                 n2.save();
 
-                ODocument n3 = con.create(TABLE_NEWS);
-                n3.field("name","Welcome reader");
-                n3.field("description","This is a place where you can navigate data and connections, click away!<br><br>\n"
+                MutableDocument n3 = con.create(TABLE_NEWS);
+                n3.set("name","Welcome reader");
+                n3.set("description","This is a place where you can navigate data and connections, click away!<br><br>\n"
                     + "Click <a href='permeagility.web.Schema'><b><i>Tables</i></b></a> to get started\n");
-                n3.field("dateline",new Date());
-                n3.field("locale",loc);
-                n3.field("archive",false);
-                n3.field("_allowRead", readerRoles.toArray());
+                n3.set("dateline",new Date());
+                n3.set("locale",loc);
+                n3.set("archive",false);
+            //    n3.set("_allowRead", readerRoles.toArray());
                 n3.save();
 
-                ODocument n4 = con.create(TABLE_NEWS);
-                n4.field("name","Welcome writer");
-                n4.field("description","PermeAgility lets you create and navigate data every way it is connected.<br><br>\n"
+                MutableDocument n4 = con.create(TABLE_NEWS);
+                n4.set("name","Welcome writer");
+                n4.set("description","PermeAgility lets you create and navigate data every way it is connected.<br><br>\n"
                     + "Click <a href='permeagility.web.Schema'><b><i>Tables</i></b></a> to browse the data<br>\n"
                     + "Use <a href='permeagility.web.Query'><b><i>Query</i></b></a> to run custom SQL-like queries\n");
-                n4.field("dateline",new Date());
-                n4.field("locale",loc);
-                n4.field("archive",false);
-                n4.field("_allowRead", writerRoles.toArray());
+                n4.set("dateline",new Date());
+                n4.set("locale",loc);
+                n4.set("archive",false);
+       //         n4.set("_allowRead", writerRoles.toArray());
                 n4.save();
             }
+ 
+            System.out.println(TABLE_STYLE+" ");
+            DocumentType styleTable = Setup.checkCreateTable(oschema, TABLE_STYLE, installMessages);
+            Setup.checkCreateColumn(con, styleTable, "name", Type.STRING, installMessages);
+            Setup.checkCreateColumn(con, styleTable, "horizontal", Type.BOOLEAN, installMessages);
+            Setup.checkCreateColumn(con, styleTable, "logo", Type.STRING, installMessages);
+            Setup.checkCreateColumn(con, styleTable, "editorTheme", Type.STRING, installMessages);
+            Setup.checkCreateColumn(con, styleTable, "CSSStyle", Type.STRING, installMessages);
 
-            System.out.print(TABLE_STYLE+" ");
-            OClass styleTable = Setup.checkCreateTable(oschema, TABLE_STYLE, installMessages);
-            Setup.checkCreateColumn(con, styleTable, "name", OType.STRING, installMessages);
-            Setup.checkCreateColumn(con, styleTable, "horizontal", OType.BOOLEAN, installMessages);
-            Setup.checkCreateColumn(con, styleTable, "logo", OType.STRING, installMessages);
-            Setup.checkCreateColumn(con, styleTable, "editorTheme", OType.STRING, installMessages);
-            Setup.checkCreateColumn(con, styleTable, "CSSStyle", OType.STRING, installMessages);
-
-            if (styleTable.count() == 0) {
-                ODocument style = con.create(TABLE_STYLE);
-                style.field("name", "light (vertical menu)");
-                style.field("horizontal", false);
-                style.field("logo", "Logo-blk.svg");
-                style.field("editorTheme","default");
-                style.field("CSSStyle", DEFAULT_ALT_STYLESHEET);
+            if (con.getRowCount(TABLE_STYLE) == 0) {
+                MutableDocument style = con.create(TABLE_STYLE);
+                style.set("name", "light (vertical menu)");
+                style.set("horizontal", false);
+                style.set("logo", "Logo-blk.svg");
+                style.set("editorTheme","default");
+                style.set("CSSStyle", DEFAULT_ALT_STYLESHEET);
                 style.save();
 
-                ODocument style2 = con.create(TABLE_STYLE);
-                style2.field("name", "dark (horizontal menu)");
-                style2.field("horizontal", true);
-                style2.field("logo", "Logo-yel.svg");
-                style2.field("editorTheme","blackboard");
-                style2.field("CSSStyle", DEFAULT_STYLESHEET);
+                MutableDocument style2 = con.create(TABLE_STYLE);
+                style2.set("name", "dark (horizontal menu)");
+                style2.set("horizontal", true);
+                style2.set("logo", "Logo-yel.svg");
+                style2.set("editorTheme","blackboard");
+                style2.set("CSSStyle", DEFAULT_STYLESHEET);
                 style2.save();
             }
+ 
+            System.out.println(TABLE_PICKLIST+" ");
+            DocumentType pickListTable = Setup.checkCreateTable(oschema, TABLE_PICKLIST, installMessages);
+            Setup.checkCreateColumn(con, pickListTable, "tablename", Type.STRING, installMessages);
+            Setup.checkCreateColumn(con, pickListTable, "query", Type.STRING, installMessages);
+            Setup.checkCreateColumn(con, pickListTable, "description", Type.STRING, installMessages);
 
-            // Upgrade styles - remove this eventually
-            QueryResult styles = con.query("SELECT FROM "+TABLE_STYLE);
-            for (ODocument s : styles.get()) {
-                if (s.field("name").equals("default") && s.field("CSSStyle") == null) {
-                    installMessages.append(Weblet.paragraph("success","Upgraded default stylesheet to latest in CSSStyle field - should remove the description column"));
-                    s.field("CSSStyle",DEFAULT_STYLESHEET).save();
-                }
-                if (s.field("name").equals("horizontal") && s.field("CSSStyle") == null) {
-                    installMessages.append(Weblet.paragraph("success","Upgraded horizontal stylesheet to latest in CSSStyle field - should remove the description column"));
-                    s.field("CSSStyle",DEFAULT_ALT_STYLESHEET).save();
-                }
+            if (con.getRowCount(TABLE_PICKLIST) == 0) {
+         //       con.create(TABLE_PICKLIST)
+         //       .set("tablename","OIdentity")
+         //       .set("query","select @rid.asString(), format('%s - %s',@class,name) as name from OIdentity")
+         //       .set("description","This will restrict row level table privileges to only selecting Roles, if Setup.RESTRICTED_BY_ROLE is true replace OIdentity pickList with SELECT @rid.asString(), name from ORole")
+         //       .save();
             }
+ 
+            System.out.println(TABLE_PICKVALUES+" ");
+            DocumentType pickValuesTable = Setup.checkCreateTable(oschema, TABLE_PICKVALUES, installMessages);
+            Setup.checkCreateColumn(con, pickValuesTable, "name", Type.STRING, installMessages);
+            Setup.checkCreateColumn(con, pickValuesTable, "values", Type.STRING, installMessages);
 
-            System.out.print(TABLE_PICKLIST+" ");
-            OClass pickListTable = Setup.checkCreateTable(oschema, TABLE_PICKLIST, installMessages);
-            Setup.checkCreateColumn(con, pickListTable, "tablename", OType.STRING, installMessages);
-            Setup.checkCreateColumn(con, pickListTable, "query", OType.STRING, installMessages);
-            Setup.checkCreateColumn(con, pickListTable, "description", OType.STRING, installMessages);
-
-            if (pickListTable.count() == 0) {
-                con.create(TABLE_PICKLIST).field("tablename","OIdentity").field("query","select @rid.asString(), format('%s - %s',@class,name) as name from OIdentity").field("description","This will restrict row level table privileges to only selecting Roles, if Setup.RESTRICTED_BY_ROLE is true replace OIdentity pickList with SELECT @rid.asString(), name from ORole").save();
+            if (con.getRowCount(TABLE_PICKVALUES) == 0) {
+                con.create(TABLE_PICKVALUES).set("name","OUser.status").set("values","ACTIVE,SUSPENDED").save();
+                con.create(TABLE_PICKVALUES).set("name","OFunction.language").set("values","javascript").save();
+                con.create(TABLE_PICKVALUES).set("name","OSequence.type").set("values","CACHED,ORDERED").save();
+                con.create(TABLE_PICKVALUES).set("name","style.editorTheme").set("values","default,3024-day,3024-night,ambiance-mobile,ambiance,base16-dark,base16-light,blackboard,cobalt,colorforth,eclipse,elegant,erlang-dark,lesser-dark,mbo,mdn-like,midnight,monokai,neat,neo,night,paraiso-dark,paraiso-light,pastel-on-dark,rubyblue,solarized,the-matrix,tomorrow-night-bright,tomorrow-night-eighties,twilight,vibrant-ink,xq-dark,xq-light,zenburn").save();
             }
+ 
+            System.out.println(TABLE_MENU+" ");
+            DocumentType menuTable = Setup.checkCreateTable(oschema, TABLE_MENU, installMessages);
+            Setup.checkCreateColumn(con, menuTable, "name", Type.STRING, installMessages);
+            Setup.checkCreateColumn(con, menuTable, "active", Type.BOOLEAN, installMessages);
+            Setup.checkCreateColumn(con, menuTable, "description", Type.STRING, installMessages);
+            Setup.checkCreateColumn(con, menuTable, "sortOrder", Type.INTEGER, installMessages);
 
-            System.out.print(TABLE_PICKVALUES+" ");
-            OClass pickValuesTable = Setup.checkCreateTable(oschema, TABLE_PICKVALUES, installMessages);
-            Setup.checkCreateColumn(con, pickValuesTable, "name", OType.STRING, installMessages);
-            Setup.checkCreateColumn(con, pickValuesTable, "values", OType.STRING, installMessages);
-
-            if (pickValuesTable.count() == 0) {
-                con.create(TABLE_PICKVALUES).field("name","OUser.status").field("values","ACTIVE,SUSPENDED").save();
-                con.create(TABLE_PICKVALUES).field("name","OFunction.language").field("values","javascript").save();
-                con.create(TABLE_PICKVALUES).field("name","OSequence.type").field("values","CACHED,ORDERED").save();
-                con.create(TABLE_PICKVALUES).field("name","style.editorTheme").field("values","default,3024-day,3024-night,ambiance-mobile,ambiance,base16-dark,base16-light,blackboard,cobalt,colorforth,eclipse,elegant,erlang-dark,lesser-dark,mbo,mdn-like,midnight,monokai,neat,neo,night,paraiso-dark,paraiso-light,pastel-on-dark,rubyblue,solarized,the-matrix,tomorrow-night-bright,tomorrow-night-eighties,twilight,vibrant-ink,xq-dark,xq-light,zenburn").save();
-            }
-
-            System.out.print(TABLE_MENU+" ");
-            OClass menuTable = Setup.checkCreateTable(oschema, TABLE_MENU, installMessages);
-            Setup.checkCreateColumn(con, menuTable, "name", OType.STRING, installMessages);
-            Setup.checkCreateColumn(con, menuTable, "active", OType.BOOLEAN, installMessages);
-            Setup.checkCreateColumn(con, menuTable, "description", OType.STRING, installMessages);
-            Setup.checkCreateColumn(con, menuTable, "sortOrder", OType.INTEGER, installMessages);
-
-            if (menuTable.count() == 0) {
-                ODocument defaultMenu;
+            if (con.getRowCount(TABLE_MENU) == 0) {
+                MutableDocument defaultMenu;
                 defaultMenu = con.create(TABLE_MENU);
-                defaultMenu.field("name","");  // Default blank menu
-                defaultMenu.field("active",true);
-                defaultMenu.field("description","Default menu");
-                defaultMenu.field("sortOrder",10);
+                defaultMenu.set("name","");  // Default blank menu
+                defaultMenu.set("active",true);
+                defaultMenu.set("description","Default menu");
+                defaultMenu.set("sortOrder",10);
                 defaultMenu.save();
             }
 
-            System.out.print(TABLE_MENUITEM+" ");
-            OClass menuItemTable = Setup.checkCreateTable(oschema, TABLE_MENUITEM, installMessages);
-            Setup.checkCreateColumn(con, menuItemTable, "name", OType.STRING, installMessages);
-            Setup.checkCreateColumn(con, menuItemTable, "classname", OType.STRING, installMessages);
-            Setup.checkCreateColumn(con, menuItemTable, "active", OType.BOOLEAN, installMessages).setDefaultValue("true");
-            Setup.checkCreateColumn(con, menuItemTable, "description", OType.STRING, installMessages);
-            Setup.checkCreateColumn(con, menuItemTable, "pageScript", OType.STRING, installMessages);
-            Setup.checkCreateColumn(con, menuItemTable, "pageStyle", OType.STRING, installMessages);
-            Setup.checkTableSuperclass(oschema, menuItemTable, "ORestricted", installMessages);
+            System.out.println(TABLE_MENUITEM+" ");
+            DocumentType menuItemTable = Setup.checkCreateTable(oschema, TABLE_MENUITEM, installMessages);
+            Setup.checkCreateColumn(con, menuItemTable, "name", Type.STRING, installMessages);
+            Setup.checkCreateColumn(con, menuItemTable, "classname", Type.STRING, installMessages);
+            Setup.checkCreateColumn(con, menuItemTable, "active", Type.BOOLEAN, installMessages).setDefaultValue("true");
+            Setup.checkCreateColumn(con, menuItemTable, "description", Type.STRING, installMessages);
+            Setup.checkCreateColumn(con, menuItemTable, "pageScript", Type.STRING, installMessages);
+            Setup.checkCreateColumn(con, menuItemTable, "pageStyle", Type.STRING, installMessages);
+            //Setup.checkTableSuperclass(oschema, menuItemTable, "ORestricted", installMessages);
+            Setup.checkCreateColumn(con, menuTable, "items", Type.LIST, menuItemTable, installMessages);
 
-            if (menuItemTable.count() == 0) {
-                ODocument mi_login = con.create(TABLE_MENUITEM);
-                mi_login.field("name","Login");
-                mi_login.field("description","Login page");
-                mi_login.field("classname","permeagility.web.Login");
-                mi_login.field("active",true);
-                mi_login.field("_allowRead", allRoles);
-                mi_login.field("_allow", adminRoles);
+
+            if (con.getRowCount(TABLE_MENUITEM) == 0) {
+                MutableDocument mi_login = con.create(TABLE_MENUITEM);
+                mi_login.set("name","Login");
+                mi_login.set("description","Login page");
+                mi_login.set("classname","permeagility.web.Login");
+                mi_login.set("active",true);
+            //    mi_login.set("_allowRead", allRoles);
+            //    mi_login.set("_allow", adminRoles);
                 mi_login.save();
 
-                ODocument mi_home = con.create(TABLE_MENUITEM);
-                mi_home.field("name","Home");
-                mi_home.field("description","Home page including news");
-                mi_home.field("classname","permeagility.web.Home");
-                mi_home.field("active",true);
-                mi_home.field("_allowRead", allRoles);
-                mi_home.field("_allow", adminRoles);
+                MutableDocument mi_home = con.create(TABLE_MENUITEM);
+                mi_home.set("name","Home");
+                mi_home.set("description","Home page including news");
+                mi_home.set("classname","permeagility.web.Home");
+                mi_home.set("active",true);
+           //     mi_home.set("_allowRead", allRoles);
+           //     mi_home.set("_allow", adminRoles);
                 mi_home.save();
 
-                ODocument mi_password = con.create(TABLE_MENUITEM);
-                mi_password.field("name","Profile");
-                mi_password.field("description","Change profile or password");
-                mi_password.field("classname","permeagility.web.Profile");
-                mi_password.field("active",true);
-                mi_password.field("_allowRead", allRolesButGuest);
-                mi_password.field("_allow", adminRoles);
+                MutableDocument mi_password = con.create(TABLE_MENUITEM);
+                mi_password.set("name","Profile");
+                mi_password.set("description","Change profile or password");
+                mi_password.set("classname","permeagility.web.Profile");
+                mi_password.set("active",true);
+           //     mi_password.set("_allowRead", allRolesButGuest);
+           //     mi_password.set("_allow", adminRoles);
                 mi_password.save();
 
-                ODocument mi_userRequest = con.create(TABLE_MENUITEM);
-                mi_userRequest.field("name","Sign up");
-                mi_userRequest.field("description","User Request");
-                mi_userRequest.field("classname","permeagility.web.UserRequest");
-                mi_userRequest.field("active",true);
-                mi_userRequest.field("_allowRead", guestRoles);
-                mi_userRequest.field("_allow", adminRoles);
+                MutableDocument mi_userRequest = con.create(TABLE_MENUITEM);
+                mi_userRequest.set("name","Sign up");
+                mi_userRequest.set("description","User Request");
+                mi_userRequest.set("classname","permeagility.web.UserRequest");
+                mi_userRequest.set("active",true);
+            //    mi_userRequest.set("_allowRead", guestRoles);
+            //    mi_userRequest.set("_allow", adminRoles);
                 mi_userRequest.save();
 
-                ODocument mi_context = con.create(TABLE_MENUITEM);
-                mi_context.field("name","Context");
-                mi_context.field("description","Context");
-                mi_context.field("classname","permeagility.web.Context");
-                mi_context.field("active",true);
-                mi_context.field("_allowRead", adminRoles);
-                mi_context.field("_allow", adminRoles);
+                MutableDocument mi_context = con.create(TABLE_MENUITEM);
+                mi_context.set("name","Context");
+                mi_context.set("description","Context");
+                mi_context.set("classname","permeagility.web.Context");
+                mi_context.set("active",true);
+             //   mi_context.set("_allowRead", adminRoles);
+             //   mi_context.set("_allow", adminRoles);
                 mi_context.save();
 
-                ODocument mi_settings = con.create(TABLE_MENUITEM);
-                mi_settings.field("name","Settings");
-                mi_settings.field("description","Basic settings");
-                mi_settings.field("classname","permeagility.web.Settings");
-                mi_settings.field("active",true);
-                mi_settings.field("_allowRead", adminRoles);
-                mi_settings.field("_allow", adminRoles);
+                MutableDocument mi_settings = con.create(TABLE_MENUITEM);
+                mi_settings.set("name","Settings");
+                mi_settings.set("description","Basic settings");
+                mi_settings.set("classname","permeagility.web.Settings");
+                mi_settings.set("active",true);
+             //   mi_settings.set("_allowRead", adminRoles);
+             //   mi_settings.set("_allow", adminRoles);
                 mi_settings.save();
 
-                ODocument mi_shutdown = con.create(TABLE_MENUITEM);
-                mi_shutdown.field("name","Shutdown");
-                mi_shutdown.field("description","Shutdown the server");
-                mi_shutdown.field("classname","permeagility.web.Shutdown");
-                mi_shutdown.field("active",true);
-                mi_shutdown.field("_allowRead", adminRoles);
-                mi_shutdown.field("_allow", adminRoles);
+                MutableDocument mi_shutdown = con.create(TABLE_MENUITEM);
+                mi_shutdown.set("name","Shutdown");
+                mi_shutdown.set("description","Shutdown the server");
+                mi_shutdown.set("classname","permeagility.web.Shutdown");
+                mi_shutdown.set("active",true);
+             //   mi_shutdown.set("_allowRead", adminRoles);
+             //   mi_shutdown.set("_allow", adminRoles);
                 mi_shutdown.save();
 
-                ODocument mi_query = con.create(TABLE_MENUITEM);
-                mi_query.field("name","Query");
-                mi_query.field("description","Query the database");
-                mi_query.field("classname","permeagility.web.Query");
-                mi_query.field("active",true);
-                mi_query.field("_allowRead", adminAndWriterRoles);
-                mi_query.field("_allow", adminRoles);
+                MutableDocument mi_query = con.create(TABLE_MENUITEM);
+                mi_query.set("name","Query");
+                mi_query.set("description","Query the database");
+                mi_query.set("classname","permeagility.web.Query");
+                mi_query.set("active",true);
+             //   mi_query.set("_allowRead", adminAndWriterRoles);
+             //   mi_query.set("_allow", adminRoles);
                 mi_query.save();
 
-                ODocument mi_schema = con.create(TABLE_MENUITEM);
-                mi_schema.field("name","Tables");
-                mi_schema.field("description","Table Catalog");
-                mi_schema.field("classname","permeagility.web.Schema");
-                mi_schema.field("active",true);
-                mi_schema.field("_allowRead", allRolesButGuest);
-                mi_schema.field("_allow", adminRoles);
+                MutableDocument mi_schema = con.create(TABLE_MENUITEM);
+                mi_schema.set("name","Tables");
+                mi_schema.set("description","Table Catalog");
+                mi_schema.set("classname","permeagility.web.Schema");
+                mi_schema.set("active",true);
+             //   mi_schema.set("_allowRead", allRolesButGuest);
+             //   mi_schema.set("_allow", adminRoles);
                 mi_schema.save();
 
-                ODocument mi_table = con.create(TABLE_MENUITEM);
-                mi_table.field("name","Table Editor");
-                mi_table.field("description","Table editor");
-                mi_table.field("classname","permeagility.web.Table");
-                mi_table.field("active",true);
-                mi_table.field("_allowRead", allRolesButGuest);
-                mi_table.field("_allow", adminRoles);
+                MutableDocument mi_table = con.create(TABLE_MENUITEM);
+                mi_table.set("name","Table Editor");
+                mi_table.set("description","Table editor");
+                mi_table.set("classname","permeagility.web.Table");
+                mi_table.set("active",true);
+             //   mi_table.set("_allowRead", allRolesButGuest);
+             //   mi_table.set("_allow", adminRoles);
                 mi_table.save();
 
-                ODocument mi_pagebuilder = con.create(TABLE_MENUITEM);
-                mi_pagebuilder.field("name","Page Builder");
-                mi_pagebuilder.field("description","Build pages/apps with JavaScript");
-                mi_pagebuilder.field("classname","permeagility.web.PageBuilder");
-                mi_pagebuilder.field("active",true);
-                mi_pagebuilder.field("_allowRead", adminRoles);
-                mi_pagebuilder.field("_allow", adminRoles);
+                MutableDocument mi_pagebuilder = con.create(TABLE_MENUITEM);
+                mi_pagebuilder.set("name","Page Builder");
+                mi_pagebuilder.set("description","Build pages/apps with JavaScript");
+                mi_pagebuilder.set("classname","permeagility.web.PageBuilder");
+                mi_pagebuilder.set("active",true);
+             //   mi_pagebuilder.set("_allowRead", adminRoles);
+             //   mi_pagebuilder.set("_allow", adminRoles);
                 mi_pagebuilder.save();
 
-                ODocument mi_scriptlet = con.create(TABLE_MENUITEM);  // Not added to menu, to support page Builder
-                mi_scriptlet.field("name","Page Runner");
-                mi_scriptlet.field("description","run JavaScript pages");
-                mi_scriptlet.field("classname","permeagility.web.Scriptlet");
-                mi_scriptlet.field("active",true);
-                mi_scriptlet.field("_allowRead",  allRolesButGuest);
-                mi_scriptlet.field("_allow", adminRoles);
+                MutableDocument mi_scriptlet = con.create(TABLE_MENUITEM);  // Not added to menu, to support page Builder
+                mi_scriptlet.set("name","Page Runner");
+                mi_scriptlet.set("description","run JavaScript pages");
+                mi_scriptlet.set("classname","permeagility.web.Scriptlet");
+                mi_scriptlet.set("active",true);
+              //  mi_scriptlet.set("_allowRead",  allRolesButGuest);
+              //  mi_scriptlet.set("_allow", adminRoles);
                 mi_scriptlet.save();
 
-                ODocument mi_visuility = con.create(TABLE_MENUITEM);
-                mi_visuility.field("name","Visuility");
-                mi_visuility.field("description","Visuility browser");
-                mi_visuility.field("classname","permeagility.web.Visuility");
-                mi_visuility.field("active",true);
-                mi_visuility.field("_allowRead", adminAndWriterRoles);
-                mi_visuility.field("_allow", adminRoles);
+                MutableDocument mi_visuility = con.create(TABLE_MENUITEM);
+                mi_visuility.set("name","Visuility");
+                mi_visuility.set("description","Visuility browser");
+                mi_visuility.set("classname","permeagility.web.Visuility");
+                mi_visuility.set("active",true);
+              //  mi_visuility.set("_allowRead", adminAndWriterRoles);
+              //  mi_visuility.set("_allow", adminRoles);
                 mi_visuility.save();
 
-                ODocument mi_visuilityData = con.create(TABLE_MENUITEM);
-                mi_visuilityData.field("name","Visuility");
-                mi_visuilityData.field("description","Visuility browser (data component)");
-                mi_visuilityData.field("classname","permeagility.web.VisuilityData");
-                mi_visuilityData.field("active",true);
-                mi_visuilityData.field("_allowRead", allRolesButGuest);
-                mi_visuilityData.field("_allow", adminRoles);
+                MutableDocument mi_visuilityData = con.create(TABLE_MENUITEM);
+                mi_visuilityData.set("name","Visuility");
+                mi_visuilityData.set("description","Visuility browser (data component)");
+                mi_visuilityData.set("classname","permeagility.web.VisuilityData");
+                mi_visuilityData.set("active",true);
+            //    mi_visuilityData.set("_allowRead", allRolesButGuest);
+            //    mi_visuilityData.set("_allow", adminRoles);
                 mi_visuilityData.save();
 
-                ODocument mi_backup = con.create(TABLE_MENUITEM);
-                mi_backup.field("name","Backup");
-                mi_backup.field("description","Backup and restore the database");
-                mi_backup.field("classname","permeagility.web.BackupRestore");
-                mi_backup.field("active",true);
-                mi_backup.field("_allowRead", adminRoles);
-                mi_backup.field("_allow", adminRoles);
+                MutableDocument mi_backup = con.create(TABLE_MENUITEM);
+                mi_backup.set("name","Backup");
+                mi_backup.set("description","Backup and restore the database");
+                mi_backup.set("classname","permeagility.web.BackupRestore");
+                mi_backup.set("active",true);
+             //   mi_backup.set("_allowRead", adminRoles);
+             //   mi_backup.set("_allow", adminRoles);
                 mi_backup.save();
 
-                ODocument mi_blank = con.create(TABLE_MENUITEM);
-                mi_blank.field("name","");
-                mi_blank.field("active",true);
-                mi_blank.field("description","Blank menu item");
-                mi_blank.field("_allow",adminRoles);
-                mi_blank.field("_allowRead",allRoles);
-                mi_blank.field("_allow",adminRoles);
+                MutableDocument mi_blank = con.create(TABLE_MENUITEM);
+                mi_blank.set("name","");
+                mi_blank.set("active",true);
+                mi_blank.set("description","Blank menu item");
+              //  mi_blank.set("_allow",adminRoles);
+              //  mi_blank.set("_allowRead",allRoles);
+              //  mi_blank.set("_allow",adminRoles);
                 mi_blank.save();
 
                 // Build default menu
-                ArrayList<ODocument> items = new ArrayList<>();
+                ArrayList<Document> items = new ArrayList<>();
                 items.add(mi_userRequest);
                 items.add(mi_visuility);
                 items.add(mi_schema);
@@ -768,52 +815,55 @@ public class Setup {
                 items.add(mi_shutdown);
 
                 // Add the menu items property to the menu
-                Setup.checkCreateColumn(con, menuTable, "items", OType.LINKLIST, menuItemTable, installMessages);
-                ODocument menuDoc = con.queryDocument("SELECT FROM menu");
+                MutableDocument menuDoc = con.queryDocument("SELECT FROM menu").modify();
                 if (menuDoc != null && items.size() > 0) {
-                    menuDoc.field("items",items);
+                    menuDoc.set("items",items);
                     menuDoc.save();
                 } else {
                     installMessages.append(Weblet.paragraph("error","menu is null or no items to add"));
                 }
             }
 
-            System.out.print(TABLE_USERPROFILE+" ");
-            OClass urTable = Setup.checkCreateTable(oschema, TABLE_USERPROFILE, installMessages);
-            Setup.checkTableSuperclass(oschema, urTable, "ORestricted", installMessages);
-            Setup.checkCreateColumn(con, urTable, "name", OType.STRING, installMessages);
-            Setup.checkCreateColumn(con, urTable, "password", OType.STRING, installMessages);
-
+            System.out.println(TABLE_USERPROFILE+" ");
+            DocumentType urTable = Setup.checkCreateTable(oschema, TABLE_USERPROFILE, installMessages);
+         //   Setup.checkTableSuperclass(oschema, urTable, "ORestricted", installMessages);
+            Setup.checkCreateColumn(con, urTable, "name", Type.STRING, installMessages);
+            Setup.checkCreateColumn(con, urTable, "password", Type.STRING, installMessages);
+ 
             // Add table privileges for the guest and user roles
-            checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,TABLE_COLUMNS,2,installMessages);
-            checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,TABLE_NEWS,2,installMessages);
-            checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,TABLE_MENU,2,installMessages);
-            checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,TABLE_MENUITEM,2,installMessages);
-            checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,TABLE_STYLE,2,installMessages);
-            checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,TABLE_LOCALE,2,installMessages);
-            checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,TABLE_USERPROFILE,1,installMessages);
-            checkCreatePrivilege(con,"guest",ResourceGeneric.CLUSTER,TABLE_USERPROFILE,1,installMessages);
+          //  checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,TABLE_COLUMNS,2,installMessages);
+          //  checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,TABLE_NEWS,2,installMessages);
+          //  checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,TABLE_MENU,2,installMessages);
+          //  checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,TABLE_MENUITEM,2,installMessages);
+          //  checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,TABLE_STYLE,2,installMessages);
+          //  checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,TABLE_LOCALE,2,installMessages);
+          //  checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,TABLE_USERPROFILE,1,installMessages);
+          //  checkCreatePrivilege(con,"guest",ResourceGeneric.CLUSTER,TABLE_USERPROFILE,1,installMessages);
 
-            checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,TABLE_COLUMNS,2,installMessages);
-            checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,TABLE_TABLEGROUP,2,installMessages);
-            checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,TABLE_NEWS,2,installMessages);
-            checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,TABLE_MENU,2,installMessages);
-            checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,TABLE_MENUITEM,2,installMessages);
-            checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,TABLE_STYLE,2,installMessages);
-            checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,TABLE_LOCALE,2,installMessages);
-            checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,TABLE_USERPROFILE,6,installMessages);
-            checkCreatePrivilege(con,"user",ResourceGeneric.CLUSTER,TABLE_USERPROFILE,6,installMessages);
+          //  checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,TABLE_COLUMNS,2,installMessages);
+          //  checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,TABLE_TABLEGROUP,2,installMessages);
+          //  checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,TABLE_NEWS,2,installMessages);
+          //  checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,TABLE_MENU,2,installMessages);
+          //  checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,TABLE_MENUITEM,2,installMessages);
+          //  checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,TABLE_STYLE,2,installMessages);
+          //  checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,TABLE_LOCALE,2,installMessages);
+          //  checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,TABLE_USERPROFILE,6,installMessages);
+          //  checkCreatePrivilege(con,"user",ResourceGeneric.CLUSTER,TABLE_USERPROFILE,6,installMessages);
 
-            checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,TABLE_AUDIT,1,installMessages);
-            checkCreatePrivilege(con,"guest",ResourceGeneric.CLUSTER,TABLE_AUDIT,1,installMessages);
+         //   checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,TABLE_AUDIT,1,installMessages);
+         //   checkCreatePrivilege(con,"guest",ResourceGeneric.CLUSTER,TABLE_AUDIT,1,installMessages);
 
-            checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,TABLE_AUDIT,1,installMessages);
-            checkCreatePrivilege(con,"user",ResourceGeneric.CLUSTER,TABLE_AUDIT,1,installMessages);
+         //   checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,TABLE_AUDIT,1,installMessages);
+         //   checkCreatePrivilege(con,"user",ResourceGeneric.CLUSTER,TABLE_AUDIT,1,installMessages);
 
-            con.flush();
-            System.out.println("- verified.");
+            System.out.println("\n\nInstallation messages:\n"+installMessages);
 
+            if (mCount > 0) {  // If messages were added
+                Message.initialize(con);
+            }
+            con.commit();
         } catch (Exception e) {
+            con.rollback();
             System.out.println("- failed: "+e.getMessage());
             e.printStackTrace();
             return false;
@@ -829,10 +879,10 @@ public class Setup {
                 + ", description='"+description+"', classname='"+classname+"', _allowRead=["+roles+"]");
 
         // Add to the specified menu
-        if (addTo != null && !addTo.equals("") && menuItem instanceof ODocument) {
-            con.update("UPDATE #"+addTo+" ADD items = "+((ODocument)menuItem).getIdentity().toString());
+        if (addTo != null && !addTo.equals("") && menuItem instanceof Document) {
+            con.update("UPDATE #"+addTo+" ADD items = "+((Document)menuItem).getIdentity().toString());
         }
-        Server.tableUpdated("menu");
+        Server.tableUpdated(con, "menu");
     }
 
     public static boolean removeMenuItem(DatabaseConnection con, String classname, StringBuilder errors) {
@@ -850,11 +900,11 @@ public class Setup {
             }
             // Delete menu item(s)
             for (String mi : menuIds) {
-                ODocument d = con.get(mi);
+                Document d = con.get(mi);
                 d.delete();
             }
             errors.append(Weblet.paragraph("success","Deleted menu item for "+classname));
-            Server.tableUpdated("menu");
+            Server.tableUpdated(con, "menu");
             return true;
         } catch (Exception e) {
             e.printStackTrace();
@@ -863,14 +913,12 @@ public class Setup {
     }
 
     /** Create message if it doesn't already exist */
-    public static int checkCreateMessage(DatabaseConnection con, ODocument loc, String name, String description) {
+    public static int checkCreateMessage(DatabaseConnection con, Document loc, String name, String description) {
         if (Message.get(con.getLocale(), name).equals(name)) {
-            ODocument m = con.create(TABLE_MESSAGE);
-            m.field("name",name).field("description",description).field("locale",loc);
-            m.save();
+            con.create(TABLE_MESSAGE).set("name",name).set("description",description).set("locale",loc).save();
             return 1;
         } else {
-            return 0;
+            return 0;  // Message exists
         }
     }
 
@@ -880,14 +928,17 @@ public class Setup {
 
     /** Add the column to the columns table to preserve initial order (always append only if not already there)  */
     public static void addColumnToColumns(DatabaseConnection con, String theClass, String propertyName) {
-        ODocument d = con.queryDocument("SELECT FROM "+TABLE_COLUMNS+" WHERE name='"+theClass+"'");
-        if (d == null) {
+        Document qd = con.queryDocument("SELECT FROM columns WHERE name='"+theClass+"'");
+        MutableDocument d;
+        if (qd == null) {
             d = con.create(TABLE_COLUMNS);
-            d.field("name",theClass);
+            d.set("name",theClass);
+        } else {
+            d = qd.modify();
         }
-        String cl = d.field("columnList");
+        String cl = d.getString("columnList");
         if (cl == null || cl.equals("")) {
-            d.field("columnList",propertyName);
+            d.set("columnList",propertyName);
         } else {
             String clc[] = cl.split(",");
             for (String cln : clc) {
@@ -896,7 +947,7 @@ public class Setup {
                 }
             }
             if (!cl.contains(propertyName))
-            d.field("columnList",d.field("columnList")+","+propertyName);
+            d.set("columnList",d.getString("columnList")+","+propertyName);
         }
         d.save();
         return;
@@ -904,11 +955,11 @@ public class Setup {
 
     /** Remove the column from the columns table to preserve initial order (always append) */
     public static void removeColumnFromColumns(DatabaseConnection con, String theClass, String propertyName) {
-        ODocument d = con.queryDocument("SELECT FROM "+TABLE_COLUMNS+" WHERE name='"+theClass+"'");
+        MutableDocument d = (MutableDocument)con.queryDocument("SELECT FROM "+TABLE_COLUMNS+" WHERE name='"+theClass+"'");
         if (d == null) {
             return;
         }
-        String cl = d.field("columnList");
+        String cl = d.getString("columnList");
         if (cl == null || cl.equals("")) {
             return;
         } else {
@@ -920,22 +971,22 @@ public class Setup {
                     newCols.append(c);
                 }
             }
-            d.field("columnList",newCols);
+            d.set("columnList",newCols);
         }
         d.save();
         return;
     }
 
     public static void addTableToTableGroup(DatabaseConnection con, String theClass, String tableGroup) {
-        ODocument d = con.queryDocument("SELECT FROM "+TABLE_TABLEGROUP+" WHERE name='"+tableGroup+"'");
+        MutableDocument d = (MutableDocument)con.queryDocument("SELECT FROM "+TABLE_TABLEGROUP+" WHERE name='"+tableGroup+"'");
         if (d == null) {
             d = con.create(TABLE_TABLEGROUP);
-            d.field("name",tableGroup);
-            d.field("_allowRead",Security.getUserRoles(con));
+            d.set("name",tableGroup);
+            d.set("_allowRead",Security.getUserRoles(con));
         }
-        String tableList = d.field("tables");
+        String tableList = d.getString("tables");
         if (tableList == null || tableList.equals("")) {
-            d.field("tables",theClass);
+            d.set("tables",theClass);
         } else {
             String clc[] = tableList.split(",");
             for (String cln : clc) {
@@ -944,11 +995,11 @@ public class Setup {
                 }
             }
             if (!tableList.contains(theClass)) {
-                d.field("tables",d.field("tables")+","+theClass);
+                d.set("tables",d.getString("tables")+","+theClass);
             }
         }
         d.save();
-        Server.tableUpdated("tableGroup");
+        Server.tableUpdated(con, "tableGroup");
         return;
     }
 
@@ -958,8 +1009,9 @@ public class Setup {
         if (q == null || q.size()==0) {
             return;
         }
-        for (ODocument d : q.get()) {  // For each document that may contain the reference to the class
-            String tableList = d.field("tables");
+        for (Document id : q.get()) {  // For each document that may contain the reference to the class
+            MutableDocument d = (MutableDocument)id;
+            String tableList = d.getString("tables");
             if (tableList == null || tableList.equals("")) {
                 return;
             } else {
@@ -971,7 +1023,7 @@ public class Setup {
                         newTabs.append(t);
                     }
                 }
-                d.field("tables",newTabs);
+                d.set("tables",newTabs);
             }
             d.save();
         }
@@ -982,30 +1034,34 @@ public class Setup {
     public static void checkCreateConstant(DatabaseConnection con, String classname, String description, String field, String value) {
         QueryResult qr = con.query("SELECT FROM "+TABLE_CONSTANT+" WHERE classname='"+classname+"' AND field='"+field+"'");
         if (qr != null && qr.size()>0) {
-            ODocument cd = qr.get(0);
+            MutableDocument cd = (MutableDocument)qr.get(0);
             if (cd != null) {
-                cd.field("value",value).save();
+                cd.set("value",value).save();
             }
         } else {
-            con.create(Setup.TABLE_CONSTANT).field("classname",classname).field("description",description).field("field",field).field("value",value).save();
+            con.create(Setup.TABLE_CONSTANT).set("classname",classname).set("description",description).set("field",field).set("value",value).save();
         }
     }
 
     /** Check for the existence of a class property or add it This assumes you want a link type, otherwise the linkClass may have adverse effects */
-    public static OProperty checkCreateColumn(DatabaseConnection con, OClass theClass, String propertyName, OType propertyType, OClass linkClass, StringBuilder errors) {
-        OProperty p = theClass.getProperty(propertyName);
-        if (p == null) {
-            p = theClass.createProperty(propertyName, propertyType, linkClass);
-            errors.append(Weblet.paragraph("Schema update: Created property "+theClass.getName()+"."+propertyName+" of type "+propertyType.name()+" linked to "+linkClass.getName()));
+    public static Property checkCreateColumn(DatabaseConnection con, DocumentType theClass, String propertyName, Type propertyType, DocumentType linkClass, StringBuilder errors) {
+        Property p;
+        try { 
+            p = theClass.getProperty(propertyName);
+        } catch(Exception e) {
+            p = theClass.createProperty(propertyName, propertyType, linkClass.getName());
+            errors.append(Weblet.paragraph("Schema update: Created link type property "+theClass.getName()+"."+propertyName+" of type "+propertyType.name()+" linked to "+linkClass.getName()));
         }
-        addColumnToColumns(con, theClass.getName(),propertyName);
+        //addColumnToColumns(con, theClass.getName(),propertyName);
         return p;
     }
 
     /** Check for the existence of a class property or add it and add to columns */
-    public static OProperty checkCreateColumn(DatabaseConnection con, OClass theClass, String propertyName, OType propertyType, StringBuilder errors) {
-        OProperty p = theClass.getProperty(propertyName);
-        if (p == null) {
+    public static Property checkCreateColumn(DatabaseConnection con, DocumentType theClass, String propertyName, Type propertyType, StringBuilder errors) {
+        Property p;
+        try { 
+            p = theClass.getProperty(propertyName);
+        } catch (Exception e) {
             p = theClass.createProperty(propertyName, propertyType);
             errors.append(Weblet.paragraph("Schema update: Created property "+theClass.getName()+"."+propertyName+" of type "+propertyType.name()));
         }
@@ -1024,84 +1080,84 @@ public class Setup {
     }
 
     /** Check for the existence of a class or add it */
-    public static OClass checkCreateTable(OSchema oschema, String className, StringBuilder errors) {
-        OClass c = oschema.getClass(className);
-        if (c == null) {
-            c = oschema.createClass(className);
-            errors.append(Weblet.paragraph("Schema update: Created "+className+" class/table"));
-        }
+    public static DocumentType checkCreateTable(Schema oschema, String className, StringBuilder errors) {
+        DocumentType c = oschema.getOrCreateDocumentType(className);
+//        if (c == null) {
+//            c = oschema.createClass(className);
+//            errors.append(Weblet.paragraph("Schema update: Created "+className+" class/table"));
+//        }
         if (c == null) {
             errors.append(Weblet.paragraph("error","Schema update: Error creating "+className+" class/table"));
         }
-        if (c != null) {
-            if (c.isStrictMode()) {
-                c.setStrictMode(false);
-                errors.append(Weblet.paragraph("Schema update: Set non-strict "+className+" class/table"));
-            }
-        }
+      //  if (c != null) {
+      //      if (c.isStrictMode()) {
+      //          c.setStrictMode(false);
+      //          errors.append(Weblet.paragraph("Schema update: Set non-strict "+className+" class/table"));
+      //      }
+      //  }
         return c;
     }
 
     /** Check for the existence of a class or add it */
-    public static OClass checkCreateTable(DatabaseConnection con, OSchema oschema, String className, StringBuilder errors, String tableGroup) {
-        OClass c = oschema.getClass(className);
-        if (c == null) {
-            c = oschema.createClass(className);
-            errors.append(Weblet.paragraph("Schema update: Created "+className+" class/table"));
-        }
+    public static DocumentType checkCreateTable(DatabaseConnection con, Schema oschema, String className, StringBuilder errors, String tableGroup) {
+        DocumentType c = oschema.getOrCreateDocumentType(className);
+   //     if (c == null) {
+   //         c = oschema.createClass(className);
+   //         errors.append(Weblet.paragraph("Schema update: Created "+className+" class/table"));
+   //     }
         if (c == null) {
             errors.append(Weblet.paragraph("error","Schema update: Error creating "+className+" class/table"));
         }
-        if (c != null) {
-            if (c.isStrictMode()) {
-                c.setStrictMode(false);
-                errors.append(Weblet.paragraph("Schema update: Set non-strict "+className+" class/table"));
-            }
-        }
-        if (tableGroup != null) addTableToTableGroup(con, className,tableGroup);
+   //     if (c != null) {
+   //         if (c.isStrictMode()) {
+   //             c.setStrictMode(false);
+   //             errors.append(Weblet.paragraph("Schema update: Set non-strict "+className+" class/table"));
+   //         }
+   //     }
+        //if (tableGroup != null) addTableToTableGroup(con, className,tableGroup);
         return c;
     }
 
     /** Check for the existence of a class's superclass or set it */
-    public static boolean checkTableSuperclass(OSchema oschema, OClass oclass, String superClassName, StringBuilder errors) {
-        OClass s = oschema.getClass(superClassName);
+    public static boolean checkTableSuperclass(Schema oschema, DocumentType oclass, String superClassName, StringBuilder errors) {
+        DocumentType s = oschema.getOrCreateDocumentType(superClassName);
         if (s == null) {
             errors.append(Weblet.paragraph("error","Schema update: Cannot find superclass "+superClassName+" to assign to class "+oclass.getName()));
             return false;
         }
-        List<OClass> sc = oclass.getSuperClasses();
+        List<DocumentType> sc = oclass.getSuperTypes();
         boolean hasSuper = false;
-        for (OClass c : sc) {
+        for (DocumentType c : sc) {
             if (c.getName().equals(superClassName)) { hasSuper = true; }
         }
         if (!hasSuper) {
-            oclass.addSuperClass(s);
+            oclass.addSuperType(s);
             errors.append(Weblet.paragraph("Schema update: Assigned superclass "+superClassName+" to class "+oclass.getName()));
-            if (superClassName.equals("ORestricted") && RESTRICTED_BY_ROLE) {
-                oclass.setCustom("onCreate.identityType", "role");   //alter class x custom onCreate.identityType=role
-            }
+       //     if (superClassName.equals("ORestricted") && RESTRICTED_BY_ROLE) {
+       //         oclass.setCustom("onCreate.identityType", "role");   //alter class x custom onCreate.identityType=role
+       //     }
             return true;
         }
         return false;
     }
 
     /** Check for the existence of a privilege or add it */
-    public static boolean checkCreatePrivilege(DatabaseConnection con, String roleName, ORule.ResourceGeneric resource, String className, int priv, StringBuilder errors) {
-        OSecurity osecurity = con.getDb().getMetadata().getSecurity();
-        ORole role = osecurity.getRole(roleName);
-        if (role == null) {
-            System.out.println("Setup.checkCreatePrivilege role "+roleName+" is null");
-        }
-        if (!role.hasRule(resource,className)) {
+    public static boolean checkCreatePrivilege(DatabaseConnection con, String roleName, String resource, String className, int priv, StringBuilder errors) {
+ //       OSecurity osecurity = con.getDb().getMetadata().getSecurity();
+ //       ORole role = osecurity.getRole(roleName);
+ //       if (role == null) {
+ //           System.out.println("Setup.checkCreatePrivilege role "+roleName+" is null");
+  //      }
+  //      if (!role.hasRule(resource,className)) {
             System.out.println("Adding privilege: "+resource+" to "+roleName+" for "+className+" with priv="+priv);
-            ORole newRole = role.addRule(resource,className, priv);
-            if (newRole.allow(resource,className, priv)){
-                newRole.save();
-                errors.append(Weblet.paragraph("success",resource.getName()+(className != null ? "."+className : "")+":"+priv+" added to "+roleName));
-            } else {
-                errors.append(Weblet.paragraph("error",resource.getName()+(className != null ? "."+className : "")+" failed to add privilege "+priv+" to "+roleName));
-            }
-        }
+   //         ORole newRole = role.addRule(resource,className, priv);
+   //         if (newRole.allow(resource,className, priv)){
+   //             newRole.save();
+   //             errors.append(Weblet.paragraph("success",resource.getName()+(className != null ? "."+className : "")+":"+priv+" added to "+roleName));
+   //         } else {
+   //             errors.append(Weblet.paragraph("error",resource.getName()+(className != null ? "."+className : "")+" failed to add privilege "+priv+" to "+roleName));
+   //         }
+   //     }
         return true;
     }
 
@@ -1113,13 +1169,13 @@ public class Setup {
     public static boolean dropTable(DatabaseConnection con, String classname, StringBuilder errors) {
         try {
             con.update("ALTER CLASS "+classname+" SUPERCLASSES NULL");  // Clear superclasses first otherwise will fail
-            OSchema schema = con.getSchema();
-            schema.dropClass(classname);
+            Schema schema = con.getSchema();
+            schema.dropType(classname);
             Setup.removeTableFromAllTableGroups(con, classname);
             QueryResult qr = con.query("SELECT FROM columns WHERE name='"+classname+"'");
             List<String> colIds = qr.getIds();
             for (String colId : colIds) {
-                ODocument d = con.get(colId);
+                Document d = con.get(colId);
                 if (d != null) d.delete();
             }
             DatabaseConnection.rowCountChanged(classname);
@@ -1131,296 +1187,333 @@ public class Setup {
         }
     }
 
-    public static final String DEFAULT_ALT_STYLESHEET =
-"/* This is the bright PermeAgility stylesheet (vertical menu)*/\n" +
-"img.headerlogo { width: 110px; height: 55px; position: fixed; top: 3px; left: 3px; border: none;}\n" +
-"a.headerlogo:hover { text-decoration: none; background-color: transparent;}\n" +
-"BODY { font-family: verdana,sans-serif; /* font-size: small; */ }\n" +
-"#menu { position: fixed; top: 0px; left: 0px; bottom: 0px;\n" +
-"  width: 145px; background-repeat: repeat-y; border: 0;\n" +
-"  background-image: url(../images/menu_background.jpg);\n" +
-"  padding-left: 5px; padding-top: 75px; /* menu starts below header */\n" +
-"}\n" +
-"a, a.menuitem, a.popuplink {color: black;}\n" +
-"a.menuitem:link { text-decoration: none; }\n" +
-"a.menuitem:visited { text-decoration: none; }\n" +
-"a:hover, a.menuitem:hover, a.popuplink:hover { text-decoration: none; color: blue;\n" +
-"         border-radius: 6px 6px 6px 6px;   border: 1px solid blue;  }\n" +
-"#header { position: absolute; top: 0px; left: 0px; right: 0px; height: 75px;\n" +
-"         background-image: url(/images/header_background.jpg);   }\n" +
-"#headertitle { font-size: 1em; position: absolute; top: 5px; left: 160px;  }\n" +
-"#headerservice { font-size: 1.5em;    position: absolute; top: 30px; left: 160px; }\n" +
-"#headertime { position: absolute; top: 5px; right: 5px; }\n" +
-"#headeruser { position: absolute; top: 25px; right: 5px; }\n" +
-"#service { position: absolute; top: 75px; left: 125px; right: 0px; bottom: 0px; display: inline-block;}\n" +
-".label { color: black; }\n" +
-"td.label { text-align: right; vertical-align: middle; font-size: x-small;\n" +
-"  border-radius: 6px 6px 6px 6px;\n" +
-" background: linear-gradient(to right, white, #E0E0E0);\n" +
-"        border: none;  padding: 0px 5px 0px 25px;}\n" +
-"a { text-decoration: none; }\n" +
-"a:hover { text-decoration: underline; }\n" +
-"input.number { text-align: right; }\n" +
-"table.layout {  width: 100%; }\n" +
-"td.layout { border-radius: 6px 6px 6px 6px; text-align: left;\n" +
-"    padding: 2px 2px 2px 2px;  background-color: #DCDCDC;\n" +
-"}\n" +
-"th { background-color: #303b43; color: white; font-weight: bold;\n" +
-"     border-radius: 4px 4px 0px 0px;\n" +
-"}\n" +
-"tr.data, TD.data { background-color: #DCDCDC; vertical-align: top; }\n" +
-"tr.clickable { background-color: #DCDCDC; vertical-align: top; }\n" +
-"tr.clickable:hover { background-color: #AAAADC; text-decoration: bold; }\n" +
-"tr.footer { font-weight: bold; }\n" +
-"td { text-align: left;  }\n" +
-"td.number { text-align: right; }\n" +
-"td.total { text-align: right; font-weight:bolder; normal: solid thin black; }\n" +
-"p.headline { color: #303b43; font-size: large; font-weight: bold;\n" +
-"            margin-bottom: 2px; }\n" +
-"p.dateline { font-size: 6pt; line-height: 50%;\n" +
-"            margin-bottom: 1px; margin-top: 1px; }\n" +
-"p.article { font-size: 12pt; }\n" +
-"p.menuheader {  color: black;  margin: 0.2em 0em 0em 0em; }\n" +
-"P.banner { background-color: #777777;\n" +
-"     font-size: medium;  font-weight: bold; text-align:center; color: white;\n" +
-"     margin: 0.2em 0em 0em 0em;\n" +
-"     page-break-after: avoid;\n" +
-"     border-radius: 4px 4px 4px 4px;\n" +
-"}\n" +
-"P.error { background-color: rgb(117,0,0);\n" +
-"           font-size: medium; font-weight: bold; text-align:center;\n" +
-"           color: white; margin: 0.2em 0em 0em 0em;\n" +
-"          border-radius: 6px 6px 6px 6px;\n" +
-"}\n" +
-"P.warning { background-color: #FFCC00;\n" +
-"          font-size: medium; font-weight: bold; text-align:center;\n" +
-"          color: white; margin: 0.2em 0em 0em 0em;\n" +
-"          border-radius: 6px 6px 6px 6px;\n" +
-"}\n" +
-"P.success { background-color: #1d5e1f;\n" +
-"          font-size: medium; font-weight: bold; text-align:center;\n" +
-"          color: white; margin: 0.2em 0em 0em 0em;\n" +
-"          border-radius: 6px 6px 6px 6px;\n" +
-"}\n" +
-"P.nochange { background-color: rgb(0,0,200);\n" +
-"          font-size: medium; font-weight: bold; text-align:center;\n" +
-"          color: white; margin: 0.2em 0em 0em 0em;\n" +
-"}\n" +
-"*.alert { background-color: #FF6666; }\n" +
-"*.new { background-color: #FFFF9C }\n" +
-"*.changed { background-color: #DEBDDE }\n" +
-"*.warning { background-color: #FF9900; }\n" +
-"P.delete { text-align:right; }\n" +
-"P.bannerleft { background-color: #303b43;\n" +
-"       font-size: medium; font-weight: bold; text-align:left;\n" +
-"       color: white; margin: 0.2em 0em 0em 0em;\n" +
-"}\n" +
-"/* Sortable tables */\n" +
-"table.sortable thead {\n" +
-"    background-color: #303b43;\n" +
-"    color: white;\n" +
-"    font-weight: bold;\n" +
-"    cursor: default;\n" +
-"}\n" +
-".canpopup {\n" +
-"    z-index: 100; position: absolute;  display: none;\n" +
-" /*   opacity: 0.9; */  background-color: white;\n" +
-"    border: 1px solid gray;\n" +
-"    padding: 0.4em 0.4em 0.4em 0.4em;\n" +
-"     border-radius: 6px 6px 6px 6px;\n" +
-"}\n" +
-".screenfade {\n" +
-"    z-index: 99; position: fixed;  display: none;\n" +
-"    opacity: 0.6;   background-color: gray;\n" +
-"    top: 0; left: 0; bottom: 0; right: 0;\n" +
-"}\n" +
-"div.CodeMirror {\n"+
-"    border: 1px solid #eee;\n"+
-"    height: auto;\n"+
-"}\n" +
-"  .split {\n" +
-"    box-sizing: border-box;\n" +
-"    overflow-y: auto;\n" +
-"    overflow-x: hidden;\n" +
-"  }\n" +
-"  .gutter.gutter-horizontal { cursor: col-resize; }\n" +
-"  .gutter.gutter-vertical { cursor: row-resize; }\n" +
-"  .gutter.gutter-horizontal:hover { background-color: lightgray; }\n" +
-"  .gutter.gutter-vertical:hover { background-color: lightgray; }\n" +
-"  .split.split-horizontal, .gutter.gutter-horizontal {\n" +
-"    height: 100%;\n" +
-"    float: left;\n" +
-"  }\n"+
-".nodeTitle { fill: black; font-size: medium; }\n"+
-"g:not(.selected) { stroke: none; } \n"+
-"g.selected { stroke: black; }\n"+
-".link { fill: black; stroke: lightgray; }\n"+
-"rect.node { opacity: 1; }\n"+
-"rect.selection { stroke: black; fill: none; stroke-width: 4px; stroke-dasharray: 5,5; opacity: 0.8; }\n"+
-"@media print { BODY { font-size: 6pt; margin: 1em; } }\n" +
-"@media print { #menu {display: none; } }\n" +
-"@media print { #service {position: absolute; top: 0.5in; left: auto;} }\n" +
-"@media print { TABLE.data { border: solid thin;  page-break-inside: avoid;} }\n" +
-"@media print { TD.header { border: solid thin; } }\n" +
-"@media print { *.new { border: dotted thin; } }\n" +
-"@media print { *.alert { border: solid medium; border-color: #FF0000;} }\n" +
-"@media print { *.changed { border: double thin; } }\n" +
-"@media print { *.button { display: none; } }\n";
+    public static final String DEFAULT_ALT_STYLESHEET = """            
+/* This is the bright PermeAgility stylesheet (vertical menu)*/
+img.headerlogo { width: 110px; height: 55px; position: fixed; top: 3px; left: 3px; border: none;}
+a.headerlogo:hover { text-decoration: none; background-color: transparent;}
+BODY { font-family: verdana,sans-serif; /* font-size: small; */ }
+#menu { position: fixed; top: 0px; left: 0px; bottom: 0px;
+  width: 145px; background-repeat: repeat-y; border: 0;
+  background-image: url(../images/menu_background.jpg);
+  padding-left: 5px; padding-top: 75px; /* menu starts below header */
+}
+a, a.menuitem, a.popuplink {color: black;}
+a.menuitem:link { text-decoration: none; }
+a.menuitem:visited { text-decoration: none; }
+a:hover, a.menuitem:hover, a.popuplink:hover { text-decoration: none; color: blue;
+         border-radius: 6px 6px 6px 6px;   border: 1px solid blue;  }
+#header { position: absolute; top: 0px; left: 0px; right: 0px; height: 75px;
+         background-image: url(/images/header_background.jpg);   }
+#headertitle { font-size: 1em; position: absolute; top: 5px; left: 160px;  }
+#headerservice { font-size: 1.5em;    position: absolute; top: 30px; left: 160px; }
+#headertime { position: absolute; top: 5px; right: 5px; }
+#headeruser { position: absolute; top: 25px; right: 5px; }
+#service { position: absolute; top: 75px; left: 125px; right: 0px; bottom: 0px; display: inline-block;}
+.label { color: black; }
+td.label { text-align: right; vertical-align: middle; font-size: x-small;
+  border-radius: 6px 6px 6px 6px;
+ background: linear-gradient(to right, white, #E0E0E0);
+        border: none;  padding: 0px 5px 0px 25px;}
+a { text-decoration: none; }
+a:hover { text-decoration: underline; }
+input.number { text-align: right; }
+table.layout {  width: 100%; }
+td.layout { border-radius: 6px 6px 6px 6px; text-align: left;
+    padding: 2px 2px 2px 2px;  background-color: #DCDCDC;
+}
+th { background-color: #303b43; color: white; font-weight: bold;
+     border-radius: 4px 4px 0px 0px;
+}
+tr.data, TD.data { background-color: #DCDCDC; vertical-align: top; }
+tr.clickable { background-color: #DCDCDC; vertical-align: top; }
+tr.clickable:hover { background-color: #AAAADC; text-decoration: bold; }
+tr.footer { font-weight: bold; }
+td { text-align: left;  }
+td.number { text-align: right; }
+td.total { text-align: right; font-weight:bolder; normal: solid thin black; }
+p.headline { color: #303b43; font-size: large; font-weight: bold;
+            margin-bottom: 2px; }
+p.dateline { font-size: 6pt; line-height: 50%;
+            margin-bottom: 1px; margin-top: 1px; }
+p.article { font-size: 12pt; }
+p.menuheader {  color: black;  margin: 0.2em 0em 0em 0em; }
+P.banner { background-color: #777777;
+     font-size: medium;  font-weight: bold; text-align:center; color: white;
+     margin: 0.2em 0em 0em 0em;
+     page-break-after: avoid;
+     border-radius: 4px 4px 4px 4px;
+}
+P.error { background-color: rgb(117,0,0);
+           font-size: medium; font-weight: bold; text-align:center;
+           color: white; margin: 0.2em 0em 0em 0em;
+          border-radius: 6px 6px 6px 6px;
+}
+P.warning { background-color: #FFCC00;
+          font-size: medium; font-weight: bold; text-align:center;
+          color: white; margin: 0.2em 0em 0em 0em;
+          border-radius: 6px 6px 6px 6px;
+}
+P.success { background-color: #1d5e1f;
+          font-size: medium; font-weight: bold; text-align:center;
+          color: white; margin: 0.2em 0em 0em 0em;
+          border-radius: 6px 6px 6px 6px;
+}
+P.nochange { background-color: rgb(0,0,200);
+          font-size: medium; font-weight: bold; text-align:center;
+          color: white; margin: 0.2em 0em 0em 0em;
+}
+*.alert { background-color: #FF6666; }
+*.new { background-color: #FFFF9C }
+*.changed { background-color: #DEBDDE }
+*.warning { background-color: #FF9900; }
+P.delete { text-align:right; }
+P.bannerleft { background-color: #303b43;
+       font-size: medium; font-weight: bold; text-align:left;
+       color: white; margin: 0.2em 0em 0em 0em;
+}
+/* Sortable tables */
+table.sortable thead {
+    background-color: #303b43;
+    color: white;
+    font-weight: bold;
+    cursor: default;
+}
+.canpopup {
+    z-index: 100; position: absolute;  display: none;
+ /*   opacity: 0.9; */  background-color: white;
+    border: 1px solid gray;
+    padding: 0.4em 0.4em 0.4em 0.4em;
+     border-radius: 6px 6px 6px 6px;
+}
+.screenfade {
+    z-index: 99; position: fixed;  display: none;
+    opacity: 0.6;   background-color: gray;
+    top: 0; left: 0; bottom: 0; right: 0;
+}
+div.CodeMirror {\n"+
+    border: 1px solid #eee;\n"+
+    height: auto;\n"+
+}
+  .split {
+    box-sizing: border-box;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  .gutter.gutter-horizontal { cursor: col-resize; }
+  .gutter.gutter-vertical { cursor: row-resize; }
+  .gutter.gutter-horizontal:hover { background-color: lightgray; }
+  .gutter.gutter-vertical:hover { background-color: lightgray; }
+  .split.split-horizontal, .gutter.gutter-horizontal {
+    height: 100%;
+    float: left;
+  }\n"+
+.nodeTitle { fill: black; font-size: medium; }\n"+
+g:not(.selected) { stroke: none; } \n"+
+g.selected { stroke: black; }\n"+
+.link { fill: black; stroke: lightgray; }\n"+
+rect.node { opacity: 1; }\n"+
+rect.selection { stroke: black; fill: none; stroke-width: 4px; stroke-dasharray: 5,5; opacity: 0.8; }\n"+
+popbox {padding: 0.2em 0.2em; background-color: #eee; border-radius: 3px; }
+modal {
+   background-color: #eee; 
+   border-radius: 6px;
+   position: absolute;  
+   transition: all 0.8s;
+   visibility: hidden;
+   opacity: 0; 
+}
+.pop-content { padding: 0.75em 0.75em; } 
+.modal:target {visibility: visible; opacity: 1; }
+.box-close {float: right; font-size: 1.5em; }
+@media print { BODY { font-size: 6pt; margin: 1em; } }
+@media print { #menu {display: none; } }
+@media print { #service {position: absolute; top: 0.5in; left: auto;} }
+@media print { TABLE.data { border: solid thin;  page-break-inside: avoid;} }
+@media print { TD.header { border: solid thin; } }
+@media print { *.new { border: dotted thin; } }
+@media print { *.alert { border: solid medium; border-color: #FF0000;} }
+@media print { *.changed { border: double thin; } }
+@media print { *.button { display: none; } }
+""";
 
-	public static final String DEFAULT_STYLESHEET =
-"/* This is the dark PermeAgility stylesheet (horizontal menu) */\n" +
-"img.headerlogo { width: 90px; left: 2px; top: 25px; \n" +
-"    position: absolute; border: none; }\n" +
-"a.headerlogo:hover { text-decoration: none; background-color: transparent;}\n" +
-"body, html { font-family: verdana,sans-serif;\n" +
-"       color: white; background: black;\n" +
-"        background: linear-gradient(to right, black, #444444); }\n" +
-"#menu { position: fixed; left: 0px; top: 2px; right: 0px; height: 20px; z-index: 100;\n" +
-"/*  background-repeat: repeat-y; border: 0;\n" +
-"  background-image: url(../images/PSBlackMenu.jpg); */\n" +
-"  padding-left: 5px; \n" +
-"}\n" +
-"a, a.menuitem, a.popuplink {color: lightgray;}\n" +
-"a.menuitem:link { text-decoration: none; }\n" +
-"a.menuitem:visited { text-decoration: none; }\n" +
-"a:hover, a.menuitem:hover, a.popuplink:hover { text-decoration: none;   \n" +
-"    color: white;  \n" +
-"    background: radial-gradient(ellipse, darkorange, black);\n" +
-"/*         border-radius: 6px 6px 6px 6px;   border: 1px solid cyan;  */\n" +
-"}\n" +
-"#header { position: absolute; top: 0px; left: 0px; right: 0px; height: 80px;\n" +
-"         background-image: url(/images/PSBlackHeader.jpg);   }\n" +
-"#headertitle { font-size: 0.75em; position: absolute; top: 30px; left: 100px; }\n" +
-"#headerservice { font-size: 1em; position: absolute; top: 50px; left: 100px; }\n" +
-"#headertime { font-size: 0.75em; position: absolute; top: 20px; right: 5px; }\n" +
-"#headeruser { font-size: 0.75em; position: absolute; top: 40px; right: 5px; }\n" +
-"#service { position: absolute; top: 80px;  left: 5px; right: 5px; bottom: 0px; display: inline-block;}\n" +
-".label { color: black; }\n" +
-"td.label { text-align: right; vertical-align: middle; font-size: small; \n" +
-"  color: white; font-weight: bold;\n" +
-"  border-radius: 6px 6px 6px 6px;  \n" +
-" background: linear-gradient(to right, black, #444444);\n" +
-"        border: none;  padding: 0px 5px 0px 25px;}\n" +
-"a { text-decoration: none; }\n" +
-"a:hover { text-decoration: underline; }\n" +
-"input, textarea, select {\n" +
-"  background-color : #222222;\n" +
-"  color: white; \n" +
-"}\n" +
-"input.number { text-align: right; }\n" +
-"table.layout {  width: 100%; }\n" +
-"td.layout { border-radius: 6px 6px 6px 6px;\n" +
-"    padding: 2px 2px 2px 2px;  background-color: #222222;\n" +
-"}\n" +
-"th { font-weight: bold; \n" +
-"     border-radius: 8px 8px 0px 0px; \n" +
-"    background-color: #339999;  \n" +
-"     background: radial-gradient(ellipse, #339999, black);\n" +
-"    font-weight: bold; color: white;\n" +
-"}\n" +
-"tr.data, td.data { background-color: #222222; vertical-align: top; }\n" +
-"tr.clickable { background-color: #222222; vertical-align: top; }\n" +
-"tr.clickable:hover {         \n" +
-"   background: radial-gradient(ellipse, darkorange, black);\n" +
-"}\n" +
-"tr.footer { font-weight: bold; }\n" +
-"td { text-align: left;  }\n" +
-"td.number { text-align: right; }\n" +
-"td.total { text-align: right; font-weight:bolder; normal: solid thin black; }\n" +
-"p.headline { color: #339999; font-size: large; font-weight: bold; \n" +
-"            margin-bottom: 2px; }\n" +
-"p.dateline { font-size: 6pt; line-height: 50%; \n" +
-"            margin-bottom: 1px; margin-top: 1px; }\n" +
-"p.article { font-size: 12pt; }\n" +
-"p.menuheader {  color: white;  margin: 0.2em 0em 0em 0em; }\n" +
-"P.banner { background-color: #336666;\n" +
-"     font-weight: bold;  text-align:center;  color: white; \n" +
-"     margin: 0.2em 0em 0em 0em; \n" +
-"     page-break-after: avoid; \n" +
-"     border-radius: 8px 8px 8px 8px; \n" +
-"     background: radial-gradient(ellipse, #336666, black);\n" +
-"}\n" +
-"P.error { \n" +
-"    font-weight: bold; text-align:center; \n" +
-"    color: white; margin: 0.2em 0em 0em 0em; \n" +
-"    border-radius: 6px 6px 6px 6px;\n" +
-" background: radial-gradient(ellipse, rgb(117,0,0), black);\n" +
-"}\n" +
-"P.warning {\n" +
-"    font-weight: bold; text-align:center; \n" +
-"    color: white; margin: 0.2em 0em 0em 0em; \n" +
-"    border-radius: 6px 6px 6px 6px;\n" +
-"    background-color: #FFCC00;\n" +
-"    background: radial-gradient(ellipse, #FFCC00, black);\n" +
-"}\n" +
-"P.success { background-color: #1d5e1f; \n" +
-"    font-weight: bold; text-align:center; \n" +
-"    color: white; margin: 0.2em 0em 0em 0em; \n" +
-"    border-radius: 6px 6px 6px 6px;\n" +
-"    background: radial-gradient(ellipse, #1d5e1f, black);\n" +
-"}\n" +
-"P.nochange { background-color: rgb(0,0,200); \n" +
-"    font-weight: bold; text-align:center; \n" +
-"    color: white; margin: 0.2em 0em 0em 0em; \n" +
-"}\n" +
-"*.alert { background-color: #FF6666; }\n" +
-"*.new { background-color: #FFFF9C }\n" +
-"*.changed { background-color: #DEBDDE }\n" +
-"*.warning { background-color: #FF9900; }\n" +
-"P.delete { text-align:right; }\n" +
-"P.bannerleft { background-color: #303b43; \n" +
-"       font-weight: bold; text-align:left; \n" +
-"       color: white; margin: 0.2em 0em 0em 0em; \n" +
-"}\n" +
-"/* Sortable tables */\n" +
-"table.sortable thead {\n" +
-"    background-color: #303b43;\n" +
-"    color: white;\n" +
-"    font-weight: bold;\n" +
-"    cursor: default;\n" +
-"}\n" +
-".canpopup {\n" +
-"    z-index: 100; position: absolute;  display: none;\n" +
-" /*   opacity: 0.9; */  background-color: black;    \n" +
-"    border: 1px solid gray;\n" +
-"    padding: 0.4em 0.4em 0.4em 0.4em;\n" +
-"     border-radius: 6px 6px 6px 6px; \n" +
-"}\n" +
-".screenfade {\n" +
-"    z-index: 99; position: fixed;  display: none; \n" +
-"    opacity: 0.7;   background-color: #000000;\n" +
-"    top: 0; left: 0; bottom: 0; right: 0;\n" +
-"}\n" +
-"div.CodeMirror {\n"+
-"    height: auto;\n"+
-"}\n"+
-"  .split {\n" +
-"    box-sizing: border-box;\n" +
-"    overflow-y: auto;\n" +
-"    overflow-x: hidden;\n" +
-"  }\n" +
-"  .gutter.gutter-horizontal { cursor: col-resize; }\n" +
-"  .gutter.gutter-vertical { cursor: row-resize; }\n" +
-"  .gutter.gutter-horizontal:hover { background-color: #444444; }\n" +
-"  .gutter.gutter-vertical:hover { background-color: #444444; }\n" +
-"  .split.split-horizontal, .gutter.gutter-horizontal {\n" +
-"    height: 100%;\n" +
-"    float: left;\n" +
-"  }\n"+
-".nodeTitle { fill: white; filter: url(#drop-shadow); font-size: small; }\n"+
-"g:not(.selected) { stroke: none; } \n"+
-"g.selected { stroke: yellow; }\n"+
-".link { fill: lightgray; stroke: gray; }\n"+
-"rect.node { opacity: 0.5; }\n"+
-"rect.selection { opacity:0.8; fill: none; stroke: white; stroke-width: 4px; stroke-dasharray: 5,5; }\n"+
-"@media print { BODY { font-size: 6pt; margin: 1em; } }\n" +
-"@media print { #menu {display: none; } }\n" +
-"@media print { #service {position: absolute; top: 0.5in; left: auto;} }\n" +
-"@media print { TABLE.data { border: solid thin;  page-break-inside: avoid;} }\n" +
-"@media print { TD.header { border: solid thin; } }\n" +
-"@media print { *.new { border: dotted thin; } }\n" +
-"@media print { *.alert { border: solid medium; border-color: #FF0000;} }\n" +
-"@media print { *.changed { border: double thin; } }\n" +
-"@media print { *.button { display: none; } }\n";
+	public static final String DEFAULT_STYLESHEET = """
+/* This is the dark PermeAgility stylesheet (horizontal menu) */
+img.headerlogo { width: 90px; left: 2px; top: 25px; 
+    position: absolute; border: none; }
+a.headerlogo:hover { text-decoration: none; background-color: transparent;}
+body, html { font-family: verdana,sans-serif;
+       color: white; background: black;
+        background: linear-gradient(to right, black, #444444); }
+#menu { position: fixed; left: 0px; top: 2px; right: 0px; height: 20px; z-index: 100;
+/*  background-repeat: repeat-y; border: 0;
+  background-image: url(../images/PSBlackMenu.jpg); */
+  padding-left: 5px; 
+}
+a, a.menuitem, a.popuplink {color: lightgray;}
+a.menuitem:link { text-decoration: none; }
+a.menuitem:visited { text-decoration: none; }
+a:hover, a.menuitem:hover, a.popuplink:hover { text-decoration: none;   
+    color: white;  
+    background: radial-gradient(ellipse, darkorange, black);
+/*         border-radius: 6px 6px 6px 6px;   border: 1px solid cyan;  */
+}
+#header { position: absolute; top: 0px; left: 0px; right: 0px; height: 80px;
+         background-image: url(/images/PSBlackHeader.jpg);   }
+#headertitle { font-size: 0.75em; position: absolute; top: 30px; left: 100px; }
+#headerservice { font-size: 1em; position: absolute; top: 50px; left: 100px; }
+#headertime { font-size: 0.75em; position: absolute; top: 20px; right: 5px; }
+#headeruser { font-size: 0.75em; position: absolute; top: 40px; right: 5px; }
+#service { position: absolute; top: 80px;  left: 5px; right: 5px; bottom: 0px; display: inline-block;}
+.label { color: black; }
+td.label { text-align: right; vertical-align: middle; font-size: small; 
+  color: white; font-weight: bold;
+  border-radius: 6px 6px 6px 6px;  
+ background: linear-gradient(to right, black, #444444);
+        border: none;  padding: 0px 5px 0px 25px;}
+a { text-decoration: none; }
+a:hover { text-decoration: underline; }
+input, textarea, select {
+  background-color : #222222;
+  color: white; 
+}
+input.number { text-align: right; }
+table.layout {  width: 100%; }
+td.layout { border-radius: 6px 6px 6px 6px;
+    padding: 2px 2px 2px 2px;  background-color: #222222;
+}
+th { font-weight: bold; 
+     border-radius: 8px 8px 0px 0px; 
+    background-color: #339999;  
+     background: radial-gradient(ellipse, #339999, black);
+    font-weight: bold; color: white;
+}
+tr.data, td.data { background-color: #222222; vertical-align: top; }
+tr.clickable { background-color: #222222; vertical-align: top; }
+tr.clickable:hover {         
+   background: radial-gradient(ellipse, darkorange, black);
+}
+tr.footer { font-weight: bold; }
+td { text-align: left;  }
+td.number { text-align: right; }
+td.total { text-align: right; font-weight:bolder; normal: solid thin black; }
+p.headline { color: #339999; font-size: large; font-weight: bold; 
+            margin-bottom: 2px; }
+p.dateline { font-size: 6pt; line-height: 50%; 
+            margin-bottom: 1px; margin-top: 1px; }
+p.article { font-size: 12pt; }
+p.menuheader {  color: white;  margin: 0.2em 0em 0em 0em; }
+P.banner { background-color: #336666;
+     font-weight: bold;  text-align:center;  color: white; 
+     margin: 0.2em 0em 0em 0em; 
+     page-break-after: avoid; 
+     border-radius: 8px 8px 8px 8px; 
+     background: radial-gradient(ellipse, #336666, black);
+}
+P.error { 
+    font-weight: bold; text-align:center; 
+    color: white; margin: 0.2em 0em 0em 0em; 
+    border-radius: 6px 6px 6px 6px;
+ background: radial-gradient(ellipse, rgb(117,0,0), black);
+}
+P.warning {
+    font-weight: bold; text-align:center; 
+    color: white; margin: 0.2em 0em 0em 0em; 
+    border-radius: 6px 6px 6px 6px;
+    background-color: #FFCC00;
+    background: radial-gradient(ellipse, #FFCC00, black);
+}
+P.success { background-color: #1d5e1f; 
+    font-weight: bold; text-align:center; 
+    color: white; margin: 0.2em 0em 0em 0em; 
+    border-radius: 6px 6px 6px 6px;
+    background: radial-gradient(ellipse, #1d5e1f, black);
+}
+P.nochange { background-color: rgb(0,0,200); 
+    font-weight: bold; text-align:center; 
+    color: white; margin: 0.2em 0em 0em 0em; 
+}
+*.alert { background-color: #FF6666; }
+*.new { background-color: #FFFF9C }
+*.changed { background-color: #DEBDDE }
+*.warning { background-color: #FF9900; }
+P.delete { text-align:right; }
+P.bannerleft { background-color: #303b43; 
+       font-weight: bold; text-align:left; 
+       color: white; margin: 0.2em 0em 0em 0em; 
+}
+/* Sortable tables */
+table.sortable thead {
+    background-color: #303b43;
+    color: white;
+    font-weight: bold;
+    cursor: default;
+}
+.canpopup {
+    z-index: 100; position: absolute;  display: none;
+ /*   opacity: 0.9; */  background-color: black;    
+    border: 1px solid gray;
+    padding: 0.4em 0.4em 0.4em 0.4em;
+     border-radius: 6px 6px 6px 6px; 
+}
+.screenfade {
+    z-index: 99; position: fixed;  display: none; 
+    opacity: 0.7;   background-color: #000000;
+    top: 0; left: 0; bottom: 0; right: 0;
+}
+div.CodeMirror {
+    height: auto;
+}
+  .split {
+    box-sizing: border-box;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  .gutter.gutter-horizontal { cursor: col-resize; }
+  .gutter.gutter-vertical { cursor: row-resize; }
+  .gutter.gutter-horizontal:hover { background-color: #444444; }
+  .gutter.gutter-vertical:hover { background-color: #444444; }
+  .split.split-horizontal, .gutter.gutter-horizontal {
+    height: 100%;
+    float: left;
+  }
+  .gutter.gutter-vertical {
+    background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAFAQMAAABo7865AAAABlBMVEVHcEzMzMzyAv2sAAAAAXRSTlMAQObYZgAAABBJREFUeF5jOAMEEAIEEFwAn3kMwcB6I2AAAAAASUVORK5CYII=');
+    background-repeat: no-repeat;
+    background-position: center;
+  }
+
+  .gutter.gutter-horizontal {
+    background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAeCAYAAADkftS9AAAAIklEQVQoU2M4c+bMfxAGAgYYmwGrIIiDjrELjpo5aiZeMwF+yNnOs5KSvgAAAABJRU5ErkJggg==');
+    background-repeat: no-repeat;
+    background-position: center;
+  }
+.nodeTitle { fill: white; filter: url(#drop-shadow); font-size: small; }
+g:not(.selected) { stroke: none; } 
+g.selected { stroke: yellow; }
+.link { fill: lightgray; stroke: gray; }
+rect.node { opacity: 0.5; }
+rect.selection { opacity:0.8; fill: none; stroke: white; stroke-width: 4px; stroke-dasharray: 5,5; }
+.popbox {padding: 0.2em 0.2em; background-color: #333; border-radius: 3px; }
+.modal {
+    background-color: #333; 
+    border-radius: 6px;
+      position: absolute;  
+    transition: all 0.8s;
+    visibility: hidden;
+    opacity: 0; 
+}
+.pop-content { padding: 0.75em 0.75em; } 
+.modal:target {visibility: visible; opacity: 1; }
+.box-close {float: right; font-size: 1.5em; }
+@media print { BODY { font-size: 6pt; margin: 1em; } }
+@media print { #menu {display: none; } }
+@media print { #service {position: absolute; top: 0.5in; left: auto;} }
+@media print { TABLE.data { border: solid thin;  page-break-inside: avoid;} }
+@media print { TD.header { border: solid thin; } }
+@media print { *.new { border: dotted thin; } }
+@media print { *.alert { border: solid medium; border-color: #FF0000;} }
+@media print { *.changed { border: double thin; } }
+@media print { *.button { display: none; } }
+""";
 
 }

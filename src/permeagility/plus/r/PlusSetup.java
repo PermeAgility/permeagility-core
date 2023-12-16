@@ -17,14 +17,14 @@ package permeagility.plus.r;
 
 import java.util.HashMap;
 
+import com.arcadedb.database.Document;
+import com.arcadedb.schema.DocumentType;
+import com.arcadedb.schema.Schema;
+import com.arcadedb.schema.Type;
+
 import permeagility.util.DatabaseConnection;
 import permeagility.util.Setup;
 
-import com.orientechnologies.orient.core.metadata.schema.OClass;
-import com.orientechnologies.orient.core.metadata.schema.OSchema;
-import com.orientechnologies.orient.core.metadata.schema.OType;
-import com.orientechnologies.orient.core.metadata.security.ORule;
-import com.orientechnologies.orient.core.record.impl.ODocument;
 import permeagility.web.Message;
 import permeagility.web.Server;
 import permeagility.web.Table;
@@ -46,7 +46,7 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 	@Override public boolean isInstalled() { return INSTALLED; }
 	
 	@Override public boolean install(DatabaseConnection con, HashMap<String,String> parms, StringBuilder errors) {
-		OSchema oschema = con.getSchema();
+		Schema oschema = con.getSchema();
 		String newTableGroup = pickTableGroup(con, parms);
                 String roles = parms.get("ROLES");
 				
@@ -54,16 +54,16 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 			errors.append(paragraph("error",Message.get(con.getLocale(), "PLUS_PARMS_INVALID")));
 			return false;
 		}
-                ODocument loc = con.queryDocument("SELECT FROM locale WHERE name='en'");
+                Document loc = con.queryDocument("SELECT FROM locale WHERE name='en'");
 
-		OClass table = Setup.checkCreateTable(con, oschema, TABLE, errors, newTableGroup);
+		DocumentType table = Setup.checkCreateTable(con, oschema, TABLE, errors, newTableGroup);
                 Setup.checkTableSuperclass(oschema, table, "ORestricted", errors);
-		Setup.checkCreateColumn(con,table, "name", OType.STRING, errors);
-		Setup.checkCreateColumn(con,table, "description", OType.STRING, errors);
-		Setup.checkCreateColumn(con,table, "RScript", OType.STRING, errors);
-		Setup.checkCreateColumn(con,table, "status", OType.STRING, errors);
-		Setup.checkCreateColumn(con,table, "textResult", OType.STRING, errors);
-		Setup.checkCreateColumn(con,table, "PDFResult", OType.CUSTOM, errors);
+		Setup.checkCreateColumn(con,table, "name", Type.STRING, errors);
+		Setup.checkCreateColumn(con,table, "description", Type.STRING, errors);
+		Setup.checkCreateColumn(con,table, "RScript", Type.STRING, errors);
+		Setup.checkCreateColumn(con,table, "status", Type.STRING, errors);
+		Setup.checkCreateColumn(con,table, "textResult", Type.STRING, errors);
+	//	Setup.checkCreateColumn(con,table, "PDFResult", Type.CUSTOM, errors);
 		
 		Setup.createMenuItem(con,getName(),getInfo(),MENU_CLASS,parms.get("MENU"),roles);	
 		Setup.createMenuItem(con,getName(),getInfo(),DATA_CLASS,null,roles);	
@@ -71,13 +71,13 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
                 // Add table privs for each role
                 String privRoles[] = roles.split(",");
                 for (String role : privRoles) {
-                    String roleName = con.get(role).field("name");
+                    String roleName = con.get(role).getString("name");
                     if (roleName != null) {
-                        Setup.checkCreatePrivilege(con, roleName, ORule.ResourceGeneric.CLASS, TABLE, Table.PRIV_ALL, errors);
-                        Setup.checkCreatePrivilege(con, roleName, ORule.ResourceGeneric.CLUSTER, TABLE, Table.PRIV_ALL, errors);
+          //              Setup.checkCreatePrivilege(con, roleName, ORule.ResourceGeneric.CLASS, TABLE, Table.PRIV_ALL, errors);
+          //              Setup.checkCreatePrivilege(con, roleName, ORule.ResourceGeneric.CLUSTER, TABLE, Table.PRIV_ALL, errors);
                     }
                 }
-                Server.tableUpdated("message");
+                Server.tableUpdated(con, "message");
 		setPlusInstalled(con, this.getClass().getName(), getInfo(), getVersion());
 		INSTALLED = true;
 		return true;

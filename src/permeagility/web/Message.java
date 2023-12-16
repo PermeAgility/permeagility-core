@@ -23,11 +23,12 @@ import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
 
+import com.arcadedb.database.Document;
+
 import permeagility.util.DatabaseConnection;
 import permeagility.util.QueryResult;
 import permeagility.util.Setup;
 
-import com.orientechnologies.orient.core.record.impl.ODocument;
 
 public class Message {
 
@@ -37,21 +38,17 @@ public class Message {
 	
 	private static HashMap<Locale,TreeMap<String,String>> bundles = null;
 	private static TreeMap<String,String> defaultBundle = null;  // For fallback (currently disabled)
-	private static Locale defaultLocale = new Locale(DEFAULT_LOCALE);
+	private static Locale defaultLocale = new Locale.Builder().setLanguage(DEFAULT_LOCALE).build();
 		
 	public Message () {
 	}
 
-//	public Message (DatabaseConnection con) {
-//		initialize(con);
-//	}
-	
 	public static void initialize(DatabaseConnection con) {
 		if (con == null) {
 			System.out.println("Cannot initialize messages with null connection");
 			return;
 		}
-		QueryResult qr = con.query("SELECT name FROM "+Setup.TABLE_LOCALE+" WHERE active=true");
+		QueryResult qr = con.query("SELECT FROM "+Setup.TABLE_LOCALE+" WHERE active=true");
 		if (qr == null || qr.size()==0) {
 			System.out.println("Error - cannot load locale list from locale table");
 			return;
@@ -70,6 +67,7 @@ public class Message {
 				TreeMap<String,String> bundle = loadBundle(con, locale);
 				if (bundle != null) {
 					newbundles.put( locale, bundle );
+					System.out.println("Added message bundle of "+bundle.size()+" messages for locale "+locale.toString());
 					if (locale.getLanguage().equalsIgnoreCase(DEFAULT_LOCALE)) { defaultBundle = bundle; }
 				}
 				if (newbundles.size() == 1) { defaultLocale = locale; }  // First locale is default
@@ -83,7 +81,7 @@ public class Message {
 			String language = lp.nextToken();
 			String country = (lp.hasMoreTokens() ? lp.nextToken() : "");
 			String variant = (lp.hasMoreTokens() ? lp.nextToken() : "");
-			return new Locale(language,country,variant);
+			return new Locale.Builder().setLanguage(language).setRegion(country).setVariant(variant).build();
 	}
 	
 	public static Locale getDefaultLocale() {
@@ -93,12 +91,13 @@ public class Message {
 	public static TreeMap<String,String> loadBundle(DatabaseConnection con, Locale locale) {
 		TreeMap<String,String> table = new TreeMap<String,String>();
 		try {
-			String query = "SELECT name, description FROM "+Setup.TABLE_MESSAGE+" WHERE locale.name='"+locale.toString()+"'";  // No order needed for TreeMap
+			String query = "SELECT FROM "+Setup.TABLE_MESSAGE+" WHERE locale.name='"+locale.toString()+"'";
 			if (DEBUG) System.out.println("query: "+query );
 			QueryResult rs = con.query(query);
-			for (ODocument row : rs.get()) {
-				table.put((String)row.field("name",String.class),(String)row.field("description",String.class));
+			for (Document row : rs.get()) {
+				table.put(row.getString("name"), row.getString("description"));
 			}
+			System.out.println("Loaded "+rs.size()+" rows into message bundle for "+locale.toString());
 		} catch(Exception ex) {
 			ex.printStackTrace();
 		}

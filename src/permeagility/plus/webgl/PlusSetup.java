@@ -17,18 +17,15 @@ package permeagility.plus.webgl;
 
 import java.util.HashMap;
 
+import com.arcadedb.schema.DocumentType;
+import com.arcadedb.schema.Schema;
+import com.arcadedb.schema.Type;
+
 import permeagility.util.DatabaseConnection;
 import permeagility.util.Setup;
 
-import com.orientechnologies.orient.core.metadata.schema.OClass;
-import com.orientechnologies.orient.core.metadata.schema.OSchema;
-import com.orientechnologies.orient.core.metadata.schema.OType;
-import com.orientechnologies.orient.core.metadata.security.ORule;
-import com.orientechnologies.orient.core.record.impl.ODocument;
 import permeagility.web.Message;
 import permeagility.web.Server;
-import permeagility.web.Table;
-import static permeagility.web.Weblet.paragraph;
 
 public class PlusSetup extends permeagility.plus.PlusSetup {
 
@@ -46,7 +43,7 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 	@Override public boolean isInstalled() { return INSTALLED; }
 
 	@Override public boolean install(DatabaseConnection con, HashMap<String,String> parms, StringBuilder errors) {
-		OSchema oschema = con.getSchema();
+		Schema oschema = con.getSchema();
 		String newTableGroup = pickTableGroup(con, parms);
                 String roles = parms.get("ROLES");
                 String samples = parms.get("LOAD_EXAMPLES");
@@ -55,29 +52,29 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 			errors.append(paragraph("error",Message.get(con.getLocale(), "PLUS_PARMS_INVALID")));
 			return false;
 		}
-                ODocument loc = con.queryDocument("SELECT FROM locale WHERE name='en'");
+        //Document loc = con.queryDocument("SELECT FROM locale WHERE name='en'");
 
-		OClass table = Setup.checkCreateTable(con, oschema, TABLE, errors, newTableGroup);
+		DocumentType table = Setup.checkCreateTable(con, oschema, TABLE, errors, newTableGroup);
                 Setup.checkTableSuperclass(oschema, table, "ORestricted", errors);
-		Setup.checkCreateColumn(con,table, "name", OType.STRING, errors);
-		Setup.checkCreateColumn(con,table, "description", OType.STRING, errors);
-		Setup.checkCreateColumn(con,table, "vertexScript", OType.STRING, errors);
-		Setup.checkCreateColumn(con,table, "fragmentScript", OType.STRING, errors);
-		Setup.checkCreateColumn(con,table, "testScript", OType.STRING, errors);
-		Setup.checkCreateColumn(con,table, "usesShader", OType.LINKMAP, table, errors);
+		Setup.checkCreateColumn(con,table, "name", Type.STRING, errors);
+		Setup.checkCreateColumn(con,table, "description", Type.STRING, errors);
+		Setup.checkCreateColumn(con,table, "vertexScript", Type.STRING, errors);
+		Setup.checkCreateColumn(con,table, "fragmentScript", Type.STRING, errors);
+		Setup.checkCreateColumn(con,table, "testScript", Type.STRING, errors);
+		Setup.checkCreateColumn(con,table, "usesShader", Type.MAP, table, errors);
 
 		Setup.createMenuItem(con,getName(),getInfo(),MENU_CLASS,parms.get("MENU"),roles);
 
                 // Add table privs for each role
                 String privRoles[] = roles.split(",");
                 for (String role : privRoles) {
-                    String roleName = con.get(role).field("name");
+                    String roleName = con.get(role).getString("name");
                     if (roleName != null) {
-                        Setup.checkCreatePrivilege(con, roleName, ORule.ResourceGeneric.CLASS, TABLE, Table.PRIV_ALL, errors);
-                        Setup.checkCreatePrivilege(con, roleName, ORule.ResourceGeneric.CLUSTER, TABLE, Table.PRIV_ALL, errors);
+              //          Setup.checkCreatePrivilege(con, roleName, ORule.ResourceGeneric.CLASS, TABLE, Table.PRIV_ALL, errors);
+              //          Setup.checkCreatePrivilege(con, roleName, ORule.ResourceGeneric.CLUSTER, TABLE, Table.PRIV_ALL, errors);
                     }
                 }
-                Server.tableUpdated("message");
+                Server.tableUpdated(con, "message");
 
                 if (samples != null && samples.equalsIgnoreCase("on")) {
                     System.out.println("Loading sample data");

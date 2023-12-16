@@ -21,9 +21,11 @@ import permeagility.util.DatabaseConnection;
 import permeagility.util.Setup;
 import permeagility.web.Weblet;
 
-import com.orientechnologies.orient.core.record.impl.ODocument;
 import java.net.URL;
 import java.util.List;
+
+import com.arcadedb.database.Document;
+
 import permeagility.plus.json.ImportJSON;
 import permeagility.plus.json.JSONObject;
 import permeagility.plus.json.JSONTokener;
@@ -33,7 +35,7 @@ import static permeagility.web.Weblet.paragraph;
 public abstract class PlusSetup extends Weblet {
 
     public String getPage(DatabaseConnection con, java.util.HashMap<String,String> parms) {
-    	return head("plus module")+body(paragraph("This is a plus model and must be setup through the context"));
+    	return head(con, "plus module")+body(paragraph("This is a plus model and must be setup through the context"));
     }
 
     /** Implement this to return the plus module name */
@@ -62,7 +64,7 @@ public abstract class PlusSetup extends Weblet {
         return "TableGroup "+createListFromTable("TABLEGROUP", "Plus", con, "tableGroup")
                 +" or "+input("NEW_TABLEGROUP","")
                 +"<br>Add to menu"+createListFromTable("MENU", "", con, "menu",null, false, null, true)
-                +"<br>Roles: "+linkSetControl(con, "ROLES", "OIdentity", getCache().getResult(con,getQueryForTable(con, "OIdentity")), con.getLocale(), null);
+                +"<br>Roles: "/*+linkSetControl(con, "ROLES", "OIdentity", getCache().getResult(con,getQueryForTable(con, "OIdentity")), con.getLocale(), null)*/;
     }
 
     /** Default remove form (REMOVE_TABLES,REMOVE_MENU) override to add fields (be sure to include default fields if needed) */
@@ -85,9 +87,9 @@ public abstract class PlusSetup extends Weblet {
                 return null;
             } else {
                 try {
-                    ODocument tg = con.get(tableGroup);
+                    Document tg = con.get(tableGroup);
                     if (tg != null) {
-                        newTableGroup = tg.field("name");
+                        newTableGroup = tg.getString("name");
                     }
                 } catch (Exception e) {
                     return null;
@@ -99,18 +101,18 @@ public abstract class PlusSetup extends Weblet {
 
     /** Get the INSTALLED_VERSION constant for the plus module given */
     public String getInstalledVersion(DatabaseConnection con, String classname) {
-        ODocument d = con.queryDocument("SELECT FROM "+Setup.TABLE_CONSTANT+" WHERE classname='"+classname+"' AND field='INSTALLED_VERSION'");
+        Document d = con.queryDocument("SELECT FROM "+Setup.TABLE_CONSTANT+" WHERE classname='"+classname+"' AND field='INSTALLED_VERSION'");
         if (d != null) {
-            return d.field("value");
+            return d.getString("value");
         }
         return null;
     }
 
     /** Get the INSTALLED_VERSION constant for the plus module given */
     public boolean isInstalled(DatabaseConnection con, String classname) {
-        ODocument d = con.queryDocument("SELECT FROM "+Setup.TABLE_CONSTANT+" WHERE classname='"+classname+"' AND field='INSTALLED'");
+        Document d = con.queryDocument("SELECT FROM "+Setup.TABLE_CONSTANT+" WHERE classname='"+classname+"' AND field='INSTALLED'");
         if (d != null) {
-            return Boolean.valueOf(d.field("value"));
+            return Boolean.valueOf(d.getBoolean("value"));
         }
         return false;
     }
@@ -126,7 +128,7 @@ public abstract class PlusSetup extends Weblet {
         QueryResult qr = con.query("SELECT FROM "+Setup.TABLE_CONSTANT+" WHERE classname='"+classname+"'");
         List<String> ids = qr.getIds();
         for (String id : ids) {
-            ODocument d = con.get(id);
+            Document d = con.get(id);
             if (d != null) {
                 d.delete();
             }

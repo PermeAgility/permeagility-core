@@ -22,10 +22,11 @@ import permeagility.web.Message;
 import permeagility.web.Security;
 import permeagility.web.Table;
 
-import com.orientechnologies.orient.core.record.impl.ODocument;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+
+import com.arcadedb.database.Document;
 
 public class D3Builder extends Table {
 
@@ -48,36 +49,36 @@ public class D3Builder extends Table {
         if (update != null) { return update; }
         
         if (preview != null) {
-            ODocument viewDoc = con.get(preview);
+            Document viewDoc = con.get(preview);
             if (viewDoc == null) {
                 errors.append(paragraph("Could not retrieve view details using " + preview));
             } else {
                 sb.append("<button style=\"position: fixed; bottom: 0px;\" id=\"save_as_svg\" download=\"view.svg\">to SVG</button>");
-                additionalStyle = (viewDoc.field("style") != null ? "<style>" + viewDoc.field("style")+ serviceStyleOverride + "</style>" : "");
+                additionalStyle = (viewDoc.getString("style") != null ? "<style>" + viewDoc.getString("style")+ serviceStyleOverride + "</style>" : "");
                 additionalScript = script(getPlugins(viewDoc));
-                String script = (viewDoc.field("script") != null ? "<script>" + viewDoc.field("script") + "</script>" : "");
+                String script = (viewDoc.getString("script") != null ? "<script>" + viewDoc.getString("script") + "</script>" : "");
                 script = script.replace("$$this$$", "permeagility.plus.d3.Data?VIEW="+preview);
                 sb.append(form("svgform", hidden("format", "") + hidden("data", "")));
                 sb.append(chartDiv("chart"));
                 sb.append(additionalScript + "\n" + script);
-                return head("D3 Builder", getScripts(con) + additionalStyle) + body(errors.toString()+div("service",sb.toString()));
+                return head(con, "D3 Builder", getScripts(con) + additionalStyle) + body(errors.toString()+div("service",sb.toString()));
             }
         }
         
         // Standard D3 Viewer
         if (view != null) {
             if (DEBUG) System.out.println("Building D3 view " + view);
-            ODocument viewDoc = con.get(view);
+            Document viewDoc = con.get(view);
             if (viewDoc == null) {
                 errors.append(paragraph("Could not retrieve view details using " + view));
             } else {
-                parms.put("SERVICE", viewDoc.field("name"));
+                parms.put("SERVICE", viewDoc.getString("name"));
                 sb.append("<button style=\"position: fixed; bottom: 0px;\" id=\"save_as_svg\" download=\"view.svg\">to SVG</button>");
-                additionalStyle = (viewDoc.field("style") != null ? "<style>\n" + viewDoc.field("style") + "</style>\n" : "");
+                additionalStyle = (viewDoc.getString("style") != null ? "<style>\n" + viewDoc.getString("style") + "</style>\n" : "");
                 additionalScript = script(getPlugins(viewDoc));
-                String script = (viewDoc.field("script") != null ? "<script>\n" + viewDoc.field("script")+"\nd3.select('#service').attr('top','0px');" + "</script>\n" : "");
+                String script = (viewDoc.getString("script") != null ? "<script>\n" + viewDoc.getString("script")+"\nd3.select('#service').attr('top','0px');" + "</script>\n" : "");
                 script = script.replace("$$this$$", "permeagility.plus.d3.Data?VIEW="+view);
-                sb.append(paragraph("" + viewDoc.field("description")));
+                sb.append(paragraph("" + viewDoc.getString("description")));
                 sb.append(form("svgform", hidden("format", "") + hidden("data", "")));
                 sb.append(chartDiv("chart"));
                 sb.append(additionalScript + script);
@@ -96,7 +97,7 @@ public class D3Builder extends Table {
         }
         
         // Return the default result
-        return head("D3 Builder", getScripts(con) + additionalStyle)
+        return head(con, "D3 Builder", getScripts(con) + additionalStyle)
                 + body(standardLayout(con, parms,
                     ((Security.getTablePriv(con, PlusSetup.TABLE) & PRIV_CREATE) > 0 && view == null
                     ? popupForm("CREATE_NEW_ROW", null, Message.get(locale, "CREATE_ROW"), null, "NAME",
@@ -121,7 +122,7 @@ public class D3Builder extends Table {
     @Override
     public String getTableRowFields(DatabaseConnection con, String table, HashMap<String, String> parms, String columnOverride) {
         String edit_id = (parms != null ? parms.get("EDIT_ID") : null);
-        ODocument initialValues = null;
+        Document initialValues = null;
         if (edit_id != null) {
             initialValues = con.get(edit_id);
             if (initialValues == null) {
@@ -137,15 +138,15 @@ public class D3Builder extends Table {
         String dataEditor = "";
         String formName = (edit_id == null ? "NEWROW" : "UPDATEROW");
 
-        String init = initialValues.field("style");
+        String init = initialValues.getString("style");
         if (init == null) init = "/* CSS Styles */\n";
         styleEditor = getCodeEditorControl(formName, PARM_PREFIX + "style", init, "css");
 
-        init = initialValues.field("script");
+        init = initialValues.getString("script");
         if (init == null) init = "// D3 Script "+new Date()+"\n";
         scriptEditor = getCodeEditorControl(formName, PARM_PREFIX + "script", init, "application/json");                    
 
-        init = initialValues.field("dataScript");
+        init = initialValues.getString("dataScript");
         if (init == null) init = "{\"removethisnote\":\"Data returned by d3.json('$$this$$', function(data) {  });\"}\n";
         dataEditor = getCodeEditorControl(formName, PARM_PREFIX + "dataScript", init, "application/json");                    
 
@@ -205,25 +206,25 @@ public class D3Builder extends Table {
     }
  
 
-    public static String getPlugins(ODocument viewDoc) {
+    public static String getPlugins(Document viewDoc) {
         StringBuilder result = new StringBuilder();
-        List<ODocument> plugins = viewDoc.field("plugins");
+        List<Document> plugins = viewDoc.getList("plugins");
         if (plugins != null) {
-            for (ODocument p : plugins) {
-                if (p.containsField("script")) result.append("\n"+p.field("script")+"\n");
+            for (Document p : plugins) {
+                if (p.has("script")) result.append("\n"+p.getString("script")+"\n");
             }
         }
         return result.toString();
     }
 
     public static String getAsComponent(DatabaseConnection con, String id) {
-        ODocument viewDoc = con.get(id);
+        Document viewDoc = con.get(id);
         if (viewDoc != null) {
             StringBuilder sb = new StringBuilder();
             sb.append("<button style=\"position: fixed; bottom: 0px;\" id=\"save_as_svg\" download=\"view.svg\">to SVG</button>");
-            String additionalStyle = (viewDoc.field("style") != null ? "<style>" + viewDoc.field("style")+ "</style>" : "");
+           // String additionalStyle = (viewDoc.getString("style") != null ? "<style>" + viewDoc.getString("style")+ "</style>" : "");
             String additionalScript = script(getPlugins(viewDoc));
-            String script = (viewDoc.field("script") != null ? "<script>" + viewDoc.field("script") + "</script>" : "");
+            String script = (viewDoc.getString("script") != null ? "<script>" + viewDoc.getString("script") + "</script>" : "");
             //script = script.replace("$$this$$", "permeagility.plus.d3.Data?VIEW="+preview);
             sb.append(form("svgform", hidden("format", "") + hidden("data", "")));
             sb.append(chartDiv("chart"));

@@ -26,16 +26,16 @@ public class Home extends Weblet {
     public String getPage(DatabaseConnection con, HashMap<String,String> parms) {
 		String service = Message.get(con.getLocale(),Message.get(con.getLocale(), "HOME_PAGE_TITLE"));
 		parms.put("SERVICE",service);
-		return head(service)+
+		return head(con, service)+
 		    body (standardLayout(con, parms,getHTML(con, parms)));
     }
 
     public String getHTML(DatabaseConnection con, HashMap<String,String> parms) {
     	StringBuilder sb = new StringBuilder();
     	try {
-                String query = "SELECT dateline, name, description FROM "+Setup.TABLE_NEWS
+                String query = "SELECT FROM "+Setup.TABLE_NEWS
                         +" WHERE (archive IS NULL or archive=false) and (locale IS NULL or locale.name='"+con.getLocale().getLanguage()+"') "
-                        +"AND _allowRead in ["+Security.getUserRolesList(con)+"] ORDER BY dateline desc ";
+                        +" ORDER BY dateline desc ";
 	    	//System.out.println("ArticleQuery="+query);
 	    	QueryResult qr = con.query(query);
 	    	for (int i=0; i<qr.size(); i++) {

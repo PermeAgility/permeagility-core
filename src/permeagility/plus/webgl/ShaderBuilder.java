@@ -19,10 +19,12 @@ import java.util.HashMap;
 
 import permeagility.util.DatabaseConnection;
 
-import com.orientechnologies.orient.core.record.impl.ODocument;
 import java.util.Date;
 import java.util.Locale;
 import java.util.Map;
+
+import com.arcadedb.database.Document;
+
 import permeagility.web.Message;
 import permeagility.web.Security;
 import permeagility.web.Table;
@@ -48,23 +50,23 @@ public class ShaderBuilder extends Table {
         
         // If preview, return the assembled result page (without editors)
         if (preview != null) {
-            ODocument viewDoc = con.get(preview);          
+            Document viewDoc = con.get(preview);          
             if (viewDoc == null) {
                 errors.append(paragraph("Could not retrieve shader details using " + preview));
             } else {
                 StringBuilder usesScripts = new StringBuilder();
-                Map<String,ODocument> uses = viewDoc.field("usesShader");
+                Map<String,Object> uses = viewDoc.getMap("usesShader");
                 if (uses != null && uses.size() > 0) {
                     for (String refName : uses.keySet()) {
                         if (DEBUG) System.out.println("Including shader: "+refName);
-                        if (viewDoc.field("vertexScript") != null) usesScripts.append("<script id=\""+refName.substring(1,refName.length()-1)+"-vs\" type=\"x-shader/x-vertex\">" + uses.get(refName).field("vertexScript") + "</script>\n");
-                        if (viewDoc.field("fragmentScript") != null) usesScripts.append("<script id=\""+refName.substring(1,refName.length()-1)+"-fs\" type=\"x-shader/x-fragment\">" + uses.get(refName).field("fragmentScript") + "</script>\n");
+                        if (viewDoc.getString("vertexScript") != null) usesScripts.append("<script id=\""+refName.substring(1,refName.length()-1)+"-vs\" type=\"x-shader/x-vertex\">" + ((Document)uses.get(refName)).getString("vertexScript") + "</script>\n");
+                        if (viewDoc.getString("fragmentScript") != null) usesScripts.append("<script id=\""+refName.substring(1,refName.length()-1)+"-fs\" type=\"x-shader/x-fragment\">" + ((Document)uses.get(refName)).getString("fragmentScript") + "</script>\n");
                     }
                 }
-                String vertexScript = (viewDoc.field("vertexScript") != null ? "<script id=\"vs\" type=\"x-shader/x-vertex\">" + viewDoc.field("vertexScript") + "</script>\n" : "");
-                String fragmentScript = (viewDoc.field("fragmentScript") != null ? "<script id=\"fs\" type=\"x-shader/x-fragment\">" + viewDoc.field("fragmentScript") + "</script>\n" : "");
-                String script = (viewDoc.field("testScript") != null ? "<script>" + SHADER_CONTROLS_SCRIPT + "\n" + viewDoc.field("testScript") + "</script>" : "");
-                return head("Shader Builder", getScript("twgl-full.min.js") + getScript("chroma.min.js") + getScript("audiostreamsource.min.js")) 
+                String vertexScript = (viewDoc.getString("vertexScript") != null ? "<script id=\"vs\" type=\"x-shader/x-vertex\">" + viewDoc.getString("vertexScript") + "</script>\n" : "");
+                String fragmentScript = (viewDoc.getString("fragmentScript") != null ? "<script id=\"fs\" type=\"x-shader/x-fragment\">" + viewDoc.getString("fragmentScript") + "</script>\n" : "");
+                String script = (viewDoc.getString("testScript") != null ? "<script>" + SHADER_CONTROLS_SCRIPT + "\n" + viewDoc.getString("testScript") + "</script>" : "");
+                return head(con, "Shader Builder", getScript("twgl-full.min.js") + getScript("chroma.min.js") + getScript("audiostreamsource.min.js")) 
                         + body("<canvas id=\"c\" style=\"width: 100vw; height: calc(100vh - 30px);\"></canvas>") 
                         + usesScripts.toString() + vertexScript + fragmentScript + script;
             }
@@ -82,7 +84,7 @@ public class ShaderBuilder extends Table {
         }
         
         // Return the default page
-        return head("Shader Builder", getScripts(con) )
+        return head(con, "Shader Builder", getScripts(con) )
                 + body(standardLayout(con, parms,
                     ((Security.getTablePriv(con, TABLE_NAME) & PRIV_CREATE) > 0
                     ? popupForm("CREATE_NEW_ROW", null, Message.get(locale, "CREATE_ROW"), null, "NAME",
@@ -103,7 +105,7 @@ public class ShaderBuilder extends Table {
     /** Returns the default row editor page with Script editors and preview in a split panel  */
     @Override public String getTableRowFields(DatabaseConnection con, String table, HashMap<String, String> parms, String columnOverride) {
         String edit_id = (parms != null ? parms.get("EDIT_ID") : null);
-        ODocument initialValues = null;
+        Document initialValues = null;
         if (edit_id != null) {
             initialValues = con.get(edit_id);
             if (initialValues == null) {
@@ -119,15 +121,15 @@ public class ShaderBuilder extends Table {
         String fragmentEditor = "";
         String formName = (edit_id == null ? "NEWROW" : "UPDATEROW");
 
-        String init = initialValues.field("vertexScript");
+        String init = initialValues.getString("vertexScript");
         if (init == null) init = "/* Vertex Shader */\n";
         vertexEditor = getCodeEditorControl(formName, PARM_PREFIX + "vertexScript", init, "text/x-csrc");
 
-        init = initialValues.field("fragmentScript");
+        init = initialValues.getString("fragmentScript");
         if (init == null) init = "/* Fragment Shader "+new Date()+" by "+con.getUser()+"*/\n";
         fragmentEditor = getCodeEditorControl(formName, PARM_PREFIX + "fragmentScript", init, "text/x-csrc");                    
 
-        init = initialValues.field("testScript");
+        init = initialValues.getString("testScript");
         if (init == null) init = "/* Shader Test "+new Date()+" by "+con.getUser()+"*/\n";
         testScriptEditor = getCodeEditorControl(formName, PARM_PREFIX + "testScript", init, "application/javascript");                    
 
@@ -232,22 +234,22 @@ public class ShaderBuilder extends Table {
  
     
     public static String getAsComponent(DatabaseConnection con, String id) {
-        ODocument viewDoc = con.get(id);          
+        Document viewDoc = con.get(id);          
         if (viewDoc == null) {
             System.out.println(paragraph("Could not retrieve shader details using " + id));
         } else {
             StringBuilder usesScripts = new StringBuilder();
-            Map<String,ODocument> uses = viewDoc.field("usesShader");
+            Map<String,Object> uses = viewDoc.getMap("usesShader");
             if (uses != null && uses.size() > 0) {
                 for (String refName : uses.keySet()) {
                     if (DEBUG) System.out.println("Including shader: "+refName);
-                    if (viewDoc.field("vertexScript") != null) usesScripts.append("<script id=\""+refName.substring(1,refName.length()-1)+"-vs\" type=\"x-shader/x-vertex\">" + uses.get(refName).field("vertexScript") + "</script>\n");
-                    if (viewDoc.field("fragmentScript") != null) usesScripts.append("<script id=\""+refName.substring(1,refName.length()-1)+"-fs\" type=\"x-shader/x-fragment\">" + uses.get(refName).field("fragmentScript") + "</script>\n");
+                    if (viewDoc.getString("vertexScript") != null) usesScripts.append("<script id=\""+refName.substring(1,refName.length()-1)+"-vs\" type=\"x-shader/x-vertex\">" + ((Document)uses.get(refName)).getString("vertexScript") + "</script>\n");
+                    if (viewDoc.getString("fragmentScript") != null) usesScripts.append("<script id=\""+refName.substring(1,refName.length()-1)+"-fs\" type=\"x-shader/x-fragment\">" + ((Document)uses.get(refName)).getString("fragmentScript") + "</script>\n");
                 }
             }
-            String vertexScript = (viewDoc.field("vertexScript") != null ? "<script id=\"vs\" type=\"x-shader/x-vertex\">" + viewDoc.field("vertexScript") + "</script>\n" : "");
-            String fragmentScript = (viewDoc.field("fragmentScript") != null ? "<script id=\"fs\" type=\"x-shader/x-fragment\">" + viewDoc.field("fragmentScript") + "</script>\n" : "");
-            String script = (viewDoc.field("testScript") != null ? "<script>" + SHADER_CONTROLS_SCRIPT + "\n" + viewDoc.field("testScript") + "</script>" : "");
+            String vertexScript = (viewDoc.getString("vertexScript") != null ? "<script id=\"vs\" type=\"x-shader/x-vertex\">" + viewDoc.getString("vertexScript") + "</script>\n" : "");
+            String fragmentScript = (viewDoc.getString("fragmentScript") != null ? "<script id=\"fs\" type=\"x-shader/x-fragment\">" + viewDoc.getString("fragmentScript") + "</script>\n" : "");
+            String script = (viewDoc.getString("testScript") != null ? "<script>" + SHADER_CONTROLS_SCRIPT + "\n" + viewDoc.getString("testScript") + "</script>" : "");
             return getScript("twgl-full.min.js") + getScript("chroma.min.js") + getScript("audiostreamsource.min.js")
                     + "<canvas id=\"c\" style=\"width: 100vw; height: calc(100vh - 30px);\"></canvas>" 
                     + usesScripts.toString() + vertexScript + fragmentScript + script;

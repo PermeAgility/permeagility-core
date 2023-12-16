@@ -25,7 +25,7 @@ public class ExportJSON extends Weblet {
     
     @Override
     public String getPage(DatabaseConnection con, HashMap<String, String> parms) {
-         return head("Export JSON") + body(standardLayout(con, parms, 
+         return head(con, "Export JSON") + body(standardLayout(con, parms, 
                 paragraph("banner", "Export JSON from a table")
                 +table("layout", 
                     row(column("label", "From Table") + column(Schema.getTableSelector(con,"selectedTable")))
