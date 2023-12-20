@@ -14,40 +14,25 @@
  * limitations under the License.
  */
 package permeagility.web;
-
 import java.util.HashMap;
-
 import permeagility.util.DatabaseConnection;
-import permeagility.util.QueryResult;
-import permeagility.util.Setup;
 
 public class Home extends Weblet {
 	
+  String pageBody = """
+    <div id="header" hx-trigger="load" hx-get="/Header?HTMX=true" hx-swap="innerHTML"></div>
+    <div id="service" hx-trigger="load delay:200ms" hx-get="/News?HTMX=true" hx-swap="innerHTML"></div>
+    <div id="nav-container">
+        <div id="underlay" class="bg"></div>
+        <div id="nav-button" class="nav-button" tabindex="0">
+            <span class="icon-bar"></span><span class="icon-bar"></span><span class="icon-bar"></span>
+        </div>
+        <div id="nav-content" hx-get="/Menu?HTMX=true" hx-trigger="load delay:50ms" hx-swap="innerHTML" tabindex="0"></div>
+    </div>
+""";
+
     public String getPage(DatabaseConnection con, HashMap<String,String> parms) {
-		String service = Message.get(con.getLocale(),Message.get(con.getLocale(), "HOME_PAGE_TITLE"));
-		parms.put("SERVICE",service);
-		return head(con, service)+
-		    body (standardLayout(con, parms,getHTML(con, parms)));
+            return head(con, Message.get(con.getLocale(), "HOME_PAGE_TITLE"))
+                 + body(pageBody);
     }
-
-    public String getHTML(DatabaseConnection con, HashMap<String,String> parms) {
-    	StringBuilder sb = new StringBuilder();
-    	try {
-                String query = "SELECT FROM "+Setup.TABLE_NEWS
-                        +" WHERE (archive IS NULL or archive=false) and (locale IS NULL or locale.name='"+con.getLocale().getLanguage()+"') "
-                        +" ORDER BY dateline desc ";
-	    	//System.out.println("ArticleQuery="+query);
-	    	QueryResult qr = con.query(query);
-	    	for (int i=0; i<qr.size(); i++) {
-	    		sb.append(paragraph("headline",qr.getStringValue(i, "name")));
-	    		sb.append(paragraph("dateline",formatDate(con.getLocale(), qr.getDateValue(i, "dateline"), "MMMM dd yyyy")));
-	    		sb.append(paragraph("article",qr.getStringValue(i, "description")));
-	    	}
-    	} catch (Exception e) {  
-    		e.printStackTrace();
-    		sb.append("Error retrieving articles: "+e.getMessage());
-    	}
-    	return sb.toString();
-    }
-
 }

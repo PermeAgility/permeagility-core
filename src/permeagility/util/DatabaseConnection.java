@@ -105,7 +105,7 @@ public class DatabaseConnection {
 			if (DEBUG) System.out.println("DatabaseConnection.getRowCount cache hit on table "+table);
 			return count;
 		}
-		System.out.println("Counting rows of "+table);
+		if (DEBUG) System.out.println("Counting rows of "+table);
 		try {
 			long cnt = c.countType(table, false);
 			if (cnt > 0) tableCountCache.put(table, cnt);  // Don't put into cache until actual rows
@@ -132,7 +132,7 @@ public class DatabaseConnection {
 	}
 
 	/** Execute a query and return a QueryResult object */
-    public synchronized QueryResult query(String expression) {
+    public QueryResult query(String expression) {
         boolean closethis = false;
         if (!c.isTransactionActive()) {
             System.out.println("DatabaseConnection.query: no active transaction, will create a default one for this query");
@@ -151,7 +151,7 @@ public class DatabaseConnection {
     }
 
    	/** Execute a query and return a QueryResultCache object */
-    public synchronized QueryResultCache queryToCache(String expression) {
+    public QueryResultCache queryToCache(String expression) {
         boolean closethis = false;
         if (!c.isTransactionActive()) {
             System.out.println("DatabaseConnection.query: no active transaction, will create a default one for this query");
@@ -170,7 +170,7 @@ public class DatabaseConnection {
     }
 
     /** Get the first document found by this query */
-    public synchronized Document queryDocument(String expression) {
+    public Document queryDocument(String expression) {
        boolean closethis = false;
         if (!c.isTransactionActive()) {
             System.out.println("DatabaseConnection(queryDocument): no active transaction, will create a default one for this query");
@@ -189,7 +189,7 @@ public class DatabaseConnection {
     }
 
     /** Execute an update statement or a script if newline characters found */
-    public synchronized Object update(String expression) {
+    public Object update(String expression) {
         boolean closethis = false;
         if (!c.isTransactionActive()) {
             System.out.println("DatabaseConnection.update: no active transaction, will create a default one for this query");
@@ -205,13 +205,20 @@ public class DatabaseConnection {
       	return ro;  // run the query return the resulting object
     }
 
-    public synchronized Document get(String rid) {
+    public Object updateScript(String expression) {
+       if (DEBUG) System.out.println("DatabaseConnection.updateScript="+expression+";");
+       	lastAccess = System.currentTimeMillis();
+        Object ro = c.command("SQLSCRIPT",expression);
+      	return ro;  // run the query return the resulting object
+    }
+
+    public Document get(String rid) {
         if (rid == null || rid.isEmpty()) {
             return null;
         }
         return get(new RID(getDb(),rid.startsWith("#") ? rid : "#"+rid));
     }
-    public synchronized Document get(RID rid) {
+    public Document get(RID rid) {
         lastAccess = System.currentTimeMillis();
         if (!c.isTransactionActive()) {
             System.out.println("DatabaseConnection.get: no active transaction, will create a default one for this query");

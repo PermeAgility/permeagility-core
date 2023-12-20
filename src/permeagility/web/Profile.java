@@ -26,8 +26,8 @@ import permeagility.util.Setup;
 public class Profile extends Table {
    
     public String getPage(DatabaseConnection con, java.util.HashMap<String,String> parms) {
-		return head(con, Message.get(con.getLocale(),"UPDATE_PROFILE",con.getUser()))+
-		    standardLayout(con, parms, body(getHTML(con, parms)));
+		return headMinimum(con, Message.get(con.getLocale(),"UPDATE_PROFILE",con.getUser()))
+             + bodyMinimum(getHTML(con, parms));
     }
 
     public String getHTML(DatabaseConnection con, java.util.HashMap<String,String> parms) {

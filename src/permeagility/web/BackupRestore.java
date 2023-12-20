@@ -39,7 +39,7 @@ public class BackupRestore extends Weblet {
         StringBuilder errors = new StringBuilder();
 
         if (!Security.isDBA(con)) {
-        return head(con, service)+standardLayout(con, parms,paragraph("error",Message.get(locale, "RESTORE_ACCESS")));
+        return headMinimum(con, service)+body(paragraph("error",Message.get(locale, "RESTORE_ACCESS")));
         }
 
         File backupDir = new File("backup");
@@ -80,7 +80,7 @@ public class BackupRestore extends Weblet {
 
         if (submit != null && submit.equals("RESTORE_NOW")) {
             if (!Server.getDBName().startsWith("plocal")) {
-            return head(con, service)+standardLayout(con, parms,paragraph("error",Message.get(locale, "RESTORE_PLOCAL")));
+            return headMinimum(con, service)+body(paragraph("error",Message.get(locale, "RESTORE_PLOCAL")));
             }
 
             if (parms.get("CONFIRM") != null && parms.get("CONFIRM").equals("YES") && parms.get("RESTORE") != null) {
@@ -168,9 +168,9 @@ public class BackupRestore extends Weblet {
                     restore_thread.start();
                     return redirect(parms, "/");
             } else {
-                return head(con, service)+
-                standardLayout(con, parms,
-                    errors
+                return headMinimum(con, service)+
+                   bodyMinimum(
+                     errors
                     +paragraph("banner",Message.get(locale, "CONFIRM_RESTORE",parms.get("RESTORE")))
                     +form(
                         hidden("CONFIRM","YES")
@@ -208,8 +208,7 @@ public class BackupRestore extends Weblet {
             }
         }
         String backupFilename = "Backup_"+formatDate(locale,new Date(),"yyyy-MM-dd_HH-mm");
-    	return head(con, service,getSortTableScript())+
-	    standardLayout(con, parms,
+    	return headMinimum(con, service,getSortTableScript())+bodyMinimum(
 	    	errors
     		+paragraph("banner",Message.get(locale, "BACKUP_THE_DATABASE"))
     		+form(table("layout",

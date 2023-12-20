@@ -49,7 +49,7 @@ public class Table extends Weblet {
     public static int MAX_STRING_DISPLAY = 100;
     public static boolean ALWAYS_TEXT_AREA = true;  // Use text areas for all string fields
     public static int TEXT_AREA_THRESHOLD = 40;  // When the data is larger than this size, the input will be a text area
-    public static int TEXT_AREA_WIDTH = 80;      // When showing a column as a cell, only show this many characters
+    public static int TEXT_AREA_WIDTH = 50;      // When showing a column as a cell, only show this many characters
     public static long ROW_COUNT_LIMIT = 500;    // All text areas will be this width
     public static long DOT_INTERVAL = 5;         // Interval for dot when numerous pages - probably should derive this to be more dynamic
     public static long PAGE_WINDOW = 3;          // Always show this many pages around the current page when there are many dots
@@ -66,6 +66,7 @@ public class Table extends Weblet {
     public static final int PRIV_ALL = 15;
 
     public String getPage(DatabaseConnection con, java.util.HashMap<String, String> parms) {
+        //HTMX_MODE = parms.get("HTMX") != null;
         Locale locale = con.getLocale();
         String submit = parms.get("SUBMIT");
         String table = parms.get("TABLENAME");
@@ -119,10 +120,7 @@ public class Table extends Weblet {
             }  // If it isn't a number, ignore it
         }
 
-        // Make the result
-        return head(con, title, getScripts(con))
-                + body(standardLayout(con, parms,
-                                link(this.getClass().getName(), "&lt;" + Message.get(locale, "ALL_TABLES"))
+        String body = link(this.getClass().getName(), "&lt;" + Message.get(locale, "ALL_TABLES"))
                                 + "&nbsp;&nbsp;&nbsp;"
                                 + ((Security.getTablePriv(con, table) & PRIV_CREATE) > 0 
                                             ? popupForm("CREATE_NEW_ROW", null, Message.get(locale, "NEW_ROW"), null, "NAME",
@@ -143,8 +141,14 @@ public class Table extends Weblet {
                                 + br()
                                 + errors.toString()
                                 + br()
-                                + ((Security.getTablePriv(con, table) & PRIV_READ) > 0 ? getTable(con, table, page) : paragraph(Message.get(locale, "NO_PERMISSION_TO_VIEW")))
-                        ));
+                                + ((Security.getTablePriv(con, table) & PRIV_READ) > 0 ? getTable(con, table, page) : paragraph(Message.get(locale, "NO_PERMISSION_TO_VIEW")));
+
+        // Make the result
+        if (HTMX_MODE) 
+            return headMinimum(con, title, getScripts(con.getLocale())) + body(body);
+        else 
+            return head(con, title, getScripts(con.getLocale()))
+                + body(standardLayout(con, parms, body ));
     }
 
     public String processSubmit(DatabaseConnection con, HashMap<String, String> parms, String table, StringBuilder errors) {
@@ -156,8 +160,8 @@ public class Table extends Weblet {
 
         // Show edit form if row selected for edit
         if (editId != null && submit == null) {
-            return head(con, "Edit", getScripts(con))
-                    + body(standardLayout(con, parms, getTableRowForm(con, table, parms)));
+            return headMinimum(con, "Edit", getScripts(con.getLocale()))
+                    + body(getTableRowForm(con, table, parms));
         }
 
         // If no submit, we are done here
@@ -175,53 +179,56 @@ public class Table extends Weblet {
                 redirectUsingSource(parms, "TABLENAME=" + table + "&EDIT_ID="+parms.get("EDIT_ID"));
             } else {
                 errors.append(paragraph("error", "Could not insert"));
-                return head(con, "Insert", getScripts(con))
-                        + body(standardLayout(con, parms,
-                                        errors.toString()
-                                        + form("NEWROW", "#",
-                                                paragraph("banner", Message.get(locale, "CREATE") + "&nbsp;" + makeCamelCasePretty(table))
-                                                + getTableRowFields(con, table, parms)
-                                                + center(submitButton(locale, "CREATE_ROW")
-                                                        + submitButton(locale, "CANCEL"))
-                                        )
-                                ));
+                return headMinimum(con, "Insert", getScripts(con.getLocale()))
+                        + body(
+                            errors.toString()
+                            + form("NEWROW", "#",
+                                    paragraph("banner", Message.get(locale, "CREATE") + "&nbsp;" + makeCamelCasePretty(table))
+                                    + getTableRowFields(con, table, parms)
+                                    + center(submitButton(locale, "CREATE_ROW")
+                                            + submitButton(locale, "CANCEL"))
+                            )
+                    );
             }
         }
         // Process actions on an existing record
         if (editId != null) {
             if (submit.equals("COPY")) {
                 if (copyRow(con, table, parms, errors)) {
-                    return redirect(parms, this, "TABLENAME=" + table + "&EDIT_ID="+parms.get("EDIT_ID"));
+                    //return redirect(parms, this, "TABLENAME=" + table + "&EDIT_ID="+parms.get("EDIT_ID"));
+                    return redirectHTMX(parms, parms.get("EDIT_ID"));  // Copy will put new record in edit id
                 } else {
                     errors.append(paragraph("error", "Could not copy"));
-                    return head(con, "Insert", getScripts(con))
-                        + body(standardLayout(con, parms,
+                    return headMinimum(con, "Insert", getScripts(con.getLocale()))
+                        + body(
                             errors.toString()
                             + form("NEWROW", "#",
                                     paragraph("banner", Message.get(locale, "COPY") + "&nbsp;" + makeCamelCasePretty(table))
                                     + getTableRowFields(con, table, parms)
                                     + center(submitButton(locale, "CREATE_ROW") + submitButton(locale, "CANCEL"))
-                        )));
+                        ));
                 }
             } else if (submit.equals("DELETE")) {
                 if (deleteRow(con, table, parms, errors)) {
-                    return redirectUsingSource(parms, "TABLENAME=" + table);
+                   return null;
                 } else {
-                    return head(con, "Could not delete", getScripts(con))
-                            + body(standardLayout(con, parms, errors.toString()+getTableRowForm(con, table, parms)));
+                    return headMinimum(con, "Could not delete", getScripts(con.getLocale()))
+                            + bodyMinimum(errors.toString()+getTableRowForm(con, table, parms));
                 }
             } else if (submit.equals("UPDATE")) {
                 if (DEBUG) {
                     System.out.println("In updating row");
                 }
                 if (updateRow(con, table, parms, errors)) {
-                    return redirectUsingSource(parms, "TABLENAME=" + table);
+                    return null;
+//                    return redirectUsingSource(parms, "TABLENAME=" + table);
                 } else {
-                    return head(con, "Could not update", getScripts(con))
-                            + body(standardLayout(con, parms, errors.toString()+getTableRowForm(con, table, parms)));
+                    return headMinimum(con, "Could not update", getScripts(con.getLocale()))
+                            + bodyMinimum(errors.toString()+getTableRowForm(con, table, parms));
                 }
             }
-            parms.remove("EDIT_ID"); // If there was an EDIT_ID, it should have been dealt with already in this function
+            System.out.println("Table.processSubmit: Unrecognized submit value: "+submit);
+            //parms.remove("EDIT_ID"); // If there was an EDIT_ID, it should have been dealt with already in this function
         }
         return null;  // Nothing happened here
     }
@@ -319,6 +326,7 @@ public class Table extends Weblet {
         Document oldDoc = con.get(parms.get("EDIT_ID"));
         if (oldDoc != null) {
             MutableDocument newDoc = con.create(oldDoc.getTypeName());
+            String copyName = null;
             Map<String,Object> fieldMap = oldDoc.toMap();
             fieldMap.remove("@rid");  // Otherwise will try to overwrite
             fieldMap.remove("_allow"); 
@@ -326,10 +334,24 @@ public class Table extends Weblet {
             fieldMap.remove("_allowUpdate");
             fieldMap.remove("_allowDelete");
             newDoc.fromMap(fieldMap);
-            if (newDoc.get("name") != null) newDoc.set("name", newDoc.get("name")+Message.get(con.getLocale(),"COPY_SUFFIX"));
-            if (newDoc.get("description") != null) newDoc.set("description", Message.get(con.getLocale(),"COPY_PREFIX",new Date().toString())+newDoc.getString("description"));
+            if (newDoc.has("name")) {
+                copyName = newDoc.getString("name");
+                newDoc.set("name", 
+                    newDoc.getString("name")
+                    +Message.get(con.getLocale(),"COPY_SUFFIX")
+                );
+            }
+            if (newDoc.has("description")) {
+                if (copyName == null) copyName = newDoc.getString("description");
+                newDoc.set("description", 
+                    Message.get(con.getLocale(),"COPY_PREFIX",new Date().toString())
+                    +"\n"+newDoc.getString("description")
+                );
+            }
+            if (copyName == null) copyName = newDoc.getIdentity().toString();
             newDoc.save();
             parms.put("EDIT_ID", newDoc.getIdentity().toString().substring(1));  // In case we want to go straight to the new record's editor
+            errors.append(paragraph("success", Message.get(con.getLocale(), "ROW_COPIED", copyName)));
             return true;
         }
         return false;
@@ -758,10 +780,12 @@ public class Table extends Weblet {
         Document doc = con.get(edit_id);
         if (doc != null) {
             try {
+                String delName = doc.has("name") ? doc.getString("name") : doc.getIdentity().toString();                
                 doc.delete();
                 Server.tableUpdated(con, table);
                 DatabaseConnection.rowCountChanged(table);
-                errors.append(paragraph("success", Message.get(con.getLocale(), "ROW_DELETED")));
+                parms.remove("EDIT_ID");
+                errors.append(paragraph("success", Message.get(con.getLocale(), "ROW_DELETED", delName)));
                 return true;
             } catch (Exception e) {
                 errors.append(paragraph("error", Message.get(con.getLocale(), "ROW_CANNOT_BE_DELETED") + e.getMessage()));
@@ -805,22 +829,44 @@ public class Table extends Weblet {
             }
         }
 
+        // getTableRowFields can return a list of hyperscript command to run when a form is submitted (for CodeEditor mostly)
+        ArrayList<String> submitCodeLines = new ArrayList<String>();
+        String rowForm = getTableRowFields(con, table, parms, submitCodeLines);
+        StringBuilder submitCode = new StringBuilder("_=\"on click "); 
+        int lineIndex = 0;
+        for (String codeLine : submitCodeLines) {
+            if (lineIndex > 0) submitCode.append(" then ");
+            submitCode.append(codeLine);
+            lineIndex++;
+        }
+        if (DEBUG) {
+            submitCode.append(" then log 'button:clicked'\"");
+        } else {
+            submitCode.append("\"");
+        }
+
         boolean readOnly = false;  //edit_id == null ? false : Security.isReadOnlyDocument(con, con.get(edit_id));
         String formName = (edit_id == null ? "NEWROW" : "UPDATEROW");
-        String formContent = getTableRowFields(con, table, parms)
+        String formContent = rowForm
                         + center((edit_id == null
-                                        ? ((Security.getTablePriv(con, table) & PRIV_CREATE) > 0 ? submitButton(con.getLocale(), "CREATE_ROW") : "")
-                                        : ((Security.getTablePriv(con, table) & PRIV_UPDATE) > 0 && !readOnly ? submitButton(con.getLocale(), "UPDATE") : "")
-                                        + "&nbsp;&nbsp;"
-                                        + (HTMX_MODE ? cancelButton(con.getLocale(), table) : submitButton(con.getLocale(), "CANCEL"))))
+                            ? ((Security.getTablePriv(con, table) & PRIV_CREATE) > 0 
+                                    ? submitButton(con.getLocale(), "CREATE_ROW", submitCodeLines.size()>0 ? submitCode.toString() : "") 
+                                    : "")
+                            : ((Security.getTablePriv(con, table) & PRIV_UPDATE) > 0 && !readOnly 
+                                    ? submitButton(con.getLocale(), "UPDATE", submitCodeLines.size()>0 ? submitCode.toString() : "") 
+                                    : "")
+                            + "&nbsp;&nbsp;"
+                            + (HTMX_MODE ? cancelButton(con.getLocale(), table) : submitButton(con.getLocale(), "CANCEL"))))
                         + paragraph("delete",
                                 (edit_id != null && (Security.getTablePriv(con, table) & PRIV_CREATE) > 0 ? submitButton(con.getLocale(), "COPY") : "") + "&nbsp;&nbsp;"
                                 + (edit_id != null && (Security.getTablePriv(con, table) & PRIV_DELETE) > 0 && !readOnly ? deleteButton(con.getLocale(),table,edit_id) : ""));
         if (HTMX_MODE) {
             if (edit_id == null) {  // PUT
-                formContent = formHTMX(formName, "/"+this.getClass().getName()+"/"+table, "put",formContent);
-            } else {  // PATCH
+                formContent = formHTMX(formName, "/"+this.getClass().getName()+"/"+table, "put",formContent, "_=\"on htmx:configRequest log 'configRequest called'\"");
+            } else {                // PATCH
                 formContent = formHTMX(formName, "/"+this.getClass().getName()+"/"+table+"/"+edit_id, "patch",formContent);
+//                    , "_=\"on htmx:configRequest log 'configRequest called' then call PARM_CSSStyleEditor.save()\"");
+//                    , "hx-on::before-request=\"console.log('before-request'); PARM_CSSStyleEditor.save(); console.log('saved')\"");
             }
         } else {
             formContent = form(formName, formContent);
@@ -859,13 +905,18 @@ public class Table extends Weblet {
     }
 
     public String getTableRowFields(DatabaseConnection con, String table, HashMap<String, String> parms) {
-        return getTableRowFields(con, table, parms, null);
+        return getTableRowFields(con, table, parms, null, null);
     }
-
+    public String getTableRowFields(DatabaseConnection con, String table, HashMap<String, String> parms, ArrayList<String> submitCodeLines) {
+        return getTableRowFields(con, table, parms, null, submitCodeLines);
+    }
+    public String getTableRowFields(DatabaseConnection con, String table, HashMap<String, String> parms, String columnOverride) {
+        return getTableRowFields(con, table, parms, columnOverride, null);
+    }
     /**
      * Returns the fields for a table - can be for insert of a new row or update of an existing (as specified by the EDIT_ID in parms)
      */
-    public String getTableRowFields(DatabaseConnection con, String table, HashMap<String, String> parms, String columnOverride) {
+    public String getTableRowFields(DatabaseConnection con, String table, HashMap<String, String> parms, String columnOverride, ArrayList<String> submitCodeLines) {
         String edit_id = (parms != null ? parms.get("EDIT_ID") : null);
         Document initialValues = edit_id == null ? null : con.get(edit_id);
 
@@ -891,7 +942,7 @@ public class Table extends Weblet {
                         hidden.append(hidden(PARM_PREFIX + name, parms.get("FORCE_" + name)));
                         continue;
                     }
-                    fields.append(getColumnAsField(table, column, initialValues, con, formName, edit_id, parms));
+                    fields.append(getColumnAsField(table, column, initialValues, con, formName, edit_id, parms, submitCodeLines));
                 }
             }
             return hidden.toString() + center(table("data", fields.toString()));
@@ -908,7 +959,9 @@ public class Table extends Weblet {
      * @param edit_id - record id of the value to be edited (the identity of initialValues would be misleading on a new record)
      * @return a table row for a given column in the document
      */
-    public String getColumnAsField(String table, Property column, Document initialValues, DatabaseConnection con, String formName, String edit_id, HashMap<String, String> parms) {
+    public String getColumnAsField(String table, Property column, Document initialValues
+                                , DatabaseConnection con, String formName, String edit_id
+                                , HashMap<String, String> parms, ArrayList<String> submitCodeLines) {
         Type type = column.getType();
         String name = column.getName();
         String prettyName = makeCamelCasePretty(name);
@@ -917,10 +970,7 @@ public class Table extends Weblet {
             prettyName = trName;
         }
         String label = column("label", prettyName);
-
-        if (DEBUG) {
-            System.out.println("Table.getColumnAsField() " + name + " is a " + type + " of "+ column.getOfType());
-        }
+        if (DEBUG) System.out.println("Table.getColumnAsField() " + name + " is a " + type + " of "+ column.getOfType());
 
         Object initialValue;
         try {
@@ -971,23 +1021,27 @@ public class Table extends Weblet {
             // SQL (String)
         } else if (type == Type.STRING && name.toUpperCase().endsWith("SQL")) {
             if (DEBUG) System.out.println("Doing SQL Editor field " + name);
-            return row(label + column(getCodeEditorControl(formName, PARM_PREFIX + name, (String) initialValue, "text/x-sql")));
+            return row(label + column(getCodeEditorControl(formName, PARM_PREFIX + name, (String) initialValue, "text/x-sql", submitCodeLines)));
             // JSON (String)
         } else if (type == Type.STRING && name.toUpperCase().endsWith("JSON")) {
             if (DEBUG) System.out.println("Doing JSON Editor field " + name);
-            return row(label + column(getCodeEditorControl(formName, PARM_PREFIX + name, (String) initialValue, "application/json")));
+            return row(label + column(getCodeEditorControl(formName, PARM_PREFIX + name, (String) initialValue, "application/json", submitCodeLines)));
             // Script-R (String)
         } else if (type == Type.STRING && name.toUpperCase().endsWith("RSCRIPT")) {
             if (DEBUG) System.out.println("Doing R Code Editor field " + name);
-            return row(label + column(getCodeEditorControl(formName, PARM_PREFIX + name, (String) initialValue, "text/x-rsrc")));
+            return row(label + column(getCodeEditorControl(formName, PARM_PREFIX + name, (String) initialValue, "text/x-rsrc", submitCodeLines)));
+            // Script-HTML (String)
+        } else if (type == Type.STRING && name.toUpperCase().endsWith("SCRIPT") || name.toUpperCase().endsWith("HTML")) {
+            if (DEBUG) System.out.println("Doing HTML Code Editor field " + name);
+            return row(label + column(getCodeEditorControl(formName, PARM_PREFIX + name, (String) initialValue, "htmlmixed", submitCodeLines)));
             // Script-Javascript (String)
-        } else if (type == Type.STRING && (name.toUpperCase().endsWith("SCRIPT") || (table.equals("OFunction") && name.toUpperCase().equals("CODE")))) {
-            if (DEBUG) System.out.println("Doing Javascript Code Editor field " + name);
-            return row(label + column(getCodeEditorControl(formName, PARM_PREFIX + name, (String) initialValue, "text/javascript")));
+        } else if (type == Type.STRING && (name.toUpperCase().endsWith("JAVASCRIPT") || name.toUpperCase().endsWith("CODE"))) {
+            if (DEBUG) System.out.println("Doing JavaScript Code Editor field " + name);
+            return row(label + column(getCodeEditorControl(formName, PARM_PREFIX + name, (String) initialValue, "text/javascript", submitCodeLines)));
             // Style-CSS (String)
         } else if (type == Type.STRING && (name.toUpperCase().endsWith("STYLE"))) {
             if (DEBUG) System.out.println("Doing CSS Code Editor field " + initialValues);
-            return row(label + column(getCodeEditorControl(formName, PARM_PREFIX + name, (String) initialValue, "css")));
+            return row(label + column(getCodeEditorControl(formName, PARM_PREFIX + name, (String) initialValue, "css", submitCodeLines)));
             // String
         } else if (type == Type.STRING) {
             List<String> pickValues = Server.getPickValues(table, name);
@@ -1690,12 +1744,11 @@ public class Table extends Weblet {
         }
         String title = table + " " + Message.get(locale, "ADVANCED_OPTIONS");
         parms.put("SERVICE", title);
-        return head(con, title, getScripts(con))
-                + body(standardLayout(con, parms,
-                                //advancedOptionsForm(con, table, parms, errors.toString())
+        return headMinimum(con, title, getScripts(con.getLocale()))
+                + body(         //advancedOptionsForm(con, table, parms, errors.toString())
                                 //+ br()
                                  link(this.getClass().getName()+"?TABLENAME=" + table, Message.get(locale, "BACK_TO_TABLE"))
-                        ));
+                        );
     }
 
     public String advancedOptionsForm(DatabaseConnection con, String table, HashMap<String, String> parms, String errors) {
@@ -1782,7 +1835,7 @@ public class Table extends Weblet {
 
         String title = table + " " + Message.get(locale, "ADVANCED_OPTIONS");
         parms.put("SERVICE", title);
-        return head(con, title, getScripts(con))
+        return head(con, title, getScripts(con.getLocale()))
                 + body(standardLayout(con, parms,
                                 rightsOptionsForm(con, table, parms, errors.toString())
                                 + br()
@@ -1957,8 +2010,8 @@ public class Table extends Weblet {
         dataTypeValues.clear();
     }
 
-    public String getScripts(DatabaseConnection con) {
-        return getDateControlScript(con.getLocale()) + getColorControlScript() + getCodeEditorScript() + getD3Script();
+    public String getScripts(Locale locale) {
+        return getDateControlScript(locale) + getColorControlScript() + getCodeEditorScript() + getD3Script();
     }
 
 }

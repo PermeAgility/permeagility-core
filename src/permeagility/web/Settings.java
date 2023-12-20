@@ -115,15 +115,12 @@ public class Settings extends Weblet {
                     errors.append(paragraph("error","Selected style does not exist"));
 		}
 		String styleList = createListFromTable("SET_STYLE", selectedStyleID, con, "style", null, false, null, true);
-		return head(con, service)+
-	    standardLayout(con, parms,errors
-	    	+form(
-                    table("layout",
-                        row(column("label",Message.get(con.getLocale(), "SET_STYLE"))+column(styleList))
-                        +row(column("label",Message.get(con.getLocale(), "SET_ROWCOUNT"))+column(input("SET_ROWCOUNT", currentRowCount)))
-                        +row(column("")+column(submitButton(con.getLocale(), "SUBMIT_BUTTON")))
-                    )
-	    	)
+		return headMinimum(con, service)+bodyMinimum(
+	    	formHTMX("settings", "/"+this.getClass().getName(), "POST", table("layout",
+                row(column("label",Message.get(con.getLocale(), "SET_STYLE"))+column(styleList))
+              + row(column("label",Message.get(con.getLocale(), "SET_ROWCOUNT"))+column(input("SET_ROWCOUNT", currentRowCount)))
+              + row(column("")+column(submitButton(con.getLocale(), "SUBMIT_BUTTON")))
+			))
     	);
     }
 

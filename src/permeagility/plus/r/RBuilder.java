@@ -117,7 +117,7 @@ public class RBuilder extends Table {
         }
         
         // Return the default result
-        return head(con, "R Builder", getScripts(con))
+        return head(con, "R Builder", getScripts(con.getLocale()))
         + body(standardLayout(con, parms,
             ((Security.getTablePriv(con, PlusSetup.TABLE) & PRIV_CREATE) > 0
                 ? popupForm("CREATE_NEW_ROW", null, Message.get(locale, "CREATE_ROW"), null, "NAME",
@@ -167,14 +167,14 @@ public class RBuilder extends Table {
 
     @Override
     public String getTableRowForm(DatabaseConnection con, String table, HashMap<String, String> parms) {
-        return getTableRowFields(con, table, parms, null);
+        return getTableRowFields(con, table, parms);
     }
 
      /**
      * Returns the fields for a table - can be for insert of a new row or update of an existing (as specified by the EDIT_ID in parms)
      */
     @Override
-    public String getTableRowFields(DatabaseConnection con, String table, HashMap<String, String> parms, String columnOverride) {
+    public String getTableRowFields(DatabaseConnection con, String table, HashMap<String, String> parms) {
         String edit_id = parms.get("EDIT_ID");
         Document initialValues = null;
         if (edit_id != null) {
@@ -190,7 +190,7 @@ public class RBuilder extends Table {
         String formName = (edit_id == null ? "NEWROW" : "UPDATEROW");
         String init = initialValues != null ? initialValues.getString("RScript") : null;
         if (init == null) init = "# R Script "+new Date()+"\n";
-        String scriptEditor = getCodeEditorControl(formName, PARM_PREFIX + "RScript", init, "text/x-rsrc", readOnly ? ",readOnly:true" : null);                    
+        String scriptEditor = getCodeEditorControl(formName, PARM_PREFIX + "RScript", init, "text/x-rsrc", readOnly ? ",readOnly:true" : null, null);                    
         String resultText = frame("resultFrame","permeagility.plus.r.RBuilder?VIEWTEXT="+edit_id);  //"<iframe id='resultFrame' width='100%' height='100%'></iframe>\n";
 
         String resultView = 

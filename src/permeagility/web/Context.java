@@ -60,8 +60,8 @@ public class Context extends Weblet {
 //    static String downloadURL = "Test";
 
     public String getPage(DatabaseConnection con, java.util.HashMap<String, String> parms) {
-        return head(con, "Context")
-                + body(standardLayout(con, parms, getHTML(con, parms)));
+        return headMinimum(con, "Context")
+                + bodyMinimum(getHTML(con, parms));
     }
 
     public String getHTML(DatabaseConnection con, java.util.HashMap<String, String> parms) {

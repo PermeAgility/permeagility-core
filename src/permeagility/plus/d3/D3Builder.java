@@ -61,7 +61,7 @@ public class D3Builder extends Table {
                 sb.append(form("svgform", hidden("format", "") + hidden("data", "")));
                 sb.append(chartDiv("chart"));
                 sb.append(additionalScript + "\n" + script);
-                return head(con, "D3 Builder", getScripts(con) + additionalStyle) + body(errors.toString()+div("service",sb.toString()));
+                return head(con, "D3 Builder", getScripts(con.getLocale()) + additionalStyle) + body(errors.toString()+div("service",sb.toString()));
             }
         }
         
@@ -97,7 +97,7 @@ public class D3Builder extends Table {
         }
         
         // Return the default result
-        return head(con, "D3 Builder", getScripts(con) + additionalStyle)
+        return head(con, "D3 Builder", getScripts(con.getLocale()) + additionalStyle)
                 + body(standardLayout(con, parms,
                     ((Security.getTablePriv(con, PlusSetup.TABLE) & PRIV_CREATE) > 0 && view == null
                     ? popupForm("CREATE_NEW_ROW", null, Message.get(locale, "CREATE_ROW"), null, "NAME",
@@ -113,14 +113,14 @@ public class D3Builder extends Table {
 
     @Override
     public String getTableRowForm(DatabaseConnection con, String table, HashMap<String, String> parms) {
-        return getTableRowFields(con, table, parms, null);
+        return getTableRowFields(con, table, parms);
     }
 
     /**
      * Returns the fields for a table - can be for insert of a new row or update of an existing (as specified by the EDIT_ID in parms)
      */
     @Override
-    public String getTableRowFields(DatabaseConnection con, String table, HashMap<String, String> parms, String columnOverride) {
+    public String getTableRowFields(DatabaseConnection con, String table, HashMap<String, String> parms) {
         String edit_id = (parms != null ? parms.get("EDIT_ID") : null);
         Document initialValues = null;
         if (edit_id != null) {
@@ -140,15 +140,15 @@ public class D3Builder extends Table {
 
         String init = initialValues.getString("style");
         if (init == null) init = "/* CSS Styles */\n";
-        styleEditor = getCodeEditorControl(formName, PARM_PREFIX + "style", init, "css");
+        styleEditor = getCodeEditorControl(formName, PARM_PREFIX + "style", init, "css", null);
 
         init = initialValues.getString("script");
         if (init == null) init = "// D3 Script "+new Date()+"\n";
-        scriptEditor = getCodeEditorControl(formName, PARM_PREFIX + "script", init, "application/json");                    
+        scriptEditor = getCodeEditorControl(formName, PARM_PREFIX + "script", init, "application/json", null);                    
 
         init = initialValues.getString("dataScript");
         if (init == null) init = "{\"removethisnote\":\"Data returned by d3.json('$$this$$', function(data) {  });\"}\n";
-        dataEditor = getCodeEditorControl(formName, PARM_PREFIX + "dataScript", init, "application/json");                    
+        dataEditor = getCodeEditorControl(formName, PARM_PREFIX + "dataScript", init, "application/json", null);                    
 
         String resultView = 
             (readOnly ? "" :

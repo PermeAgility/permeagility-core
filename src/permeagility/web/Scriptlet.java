@@ -37,11 +37,11 @@ public class Scriptlet extends Table {
         // Put rest stuff here
         String httpMethod = parms.get("HTTP_METHOD");
         String restOfURL = parms.get("REST_OF_URL");  // if rest attributes exist then parse table/id
+        String rid = null;
         if (restOfURL != null && !restOfURL.isEmpty()) {
             String[] restParts = restOfURL.split("/");  // 0=table, 1=rid
             String table = restParts[0];
 
-            String rid = null;
             if (restParts.length > 1) rid = restParts[1];
             // if table only or *, GET returns all rows in table (with possible filter conditions encoded eg. */dept.name/eq/sales)
             if (httpMethod.equals("GET") && (rid == null || rid.equals("*"))  ) {
@@ -71,9 +71,14 @@ public class Scriptlet extends Table {
                         return ie.toString() + getTableRowForm(con, table, parms);
                     }
                 } else if (httpMethod.equals("PATCH")) {
-                // PATCH to update and return the updated row
+                // PATCH to update and return the updated row (Possibly Copy button was pressed in this form)
                     StringBuilder ie = new StringBuilder();
                     if (!rid.equals("-")) parms.put("EDIT_ID", rid);  // updateRow needs this
+                    if (parms.get("SUBMIT").equals("COPY")) {
+                        if (copyRow(con, table, parms, ie)) {
+                            return ie.toString() + getTableRowForm(con, table, parms);
+                        }
+                    }
                     if (updateRow(con, table, parms, ie)) {
                         return getTableWithControls(con, parms, table);
                     } else {
@@ -83,9 +88,11 @@ public class Scriptlet extends Table {
                 } else if (httpMethod.equals("DELETE")) {
                 // DELETE to remove the row
                     StringBuilder ie = new StringBuilder();
-                    if (!rid.equals("-")) parms.put("EDIT_ID", rid);  // updateRow needs this
+                    if (!rid.equals("-")) parms.put("EDIT_ID", rid);  // deleteRow needs this
                     if(deleteRow(con, table, parms, ie)) {
-                        return getTableWithControls(con, parms, table);
+
+                        return ie.toString() + getTableWithControls(con, parms, table);
+    
                     } else {
                         System.out.println("Delete errors: "+ie.toString());
                         return ie.toString() + getTableRowForm(con, table, parms);
@@ -93,32 +100,24 @@ public class Scriptlet extends Table {
                 }
             }
         }
+
         Document menuItem = con.get(parms.get("ID"));
         if (menuItem != null && (htmlScript = menuItem.getString("pageScript")) != null) {
-            try {
                 parms.put("SERVICE",menuItem.getString("name"));
                 styleScript = "\n"+menuItem.getString("pageStyle");
 
                 // Will likely allow some templating here but for now, just dump it
                 sb.append(htmlScript);
 
-            } catch (Exception e) {
-                System.out.println("Error in scriptlet: " + htmlScript + " exception: "+ e.getClass().getName()+" message=" + e.getMessage());
-                sb.append("Error in scriptlet: " + parms.get("ID") + " message=" + e.getMessage());
-                e.printStackTrace();
-            } finally {
-            }
         } else {
-            //System.err.println("MenuItem or pageScript is null - showing all tables");
-            parms.put("HTMX",this.getClass().getName());
-            return new Schema().getPage(con,parms);
+            // If no script (probably new) return blank, otherwise, show the schema
+            return (htmlScript == null ? "" : new Schema().getPage(con,parms));
         }
-     //   styleScript += "\n<script src='https://unpkg.com/hyperscript.org@0.9.12'></script>";
-     //   styleScript += "\n<script src='https://unpkg.com/htmx.org@1.9.9'></script>";
-        return headMinimum(con, parms.get("SERVICE"),styleScript)+bodyMinimum("",sb.toString());
+        return head(con, parms.get("SERVICE"),styleScript)+body("",sb.toString());
     }
 
     String getTableWithControls(DatabaseConnection con, HashMap<String,String> parms, String table) {
+        parms.remove("EDIT_ID");  // Getting the whole table, need to prevent getTableRowFields from pulling up the last record in the new record form
         return linkHTMX(this.getClass().getName(), "&lt;" + Message.get(con.getLocale(), "ALL_TABLES"))
                 + "&nbsp;&nbsp;&nbsp;"
                  + ((Security.getTablePriv(con, table) & PRIV_CREATE) > 0 

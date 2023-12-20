@@ -84,7 +84,7 @@ public class ShaderBuilder extends Table {
         }
         
         // Return the default page
-        return head(con, "Shader Builder", getScripts(con) )
+        return head(con, "Shader Builder", getScripts(con.getLocale()) )
                 + body(standardLayout(con, parms,
                     ((Security.getTablePriv(con, TABLE_NAME) & PRIV_CREATE) > 0
                     ? popupForm("CREATE_NEW_ROW", null, Message.get(locale, "CREATE_ROW"), null, "NAME",
@@ -99,11 +99,11 @@ public class ShaderBuilder extends Table {
     }
 
     @Override public String getTableRowForm(DatabaseConnection con, String table, HashMap<String, String> parms) {
-        return getTableRowFields(con, table, parms, null);
+        return getTableRowFields(con, table, parms);
     }
 
     /** Returns the default row editor page with Script editors and preview in a split panel  */
-    @Override public String getTableRowFields(DatabaseConnection con, String table, HashMap<String, String> parms, String columnOverride) {
+    @Override public String getTableRowFields(DatabaseConnection con, String table, HashMap<String, String> parms) {
         String edit_id = (parms != null ? parms.get("EDIT_ID") : null);
         Document initialValues = null;
         if (edit_id != null) {
@@ -123,15 +123,15 @@ public class ShaderBuilder extends Table {
 
         String init = initialValues.getString("vertexScript");
         if (init == null) init = "/* Vertex Shader */\n";
-        vertexEditor = getCodeEditorControl(formName, PARM_PREFIX + "vertexScript", init, "text/x-csrc");
+        vertexEditor = getCodeEditorControl(formName, PARM_PREFIX + "vertexScript", init, "text/x-csrc", null);
 
         init = initialValues.getString("fragmentScript");
         if (init == null) init = "/* Fragment Shader "+new Date()+" by "+con.getUser()+"*/\n";
-        fragmentEditor = getCodeEditorControl(formName, PARM_PREFIX + "fragmentScript", init, "text/x-csrc");                    
+        fragmentEditor = getCodeEditorControl(formName, PARM_PREFIX + "fragmentScript", init, "text/x-csrc", null);                    
 
         init = initialValues.getString("testScript");
         if (init == null) init = "/* Shader Test "+new Date()+" by "+con.getUser()+"*/\n";
-        testScriptEditor = getCodeEditorControl(formName, PARM_PREFIX + "testScript", init, "application/javascript");                    
+        testScriptEditor = getCodeEditorControl(formName, PARM_PREFIX + "testScript", init, "application/javascript", null);                    
 
 
         String resultView = 
