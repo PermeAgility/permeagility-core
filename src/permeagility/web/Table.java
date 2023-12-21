@@ -145,7 +145,7 @@ public class Table extends Weblet {
 
         // Make the result
         if (HTMX_MODE) 
-            return headMinimum(con, title, getScripts(con.getLocale())) + body(body);
+            return headMinimum(con, title, getScripts(con.getLocale())) + bodyWithAttribute(body, "_=\"on load set #headerservice to 'Hello there'\"");
         else 
             return head(con, title, getScripts(con.getLocale()))
                 + body(standardLayout(con, parms, body ));
@@ -862,16 +862,15 @@ public class Table extends Weblet {
                                 + (edit_id != null && (Security.getTablePriv(con, table) & PRIV_DELETE) > 0 && !readOnly ? deleteButton(con.getLocale(),table,edit_id) : ""));
         if (HTMX_MODE) {
             if (edit_id == null) {  // PUT
-                formContent = formHTMX(formName, "/"+this.getClass().getName()+"/"+table, "put",formContent, "_=\"on htmx:configRequest log 'configRequest called'\"");
+                formContent = formHTMX(formName, "/"+this.getClass().getName()+"/"+table, "put", formContent);
             } else {                // PATCH
-                formContent = formHTMX(formName, "/"+this.getClass().getName()+"/"+table+"/"+edit_id, "patch",formContent);
-//                    , "_=\"on htmx:configRequest log 'configRequest called' then call PARM_CSSStyleEditor.save()\"");
-//                    , "hx-on::before-request=\"console.log('before-request'); PARM_CSSStyleEditor.save(); console.log('saved')\"");
+                formContent = formHTMX(formName, "/"+this.getClass().getName()+"/"+table+"/"+edit_id, "patch", formContent);
             }
         } else {
             formContent = form(formName, formContent);
         }
-
+        String docDesc = edit_id == null ? "New" : getDescriptionFromDocument(con, con.get(edit_id));
+        String title = Message.get(con.getLocale(), "EDIT_ROW", makeCamelCasePretty(table), docDesc);
         return allRowsLink
               //+ (Security.authorized(con.getUser(), "permeagility.web.Visuility") ? "&nbsp;&nbsp;" + link("permeagility.web.Visuility?TYPE=row&ID=" + edit_id, "<i>V</i>") : "")
                 + getLinkTrail(con, parms.get("SOURCETABLENAME"), parms.get("SOURCEEDIT_ID"))
@@ -879,7 +878,8 @@ public class Table extends Weblet {
                         ? Message.get(con.getLocale(), "CREATE_ROW")+" "+makeCamelCasePretty(table)
                         : Message.get(con.getLocale(), "UPDATE") + "&nbsp;" + makeCamelCasePretty(table)))
                 + formContent
-                + getTableRowRelated(con, table, parms);
+                + getTableRowRelated(con, table, parms)
+                + serviceHeaderUpdateDiv(title);
     }
 
     private String getLinkTrail(DatabaseConnection con, String tables, String ids) {
@@ -1281,14 +1281,18 @@ public class Table extends Weblet {
     }
 
     public String newColumnForm(DatabaseConnection con) {
-        Locale l = con.getLocale();
-        String show = "ng-show=\"NEWDATATYPE == 'DATATYPE_LINK' || NEWDATATYPE == 'DATATYPE_LIST' || NEWDATATYPE == 'DATATYPE_MAP' \"";
+        Locale l = con.getLocale();  
+        String typeSelAttr = """ 
+            _="on load hide #NEWTABLEREF end 
+               on change if #NEWDATATYPE.value is 'DATATYPE_LINK' or #NEWDATATYPE.value is 'DATATYPE_LIST' or #NEWDATATYPE.value is 'DATATYPE_MAP'
+                     show #NEWTABLEREF
+                else hide #NEWTABLEREF"
+                """;   // This script will show the table picklist only if datatype is link, list or map
+        String tableSelAttr = null;
         return paragraph("banner", Message.get(l, "NEW_COLUMN"))
-                + getDatatypeList(l, "NEWDATATYPE", "DATATYPE_TEXT", "ng-model=\"NEWDATATYPE\" ng-init=\"NEWDATATYPE='DATATYPE_TEXT'\"")
-                + createListFromDocumentTypes("NEWTABLEREF", null, con, show, false, null, true)
-                + br()
-                + input("NEWCOLUMNNAME", "")
-                + br()
+                + getDatatypeList(l, "NEWDATATYPE", "DATATYPE_TEXT", typeSelAttr)
+                + createListFromDocumentTypes("NEWTABLEREF", null, con, tableSelAttr, false, null, true) + br()
+                + inputWithPlaceholder("NEWCOLUMNNAME", "Column name") + br()
                 + center(submitButton(l, "NEW_COLUMN"));
     }
 
@@ -1488,7 +1492,7 @@ public class Table extends Weblet {
                 sb.append(tableFooter(row(columnSpan(columns.size(), rowCountInfo))));
             }
             if (HTMX_MODE) {
-                return tableHTMX("sortable_"+table, "sortable", sb.toString());
+                return tableHTMX("sortable_"+table, (rowCount > 0 ? "sortable" : ""), sb.toString());  // sort table breaks if you have no rows in the tbody
             } else {
                 return table("sortable", sb.toString());
             }

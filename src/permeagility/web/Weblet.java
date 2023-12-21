@@ -216,11 +216,14 @@ public abstract class Weblet {
     public static String body(String s) { return "<body "+BODY_OPTIONS+">"+"\n" + s +SCREEN_FADE+ "</body>"; }
     public static String body(String c, String s) { return "<body "+BODY_OPTIONS+" class=\"" + c + "\">"+"\n" + s +SCREEN_FADE+ "</body>"; }
     public static String bodyOnLoad(String s, String l) { return "<body "+BODY_OPTIONS+" onLoad=\"" + l + "\">"+"\n" + s + SCREEN_FADE + "</body>"; }
+    public static String bodyWithAttribute(String s, String l) { return "<body "+BODY_OPTIONS+" " + l + "\">"+"\n" + s + SCREEN_FADE + "</body>"; }
     public static String span(String id, String s) { return "<span id=\"" + id + "\">\n" + s + "</span>\n"; }
     public static String div(String id, String contents) { return "<div "+(id == null ? "" : "id=\"" + id + "\"")+">\n" + (contents == null ? "" : contents) + "</div>\n"; }
     public static String div(String id, String classes, String contents) { return "<div "+(id == null ? "" : "id=\"" + id + "\"")+(classes == null ? "" : " class=\""+classes+"\"")+">\n" + (contents == null ? "" : contents) + "</div>\n"; }
 
     public static String chartDiv(String id) { return "<div id=\"" + id + "\" style=\"position: static; width: 100%; height: 100%; overflow: visible; \"></div>\n"; }
+
+    public static String serviceHeaderUpdateDiv(String serviceText) { return "<div _=\"on load put '" + serviceText + "' into #headerservice\"></div>\n"; }
 
     public static String standardLayout(DatabaseConnection con, java.util.HashMap<String, String> parms, String html) {
         if (Menu.HORIZONTAL_LAYOUT) {  // Needs menu over header
@@ -481,6 +484,9 @@ public abstract class Weblet {
 
     public String input(String n, Object value) {
             return "<input "+TEXT_INPUT_OPTIONS+" id=\"" + n + "\" name=\"" + n + "\" " + (isReadOnly() ? "DISABLED" : "") + "  value=\"" + (value == null ? "" : value) + "\">";
+    }
+    public String inputWithPlaceholder(String n, String placeholder) {
+            return "<input "+TEXT_INPUT_OPTIONS+" placeholder=\""+placeholder+"\" id=\"" + n + "\" name=\"" + n + "\" " + (isReadOnly() ? "DISABLED" : "") + "\">";
     }
 
     public String input(String c, String n, Object value) {
@@ -1188,17 +1194,22 @@ public abstract class Weblet {
     public static String getDescriptionFromDocument(DatabaseConnection con, Document document) {
         if (document == null) {
             return NONE_STRING;
-        } else if (document.getTypeName() == null || document.has("name")) {
+        } else if (document.has("name")) {
             String name = document.getString("name");
             if (name != null) {
                     return name;
-            } else {
-                    return NONE_STRING;
             }
-        } else {
-            System.out.println("Doing table lookup for document description.  document="+document.getIdentity()+" class="+document.getTypeName());
-            return getDescriptionFromTable(con, document.getTypeName(), document.getIdentity().toString());
         }
+        Set<String> props = document.getPropertyNames();
+        if (props.size() > 0) {
+            return document.getString(props.toArray()[0].toString());  // if no name, get the first property
+        } else {
+            return NONE_STRING;
+        }
+//        } else {
+//            System.out.println("Doing table lookup for document description.  document="+document.getIdentity()+" class="+document.getTypeName());
+//            return getDescriptionFromTable(con, document.getTypeName(), document.getIdentity().toString());
+//        }
     }
 
     public static String getDescriptionFromTable(DatabaseConnection con, String table, String id) {
@@ -1290,6 +1301,7 @@ public abstract class Weblet {
                 }
                 sb.append(">");
                 sb.append(item);
+                sb.append("</OPTION>\n");
             }
         }
         sb.append("</SELECT>\n");

@@ -170,7 +170,8 @@ public class Schema extends Weblet {
                                     input("NEWTABLENAME", "") + "&nbsp;&nbsp;"
                                     + submitButton(con.getLocale(), "NEW_TABLE")
                             )
-                            : "");
+                            : "")
+                        + serviceHeaderUpdateDiv(Message.get(con.getLocale(),"SCHEMA_EDITOR", con.getDb().getName()));
         }
         return head(con, Message.get(con.getLocale(), "SCHEMA_EDITOR"))
                 + body(standardLayout(con, parms,

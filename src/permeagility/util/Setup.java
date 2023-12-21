@@ -302,26 +302,26 @@ public class Setup {
             int mCount = 0;
             // These are the data types that can be used
             mCount += checkCreateMessage(con, loc, "DATATYPE_FLOAT", "Floating point number (double)");
-            mCount += checkCreateMessage(con, loc, "DATATYPE_INT", "Whole number (integer)");
+            mCount += checkCreateMessage(con, loc, "DATATYPE_INT", "Whole number (int)");
             mCount += checkCreateMessage(con, loc, "DATATYPE_TEXT", "Text (any length)");
             mCount += checkCreateMessage(con, loc, "DATATYPE_BOOLEAN", "Boolean (true/false)");
             mCount += checkCreateMessage(con, loc, "DATATYPE_DATETIME", "Date and time");
             mCount += checkCreateMessage(con, loc, "DATATYPE_DATE", "Date");
             mCount += checkCreateMessage(con, loc, "DATATYPE_DECIMAL", "Decimal (Currency)");
             mCount += checkCreateMessage(con, loc, "DATATYPE_BLOB", "Binary (image/file)");
-            mCount += checkCreateMessage(con, loc, "DATATYPE_LINK", "Link (single reference)");
-            mCount += checkCreateMessage(con, loc, "DATATYPE_LIST", "Link list (ordered)");
-            mCount += checkCreateMessage(con, loc, "DATATYPE_MAP", "Link map (with names, ordered)");
+            mCount += checkCreateMessage(con, loc, "DATATYPE_LINK", "Reference to");
+            mCount += checkCreateMessage(con, loc, "DATATYPE_LIST", "List of");
+            mCount += checkCreateMessage(con, loc, "DATATYPE_MAP", "Named list of");
 
             // These are core messages
-            mCount += checkCreateMessage(con, loc, "HEADER_TITLE", "The dynamic adaptive data management platform");
+            mCount += checkCreateMessage(con, loc, "HEADER_TITLE", "Dynamic adaptive data management");
             mCount += checkCreateMessage(con, loc, "HEADER_LOGO_DESC", "Go to the home page");
             mCount += checkCreateMessage(con, loc, "WELCOME_USER", "Welcome {0}");
             mCount += checkCreateMessage(con, loc, "DATE_LABEL", "Date:");
             mCount += checkCreateMessage(con, loc, "TABLE_EDITOR", "{0} editor");
             mCount += checkCreateMessage(con, loc, "LOGIN_TITLE", "Login");
             mCount += checkCreateMessage(con, loc, "PAGE_NAV", "Page");
-            mCount += checkCreateMessage(con, loc, "HOME_PAGE_TITLE", "Home page");
+            mCount += checkCreateMessage(con, loc, "HOME_PAGE_TITLE", "Welcome to PermeAgility");
             mCount += checkCreateMessage(con, loc, "LOGIN_BUTTON_TEXT", "Login");
             mCount += checkCreateMessage(con, loc, "USER_LABEL", "User");
             mCount += checkCreateMessage(con, loc, "PASSWORD_LABEL", "Password");
@@ -352,7 +352,7 @@ public class Setup {
             mCount += checkCreateMessage(con, loc, "TABLE_RIGHTS_OPTIONS", "Rights");
             mCount += checkCreateMessage(con, loc, "ADVANCED_TABLE_OPTIONS", "Advanced");
             mCount += checkCreateMessage(con, loc, "ALL_TABLES", "All tables");
-            mCount += checkCreateMessage(con, loc, "SCHEMA_EDITOR", "Tables");
+            mCount += checkCreateMessage(con, loc, "SCHEMA_EDITOR", "All Tables in {0}");
             mCount += checkCreateMessage(con, loc, "CREATE_ROW", "Create");
             mCount += checkCreateMessage(con, loc, "NEW_COLUMN", "Add column");
             mCount += checkCreateMessage(con, loc, "ROLE_CAN_PRIV", "{0} can {1}");
@@ -509,6 +509,8 @@ public class Setup {
             mCount += checkCreateMessage(con, loc, "SAVE_AND_RUN", "Save/Run");
             mCount += checkCreateMessage(con, loc, "DETAILS", "Details");
             mCount += checkCreateMessage(con, loc, "MORE", "More");
+            mCount += checkCreateMessage(con, loc, "VIEW_TABLE", "View table: {0}");
+            mCount += checkCreateMessage(con, loc, "EDIT_ROW", "Update {0}: {1}");
             if (mCount > 0) {
                     installMessages.append(Weblet.paragraph("CheckInstallation: Created "+mCount+" messages"));
                     Server.tableUpdated(con, "message");
@@ -530,7 +532,7 @@ public class Setup {
                     + "<ul><li><a href='permeagility.web.Home?USERNAME=admin&PASSWORD=admin'>admin/admin</a></li>\n"
                     + "<li><a href='permeagility.web.Home?USERNAME=writer&PASSWORD=writer'>writer/writer</a></li>\n"
                     + "<li><a href='permeagility.web.Home?USERNAME=reader&PASSWORD=reader'>reader/reader</a></li></ul>\n"
-                    + "<br><img height='60%' align='right' src='images/Logo.svg'>");
+                    + "<br><img style='width: 30%; float: right;' src='images/Logo.svg'>");
                 n1.set("dateline",new Date());
                 n1.set("locale",loc);
                 n1.set("archive",false);
@@ -596,7 +598,7 @@ public class Setup {
                 style2.set("name", "dark");
                 style2.set("horizontal", true);
                 style2.set("logo", "Logo-yel.svg");
-                style2.set("editorTheme","blackboard");
+                style2.set("editorTheme","ambiance");
                 style2.set("CSSStyle", DEFAULT_STYLESHEET);
                 style2.save();
             }

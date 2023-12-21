@@ -113,12 +113,12 @@ public class Scriptlet extends Table {
             // If no script (probably new) return blank, otherwise, show the schema
             return (htmlScript == null ? "" : new Schema().getPage(con,parms));
         }
-        return head(con, parms.get("SERVICE"),styleScript)+body("",sb.toString());
+        return head(con, parms.get("SERVICE"),styleScript)+body(sb.toString());
     }
 
     String getTableWithControls(DatabaseConnection con, HashMap<String,String> parms, String table) {
         parms.remove("EDIT_ID");  // Getting the whole table, need to prevent getTableRowFields from pulling up the last record in the new record form
-        return linkHTMX(this.getClass().getName(), "&lt;" + Message.get(con.getLocale(), "ALL_TABLES"))
+        String body = linkHTMX(this.getClass().getName(), "&lt;" + Message.get(con.getLocale(), "ALL_TABLES"))
                 + "&nbsp;&nbsp;&nbsp;"
                  + ((Security.getTablePriv(con, table) & PRIV_CREATE) > 0 
                     ? popupFormHTMX("CREATE_NEW_ROW", this.getClass().getName()+"/"+table, "put", Message.get(con.getLocale(), "NEW_ROW"), "NAME",
@@ -126,16 +126,20 @@ public class Scriptlet extends Table {
                         + getTableRowFields(con, table, parms)
                         + submitButton(con.getLocale(), "CREATE_ROW")) 
                     : "")
-            + "&nbsp;&nbsp;&nbsp;"
-             + (Security.isDBA(con)
-                ? newColumnPopup(con, table)
-                //+ "&nbsp;&nbsp;&nbsp;"
-                //+ popupForm("RIGHTSOPTIONS", null, Message.get(locale, "TABLE_RIGHTS_OPTIONS"), null, "XXX", rightsOptionsForm(con, table, parms, ""))
-                //+ "&nbsp;&nbsp;&nbsp;"
-                //+ popupForm("ADVANCEDOPTIONS", null, Message.get(locale, "ADVANCED_TABLE_OPTIONS"), null, "NEWCOLUMNNAME", advancedOptionsForm(con, table, parms, ""))
-                : "") // isDBA switch
-        + br()
-        + getTable(con, table);
+                + "&nbsp;&nbsp;&nbsp;"
+                + (Security.isDBA(con)
+                    ? newColumnPopup(con, table)
+                    //+ "&nbsp;&nbsp;&nbsp;"
+                    //+ popupForm("RIGHTSOPTIONS", null, Message.get(locale, "TABLE_RIGHTS_OPTIONS"), null, "XXX", rightsOptionsForm(con, table, parms, ""))
+                    //+ "&nbsp;&nbsp;&nbsp;"
+                    //+ popupForm("ADVANCEDOPTIONS", null, Message.get(locale, "ADVANCED_TABLE_OPTIONS"), null, "NEWCOLUMNNAME", advancedOptionsForm(con, table, parms, ""))
+                    : "") // isDBA switch
+                + br()
+                + getTable(con, table);
+
+        String title = Message.get(con.getLocale(),"VIEW_TABLE",makeCamelCasePretty(table));
+
+        return body + serviceHeaderUpdateDiv(title);
     }
 
 }

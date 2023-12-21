@@ -34,12 +34,13 @@ public class News extends Weblet {
 
 		QueryResult qr = con.query(query);
 		for (Document d : qr.get()) {
-			sb.append(paragraph("headline",d.getString("name")));
-			sb.append(paragraph("dateline",formatDate(con.getLocale(), d.getDate("dateline"), "MMMM dd yyyy")));
-			sb.append(paragraph("article",d.getString("description")));
+			sb.append(div("headline","headline", d.getString("name")));
+			sb.append(div("dateline", "dateline", formatDate(con.getLocale(), d.getDate("dateline"), "MMMM dd yyyy")));
+			sb.append(div("article", "article", d.getString("description")));
 		}
-		return headMinimum(con, Message.get(con.getLocale(), "NEWS_PAGE_TITLE")) 
-                + body (sb.toString());
+		String title = Message.get(con.getLocale(), "NEWS_PAGE_TITLE");
+		return headMinimum(con, title) 
+                + body (sb.toString()+serviceHeaderUpdateDiv(title));
     }
 
 }

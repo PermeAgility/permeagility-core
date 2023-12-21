@@ -37,7 +37,7 @@ public class PageBuilder extends Table {
         Locale locale = con.getLocale();
 
         // Put rest stuff here
-        String httpMethod = parms.get("HTTP_METHOD");
+        //String httpMethod = parms.get("HTTP_METHOD");
         String restOfURL = parms.get("REST_OF_URL");  // if rest attributes exist then parse table/id
         String rid = null;
         String table = null;
@@ -58,10 +58,7 @@ public class PageBuilder extends Table {
         String update = processSubmit(con, parms, TABLE_NAME, errors);
         if (update != null) { return update; }
 
-        // Remove the edit id when deleted, otherwise it will try to pull up the record and fail because it was recently deleted
-     //   if (httpMethod.equalsIgnoreCase("DELETE")) parms.remove("EDIT_ID");
-
-        // If nothing else happened, so show the list of Pages owned by the user
+        // If nothing else happened show the list of Pages owned by the user
         if (sb.length() == 0) {
             try {
                 parms.put("SERVICE", "Page Builder");
@@ -140,7 +137,7 @@ public class PageBuilder extends Table {
                   +script("Split(['#leftHand', '#rightHand'], { direction: 'horizontal', gutterSize: 8, minSize: [5,5], cursor: 'col-resize' });\n"
                            + "Split(['#styleEditor', '#scriptEditor'], { direction: 'vertical', sizes: [50, 50], minSize: [5,5], gutterSize: 8, cursor: 'row-resize' });\n"
                           +(readOnly ? "" :
-                        "d3.select('#headerservice').text(document.getElementById('"+PARM_PREFIX+"name').value);\n"  // set the header service info
+                        "d3.select('#headerservice').text('"+"PageBuilder: "+"' + document.getElementById('"+PARM_PREFIX+"name').value);\n"  // set the header service info
                        + "d3.select('#UpdateButton').on('click', function() { \n"  // On click
                        + "   "+PARM_PREFIX+"pageStyleEditor.save();\n"              // get the data
                        + "   "+PARM_PREFIX+"pageScriptEditor.save();\n"
@@ -154,7 +151,7 @@ public class PageBuilder extends Table {
                             // should convert this to htmx and target errors to a place where they could be seen
                         + "   fetch('/"+this.getClass().getName()+"/"+TABLE_NAME+"/"+edit_id+"', { method: \"PATCH\", body: formData } ).then(data => {   \n"                        
                        + "      d3.select('#previewFrame').attr('src','permeagility.web.Scriptlet?ID="+edit_id+"');\n"
-                        + "      d3.select('#headerservice').text(document.getElementById('"+PARM_PREFIX+"name').value);\n"
+                        + "      d3.select('#headerservice').text('"+"PageBuilder: "+"' + document.getElementById('"+PARM_PREFIX+"name').value);\n"
                         + "   });\n"
                         + "});\n")
                 );

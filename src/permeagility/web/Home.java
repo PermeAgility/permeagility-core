@@ -20,19 +20,21 @@ import permeagility.util.DatabaseConnection;
 public class Home extends Weblet {
 	
   String pageBody = """
-    <div id="header" hx-trigger="load" hx-get="/Header?HTMX=true" hx-swap="innerHTML"></div>
-    <div id="service" hx-trigger="load delay:200ms" hx-get="/News?HTMX=true" hx-swap="innerHTML"></div>
+    <div id="header" hx-trigger="load" hx-get="/Header" hx-swap="innerHTML"></div>
+    <div id="service" hx-trigger="load delay:100ms" hx-get="/News" hx-swap="innerHTML"></div>
     <div id="nav-container">
         <div id="underlay" class="bg"></div>
         <div id="nav-button" class="nav-button" tabindex="0">
             <span class="icon-bar"></span><span class="icon-bar"></span><span class="icon-bar"></span>
         </div>
-        <div id="nav-content" hx-get="/Menu?HTMX=true" hx-trigger="load delay:50ms" hx-swap="innerHTML" tabindex="0"></div>
+        <div id="nav-content" hx-get="/Menu" hx-trigger="load delay:50ms" hx-swap="innerHTML" tabindex="0"></div>
     </div>
 """;
 
     public String getPage(DatabaseConnection con, HashMap<String,String> parms) {
-            return head(con, Message.get(con.getLocale(), "HOME_PAGE_TITLE"))
-                 + body(pageBody);
+
+        String title = Message.get(con.getLocale(), "HOME_PAGE_TITLE");
+        return head(con, title)
+             + body(pageBody+serviceHeaderUpdateDiv(title));
     }
 }
