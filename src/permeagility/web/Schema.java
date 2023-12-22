@@ -35,8 +35,6 @@ public class Schema extends Weblet {
     public String getPage(DatabaseConnection con, java.util.HashMap<String, String> parms) {
         parms.put("SERVICE", Message.get(con.getLocale(), "SCHEMA_EDITOR"));
         StringBuilder errors = new StringBuilder();
-        //HTMX_MODE = parms.get("HTMX") != null;
-        String HTMX_MODAL = parms.get("HTMX_MODAL");
         String submit = parms.get("SUBMIT");
         if (submit != null) {
             if (submit.equals("NEW_TABLE")) {
@@ -162,28 +160,15 @@ public class Schema extends Weblet {
         }
 
         // Return result
-        if (HTMX_MODE) {
-            return errors.toString()
-                    + table("layout", rows.toString()) + br()
-                    + (Security.isDBA(con)
-                            ? popupFormHTMX("NEWTABLE_Ungrouped", "/Schema", "PUT", parms.get("HX-TARGET"), Message.get(con.getLocale(), "NEW_TABLE"), "NEWTABLENAME",
-                                    input("NEWTABLENAME", "") + "&nbsp;&nbsp;"
-                                    + submitButton(con.getLocale(), "NEW_TABLE")
-                            )
-                            : "")
-                        + serviceHeaderUpdateDiv(parms, Message.get(con.getLocale(),"SCHEMA_EDITOR", con.getDb().getName()));
-        }
-        return head(con, Message.get(con.getLocale(), "SCHEMA_EDITOR"))
-                + body(standardLayout(con, parms,
-                                errors.toString()
-                                + table("layout", rows.toString()) + br()
-                                + (Security.isDBA(con)
-                                        ? popupForm("NEWTABLE_Ungrouped", null, Message.get(con.getLocale(), "NEW_TABLE"), "", "NEWTABLENAME",
-                                                input("NEWTABLENAME", "") + "&nbsp;&nbsp;"
-                                                + submitButton(con.getLocale(), "NEW_TABLE")
-                                        )
-                                        : "")
-                        ));
+        return errors.toString()
+                + table("layout", rows.toString()) + br()
+                + (Security.isDBA(con)
+                        ? popupFormHTMX("NEWTABLE_Ungrouped", "/Schema", "PUT", parms.get("HX-TARGET"), Message.get(con.getLocale(), "NEW_TABLE"), "NEWTABLENAME",
+                                input("NEWTABLENAME", "") + "&nbsp;&nbsp;"
+                                + submitButton(con.getLocale(), "NEW_TABLE")
+                        )
+                        : "")
+                    + serviceHeaderUpdateDiv(parms, Message.get(con.getLocale(),"SCHEMA_EDITOR", con.getDb().getName()));
     }
 
     public static String getTableSelector(DatabaseConnection con) {
@@ -246,8 +231,7 @@ public class Schema extends Weblet {
             }
         }
 
-        return "<div ng-init=\"tables=[" + tableInit + "];\">\n"
-                + table(
+        return table(
                         row(column("")
                                 + column(
                                         "<select ng-model=\"selGroup\"\n"
@@ -260,8 +244,7 @@ public class Schema extends Weblet {
                                         + "  <option value=\"\">Table</option>\n"
                                         + "</select>\n")
                         )
-                )
-                + "</div>\n";
+                );
     }
 
 }

@@ -106,11 +106,8 @@ public class Table extends Weblet {
                 if (httpMethod.equals("PUT")) {
                     // PUT to 'columns' will add a column provided the proper details are given as parameters 
                     if (rid != null && rid.equals("columns")) {
-                        if (addColumn(con, parms, table, errors)) {
-                            return getTableWithControls(con, parms, table);
-                        } else {
-                            return errors.toString() + getTableWithControls(con, parms, table);
-                        }
+                        addColumn(con, parms, table, errors);
+                        return errors.toString() + getTableWithControls(con, parms, table);
                     }
                     // PUT to insert and return the new row 
                     if (insertRow(con, table, parms, errors)) {
@@ -150,7 +147,7 @@ public class Table extends Weblet {
 
     public String processSubmit(DatabaseConnection con, HashMap<String, String> parms, String table, StringBuilder errors) {
 
-        System.out.println("Table.processSubmit called");
+        System.out.println("Table.processSubmit called ----------------------------- *********************");
         Locale locale = con.getLocale();
         String submit = parms.get("SUBMIT");
         String editId = parms.get("EDIT_ID");
@@ -308,7 +305,7 @@ public class Table extends Weblet {
                         } else {
                             Setup.checkCreateColumn(con, c, camel, type, errors);
                         }
-                        errors.append(paragraph("success", Message.get(locale, "NEW_COLUMN_CREATED") + ":&nbsp;" + camel));
+                        errors.append(serviceNotificationDiv(paragraph("success", Message.get(con.getLocale(), "NEW_COLUMN_CREATED") + ":&nbsp;" + camel)));
                         Server.tableUpdated(con, "metadata:schema");
                         return true;
                     }
@@ -349,7 +346,7 @@ public class Table extends Weblet {
             if (copyName == null) copyName = newDoc.getIdentity().toString();
             newDoc.save();
             parms.put("EDIT_ID", newDoc.getIdentity().toString().substring(1));  // In case we want to go straight to the new record's editor
-            errors.append(paragraph("success", Message.get(con.getLocale(), "ROW_COPIED", copyName)));
+            errors.append(serviceNotificationDiv(paragraph("success", Message.get(con.getLocale(), "ROW_COPIED", copyName))));
             return true;
         }
         return false;
@@ -375,20 +372,30 @@ public class Table extends Weblet {
                         long longValue = Long.parseLong(value);
                         newDoc.set(name, longValue);
                     } catch (Exception e) {
-                        errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_NUMBER_VALUE", value)));
+                        errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_NUMBER_VALUE", value+": "+e.getMessage())));
                     }
                 } else if (type == Type.FLOAT || type == Type.DOUBLE || type == Type.DECIMAL) {  // Float - Double - Decimal
                     try {
                         double dubValue = Double.parseDouble(value);
                         newDoc.set(name, dubValue);
                     } catch (Exception e) {
-                        errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_NUMBER_VALUE", value)));
+                        errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_NUMBER_VALUE", value+": "+e.getMessage())));
+                    }
+                } else if (type == Type.DATE) {  // Date
+                    try {
+                        Date date = parseDate(con.getLocale(),value);
+                        newDoc.set(name, date);
+                    } catch (Exception e) {
+                        errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_DATE_VALUE", value+": "+e.getMessage())));
                     }
                 } else if (type == Type.DATETIME) {  // Datetime
                     try {
-                        newDoc.set(name, value);
+                        value = value.replace('T', ' ');
+                        if (value.length() == 16) value += ":00";
+                        LocalDateTime ldt = parseLocalDatetime(con.getLocale(), value);
+                        newDoc.set(name, ldt);
                     } catch (Exception e) {
-                        errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_DATE_VALUE", value)));
+                        errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_DATETIME_VALUE", value+": "+e.getMessage())));
                     }
                 } else if (type == Type.STRING) {  // String
                     newDoc.set(name, value);
@@ -456,8 +463,6 @@ public class Table extends Weblet {
                     if (okToUpdate) {
                         newDoc.set(name, map, Type.MAP);
                     }
-                } else if (type == Type.DATE) {  // Date
-                    newDoc.set(name, value);
                 } else {
                     errors.append(paragraph("error", Message.get(con.getLocale(), "UNKNOWN_FIELD_TYPE", "" + type, name)));
                 }
@@ -590,20 +595,33 @@ public class Table extends Weblet {
                             || (originalValue == null && newValue != null)) {
                         updateRow.set(columnName, newVal);
                     }
-                } else if (type == Type.DATETIME) {  // Datetime
-                    LocalDateTime originalValue = updateRow.getLocalDateTime(columnName);
-                    LocalDateTime newDate = parseLocalDatetime(con.getLocale(), newValue);
-                    if (newValue != null && newDate == null) {
-                        errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_DATE_VALUE", newValue, DATE_FORMAT+" "+TIME_FORMAT)));
-                    } else {
-                        if (DEBUG) {
-                            System.out.println("Updating Datetime " + (originalValue == null ? "" : originalValue.toString()) + " to " + newDate);
-                        }
+                } else if (type == Type.DATE) {  // Date
+                    Date originalValue = updateRow.getDate(columnName);
+                    try {
+                        Date newDate = parseDate(con.getLocale(), newValue);
+                        if (DEBUG) System.out.println("Updating Date " + (originalValue == null ? "" : originalValue.toString()) + " to " + newDate);
                         if ((newValue != null && originalValue != null && !newDate.equals(originalValue))
                                 || (newValue == null && originalValue != null)
                                 || (originalValue == null && newValue != null)) {
                             updateRow.set(columnName, newDate);
                         }
+                    } catch (Exception e) {
+                            errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_DATE_VALUE", newValue+": "+e.getMessage())));
+                    }
+                } else if (type == Type.DATETIME) {  // Datetime
+                    LocalDateTime originalValue = updateRow.getLocalDateTime(columnName);
+                    try {
+                        newValue = newValue.replace('T',' ');
+                        if (newValue.length() == 16) newValue += ":00";
+                        LocalDateTime newDate = parseLocalDatetime(con.getLocale(), newValue);
+                        if (DEBUG) System.out.println("Updating Datetime " + (originalValue == null ? "" : originalValue.toString()) + " to " + newDate);
+                        if ((newValue != null && originalValue != null && !newDate.equals(originalValue))
+                                || (newValue == null && originalValue != null)
+                                || (originalValue == null && newValue != null)) {
+                            updateRow.set(columnName, newDate);
+                        }
+                    } catch (Exception e) {
+                            errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_DATETIME_VALUE", newValue + " Format:"+ DATE_FORMAT+" "+TIME_FORMAT + " Message: "+e.getMessage())));
                     }
                 } else if (type == Type.STRING) { // String
                     String originalValue = updateRow.getString(columnName);
@@ -723,21 +741,6 @@ public class Table extends Weblet {
                     if (okToUpdate) {
                         updateRow.set(columnName, o);
                     }
-                } else if (type == Type.DATE) {  // Date
-                    Date originalValue = updateRow.getDate(columnName);
-                    Date newDate = parseDate(con.getLocale(), newValue);
-                    if (newValue != null && newDate == null) {
-                        errors.append(paragraph("error", Message.get(con.getLocale(), "INVALID_DATE_VALUE", newValue)));
-                    } else {
-                        if (DEBUG) {
-                            System.out.println("Updating Date/Datetime " + (originalValue == null ? "" : originalValue.toString()) + " to " + newDate);
-                        }
-                        if ((newValue != null && originalValue != null && !newDate.equals(originalValue))
-                                || (newValue == null && originalValue != null)
-                                || (originalValue == null && newValue != null)) {
-                            updateRow.set(columnName, newDate);
-                        }
-                    }
                 }
             }
             if (updateRow.isDirty()) {
@@ -783,7 +786,7 @@ public class Table extends Weblet {
                 Server.tableUpdated(con, table);
                 DatabaseConnection.rowCountChanged(table);
                 parms.remove("EDIT_ID");
-                errors.append(paragraph("success", Message.get(con.getLocale(), "ROW_DELETED", delName)));
+                errors.append(serviceNotificationDiv(paragraph("success", Message.get(con.getLocale(), "ROW_DELETED", delName))));
                 return true;
             } catch (Exception e) {
                 errors.append(paragraph("error", Message.get(con.getLocale(), "ROW_CANNOT_BE_DELETED") + e.getMessage()));
@@ -976,36 +979,34 @@ public class Table extends Weblet {
         if (type == Type.BOOLEAN) {
             return row(label + column(hidden(PARM_PREFIX + name, "") + checkbox(PARM_PREFIX + name, (initialValue == null ? false : Boolean.valueOf(initialValue.toString())))));
 
-            // Number
+        // Number
         } else if (type == Type.DECIMAL || type == Type.INTEGER || type == Type.LONG || type == Type.FLOAT || type == Type.DOUBLE || type == Type.SHORT) {
             List<String> pickValues = Server.getPickValues(table, name);
             if (pickValues != null) {
                 return row(label + column(createList(con.getLocale(), PARM_PREFIX + name, initialValue != null ? initialValue.toString() : null, pickValues, null, false, null, true)));
             }
             return row(label + column(input("number", PARM_PREFIX + name, initialValue)));
-            // Datetime
-        } else if (type == Type.DATETIME) {
-            if (DEBUG && initialValue != null) System.out.println("Datetime field is of type: "+initialValue.getClass().getName());
-            return row(label + column(getDateTimeControl(formName, PARM_PREFIX + name,
-                            (initialValue != null && initialValue instanceof Date
-                                    ? formatDatetime(con.getLocale(), initialValues.getLocalDateTime(name))
-                                    : "")
-                    )));
-            // Date
+        // Date
         } else if (type == Type.DATE) {
             if (DEBUG && initialValue != null) System.out.println("Date field is of type: "+initialValue.getClass().getName());
-            return row(label + column(getDateControl(formName, PARM_PREFIX + name,
-                    (initialValue != null && initialValue instanceof Date
-                            ? formatDate(con.getLocale(), initialValues.getDate(name), DATE_FORMAT)
-                            : "")
-            )));
-            // Password (String)
+            return row(label + column("<input type=\"date\" name=\"" + PARM_PREFIX + name + "\" value=\""
+                        +(initialValue != null ? formatDate(con.getLocale(), initialValues.getDate(name)) : "")+"\" />"
+                    ));
+          // Datetime
+        } else if (type == Type.DATETIME) {
+            if (DEBUG && initialValue != null) System.out.println("Datetime field is of type: "+initialValue.getClass().getName());
+            return row(label + column("<input type=\"datetime-local\" step=1 name=\"" + PARM_PREFIX + name + "\" value=\""
+                            +(initialValue != null ? formatDatetime(con.getLocale(), initialValues.getLocalDateTime(name)) : "")+"\" />"
+                    ));
+        // Password (String)
         } else if (type == Type.STRING && name.toUpperCase().endsWith("PASSWORD")) {
             return row(label + column(password(PARM_PREFIX + name, null, 15)));
-            // Colour (String)
+        // Colour (String)
         } else if (type == Type.STRING && (name.toUpperCase().endsWith("COLOR") || name.toUpperCase().endsWith("COLOUR"))) {
             if (DEBUG) System.out.println("Doing color field " + initialValues);
-            return row(label + column(getColorControl(formName, PARM_PREFIX + name, (String) initialValue)));
+            return row(label + column("<input type=\"color\" name=\"" + PARM_PREFIX + name + "\" value=\""
+                        +(initialValue != null ? initialValues.getString(name) : "")+"\" />"
+                    ));
             // SQL (String)
         } else if (type == Type.STRING && name.toUpperCase().endsWith("SQL")) {
             if (DEBUG) System.out.println("Doing SQL Editor field " + name);
@@ -1328,7 +1329,7 @@ public class Table extends Weblet {
 
     String getTableWithControls(DatabaseConnection con, HashMap<String,String> parms, String table) {
         String pagest = parms.get("PAGE");
-        long page = 1;
+        long page = 0;
         if (pagest != null) {
             try { page = Integer.parseInt(pagest); } catch (Exception e) { }  // If it isn't a number, ignore it
         }
@@ -1430,6 +1431,7 @@ public class Table extends Weblet {
         try {
             StringBuilder sb = new StringBuilder();
             int rowCount = 0;
+            
             long totalRows = con.getRowCount(table);
             // Handle Paging
             if (page > -1) {
@@ -1438,7 +1440,7 @@ public class Table extends Weblet {
                     long pageCount = totalRows / ROW_COUNT_LIMIT + 1;
                     for (long p = 1; p <= pageCount; p++) {
                         if (Math.abs(page - p) < PAGE_WINDOW || pageCount - p < PAGE_WINDOW || p < PAGE_WINDOW) {
-                            if (p == page) {
+                            if (p == page || (page == 0 && p == 1)) {
                                 sb.append(bold(color("red", "" + p)) + "&nbsp;");
                             } else {
                                 sb.append(linkWithTipHTMX(this.getClass().getName()+"/" + table + "&PAGE=" + p, "" + p, "Page " + p, parms.get("HX-TARGET")) + "&nbsp;");
@@ -1451,11 +1453,10 @@ public class Table extends Weblet {
                     }
                 }
                 String skip = "";
-                if (page > 0) {
-                    skip = " SKIP " + ((page - 1) * ROW_COUNT_LIMIT);
-                }
+                if (page > 0) skip = " SKIP " + ((page - 1) * ROW_COUNT_LIMIT);
                 query += skip + " LIMIT " + ROW_COUNT_LIMIT;
             }
+            QueryResult rs = con.query(query);
 
             String sourceTable = (parms != null ? parms.get("SOURCETABLENAME") : null);
             String sourceId = (parms != null ? parms.get("SOURCEEDIT_ID") : null);
@@ -1473,7 +1474,6 @@ public class Table extends Weblet {
             if (DEBUG) {
                 System.out.println("permeagility.web.Table:query=" + query);
             }
-            QueryResult rs = con.query(query);
 
             // Get the table's columns
             Collection<Property> columns = con.getColumns(table, columnOverride);
@@ -1491,10 +1491,17 @@ public class Table extends Weblet {
                     ));                         
                     rowCount++;
                     if (page > -1 && rowCount >= ROW_COUNT_LIMIT) {
+                        if (page == 0) page = 1;  // reached limit with no page specified, must be page 1
                         break;
                     }
                 }
-                String rowCountInfo = paragraph(Message.get(con.getLocale(), "ROWS_OF", "" + rowCount, "" + totalRows) + "&nbsp;" + (page > -1 ? Message.get(con.getLocale(), "PAGE_NAV") + "&nbsp;" + page : ""));
+                String rowCountInfo;
+                if (page <= 1 && rowCount < ROW_COUNT_LIMIT) {  // We came in without a page no, and found less than the limit, no need to show totals or page no
+                    rowCountInfo = paragraph(rowCount+" rows");
+                } else {
+                    rowCountInfo = paragraph(Message.get(con.getLocale(), "ROWS_OF", "" + rowCount, "" + totalRows) 
+                                         + "&nbsp;" + (page > -1 ? Message.get(con.getLocale(), "PAGE_NAV") + "&nbsp;" + page : ""));
+                }
                 sb.append(tableFooter(row(columnSpan(columns.size(), rowCountInfo))));
             }
             return tableHTMX("sortable_"+table, (rowCount > 0 ? "sortable" : ""), sb.toString());  // sort table breaks if you have no rows in the tbody
@@ -2018,7 +2025,7 @@ public class Table extends Weblet {
     }
 
     public String getScripts(Locale locale) {
-        return getDateControlScript(locale) + getColorControlScript() + getCodeEditorScript() + getD3Script();
+        return getCodeEditorScript() + getD3Script();
     }
 
 }

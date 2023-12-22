@@ -25,7 +25,6 @@ import permeagility.util.DatabaseConnection;
 import permeagility.util.Setup;
 
 import permeagility.web.Message;
-import permeagility.web.Table;
 
 public class PlusSetup extends permeagility.plus.PlusSetup {
 

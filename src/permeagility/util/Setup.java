@@ -404,6 +404,7 @@ public class Setup {
             mCount += checkCreateMessage(con, loc, "NOTHING_TO_UPDATE", "Nothing to update");
             mCount += checkCreateMessage(con, loc, "NOTHING_TO_INSERT", "Nothing to insert");
             mCount += checkCreateMessage(con, loc, "INVALID_DATE_VALUE", "Cannot read date value {0} column not updated");
+            mCount += checkCreateMessage(con, loc, "INVALID_DATETIME_VALUE", "Cannot read datetime value {0} column not updated");
             mCount += checkCreateMessage(con, loc, "INVALID_NUMBER_VALUE", "Cannot read number value {0} column not updated");
             mCount += checkCreateMessage(con, loc, "COLUMN_NAME_AND_TYPE_REQUIRED", "Column name and type required");
             mCount += checkCreateMessage(con, loc, "SPECIFY_COLUMN_NAME", "Column name required");
@@ -511,6 +512,7 @@ public class Setup {
             mCount += checkCreateMessage(con, loc, "MORE", "More");
             mCount += checkCreateMessage(con, loc, "VIEW_TABLE", "View table: {0}");
             mCount += checkCreateMessage(con, loc, "EDIT_ROW", "Update {0}: {1}");
+            mCount += checkCreateMessage(con, loc, "NEWS_PAGE_TITLE", "Welcome to PermeAgility");
             if (mCount > 0) {
                     installMessages.append(Weblet.paragraph("CheckInstallation: Created "+mCount+" messages"));
                     Server.tableUpdated(con, "message");
@@ -1050,7 +1052,7 @@ public class Setup {
             p = theClass.getProperty(propertyName);
         } catch(Exception e) {
             p = theClass.createProperty(propertyName, propertyType, linkClass.getName());
-            errors.append(Weblet.paragraph("Schema update: Created link type property "+theClass.getName()+"."+propertyName+" of type "+propertyType.name()+" linked to "+linkClass.getName()));
+            errors.append(Weblet.serviceNotificationDiv(Weblet.paragraph("Schema update: Created link type property "+theClass.getName()+"."+propertyName+" of type "+propertyType.name()+" linked to "+linkClass.getName())));
         }
         //addColumnToColumns(con, theClass.getName(),propertyName);
         return p;
@@ -1063,7 +1065,7 @@ public class Setup {
             p = theClass.getProperty(propertyName);
         } catch (Exception e) {
             p = theClass.createProperty(propertyName, propertyType);
-            errors.append(Weblet.paragraph("Schema update: Created property "+theClass.getName()+"."+propertyName+" of type "+propertyType.name()));
+            errors.append(Weblet.serviceNotificationDiv(Weblet.paragraph("Schema update: Created property "+theClass.getName()+"."+propertyName+" of type "+propertyType.name())));
         }
         if (p != null) {
             if (p.isMandatory()) {

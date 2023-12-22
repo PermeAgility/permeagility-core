@@ -75,7 +75,7 @@ public class Download extends permeagility.web.Download {
     
     String exportDocument(DatabaseConnection con, Document d, Set<String> columns) {
         StringBuilder sb = new StringBuilder();
-        String comma = "";
+ //       String comma = "";
  //       for (String p : columns) {
  //           Type t = d.getType(p);
  //           sb.append(comma);

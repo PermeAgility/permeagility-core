@@ -31,8 +31,8 @@ public class UserRequest extends Table {
     public static String ACCEPT_TO_ROLE = null;
 
      public String getPage(DatabaseConnection con, java.util.HashMap<String,String> parms) {
-	return head(con, Message.get(con.getLocale(),"REQUEST_LOGIN"),getDateControlScript(con.getLocale())+getColorControlScript())+
-	    body(getHTML(con,parms));
+	return head(con, Message.get(con.getLocale(),"REQUEST_LOGIN"))
+	    + body(getHTML(con,parms));
     }
         
     public String getHTML(DatabaseConnection con, java.util.HashMap<String,String> parms) {
