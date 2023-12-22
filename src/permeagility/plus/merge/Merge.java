@@ -209,7 +209,7 @@ public class Merge extends Table {
                 sb.append("Error retrieving import patterns: " + e.getMessage());
             }
         }
-        return head(con, "Merge", getDateControlScript(con.getLocale()) + getColorControlScript())
+        return head(con, "Merge")
                 + body(standardLayout(con, parms,
                                 errors.toString()
                                 + ((Security.getTablePriv(con, PlusSetup.MERGE_TABLE) & PRIV_CREATE) > 0
