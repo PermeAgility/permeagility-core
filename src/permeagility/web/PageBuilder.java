@@ -28,66 +28,40 @@ import com.arcadedb.database.Document;
 public class PageBuilder extends Table {
 
     public final String TABLE_NAME = "menuItem";
+    public final String APP_NAME = "Page Builder";
 
     @Override
     public String getPage(DatabaseConnection con, HashMap<String, String> parms) {
-
-        StringBuilder sb = new StringBuilder();
-        StringBuilder errors = new StringBuilder();
-        Locale locale = con.getLocale();
-
-        // Put rest stuff here
-        //String httpMethod = parms.get("HTTP_METHOD");
-        String restOfURL = parms.get("REST_OF_URL");  // if rest attributes exist then parse table/id
-        String rid = null;
-        String table = null;
-        if (restOfURL != null && !restOfURL.isEmpty()) {
-            String[] restParts = restOfURL.split("/");  // 0=table, 1=rid
-            table = restParts[0];
-            if (restParts.length > 1) rid = restParts[1];
-            if (restParts.length > 2) {
-                System.out.println("Further REST parts not implemented yet and will be ignored");
-            }
-            if (rid != null && !rid.equals("-") && !rid.equals("*") && !rid.isEmpty()) {
-                parms.put("EDIT_ID", rid);
-            }
-        }
-        if (DEBUG) System.out.println("PageBuilder: "+table+"/"+rid+" EDIT_ID="+parms.get("EDIT_ID"));
-
-        // If there was an update do it
-        String update = processSubmit(con, parms, TABLE_NAME, errors);
-        if (update != null) { return update; }
-
-        // If nothing else happened show the list of Pages owned by the user
-        if (sb.length() == 0) {
-            try {
-                parms.put("SERVICE", "Page Builder");
-                sb.append(getTable(con, parms, TABLE_NAME, "SELECT FROM " + TABLE_NAME+" WHERE name != '' AND (classname is null OR classname = '')", null, 0, "name,description,-"));
-            } catch (Exception e) {
-                e.printStackTrace();
-                sb.append("Error retrieving Script table: " + e.getMessage());
-            }
-        }
-
-        return headMinimum(con, "Page Builder")
-                + bodyMinimum(
-                    ((Security.getTablePriv(con, TABLE_NAME) & PRIV_CREATE) > 0
-                    ? popupFormHTMX("CREATE_NEW_ROW", this.getClass().getName()+"/"+TABLE_NAME, "put", Message.get(locale, "CREATE_ROW"), "NAME",
-                            paragraph("banner", Message.get(locale, "CREATE_ROW"))
-                            + hidden("TABLENAME", TABLE_NAME)
-                            + super.getTableRowFields(con, TABLE_NAME, parms, "name,description,-", null)
-                            + submitButton(locale, "CREATE_ROW"))
-                    : "")
-                    + errors.toString()
-                    + sb.toString()
-                );
+        String update = processREST(con, parms); // Do table stuff
+        return update != null ? update : getTableWithControls(con, parms, TABLE_NAME);  // If REST did nothing - default result
     }
 
+    // The default view when no record specified - the list page
+    @Override public String getTableWithControls(DatabaseConnection con, HashMap<String,String> parms, String table) {
+        Locale locale = con.getLocale();
+        return headMinimum(con, APP_NAME)
+                + bodyMinimum(
+                    ((Security.getTablePriv(con, TABLE_NAME) & PRIV_CREATE) > 0
+                    ? popupFormHTMX("CREATE_NEW_ROW", this.getClass().getName()+"/"+TABLE_NAME, "put", parms.get("HX-TARGET"), Message.get(locale, "CREATE_ROW"), "NAME",
+                            paragraph("banner", Message.get(locale, "CREATE_ROW"))
+                            + hidden("TABLENAME", TABLE_NAME)
+                            + super.getTableRowFields(con, TABLE_NAME, null, "name,description,-", null)
+                            + submitButton(locale, "CREATE_ROW"))
+                    : "")
+                    + getTable(con, parms, TABLE_NAME
+                        , "SELECT FROM " + TABLE_NAME+" WHERE name != '' AND (classname is null OR classname = '')"
+                        , null, 0, "name,description,-")
+                    + serviceHeaderUpdateDiv(parms, APP_NAME)
+                );
+    }
+     
     @Override public String getTableRowForm(DatabaseConnection con, String table, HashMap<String, String> parms) {
         return getTableRowFields(con, table, parms);
     }
 
-    /** Returns the Style and Script editor along with a schema and preview in a split pane  */
+    /** Returns the Style and Script editor along with a schema and preview in a split pane 
+     *  This is the main page/app
+     */
     @Override public String getTableRowFields(DatabaseConnection con, String table, HashMap<String, String> parms) {
         String edit_id = (parms != null ? parms.get("EDIT_ID") : null);
         Document initialValues = null;
@@ -117,17 +91,17 @@ public class PageBuilder extends Table {
             (readOnly ? "" :
                 button("UpdateButton", "UPDATEBUTTON","UPDATE",Message.get(con.getLocale(),"SAVE_AND_RUN"))
                 +"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-                + popupFormHTMX("UPDATE_NAME", "", "", Message.get(con.getLocale(), "DETAILS"), "NAME",
+                + popupFormHTMX("UPDATE_NAME", "", "", parms.get("HX-TARGET"), Message.get(con.getLocale(), "DETAILS"), "NAME",
                         paragraph("banner", Message.get(con.getLocale(), "DETAILS"))
                         + hidden("TABLENAME", TABLE_NAME)
                         + super.getTableRowFields(con, TABLE_NAME, parms, "name,description,-")
                 )
                 +"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
             )
-            + popupFormHTMX("UPDATE_MORE", this.getClass().getName()+"/"+TABLE_NAME+"/"+edit_id, "GET",Message.get(con.getLocale(), "MORE"),  "NAME",
+            + popupFormHTMX("UPDATE_MORE", this.getClass().getName()+"/"+TABLE_NAME+"/"+edit_id, "PATCH", parms.get("HX-TARGET"),Message.get(con.getLocale(), "MORE"),  "NAME",
                     paragraph("banner", Message.get(con.getLocale(), "MORE"))
                     //+ hidden("TABLENAME", TABLE_NAME)
-                    + (readOnly ? "" : deleteButton(con.getLocale()) + "<br>" + submitButton(con.getLocale(), "COPY"))
+                    + (readOnly ? "" : deleteButton(con.getLocale(),TABLE_NAME, edit_id, parms.get("HX-TARGET")) + "<br>" + submitButton(con.getLocale(), "COPY"))
             )
             +"<br>"
             +frame("previewFrame","previewFrame","permeagility.web.Scriptlet?ID="+edit_id);
@@ -137,7 +111,7 @@ public class PageBuilder extends Table {
                   +script("Split(['#leftHand', '#rightHand'], { direction: 'horizontal', gutterSize: 8, minSize: [5,5], cursor: 'col-resize' });\n"
                            + "Split(['#styleEditor', '#scriptEditor'], { direction: 'vertical', sizes: [50, 50], minSize: [5,5], gutterSize: 8, cursor: 'row-resize' });\n"
                           +(readOnly ? "" :
-                        "d3.select('#headerservice').text('"+"PageBuilder: "+"' + document.getElementById('"+PARM_PREFIX+"name').value);\n"  // set the header service info
+                        "d3.select('#headerservice').text('"+APP_NAME+": ' + document.getElementById('"+PARM_PREFIX+"name').value);\n"  // set the header service info
                        + "d3.select('#UpdateButton').on('click', function() { \n"  // On click
                        + "   "+PARM_PREFIX+"pageStyleEditor.save();\n"              // get the data
                        + "   "+PARM_PREFIX+"pageScriptEditor.save();\n"
@@ -148,10 +122,10 @@ public class PageBuilder extends Table {
                             + addFormData("name")
                             + addFormData("description")
                             //+ addFormData("_allowRead")                           // send it to be processed
-                            // should convert this to htmx and target errors to a place where they could be seen
+                            // Todo: should convert this to htmx and target errors to a place where they could be seen
                         + "   fetch('/"+this.getClass().getName()+"/"+TABLE_NAME+"/"+edit_id+"', { method: \"PATCH\", body: formData } ).then(data => {   \n"                        
-                       + "      d3.select('#previewFrame').attr('src','permeagility.web.Scriptlet?ID="+edit_id+"');\n"
-                        + "      d3.select('#headerservice').text('"+"PageBuilder: "+"' + document.getElementById('"+PARM_PREFIX+"name').value);\n"
+                       + "      d3.select('#previewFrame').attr('src','permeagility.web.Scriptlet?ID="+edit_id+"');\n"  // refresh the preview
+                        + "      d3.select('#headerservice').text('"+APP_NAME+": ' + document.getElementById('"+PARM_PREFIX+"name').value);\n"  // update the header
                         + "   });\n"
                         + "});\n")
                 );

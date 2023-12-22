@@ -35,7 +35,7 @@ public class Query extends Weblet {
     public String getPage(DatabaseConnection con, java.util.HashMap<String,String> parms) {
         Locale locale = con.getLocale();
         parms.put("SERVICE", Message.get(locale, "SQL_WEBLET"));
-        String query = (String)parms.get("SQL");
+        String query = parms.get("SQL");
         return 	
             head(con, Message.get(locale, "SQL_WEBLET")+"&nbsp;"+query,getSortTableScript())+
             body( standardLayout(con, parms,  

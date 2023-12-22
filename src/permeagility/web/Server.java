@@ -258,26 +258,27 @@ public class Server {
     // Requests get serviced here, including websockets
     public final static boolean service(InputStream is, OutputStream os) {
 
-		String method;  // GET and POST are treated the same
+		String method;  
 		String content_type;
 		String content_disposition = null; // For downloads
 		String version = "";
 		String cookieValue = null;
 		String newCookieValue = null;
 		Locale requestLocale = null;
+        String hxTarget = null;
 
 		boolean keep_alive = KEEP_ALIVE;  // Get the dynamic default
-                boolean websocket = false;
-                String websocket_version = "";
-                String websocket_key = "";
-                String websocket_protocol = "";
-                String websocket_extensions = "";
-                WebsocketSender websocket_sender = null;
-                BitInputStream bitsIn = null;
+        boolean websocket = false;
+        String websocket_version = "";
+        String websocket_key = "";
+        String websocket_protocol = "";
+        String websocket_extensions = "";
+        WebsocketSender websocket_sender = null;
+        BitInputStream bitsIn = null;
 
-        	Database userdb = null;
+        Database userdb = null;
 
-            long startTime = 0;
+        long startTime = 0;
             try {
 
                 String get = readLine(is);
@@ -331,6 +332,9 @@ public class Server {
                                         String language = get.substring(16).trim().substring(0,2);
                                         if (DEBUG) System.out.println("Requested language="+language);
                                         requestLocale = new Locale.Builder().setLanguage(language).build();
+                                } else if (get.startsWith("HX-Target:")) {
+                                        hxTarget = get.substring(10).trim();
+                                        if (DEBUG) System.out.println("HX-Target="+hxTarget);
                                 } else if (ALLOW_KEEP_ALIVE && get.equalsIgnoreCase("Connection: keep-alive")) {
                                         keep_alive = true;
                                 } else if (get.equalsIgnoreCase("Upgrade: websocket")) {
@@ -378,6 +382,7 @@ public class Server {
                         // Get URL encoded parameters and put in HashMap
                         HashMap<String,String> parms = new HashMap<>();
                         parms.put("HTTP_METHOD",method);
+                        parms.put("HX-TARGET", hxTarget); // does this need to be reset at some point?
                         while (st2.hasMoreTokens()) {
                                 String string2 = st2.nextToken("&");
                                 if (string2.startsWith("?")) {

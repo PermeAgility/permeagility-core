@@ -54,7 +54,7 @@ public class Settings extends Weblet {
 			currentRowCount = currentRowCountResult.getStringValue(0, "value");
 		}
 
-		String submit = (String)parms.get("SUBMIT");
+		String submit = parms.get("SUBMIT");
 		if (submit != null) {
 			
 			// Update style if changed
@@ -73,7 +73,7 @@ public class Settings extends Weblet {
 					if (theme != null && !theme.equals("")) {
 						setCreateConstant(con,"permeagility.web.Context","EDITOR_THEME",""+style.getString("editorTheme"));
 					}
-					setCreateConstant(con,"permeagility.web.Header","LOGO_FILE",(String)style.getString("logo"));
+					setCreateConstant(con,"permeagility.web.Header","LOGO_FILE",style.getString("logo"));
 					Menu.clearCache();
 					Server.tableUpdated(con, "constant");
 					errors.append(paragraph("success",Message.get(con.getLocale(),"SYSTEM_STYLE_UPDATED")));
@@ -116,7 +116,7 @@ public class Settings extends Weblet {
 		}
 		String styleList = createListFromTable("SET_STYLE", selectedStyleID, con, "style", null, false, null, true);
 		return headMinimum(con, service)+bodyMinimum(
-	    	formHTMX("settings", "/"+this.getClass().getName(), "POST", table("layout",
+	    	formHTMX("settings", "/"+this.getClass().getName(), "POST", parms.get("HX-TARGET"), table("layout",
                 row(column("label",Message.get(con.getLocale(), "SET_STYLE"))+column(styleList))
               + row(column("label",Message.get(con.getLocale(), "SET_ROWCOUNT"))+column(input("SET_ROWCOUNT", currentRowCount)))
               + row(column("")+column(submitButton(con.getLocale(), "SUBMIT_BUTTON")))

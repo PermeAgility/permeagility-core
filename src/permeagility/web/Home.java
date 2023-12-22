@@ -27,7 +27,7 @@ public class Home extends Weblet {
         <div id="nav-button" class="nav-button" tabindex="0">
             <span class="icon-bar"></span><span class="icon-bar"></span><span class="icon-bar"></span>
         </div>
-        <div id="nav-content" hx-get="/Menu" hx-trigger="load delay:50ms" hx-swap="innerHTML" tabindex="0"></div>
+        <div id="nav-content" hx-get="/Menu?TARGET=service" hx-trigger="load delay:50ms" hx-swap="innerHTML" tabindex="0"></div>
     </div>
 """;
 
@@ -35,6 +35,6 @@ public class Home extends Weblet {
 
         String title = Message.get(con.getLocale(), "HOME_PAGE_TITLE");
         return head(con, title)
-             + body(pageBody+serviceHeaderUpdateDiv(title));
+             + body(pageBody+serviceHeaderUpdateDiv(parms, title));
     }
 }

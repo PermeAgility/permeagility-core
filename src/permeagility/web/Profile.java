@@ -34,9 +34,9 @@ public class Profile extends Table {
         StringBuilder errors = new StringBuilder();
         String submit = parms.get("SUBMIT");
         if (submit != null && submit.equals("UPDATE_PASSWORD")) {
-            String currentPass= (String)parms.get("CURRENTPASS");
-            String newPass= (String)parms.get("NEWPASS");
-            String confirmPass=(String)parms.get("CONFIRMPASS");
+            String currentPass = parms.get("CURRENTPASS");
+            String newPass = parms.get("NEWPASS");
+            String confirmPass = parms.get("CONFIRMPASS");
             if(newPass != null && newPass.equals(confirmPass)) {
                 if (Security.changePassword(con, currentPass, newPass)) {
                     errors.append(paragraph("success",Message.get(con.getLocale(),"PASSWORD_CHANGE_SUCCESS",con.getUser())));

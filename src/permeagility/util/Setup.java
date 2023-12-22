@@ -36,7 +36,7 @@ public class Setup {
     static StringBuilder installMessages = new StringBuilder();
 
     public static boolean RESTRICTED_BY_ROLE = true;
-    private static String SETUP_DEBUG_FLAG = "true";    // default setting for debug constants
+    private static String SETUP_DEBUG_FLAG = "false";    // default setting for debug constants
 
     public static final String TABLE_THUMBNAIL = "thumbnail";
     public static final String TABLE_CONSTANT = "constant";
@@ -246,10 +246,10 @@ public class Setup {
             if (con.getRowCount(TABLE_CONSTANT) == 0) {
                 System.out.println("Inserting constants");
                 con.create(TABLE_CONSTANT).set("classname","permeagility.web.Server").set("description","Server debug flag").set("field","DEBUG").set("value",SETUP_DEBUG_FLAG).save();
+                con.create(TABLE_CONSTANT).set("classname","permeagility.web.Security").set("description","Security debug flag").set("field","DEBUG").set("value",SETUP_DEBUG_FLAG).save();
+                con.create(TABLE_CONSTANT).set("classname","permeagility.web.Table").set("description","Table debug flag").set("field","DEBUG").set("value",SETUP_DEBUG_FLAG).save();
                 con.create(TABLE_CONSTANT).set("classname","permeagility.web.Server").set("description","Use images/js in jar").set("field","WWW_IN_JAR").set("value","true").save();
                 con.create(TABLE_CONSTANT).set("classname","permeagility.web.RecordHook").set("description","Audit all changes to the database").set("field","AUDIT_WRITES").set("value","true").save();
-                con.create(TABLE_CONSTANT).set("classname","permeagility.web.Security").set("description","Security debug flag").set("field","DEBUG").set("value","false").save();
-                con.create(TABLE_CONSTANT).set("classname","permeagility.web.Table").set("description","Table debug flag").set("field","DEBUG").set("value",SETUP_DEBUG_FLAG).save();
                 con.create(TABLE_CONSTANT).set("classname","permeagility.web.Table").set("description","Table page count").set("field","ROW_COUNT_LIMIT").set("value","200").save();
                 con.create(TABLE_CONSTANT).set("classname","permeagility.web.Table").set("description","Show related tables even if no privilege").set("field","SHOW_ALL_RELATED_TABLES").set("value","true").save();
                 con.create(TABLE_CONSTANT).set("classname","permeagility.web.Context").set("description","Style sheet").set("field","DEFAULT_STYLE").set("value","dark").save();
@@ -532,7 +532,7 @@ public class Setup {
                     + "<ul><li><a href='permeagility.web.Home?USERNAME=admin&PASSWORD=admin'>admin/admin</a></li>\n"
                     + "<li><a href='permeagility.web.Home?USERNAME=writer&PASSWORD=writer'>writer/writer</a></li>\n"
                     + "<li><a href='permeagility.web.Home?USERNAME=reader&PASSWORD=reader'>reader/reader</a></li></ul>\n"
-                    + "<br><img style='width: 30%; float: right;' src='images/Logo.svg'>");
+                    + "<br><img style='width: 30%; float: right;' src='images/Logo-blk.svg'>");
                 n1.set("dateline",new Date());
                 n1.set("locale",loc);
                 n1.set("archive",false);
@@ -1187,7 +1187,7 @@ public class Setup {
         }
     }
 
-    public static final String DEFAULT_ALT_STYLESHEET = """            
+    public static final String DEFAULT_ALT_STYLESHEET = """
 /* This is the light PermeAgility stylesheet */
 
 /* Reset from the default browser styles */

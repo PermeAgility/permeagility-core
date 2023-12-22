@@ -37,10 +37,10 @@ public class Schema extends Weblet {
         StringBuilder errors = new StringBuilder();
         //HTMX_MODE = parms.get("HTMX") != null;
         String HTMX_MODAL = parms.get("HTMX_MODAL");
-        String submit = (String) parms.get("SUBMIT");
+        String submit = parms.get("SUBMIT");
         if (submit != null) {
             if (submit.equals("NEW_TABLE")) {
-                String tn = (String) parms.get("NEWTABLENAME");
+                String tn = parms.get("NEWTABLENAME");
                 if (tn == null || tn.equals("")) {
                     errors.append(paragraph("error", "Table name must be specified"));
                 } else {
@@ -108,7 +108,7 @@ public class Schema extends Weblet {
                         if (con.getSchema().existsType(tableName)) {
                             if (HTMX_MODE) {
 //                                tablelist.append(linkHTMX("/"+parms.get("HTMX")+"/" + tableName, pretty, "_on=\"on click call UIkit.modal(#"+HTMX_MODAL+").hide();\"") + br());
-                                tablelist.append(linkHTMX("/Scriptlet/" + tableName, pretty, "_on=\"on click call alert('Trying to close "+HTMX_MODAL+"')\"") + br());
+                                tablelist.append(linkHTMX("/Table/" + tableName, pretty, parms.get("HX-TARGET")) + br());
                             } else {
                                 tablelist.append(link("permeagility.web.Table?TABLENAME=" + tableName, pretty) + br());
                             }
@@ -146,7 +146,7 @@ public class Schema extends Weblet {
                         }
                         if (HTMX_MODE) {
 //                            tablelist.append(linkHTMX("/"+parms.get("HTMX")+"/" + tablename, pretty, "_on=\"on click call alert('Trying to close "+HTMX_MODAL+"')\"") + br());
-                            tablelist.append(linkHTMX("/Scriptlet"+"/" + tablename, pretty) + br());
+                            tablelist.append(linkHTMX("/Table"+"/" + tablename, pretty, parms.get("HX-TARGET")) + br());
                         } else {
                             tablelist.append(link("permeagility.web.Table?TABLENAME=" + tablename, pretty) + br());
                         }
@@ -166,12 +166,12 @@ public class Schema extends Weblet {
             return errors.toString()
                     + table("layout", rows.toString()) + br()
                     + (Security.isDBA(con)
-                            ? popupFormHTMX("NEWTABLE_Ungrouped", "/Schema", "PUT", Message.get(con.getLocale(), "NEW_TABLE"), "NEWTABLENAME",
+                            ? popupFormHTMX("NEWTABLE_Ungrouped", "/Schema", "PUT", parms.get("HX-TARGET"), Message.get(con.getLocale(), "NEW_TABLE"), "NEWTABLENAME",
                                     input("NEWTABLENAME", "") + "&nbsp;&nbsp;"
                                     + submitButton(con.getLocale(), "NEW_TABLE")
                             )
                             : "")
-                        + serviceHeaderUpdateDiv(Message.get(con.getLocale(),"SCHEMA_EDITOR", con.getDb().getName()));
+                        + serviceHeaderUpdateDiv(parms, Message.get(con.getLocale(),"SCHEMA_EDITOR", con.getDb().getName()));
         }
         return head(con, Message.get(con.getLocale(), "SCHEMA_EDITOR"))
                 + body(standardLayout(con, parms,

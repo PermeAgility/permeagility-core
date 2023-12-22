@@ -40,7 +40,7 @@ public class News extends Weblet {
 		}
 		String title = Message.get(con.getLocale(), "NEWS_PAGE_TITLE");
 		return headMinimum(con, title) 
-                + body (sb.toString()+serviceHeaderUpdateDiv(title));
+                + body (sb.toString()+serviceHeaderUpdateDiv(parms, title));
     }
 
 }

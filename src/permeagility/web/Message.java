@@ -121,7 +121,7 @@ public class Message {
 			bundle = defaultBundle;
 			if (bundle == null) { return key; }
 		}
-		String string = (String)bundle.get(key);
+		String string = bundle.get(key);
 		if(string==null && ALERT_MISSING_MESSAGES) {
 			System.out.println("************************** Warning - no "+locale.getDisplayLanguage()+" message found for name:"+key);
 		}

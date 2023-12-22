@@ -66,92 +66,91 @@ public class Table extends Weblet {
     public static final int PRIV_ALL = 15;
 
     public String getPage(DatabaseConnection con, java.util.HashMap<String, String> parms) {
-        //HTMX_MODE = parms.get("HTMX") != null;
-        Locale locale = con.getLocale();
-        String submit = parms.get("SUBMIT");
-        String table = parms.get("TABLENAME");
-        String pagest = parms.get("PAGE");
-        if (isNullOrBlank(table)) {
-            if (parms.containsKey("EDIT_ID")) {
-                Document d = con.get(parms.get("EDIT_ID"));
-                if (d != null) {
-                    table = d.getTypeName();
-                } else {
-                    return redirect(parms, "permeagility.web.Schema");
-                }
+        
+        String restResult = processREST(con, parms);
+
+        // Return default of schema page if no result
+        return restResult != null ?restResult : new Schema().getPage(con,parms);
+    }
+
+ /*        // Todo: Check for translation, if no translation, make pretty
+        String prettyTable = Message.get(locale, "TABLE_" + table);
+        if (table != null && ("TABLE_" + table).equals(prettyTable)) {  prettyTable = makeCamelCasePretty(table); }
+        String title = Message.get(locale, "TABLE_EDITOR", table != null ? prettyTable : "None");
+
+  */
+
+    public String processREST(DatabaseConnection con, HashMap<String, String> parms) {
+        StringBuilder errors = new StringBuilder();        
+        String restOfURL = parms.get("REST_OF_URL");  // if rest attributes exist then parse table/id
+        if (restOfURL != null && !restOfURL.isEmpty()) {
+            String[] restParts = restOfURL.split("/");  // 0=table, 1=rid
+            String rid = null;
+            String table = null;
+            table = restParts[0];
+
+            if (restParts.length > 1) rid = restParts[1];
+            // if table only or *, GET returns all rows in table (with possible filter conditions encoded eg. */dept.name/eq/sales)
+            String httpMethod = parms.get("HTTP_METHOD");
+            if (httpMethod.equals("GET") && (rid == null || rid.equals("*"))  ) {
+                return getTableWithControls(con, parms, table);
+            }
+            if (restParts.length > 2) {
+                System.out.println("Further REST parts not implemented yet and will be ignored");
+            }
+            if (httpMethod.equals("GET")) {
+                // if table and row specified, GET returns a single row as a form (use - for new row form)
+                if (!rid.equals("-")) parms.put("EDIT_ID", rid);  // leave edit id out for new row
+                return getTableRowForm(con, table, parms);
             } else {
-                return redirect(parms, "permeagility.web.Schema");
+                if (httpMethod.equals("PUT")) {
+                    // PUT to 'columns' will add a column provided the proper details are given as parameters 
+                    if (rid != null && rid.equals("columns")) {
+                        if (addColumn(con, parms, table, errors)) {
+                            return getTableWithControls(con, parms, table);
+                        } else {
+                            return errors.toString() + getTableWithControls(con, parms, table);
+                        }
+                    }
+                    // PUT to insert and return the new row 
+                    if (insertRow(con, table, parms, errors)) {
+                        return getTableRowForm(con, table, parms);
+                    } else {
+                        System.out.println("Insert errors: "+errors.toString());
+                        return errors.toString() + getTableRowForm(con, table, parms);
+                    }
+                } else if (httpMethod.equals("PATCH")) {
+                    // PATCH to update and return the updated row (Possibly Copy button was pressed in this form)
+                    if (!rid.equals("-")) parms.put("EDIT_ID", rid);  // updateRow needs this
+                    if (parms.get("SUBMIT").equals("COPY")) {
+                        if (copyRow(con, table, parms, errors)) {
+                            return errors.toString() + getTableRowForm(con, table, parms);
+                        }
+                    }
+                    if (updateRow(con, table, parms, errors)) {
+                        return getTableWithControls(con, parms, table);
+                    } else {
+                        System.out.println("Update errors: "+errors.toString());
+                        return errors.toString() + getTableRowForm(con, table, parms);
+                    }
+                } else if (httpMethod.equals("DELETE")) {
+                    // DELETE to remove the row
+                    if (!rid.equals("-")) parms.put("EDIT_ID", rid);  // deleteRow needs this
+                    if(deleteRow(con, table, parms, errors)) {
+                        return errors.toString() + getTableWithControls(con, parms, table);
+                    } else {
+                        System.out.println("Delete errors: "+errors.toString());
+                        return errors.toString() + getTableRowForm(con, table, parms);
+                    }
+                }
             }
         }
-
-        String prettyTable = Message.get(locale, "TABLE_" + table);
-        if (table != null && ("TABLE_" + table).equals(prettyTable)) {  // No translation
-            prettyTable = makeCamelCasePretty(table);
-        }
-        String title = Message.get(locale, "TABLE_EDITOR", table != null ? prettyTable : "None");
-        parms.put("SERVICE", title);
-
-        StringBuilder errors = new StringBuilder();
-
-        String update = processSubmit(con, parms, table, errors);
-        if (update != null) {
-            return update;
-        }
-
-        if (parms.get("ADVANCED_OPTIONS") != null
-                || (submit != null && submit.equals("ADVANCED_OPTIONS"))) {
-            return advancedOptions(con, table, parms);
-        }
-
-        if (parms.get("RIGHTS_OPTIONS") != null
-                || (submit != null && submit.equals("RIGHTS_OPTIONS"))) {
-            return rightsOptions(con, table, parms);
-        }
-
-        if (submit != null && submit.equals("NEW_COLUMN")) {
-            addColumn(con, parms, table, errors);
-        }
-
-        long page = 1;
-        if (pagest != null) {
-            try {
-                page = Integer.parseInt(pagest);
-            } catch (Exception e) {
-            }  // If it isn't a number, ignore it
-        }
-
-        String body = link(this.getClass().getName(), "&lt;" + Message.get(locale, "ALL_TABLES"))
-                                + "&nbsp;&nbsp;&nbsp;"
-                                + ((Security.getTablePriv(con, table) & PRIV_CREATE) > 0 
-                                            ? popupForm("CREATE_NEW_ROW", null, Message.get(locale, "NEW_ROW"), null, "NAME",
-                                                paragraph("banner", Message.get(locale, "CREATE_ROW")+" "+makeCamelCasePretty(table))
-                                                + getTableRowFields(con, table, parms)
-                                                + center(submitButton(locale, "CREATE_ROW"))) 
-                                            : "")
-                                + "&nbsp;&nbsp;&nbsp;"
-                                + (Security.isDBA(con)
-                                        ? popupForm("NEWCOLUMN", null, Message.get(locale, "ADD_COLUMN"), null, "NEWCOLUMNNAME", newColumnForm(con))
-                                        //+ "&nbsp;&nbsp;&nbsp;"
-                                        //+ popupForm("RIGHTSOPTIONS", null, Message.get(locale, "TABLE_RIGHTS_OPTIONS"), null, "XXX", rightsOptionsForm(con, table, parms, ""))
-                                        //+ "&nbsp;&nbsp;&nbsp;"
-                                        //+ popupForm("ADVANCEDOPTIONS", null, Message.get(locale, "ADVANCED_TABLE_OPTIONS"), null, "NEWCOLUMNNAME", advancedOptionsForm(con, table, parms, ""))
-                                        : "") // isDBA switch
-                                + "&nbsp;&nbsp;&nbsp;"
-                                //+ link("permeagility.web.Visuility?TYPE=table&ID=" + table, "<i>V</i>")
-                                + br()
-                                + errors.toString()
-                                + br()
-                                + ((Security.getTablePriv(con, table) & PRIV_READ) > 0 ? getTable(con, table, page) : paragraph(Message.get(locale, "NO_PERMISSION_TO_VIEW")));
-
-        // Make the result
-        if (HTMX_MODE) 
-            return headMinimum(con, title, getScripts(con.getLocale())) + bodyWithAttribute(body, "_=\"on load set #headerservice to 'Hello there'\"");
-        else 
-            return head(con, title, getScripts(con.getLocale()))
-                + body(standardLayout(con, parms, body ));
+        return null;  // No REST parameters specified
     }
 
     public String processSubmit(DatabaseConnection con, HashMap<String, String> parms, String table, StringBuilder errors) {
+
+        System.out.println("Table.processSubmit called");
         Locale locale = con.getLocale();
         String submit = parms.get("SUBMIT");
         String editId = parms.get("EDIT_ID");
@@ -228,7 +227,6 @@ public class Table extends Weblet {
                 }
             }
             System.out.println("Table.processSubmit: Unrecognized submit value: "+submit);
-            //parms.remove("EDIT_ID"); // If there was an EDIT_ID, it should have been dealt with already in this function
         }
         return null;  // Nothing happened here
     }
@@ -822,11 +820,7 @@ public class Table extends Weblet {
    //     }
         String allRowsLink = "";
         if (!con.getUser().equals("guest")) {
-            if (HTMX_MODE) {
-                allRowsLink = linkHTMX("/"+this.getClass().getName() + "/" + table, "&lt;"+Message.get(con.getLocale(), "ALL_ROWS_IN_TABLE", makeCamelCasePretty(table)));
-            }  else {
-                allRowsLink = link(this.getClass().getName() + "?TABLENAME=" + table, "&lt;"+Message.get(con.getLocale(), "ALL_ROWS_IN_TABLE", makeCamelCasePretty(table)));
-            }
+            allRowsLink = linkHTMX("/"+this.getClass().getName() + "/" + table, "&lt;"+Message.get(con.getLocale(), "ALL_ROWS_IN_TABLE", makeCamelCasePretty(table)), parms.get("HX-TARGET"));
         }
 
         // getTableRowFields can return a list of hyperscript command to run when a form is submitted (for CodeEditor mostly)
@@ -856,33 +850,28 @@ public class Table extends Weblet {
                                     ? submitButton(con.getLocale(), "UPDATE", submitCodeLines.size()>0 ? submitCode.toString() : "") 
                                     : "")
                             + "&nbsp;&nbsp;"
-                            + (HTMX_MODE ? cancelButton(con.getLocale(), table) : submitButton(con.getLocale(), "CANCEL"))))
+                            + cancelButton(con.getLocale(), table, parms.get("HX-TARGET"))))
                         + paragraph("delete",
                                 (edit_id != null && (Security.getTablePriv(con, table) & PRIV_CREATE) > 0 ? submitButton(con.getLocale(), "COPY") : "") + "&nbsp;&nbsp;"
-                                + (edit_id != null && (Security.getTablePriv(con, table) & PRIV_DELETE) > 0 && !readOnly ? deleteButton(con.getLocale(),table,edit_id) : ""));
-        if (HTMX_MODE) {
-            if (edit_id == null) {  // PUT
-                formContent = formHTMX(formName, "/"+this.getClass().getName()+"/"+table, "put", formContent);
-            } else {                // PATCH
-                formContent = formHTMX(formName, "/"+this.getClass().getName()+"/"+table+"/"+edit_id, "patch", formContent);
-            }
-        } else {
-            formContent = form(formName, formContent);
+                                + (edit_id != null && (Security.getTablePriv(con, table) & PRIV_DELETE) > 0 && !readOnly ? deleteButton(con.getLocale(),table,edit_id, parms.get("HX-TARGET")) : ""));
+        if (edit_id == null) {  // PUT
+            formContent = formHTMX(formName, "/"+this.getClass().getName()+"/"+table, "put", parms.get("HX-TARGET"), formContent);
+        } else {                // PATCH
+            formContent = formHTMX(formName, "/"+this.getClass().getName()+"/"+table+"/"+edit_id, "patch", parms.get("HX-TARGET"), formContent);
         }
-        String docDesc = edit_id == null ? "New" : getDescriptionFromDocument(con, con.get(edit_id));
+       String docDesc = edit_id == null ? "New" : getDescriptionFromDocument(con, con.get(edit_id));
         String title = Message.get(con.getLocale(), "EDIT_ROW", makeCamelCasePretty(table), docDesc);
         return allRowsLink
-              //+ (Security.authorized(con.getUser(), "permeagility.web.Visuility") ? "&nbsp;&nbsp;" + link("permeagility.web.Visuility?TYPE=row&ID=" + edit_id, "<i>V</i>") : "")
-                + getLinkTrail(con, parms.get("SOURCETABLENAME"), parms.get("SOURCEEDIT_ID"))
+                + getLinkTrail(con, parms.get("SOURCETABLENAME"), parms.get("SOURCEEDIT_ID"), parms.get("HX-TARGET"))
                 + paragraph("banner", (edit_id == null 
                         ? Message.get(con.getLocale(), "CREATE_ROW")+" "+makeCamelCasePretty(table)
                         : Message.get(con.getLocale(), "UPDATE") + "&nbsp;" + makeCamelCasePretty(table)))
                 + formContent
                 + getTableRowRelated(con, table, parms)
-                + serviceHeaderUpdateDiv(title);
+                + serviceHeaderUpdateDiv(parms, title);
     }
 
-    private String getLinkTrail(DatabaseConnection con, String tables, String ids) {
+    private String getLinkTrail(DatabaseConnection con, String tables, String ids, String target) {
         if (tables == null || tables.equals("")) {
             return "";
         }
@@ -895,15 +884,14 @@ public class Table extends Weblet {
         for (int i = 0; i < tabs.length; i++) {
             String t = tabs[i];
             String id = tabIds[i];
-            if (HTMX_MODE) {
-                ret.append("<br>&nbsp;&nbsp;&nbsp;" + linkHTMX("/"+this.getClass().getName() + "/" + t + "/" + id, makeCamelCasePretty(t) + " (" + getDescriptionFromTable(con, t, id) + ")"));
-            } else {
-                ret.append("<br>&nbsp;&nbsp;&nbsp;" + link(this.getClass().getName() + "?TABLENAME=" + t + "&EDIT_ID=" + id, makeCamelCasePretty(t) + " (" + getDescriptionFromTable(con, t, id) + ")"));
-            }
+            ret.append("<br>&nbsp;&nbsp;&nbsp;" + linkHTMX("/"+this.getClass().getName() + "/" + t + "/" + id, makeCamelCasePretty(t) + " (" + getDescriptionFromTable(con, t, id) + ")", target));
         }
         return ret.toString();
     }
 
+    public String getTableRowFields(DatabaseConnection con, String table) {
+        return getTableRowFields(con, table, null, null, null);
+    }
     public String getTableRowFields(DatabaseConnection con, String table, HashMap<String, String> parms) {
         return getTableRowFields(con, table, parms, null, null);
     }
@@ -938,7 +926,7 @@ public class Table extends Weblet {
                         fields.append(column("")+column(button(n, edit_id, l)));
                      }
                 } else {
-                    if (parms.get("FORCE_" + name) != null) {
+                    if (parms != null && parms.get("FORCE_" + name) != null) {
                         hidden.append(hidden(PARM_PREFIX + name, parms.get("FORCE_" + name)));
                         continue;
                     }
@@ -981,7 +969,7 @@ public class Table extends Weblet {
         if (DEBUG) {
             System.out.println(name + " InitialValue=" + (type != Type.BINARY ? initialValue : "binary"));
         }
-        if (initialValue == null && edit_id != null) {
+        if (initialValue == null && edit_id != null && parms != null) {
             initialValue = parms.get(PARM_PREFIX + name);  // Need to load parms with values
         }
 
@@ -1139,11 +1127,7 @@ public class Table extends Weblet {
             }
             String gotoLink = "";
             if (initialValues != null || initialValue != null) {
-                if (HTMX_MODE) {
-                    gotoLink = linkHTMX("/"+this.getClass().getName() + "/" + column.getOfType() + "/" + v, Message.get(con.getLocale(), "GOTO_ROW"));
-                } else {
-                    gotoLink = linkNewWindow(this.getClass().getName() + "?TABLENAME=" + column.getOfType() + "&EDIT_ID=" + v, Message.get(con.getLocale(), "GOTO_ROW"));
-                }
+                gotoLink = linkHTMX("/"+this.getClass().getName() + "/" + column.getOfType() + "/" + v, Message.get(con.getLocale(), "GOTO_ROW"), parms.get("HX-TARGET"));
             }
             return row(label 
                     + column(createListFromTable(PARM_PREFIX + name, (v == null ? "" : v), con, column.getOfType(), null, true, null, true)
@@ -1275,19 +1259,19 @@ public class Table extends Weblet {
         return sb.toString();
     }
 
-    String newColumnPopup(DatabaseConnection con, String table) {
+    String newColumnPopup(DatabaseConnection con, String table, String target) {
         return popupFormHTMX("NEWCOLUMN_"+table, this.getClass().getName()+"/"+table+"/columns", 
-             "put", Message.get(con.getLocale(), "ADD_COLUMN"), "NEWCOLUMNNAME", newColumnForm(con));
+             "put", target, Message.get(con.getLocale(), "ADD_COLUMN"), "NEWCOLUMNNAME", newColumnForm(con));
     }
 
     public String newColumnForm(DatabaseConnection con) {
         Locale l = con.getLocale();  
-        String typeSelAttr = """ 
+        String typeSelAttr = """
             _="on load hide #NEWTABLEREF end 
                on change if #NEWDATATYPE.value is 'DATATYPE_LINK' or #NEWDATATYPE.value is 'DATATYPE_LIST' or #NEWDATATYPE.value is 'DATATYPE_MAP'
-                     show #NEWTABLEREF
-                else hide #NEWTABLEREF"
-                """;   // This script will show the table picklist only if datatype is link, list or map
+                  show #NEWTABLEREF
+                  else hide #NEWTABLEREF"
+            """;   // This script will show the table picklist only if datatype is link, list or map
         String tableSelAttr = null;
         return paragraph("banner", Message.get(l, "NEW_COLUMN"))
                 + getDatatypeList(l, "NEWDATATYPE", "DATATYPE_TEXT", typeSelAttr)
@@ -1342,14 +1326,43 @@ public class Table extends Weblet {
         return parms;
     }
 
+    String getTableWithControls(DatabaseConnection con, HashMap<String,String> parms, String table) {
+        String pagest = parms.get("PAGE");
+        long page = 1;
+        if (pagest != null) {
+            try { page = Integer.parseInt(pagest); } catch (Exception e) { }  // If it isn't a number, ignore it
+        }
+        String body = linkHTMX(this.getClass().getName(), "&lt;" + Message.get(con.getLocale(), "ALL_TABLES"), parms.get("HX-TARGET"))
+                + "&nbsp;&nbsp;&nbsp;"
+                 + ((Security.getTablePriv(con, table) & PRIV_CREATE) > 0 
+                    ? popupFormHTMX("CREATE_NEW_ROW", this.getClass().getName()+"/"+table, "put", parms.get("HX-TARGET"), Message.get(con.getLocale(), "NEW_ROW"), "NAME",
+                        paragraph("banner", Message.get(con.getLocale(), "CREATE_ROW")+" "+makeCamelCasePretty(table))
+                        + getTableRowFields(con, table)
+                        + submitButton(con.getLocale(), "CREATE_ROW")) 
+                    : "")
+                + "&nbsp;&nbsp;&nbsp;"
+                + (Security.isDBA(con)
+                    ? newColumnPopup(con, table, parms.get("HX-TARGET"))
+                    //+ "&nbsp;&nbsp;&nbsp;"
+                    //+ popupForm("RIGHTSOPTIONS", null, Message.get(locale, "TABLE_RIGHTS_OPTIONS"), null, "XXX", rightsOptionsForm(con, table, parms, ""))
+                    //+ "&nbsp;&nbsp;&nbsp;"
+                    //+ popupForm("ADVANCEDOPTIONS", null, Message.get(locale, "ADVANCED_TABLE_OPTIONS"), null, "NEWCOLUMNNAME", advancedOptionsForm(con, table, parms, ""))
+                    : "") // isDBA switch
+                + br()
+                + getTable(con, table, parms, page);
+
+        String title = Message.get(con.getLocale(),"VIEW_TABLE",makeCamelCasePretty(table));
+        return body + serviceHeaderUpdateDiv(parms, title);
+    }
+
     public String getTable(DatabaseConnection con, String table) {
         String query = "SELECT FROM " + table;
         return getTable(con, null, table, query, null, 0);
     }
 
-    public String getTable(DatabaseConnection con, String table, long page) {
+    public String getTable(DatabaseConnection con, String table, HashMap<String,String> parms, long page) {
         String query = "SELECT FROM " + table;
-        return getTable(con, null, table, query, null, page);
+        return getTable(con, parms, table, query, null, page);
     }
 
     public String getTableWhere(DatabaseConnection con, String table, String column, String columnValue) {
@@ -1428,11 +1441,11 @@ public class Table extends Weblet {
                             if (p == page) {
                                 sb.append(bold(color("red", "" + p)) + "&nbsp;");
                             } else {
-                                sb.append(linkWithTip(this.getClass().getName()+"?TABLENAME=" + table + "&PAGE=" + p, "" + p, "Page " + p) + "&nbsp;");
+                                sb.append(linkWithTipHTMX(this.getClass().getName()+"/" + table + "&PAGE=" + p, "" + p, "Page " + p, parms.get("HX-TARGET")) + "&nbsp;");
                             }
                         } else {
                             if (p % DOT_INTERVAL == 0) {
-                                sb.append(linkWithTip(this.getClass().getName()+"?TABLENAME=" + table + "&PAGE=" + p, ".", "Page " + p));
+                                sb.append(linkWithTipHTMX(this.getClass().getName()+"/" + table + "&PAGE=" + p, ".", "Page " + p, parms.get("HX-TARGET")));
                             }
                         }
                     }
@@ -1469,20 +1482,13 @@ public class Table extends Weblet {
             } else {
                 sb.append(getRowHeader(con, table, columns, hideColumn));
                 for (Document row : rs.get()) {
-                    if (HTMX_MODE) {
-                        sb.append(rowOnClickHTMX("clickable", getRow(columns, row, con, hideColumn),
-                            "/"+this.getClass().getName() // Supports descendants using this function
-                            + "/" + table + "/" + row.getIdentity().toString().substring(1)
-                            + (!sourceTable.isEmpty() ? "?" + sourceTable + sourceId : "")
-                            , null  // title/tooltip would be nice at some point
-                        ));                         
-                    } else {
-                        sb.append(rowOnClick("clickable", getRow(columns, row, con, hideColumn),
-                            this.getClass().getName() // Supports descendants using this function
-                            + "?EDIT_ID=" + row.getIdentity().toString().substring(1)
-                            + "&TABLENAME=" + table + sourceTable + sourceId
-                        ));
-                    }
+                    sb.append(rowOnClickHTMX("clickable", getRow(columns, row, con, hideColumn),
+                        "/"+this.getClass().getName() // Supports descendants using this function
+                        + "/" + table + "/" + row.getIdentity().toString().substring(1)
+                        + (!sourceTable.isEmpty() ? "?" + sourceTable + sourceId : "")
+                        , null  // title/tooltip would be nice at some point
+                        , (parms != null ? parms.get("HX-TARGET") : DEFAULT_TARGET)
+                    ));                         
                     rowCount++;
                     if (page > -1 && rowCount >= ROW_COUNT_LIMIT) {
                         break;
@@ -1491,16 +1497,13 @@ public class Table extends Weblet {
                 String rowCountInfo = paragraph(Message.get(con.getLocale(), "ROWS_OF", "" + rowCount, "" + totalRows) + "&nbsp;" + (page > -1 ? Message.get(con.getLocale(), "PAGE_NAV") + "&nbsp;" + page : ""));
                 sb.append(tableFooter(row(columnSpan(columns.size(), rowCountInfo))));
             }
-            if (HTMX_MODE) {
-                return tableHTMX("sortable_"+table, (rowCount > 0 ? "sortable" : ""), sb.toString());  // sort table breaks if you have no rows in the tbody
-            } else {
-                return table("sortable", sb.toString());
-            }
+            return tableHTMX("sortable_"+table, (rowCount > 0 ? "sortable" : ""), sb.toString());  // sort table breaks if you have no rows in the tbody
+
         } catch (Exception e) {
             Throwable cause = e.getCause();
             System.out.println("permeagility.web.Table: Error: " + e.getMessage() + (cause == null ? "" : ": " + cause.getMessage()));
             e.printStackTrace();
-            return "Error: " + e.getMessage() + (cause == null ? "" : "<BR>" + cause.getMessage());
+            return paragraph("error","Error: " + e.getMessage() + (cause == null ? "" : "<BR>" + cause.getMessage()));
         }
     }
 
@@ -1748,7 +1751,7 @@ public class Table extends Weblet {
         }
         String title = table + " " + Message.get(locale, "ADVANCED_OPTIONS");
         parms.put("SERVICE", title);
-        return headMinimum(con, title, getScripts(con.getLocale()))
+        return headMinimum(con, title)
                 + body(         //advancedOptionsForm(con, table, parms, errors.toString())
                                 //+ br()
                                  link(this.getClass().getName()+"?TABLENAME=" + table, Message.get(locale, "BACK_TO_TABLE"))
@@ -1839,12 +1842,12 @@ public class Table extends Weblet {
 
         String title = table + " " + Message.get(locale, "ADVANCED_OPTIONS");
         parms.put("SERVICE", title);
-        return head(con, title, getScripts(con.getLocale()))
-                + body(standardLayout(con, parms,
-                                rightsOptionsForm(con, table, parms, errors.toString())
-                                + br()
-                                + link(this.getClass().getName()+"?TABLENAME=" + table, Message.get(locale, "BACK_TO_TABLE"))
-                        ));
+        return head(con, title)
+             + body(
+                    rightsOptionsForm(con, table, parms, errors.toString())
+                    + br()
+                    + link(this.getClass().getName()+"?TABLENAME=" + table, Message.get(locale, "BACK_TO_TABLE"))
+                );
     }
 
     public String rightsOptionsForm(DatabaseConnection con, String table, HashMap<String, String> parms, String errors) {

@@ -44,8 +44,10 @@ public class Menu extends Weblet {
     }
 
     public String getHTML(DatabaseConnection con, HashMap<String, String> parms) {
-        //HTMX_MODE = parms.get("HTMX") != null;
-        if (HTMX_MODE) System.out.println("Producing HTMX mode menu");
+        String hxTarget = parms.get("HX-TARGET");
+        String menuTarget = parms.get("TARGET");
+        if (menuTarget == null) menuTarget = hxTarget;
+        if (menuTarget == null) menuTarget = DEFAULT_TARGET;
         Locale locale = con.getLocale();
         String selector = Message.getLocaleSelector(locale, parms);
         String localeSelector = (selector.length() > 0
@@ -80,7 +82,7 @@ public class Menu extends Weblet {
                             if (DEBUG) System.out.println("MenuItem=" + i.getString("name")+" class="+i.getString("classname")+" active="+i.getString("active"));
                             String menuName =  i.getString("name");
                             String menuDesc =  i.getString("description");
-                            String classname = (String) i.getString("classname");
+                            String classname = i.getString("classname");
                             if (i.get("active") != null && i.getBoolean("active") == true) {
                                 String pretty = Message.get(locale, "MENUITEM_" + menuName);
                                 if (menuName != null && ("MENUITEM_" + menuName).equals(pretty)) {  // No translation
@@ -106,12 +108,12 @@ public class Menu extends Weblet {
                                         String pageScript = i.getString("pageScript");
                                         if (pageScript != null && !pageScript.equals("")) {   // Use page runner on pageScript
                                               if (HTMX_MODE) itemMenu.append("<li>");
-                                              itemMenu.append(link(PAGE_RUNNER+"?ID="+i.getIdentity().toString().substring(1), pretty, prettyDesc));
+                                              itemMenu.append(link(PAGE_RUNNER+"?ID="+i.getIdentity().toString().substring(1), pretty, prettyDesc, menuTarget));
                                               if (HTMX_MODE) itemMenu.append("</li>");
                                         } else {
                                             if (classname != null) {
                                               if (HTMX_MODE) itemMenu.append("<li>");
-                                              itemMenu.append(link(classname, pretty, prettyDesc));
+                                              itemMenu.append(link(classname, pretty, prettyDesc, menuTarget));
                                               if (HTMX_MODE) itemMenu.append("</li>");
                                             } else {
                                               System.out.println("Menu item "+i.getIdentity().toString()+" could not be added name="+menuName+" class="+classname);
@@ -131,7 +133,7 @@ public class Menu extends Weblet {
                         }
                     }
                     if (itemMenu.length() > 0) {
-                        String menuHeader = (String) m.getString("name");
+                        String menuHeader = m.getString("name");
                         String pretty = Message.get(locale, "MENU_" + menuHeader);
                         if (menuHeader != null && ("MENU_" + menuHeader).equals(pretty)) {  // No translation
                             pretty = menuHeader;
@@ -160,8 +162,9 @@ public class Menu extends Weblet {
     }
 
     // Override links to use menuitem class
-    public static String link(String ref, String name, String desc) {
-        return "<a hx-get='/" + ref + "?HTMX=true&HTMX_CLASS="+ ref + "' hx-target='#service' hx-trigger='click' hx-swap='innerHTML' class='menuitem' "
+    public static String link(String ref, String name, String desc, String target) {
+        if (target == null) target = "service";
+        return "<a hx-get='/" + ref + "' hx-target='#"+target+"' hx-trigger='click' hx-swap='innerHTML' class='menuitem' "
                 +"href='/" + ref + "' title='" + desc + "' "
                 +" _=\"on click hide #nav-container then wait 100ms then show #nav-container\">" 
                 + name + "</a>\n";
