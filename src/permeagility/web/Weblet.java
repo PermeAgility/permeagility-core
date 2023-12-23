@@ -44,6 +44,7 @@ import permeagility.util.Setup;
 
 import com.arcadedb.database.Document;
 import com.arcadedb.database.RID;
+import com.arcadedb.query.select.Select;
 import com.arcadedb.serializer.json.JSONObject;
 
 /** The Weblet help you build web pages with simple functional coding - can't be explained here - see examples */
@@ -64,12 +65,13 @@ public abstract class Weblet {
     public static String DECIMAL_FORMAT = "#,##0;(#,##0)";
     public static String DEFAULT_STYLE = "dark (horizontal menu)";
     public static String POPUP_SUFFIX = "..";
-    public static boolean D3_MIN = true;
-    public static boolean SPLIT_MIN = true;
-    public static boolean LOAD_ANIMATION = true;
-    public static boolean LOAD_ANIM_MIN = true;
     public static boolean HYPERSCRIPT_MIN = false;
     public static boolean HTMX_MIN = false;
+    public static boolean D3_MIN = true;
+    public static boolean SPLIT_MIN = true;
+    public static boolean SORTABLE_MIN = true;
+    public static boolean LOAD_ANIMATION = true;
+    public static boolean LOAD_ANIM_MIN = true;
     protected boolean HTMX_MODE = true;   // descendent instances can set this flag
     public static String DEFAULT_TARGET = "service";
 
@@ -109,6 +111,7 @@ public abstract class Weblet {
             + (HTMX_MIN ? "<script type=\"text/javascript\" src=\"/js/htmx.min.js\"></script>\n"
                             : "<script type=\"text/javascript\" src=\"/js/htmx.js\"></script>\n")
             + getSortTableScript()
+            + getSortableScript()
             + getD3Script() 
             + getCodeEditorScript() 
             + getSplitScript()
@@ -690,6 +693,22 @@ public abstract class Weblet {
         }
     }
 
+    public static String getSortableScript() {
+        if (SORTABLE_MIN) {
+            return "<script  type='text/javascript' src=\"/js/Sortable.min.js\"></script>\n";
+        } else {
+            return "<script  type='text/javascript' src=\"/js/Sortable.js\"></script>\n";
+        }
+    }
+
+    public static String getSortTableScript() { return "<script src=\"/js/sorttable.js\"></script>\n"; }
+
+    public static String getScript(String name) { return "<script src=\"/js/"+name+"\"></script>\n"; }
+
+    public static String script(String script) { return "<script>"+script+"</script>\n"; }
+
+    public static String style(String script) { return "<style type=\"text/css\">\n" + script + "</style>\n"; }
+
     public static String EDITOR_THEME = "night";
 
     public static String getCodeEditorScript() {
@@ -750,14 +769,6 @@ public abstract class Weblet {
         return lines > 0 ? lines : 1;
     }
 
-    public static String getSortTableScript() { return "<script src=\"/js/sorttable.js\"></script>\n"; }
-
-    public static String getScript(String name) { return "<script src=\"/js/"+name+"\"></script>\n"; }
-
-    public static String script(String script) { return "<script>"+script+"</script>\n"; }
-
-    public static String style(String script) { return "<style type=\"text/css\">\n" + script + "</style>\n"; }
-
     public static String multiSelectList(String name, List<String> names, List<String> values, List<String> tooltips, Locale l) {
     	StringBuilder sb = new StringBuilder(1024);
     	sb.append("<SELECT id=\""+name+"\" name=\""+name+"\" size=\""+names.size()+"\" MULTIPLE>\n");
@@ -810,7 +821,7 @@ public abstract class Weblet {
     	StringBuilder sb = new StringBuilder(1024);
     	for(int i=0; i < names.size();i++) {
     	    sb.append("<input type=\"CHECKBOX\""
-                +(checks.get(i)==null ? "" : " chacked=\"yes"+"\"")
+                +(checks.get(i)==null ? "" : " checked=\"yes"+"\"")
                 +" id=\""+name+"\"" + " name=\""+name+"\""
                 +" title=\""+tooltips.get(i)+"\"" + " value=\""+values.get(i)+"\">"
                 +names.get(i)
@@ -833,7 +844,7 @@ public abstract class Weblet {
 
     public String linkListControl(DatabaseConnection con, String name, String table, QueryResultCache qr, Locale l, List<RID> picked) {
         if (qr == null) {
-                return paragraph("error","Cannot produce list for table "+table+" query is empty");
+            return paragraph("error","Cannot produce list for table "+table+" query is empty");
         }
         HashMap<String,Integer> listMap = new HashMap<>();  // for keeping counts of objects LinkList can have duplicates
         List<String> names = new ArrayList<>(qr.size());
@@ -886,33 +897,37 @@ public abstract class Weblet {
 
     public String getLinkList(String name, String table, List<String> names, List<String> values, List<String> tooltips, List<String> checks, List<String> listnames, List<String> listvalues, List<String> listtooltips, List<String> listchecks, Locale l) {   
         StringBuilder result = new StringBuilder();
-        result.append("<div ng-controller=\"LinkListControl\" ng-init=\"values=[\n");
+        StringBuilder valuesList = new StringBuilder();
+        // Selected values
+        result.append("<ol id=\""+name+"_list"+"\" class=\""+name+"_class"+"\" _=\"on change put '' into the innerHTML of #"+name+"_result \n"
+                   + " then for i in the children of #"+name+"_list"+" put ',' + @rid of i at end of #"+name+"_result \n"
+                   + " then put the innerHTML of #"+name+"_result"+" into the value of #"+name+"\">\n");
+        for (int i=0; i<listnames.size(); i++) {
+                result.append("<li rid=\"" + listvalues.get(i) + "\">" + listnames.get(i)
+                    + "<a title=\"delete me\" _=\"on click remove the closest <li/> then send change to #"+name+"_list"+"\">x</a></li>\n");
+                valuesList.append("," + listvalues.get(i));
+        }
+        result.append("</ol>");
+        result.append("<select id=\"" + name + "_items"+"\"\n" + 
+                "  _=\"on change if #" + name + "_items"+".value is not 'null' \n" + 
+                "     put '<li rid=\\'' + #" + name + "_items" + ".value + '\\'>' + #" + name + "_items"+".options[#" + name + "_items" + ".selectedIndex].innerText\n" + 
+                "     + '&nbsp;<a title=\\'delete me\\' _=\\'on click remove the closest <li/> then send change to #"+name+"_list"+"\\'>x</a>'\n" + 
+                "     + '</li>' at end of #" + name + "_list" + " \n" + 
+                "     then put '' into the innerHTML of #"+name+"_result"+"\n" + 
+                "     then for i in the children of #"+name+"_list"+" put ',' + @rid of i at end of #"+name+"_result" + "\n" +
+                "     then put the innerHTML of #"+name+"_result"+" into the value of #"+name+"\">\n");
+        // The default null option
+        result.append("<option value=\"null\" selected=\"yes\">- Select an item -</option>\n");
+        // The full list of possible values
         for (int i=0; i<names.size(); i++) {
                 if (i > 0) { result.append(","); }
-                result.append("{ name: '"+names.get(i)+"', rid: '"+values.get(i)+"', active:"+checks.get(i)+" }\n");
+                result.append("<option value=\""+values.get(i)+"\">"+names.get(i)+"</option>\n");
         }
-        result.append("];\n listValues=[");
-        for (int i=0; i<listnames.size(); i++) {
-                if (i > 0) { result.append(","); }
-                result.append("{ name: '"+listnames.get(i)+"', rid: '"+listvalues.get(i)+"', active:"+listchecks.get(i)+" }\n");
-        }
-        result.append("];\">\n");
-        result.append("<ol>\n");
-        result.append("  <li ng-tooltip=\""+Message.get(l, "USE_CONTROLS_TO_CHANGE")+"\" ng-repeat=\"v in listValues\">\n");
-        result.append("    <a title=\""+Message.get(l, "CLICK_TO_MOVE_UP")+"\" ng-click=\"up(v)\">&#x2191;</a>\n");
-        result.append("    <a title=\""+Message.get(l, "CLICK_TO_MOVE_DOWN")+"\" ng-click=\"down(v)\">&#x2193;</a>\n");
-        result.append("    {{v.name}}&nbsp;&nbsp;&nbsp;\n");
-        result.append("    <a title=\""+Message.get(l, "CLICK_TO_DELETE")+"\" ng-click=\"delete(v)\">&times;</a>\n");
-        result.append("    <a target=\"_blank\" HREF=\"permeagility.web.Table?TABLENAME="+table+"&EDIT_ID={{v.rid}}\">"+Message.get(l, "GOTO_ROW")+"</a>\n");
-        result.append("  </li>\n");
-        result.append("</ol>\n");
-        result.append(Message.get(l, "ADD_ITEM")+"&nbsp;");
-        result.append("  <select ng-model=\"selValue\" ng-options=\"v.name for v in values\" ng-change=\"selected(selValue)\">\n");
-        result.append("    <option value=\"\">"+Message.get(l, "OPTION_NONE")+"</option>\n");
-        result.append("      </select>\n");
-        result.append("<input class=\"text\" type=\"hidden\" id=\""+name+"\" name=\""+name+"\"  value=\"{{resultList()}}\"/>\n");  // TYPE=\"hidden\"
-        //          result.append("<INPUT CLASS=\"text\" NAME=\""+name+"\"  VALUE=\"{{resultList()}}\"/>\n");   // For debugging purposes
-        result.append("</div>\n");
+        result.append("</select>");
+        result.append("<script>\nvar "+name+"_dragArea"+" = document.querySelector(\"."+name+"_class"+"\");\nnew Sortable("+name+"_dragArea"+", {  animation: 350 });\n</script>");
+        result.append("<div style=\"display: none;\" id=\""+name+"_result"+"\"></div>"); // temp holder for result, probably could do this with vars
+        result.append("<input type=\"hidden\" name=\""+name+"\"  id=\""+name+"\" value=\""+valuesList+"\"/>");  // this last input is what will be sent in the form submission
+
         return result.toString();
     }
 

@@ -530,12 +530,10 @@ public class Table extends Weblet {
                 String columnName = column.getName();
                 Type type = column.getType();
                 String newValue = parms.get(PARM_PREFIX + columnName);
+                if (DEBUG) System.out.println("updating " + columnName + " of type " + type + " with value " + newValue);
                 if (newValue == null) {
                     continue;  // Don't update field if not specified in parameters
-                }
-                if (DEBUG) {
-                    System.out.println("updating " + columnName + " of type " + type + " with value " + newValue);
-                }
+                }                
                 if (newValue.equals("null")) {
                     newValue = null;
                 }
@@ -656,9 +654,7 @@ public class Table extends Weblet {
                  } else if (type == Type.LINK) { // Link
                     RID rid = (RID)updateRow.get(columnName);
                     Document o = rid==null ? null : con.get(rid);
-                    if (DEBUG) {
-                        System.out.println("Updating Link " + (o == null ? "" : o.getIdentity().toString()));
-                    }
+                    if (DEBUG) System.out.println("Updating Link " + (o == null ? "" : o.getIdentity().toString()));
                     String originalValue = (o == null ? null : o.getIdentity().toString().substring(1));
                     if ((newValue != null && originalValue != null && !newValue.equals(originalValue))
                             || (newValue == null && originalValue != null)
@@ -676,10 +672,9 @@ public class Table extends Weblet {
                     }
                 } else if (type == Type.LIST) { // LinkList (Ordered and can contain duplicates)
                     List<RID> o = updateRow.getList(columnName);
-                    if (DEBUG) {
-                        System.out.println("Updating LinkList " + (o == null ? "" : o));
-                    }
+                    if (DEBUG) System.out.println("Updating LinkList " + (o == null ? "" : o));
                     String[] newValues = {};
+                    if (newValue.startsWith(",")) newValue = newValue.substring(1);
                     if (newValue != null && !newValue.trim().equals("")) {
                         newValues = newValue.split(",");
                     }
