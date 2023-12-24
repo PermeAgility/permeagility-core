@@ -46,7 +46,7 @@ public class Schema extends Weblet {
                         String camel = makePrettyCamelCase(tn);
                         DocumentType newclass = con.getSchema().getOrCreateDocumentType(camel);
                         if (newclass != null) {
-                            errors.append(paragraph("success", Message.get(con.getLocale(), "NEW_TABLE_CREATED", camel, makeCamelCasePretty(camel))));
+                            errors.append(serviceNotificationDiv(paragraph("success", Message.get(con.getLocale(), "NEW_TABLE_CREATED", camel, makeCamelCasePretty(camel)))));
                             if (ADD_NAME_TO_NEW_TABLE) {
                                 Setup.checkCreateColumn(con, newclass, "name", Type.STRING, errors);
                                 //newclass.createProperty("name", OType.STRING).setNotNull(false).setMandatory(false);

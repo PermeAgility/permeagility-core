@@ -125,7 +125,7 @@ public class Table extends Weblet {
                         }
                     }
                     if (updateRow(con, table, parms, errors)) {
-                        return getTableWithControls(con, parms, table);
+                        return errors.toString() + getTableWithControls(con, parms, table);
                     } else {
                         System.out.println("Update errors: "+errors.toString());
                         return errors.toString() + getTableRowForm(con, table, parms);
@@ -434,34 +434,39 @@ public class Table extends Weblet {
                     if (okToUpdate) {
                         newDoc.set(name, list);
                     }
-                   } else if (type == Type.MAP) { // Map
-                    Map<String, Document> map = new HashMap<>();
+                } else if (type == Type.MAP) { // Map
+                    String newMap = parms.get(PARM_PREFIX + name + "_map");
+                    if (DEBUG) System.out.println("Inserting LinkMap");
                     String[] newValues = {};
                     if (value != null && !value.trim().equals("")) {
+                        if (value.startsWith(",")) value = value.substring(1);
                         newValues = splitCSV(value);
                     }
+                    String[] newMaps = {};
+                    if (newMap != null && !newMap.trim().equals("")) {
+                        newMaps = splitCSV(newMap);
+                    }
+                    // Create a new map
+                    Map<String, RID> map = new HashMap<>();
                     boolean okToUpdate = true;
                     // Add all from new list
+                    int mapIndex = 0;
                     for (String nv : newValues) {
-                        String[] v = nv.split(":", 2);
                         try {
-                            if (v.length != 2) {
-                                okToUpdate = false;
-                                System.out.println("INSERT WARNING: Cannot parse map value " + nv + " it should be <name>:<cluster>:<record> - field will remain unchanged");
-                            }
-                            Document doc = con.get(v[1]);
+                            Document doc = con.get(nv);
                             if (doc != null) {
-                                map.put(v[0], doc);
+                                map.put(newMaps[mapIndex], doc.getIdentity());
                             } else {
                                 okToUpdate = false;
-                                System.out.println("INSERT WARNING: attempted to add a non-existent document to a map - map will remain unchanged");
+                                System.out.println("UPDATE WARNING: attempted to add a non-existent document to a map - map will remain unchanged");
                             }
                         } catch (ArrayIndexOutOfBoundsException e) {
                             System.out.println("Could not understand map field:" + nv);
                         }
+                        mapIndex++;
                     }
                     if (okToUpdate) {
-                        newDoc.set(name, map, Type.MAP);
+                        newDoc.set(name, map);
                     }
                 } else {
                     errors.append(paragraph("error", Message.get(con.getLocale(), "UNKNOWN_FIELD_TYPE", "" + type, name)));
@@ -700,31 +705,31 @@ public class Table extends Weblet {
                     }
                 } else if (type == Type.MAP) { // LinkMap
                     Map<String, Object> o = updateRow.getMap(columnName);
-                    if (DEBUG) {
-                        System.out.println("Updating LinkMap " + (o == null ? "" : o));
-                    }
+                    String newMap = parms.get(PARM_PREFIX + columnName + "_map");
+                    if (DEBUG) System.out.println("Updating LinkMap " + (o == null ? "" : o));
                     String[] newValues = {};
                     if (newValue != null && !newValue.trim().equals("")) {
+                        if (newValue.startsWith(",")) newValue = newValue.substring(1);
                         newValues = splitCSV(newValue);
+                    }
+                    String[] newMaps = {};
+                    if (newMap != null && !newMap.trim().equals("")) {
+                        newMaps = splitCSV(newMap);
                     }
                     // Remove all from original map as this list field is ordered
                     if (o == null) {
-                        o = new HashMap<>();
+                        o = new HashMap<String,Object>();
                     } else {
                         o.clear();
                     }
                     boolean okToUpdate = true;
                     // Add all from new list
+                    int mapIndex = 0;
                     for (String nv : newValues) {
-                        String[] v = nv.split(":", 2);
                         try {
-                            if (v.length != 2) {
-                                okToUpdate = false;
-                                System.out.println("UPDATE WARNING: Cannot parse map value " + nv + " it should be <name>:<cluster>:<record> - field will remain unchanged");
-                            }
-                            Document doc = con.get(v[1]);
+                            Document doc = con.get(nv);
                             if (doc != null) {
-                                o.put(v[0], doc);
+                                o.put(newMaps[mapIndex], doc.getIdentity());
                             } else {
                                 okToUpdate = false;
                                 System.out.println("UPDATE WARNING: attempted to add a non-existent document to a map - map will remain unchanged");
@@ -732,6 +737,7 @@ public class Table extends Weblet {
                         } catch (ArrayIndexOutOfBoundsException e) {
                             System.out.println("Could not understand map field:" + nv);
                         }
+                        mapIndex++;
                     }
                     if (okToUpdate) {
                         updateRow.set(columnName, o);
@@ -741,7 +747,7 @@ public class Table extends Weblet {
             if (updateRow.isDirty()) {
                 try {
                     updateRow.save();
-                    errors.append(paragraph("success", Message.get(con.getLocale(), "ROW_UPDATED", (updateRow.isDirty() ? "false" : "true"))));
+                    errors.append(serviceNotificationDiv(paragraph("success", Message.get(con.getLocale(), "ROW_UPDATED", (updateRow.isDirty() ? "false" : "true")))));
                     Server.tableUpdated(con, table);
                     return true;
                 } catch (Exception e) {

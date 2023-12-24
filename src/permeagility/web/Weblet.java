@@ -960,7 +960,8 @@ public abstract class Weblet {
                     listmaps.add(key);
                     listvalues.add(rid);
                     listnames.add(toJSONString(getDescriptionFromDocument(con, pick)));
-                    listtooltips.add(toJSONString(pick.getString("tooltip")));
+                    listtooltips.add("a tooltip");
+                    //listtooltips.add(toJSONString(pick.getString("tooltip")));
                     Integer active = listMap.get(rid);
                     if (active == null) {
                         active = Integer.valueOf(1);
@@ -978,7 +979,8 @@ public abstract class Weblet {
             if (rid.startsWith("#")) rid = rid.substring(1);
             values.add(rid);
             names.add(toJSONString(row.getString("name")));
-            tooltips.add(toJSONString(row.getString("tooltip")));
+            //tooltips.add(toJSONString(row.getString("tooltip")));
+            tooltips.add("a tooltip");
             Integer active = listMap.get(rid);
             if (active == null) {
                     active = Integer.valueOf(0);
@@ -990,6 +992,45 @@ public abstract class Weblet {
         return getLinkMap(name, table, names, values, tooltips, checks, listmaps, listnames, listvalues, listtooltips, listchecks, l);
     }
 
+    public String getLinkMap(String name, String table, List<String> names, List<String> values
+            , List<String> tooltips, List<String> checks, List<String> listmaps, List<String> listnames
+            , List<String> listvalues, List<String> listtooltips, List<String> listchecks, Locale l) {   
+        StringBuilder result = new StringBuilder();
+        StringBuilder valuesList = new StringBuilder();
+        // Selected values
+        result.append("<ol id=\""+name+"_list"+"\" class=\""+name+"_class"+"\" _=\"on change put '' into the innerHTML of #"+name+"_result \n"
+                   + " then for i in the children of #"+name+"_list"+" put ',' + @rid of i at end of #"+name+"_result \n"
+                   + " then put the innerHTML of #"+name+"_result"+" into the value of #"+name+"\">\n");
+        for (int i=0; i<listnames.size(); i++) {
+                result.append("<li rid=\"" + listvalues.get(i) + "\"><input type=\"text\" id=\""+name + "_map"+"\" name=\""+name + "_map"+"\" value=\""+listmaps.get(i)+"\"/ required>" + listnames.get(i)
+                    + "<a title=\"delete me\" _=\"on click remove the closest <li/> then send change to #"+name+"_list"+"\">x</a></li>\n");
+                valuesList.append("," + listvalues.get(i));
+        }
+        result.append("</ol>");
+        result.append("<select id=\"" + name + "_items"+"\"\n" + 
+                "  _=\"on change if #" + name + "_items"+".value is not 'null' \n" + 
+                "     put '<li rid=\\'' + #" + name + "_items" + ".value + '\\'><input type=\\'text\\' id=\\'"+name + "_map"+"\\'  name=\\'"+name + "_map"+"\\'/ required>' + #" + 
+                      name + "_items"+".options[#" + name + "_items" + ".selectedIndex].innerText\n" + 
+                "     + '&nbsp;<a title=\\'delete me\\' _=\\'on click remove the closest <li/> then send change to #"+name+"_list"+"\\'>x</a>'\n" + 
+                "     + '</li>' at end of #" + name + "_list" + " \n" + 
+                "     then put '' into the innerHTML of #"+name+"_result"+"\n" + 
+                "     then for i in the children of #"+name+"_list"+" put ',' + @rid of i at end of #"+name+"_result" + "\n" +
+                "     then put the innerHTML of #"+name+"_result"+" into the value of #"+name+"\">\n");
+        // The default null option
+        result.append("<option value=\"null\" selected=\"yes\">- Select an item -</option>\n");
+        // The full list of possible values
+        for (int i=0; i<names.size(); i++) {
+                if (i > 0) { result.append(","); }
+                result.append("<option value=\""+values.get(i)+"\">"+names.get(i)+"</option>\n");
+        }
+        result.append("</select>");
+        result.append("<script>\nvar "+name+"_dragArea"+" = document.querySelector(\"."+name+"_class"+"\");\nnew Sortable("+name+"_dragArea"+", {  animation: 350 });\n</script>");
+        result.append("<div style=\"display: none;\" id=\""+name+"_result"+"\"></div>"); // temp holder for result, probably could do this with vars
+        result.append("<input type=\"hidden\" name=\""+name+"\"  id=\""+name+"\" value=\""+valuesList+"\"/>");  // this last input is what will be sent in the form submission
+
+        return result.toString();
+    }
+/* 
     public String getLinkMap(String name, String table, List<String> names, List<String> values, List<String> tooltips, List<String> checks, List<String> listmaps, List<String> listnames, List<String> listvalues, List<String> listtooltips, List<String> listchecks, Locale l) {   
         StringBuilder result = new StringBuilder();
         result.append("<div ng-controller=\"LinkMapControl\" ng-init=\"values=[\n");
@@ -1022,7 +1063,7 @@ public abstract class Weblet {
         result.append("</div>\n");
         return result.toString();
     }
-
+*/
     public static String getQueryForTable(DatabaseConnection con, String table) {
             String query = "SELECT FROM "+table;
         //    QueryResult lists = getCache().getResult(con, "SELECT FROM "+Setup.TABLE_PICKLIST+" WHERE tablename='"+table+"'");

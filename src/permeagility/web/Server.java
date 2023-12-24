@@ -991,7 +991,7 @@ public class Server {
 			} else if (content_name != null) {
 				String scontent = content.toString().trim();  // Remove trailing /r/l
 				String newValue = parms.get(content_name);
-				if (newValue == null || newValue.equals("")) {
+				if (newValue == null) {
 					newValue = scontent;
 				} else {
 					newValue = newValue + "," + scontent;
