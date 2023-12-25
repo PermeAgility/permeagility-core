@@ -21,13 +21,13 @@ public class Home extends Weblet {
 	
   String pageBody = """
     <div id="header" hx-trigger="load" hx-get="/Header" hx-swap="innerHTML"></div>
-    <div id="service" hx-trigger="load delay:100ms" hx-get="/News" hx-swap="innerHTML"></div>
+    <div id="service" hx-trigger="load" hx-get="/News" hx-swap="innerHTML"></div>
     <div id="nav-container">
         <div id="underlay" class="bg"></div>
         <div id="nav-button" class="nav-button" tabindex="0">
             <span class="icon-bar"></span><span class="icon-bar"></span><span class="icon-bar"></span>
         </div>
-        <div id="nav-content" hx-get="/Menu?TARGET=service" hx-trigger="load delay:50ms" hx-swap="innerHTML" tabindex="0"></div>
+        <div id="nav-content" hx-get="/Menu?TARGET=service" hx-trigger="load" hx-swap="innerHTML" tabindex="0"></div>
     </div>
 """;
 

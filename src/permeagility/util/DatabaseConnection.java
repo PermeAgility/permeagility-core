@@ -49,7 +49,7 @@ public class DatabaseConnection {
 		if (DEBUG) System.out.println("New database connection initiated "+c.getName());
 	}
 
-	public void close() { c.close(); }
+	public void close() { if (!db.EMBEDDED_SERVER) c.close(); }
 	public boolean isConnected() { return c != null && c.isOpen(); }
 
         // The NewConnection functions are for thread processes that need another connection after the user has moved on from this one

@@ -114,7 +114,11 @@ public class Server {
 	public static String LOCKOUT_MESSAGE = "<p>The system is unavailable because a system restore is being performed. Please try again later.</p><a href='/'>Try it now</a>";
 
 	protected static Database database;  // Server database connection (internal)
-	//private static Database dbNone = null;  // Used for guest access, login and account request
+    protected static int DBCON_RETRY_LIMIT = 100;   // Give up after this many retries (and increase the sleep time by the increment)
+    protected static int DBCON_RETRY_REPORT = 0;  // report retries when they exceed this level
+    protected static int DBCON_RETRY_SLEEP = 5;  // ms to sleep while waiting for connection
+    protected static int DBCON_RETRY_SLEEP_INCR = 5;
+    protected static int DBCON_RETRY_SLEEP_LIMIT = 250;
 
 	private static String SETTINGS_FILE = "init.pa";
 	private static Properties localSettings = new Properties();
@@ -149,8 +153,7 @@ public class Server {
 		try {
 			HTTP_PORT = Integer.parseInt(args[0]);
 			if (HTTP_PORT < 0 || HTTP_PORT > 65535) HTTP_PORT = 1999;
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			HTTP_PORT = 1999;
 		}
 		if (args.length > 1) {
@@ -163,7 +166,7 @@ public class Server {
 			System.out.println("selftest is specified: will exit after initialization");
 		}
 
-                // Setup logging to a file or console via System.out or System.err
+        // Setup logging to a file or console via System.out or System.err
 		if (System.console()==null) {
 			System.out.println("Console is null - logging System.out and System.err to file");
 			File logDir = new File("log");
@@ -766,7 +769,7 @@ public class Server {
                                    //         }
                                    //     }
                                 }
-                                if (className.contains("/")) {
+                                if (className.contains("/")) {  // If the URL continues with a slash, put it into REST_OF_URL - get it?
                                     int slashLoc = className.indexOf("/");
                                     if (slashLoc + 1 < className.length()) parms.put("REST_OF_URL",className.substring(slashLoc+1));
                                     className = className.substring(0, slashLoc);
@@ -785,63 +788,70 @@ public class Server {
                                 parms.put("COOKIE_VALUE", cookieValue);
                                 Weblet weblet = (Weblet)classInstance;
                                 if (DEBUG) System.out.println("LOADING HTML PAGE="+className+" PARAMETER="+parms.toString());
-                                        DatabaseConnection con = null;
-                                        try {
-                                                if (userdb != null) {
-                                                        try { 
-                                                            con = userdb.getConnection();
-                                                        } catch (Exception e) {
-                                                                theData = "<BODY><P>Server is busy, please try again</P></BODY>".getBytes();
-                                                                System.out.println("!"+userdb.getUser());
-                                                        }
-                                                        if (con == null) {
-                                                            try { 
-                                                                con = userdb.getConnection();
-                                                            } catch (Exception e) {
-                                                                    theData = "<BODY><P>Server is still busy, please try again</P></BODY>".getBytes();
-                                                                    System.out.println("!"+userdb.getUser());
-                                                            }
-                                                        }
-                                                        if (con != null) {
-                                                            con.begin();
-                                                            theData = weblet.doPage(con, parms);
-                                                            con.commit();
-                                                        }
-                                                }
+                                DatabaseConnection con = null;
+                                if (userdb != null) {
+                                    int retries = 0;
+                                    while(con == null && retries < DBCON_RETRY_LIMIT) {
+                                        try {  
+                                            if (method.equalsIgnoreCase("GET")) {
+                                                //System.out.println("Getting readonly connection");
+                                                con = userdb.getReadOnlyConnection();
+                                            } else {
+                                                con = userdb.getConnection();
+                                            }
                                         } catch (Exception e) {
-                                                System.out.println("Exception running weblet: ");
-                                                e.printStackTrace();
-                                                if (con != null) con.rollback();
-                                                ByteArrayOutputStream dataStream = new ByteArrayOutputStream();
-                                                e.printStackTrace(new PrintWriter(dataStream));
-                                                theData = dataStream.toByteArray();
-                                        } finally {
-                                            if (con != null && con.isConnected()) con.close();  
-                                            con = null;
+                                          retries++;
+                                          if (retries == DBCON_RETRY_LIMIT) System.out.println("getConnection Exception is "+e.getMessage());
+                                          Thread.sleep(DBCON_RETRY_SLEEP); 
                                         }
+                                    }  
+                                    if (retries > DBCON_RETRY_REPORT) System.out.println("\n--- waited " + (retries * DBCON_RETRY_SLEEP) + "ms to get connection ---");
+                                    if (retries == DBCON_RETRY_LIMIT) {
+                                        if (DBCON_RETRY_SLEEP < DBCON_RETRY_SLEEP_LIMIT) DBCON_RETRY_SLEEP += DBCON_RETRY_SLEEP_INCR;
+                                        System.out.println("\n*** Gave up after "+retries+" retries to get connection - sleep increased by "+DBCON_RETRY_SLEEP_INCR+" to "+DBCON_RETRY_SLEEP+" ***\n");
+                                    }
+                                }
+                                try {
+                                    if (con != null) {
+                                        con.begin();
+                                        theData = weblet.doPage(con, parms);
+                                        con.commit();
+                                    }
+                                } catch (Exception e) {
+                                    System.out.println("Exception running weblet: ");
+                                    e.printStackTrace();
+                                    if (con != null) con.rollback();
+                                    if (con != null && con.isConnected()) con.close();  
+                                    ByteArrayOutputStream dataStream = new ByteArrayOutputStream();
+                                    e.printStackTrace(new PrintWriter(dataStream));
+                                    theData = dataStream.toByteArray();
+                                } finally {
+                                    if (con != null && con.isConnected()) con.close();  
+                                    con = null;
+                                }
                                         
                             } else if (classInstance instanceof Download) {
                                 Download downloadlet = (Download)classOf.getDeclaredConstructor().newInstance();
-                                        DatabaseConnection con = null;
-                                        try {
-                                            if (userdb != null) {
-                                                    con = userdb.getConnection();
-                                                    if (con != null) {
-                                                            if (DEBUG) System.out.println("DOWNLOAD PAGE="+className+" PARAMETER="+parms.toString());
-                                                            con.begin();
-                                                            theData = downloadlet.doPage(con, parms);
-                                                            con.commit();
-                                                    }
+                                DatabaseConnection con = null;
+                                try {
+                                    if (userdb != null) {
+                                            con = userdb.getReadOnlyConnection();
+                                            if (con != null) {
+                                                    if (DEBUG) System.out.println("DOWNLOAD PAGE="+className+" PARAMETER="+parms.toString());
+                                                    con.begin();
+                                                    theData = downloadlet.doPage(con, parms);
+                                                    con.commit();
                                             }
-                                        } catch (Exception e) {
-                                                System.out.println("Exception running weblet: ");
-                                                e.printStackTrace();
-                                                if (con != null) con.rollback();   
-                                        } finally {
-                                            if (con.isConnected()) con.close(); 
-                                            con = null;
-                                        }
-                                        // Do after to allow content-disposition to be dynamic if necessary
+                                    }
+                                } catch (Exception e) {
+                                        System.out.println("Exception running weblet: ");
+                                        e.printStackTrace();
+                                        if (con != null) con.rollback();   
+                                } finally {
+                                    if (con.isConnected()) con.close(); 
+                                    con = null;
+                                }
+                                // Do after to allow content-disposition to be dynamic if necessary
                                 content_type = downloadlet.getContentType();
                                 content_disposition = downloadlet.getContentDisposition();
                             } else {
@@ -1139,7 +1149,7 @@ public class Server {
 			Weblet.queryCache.clear();
 		} else if (table.equals("pickValues") ) {
 			if (DEBUG) System.out.println("Server: tableUpdated("+table+") - pickValues cleared");
-			updatePickValues();
+			updatePickValues(con);
 		} else if (table.equals("locale") || table.equals("message")) {
 			if (DEBUG) System.out.println("Server: tableUpdated("+table+") - messages refreshed and menus cleared");
 			Message.initialize(con);
@@ -1165,11 +1175,8 @@ public class Server {
 		return pickValues.get(table+"."+column);
 	}
 
-	public final static void updatePickValues() {
-		DatabaseConnection con = null;
+	public final static void updatePickValues(DatabaseConnection con) {
 		try {
-			con = database.getConnection();
-            con.begin();
 			for (Document values : con.query("SELECT FROM "+Setup.TABLE_PICKVALUES).get()) {
 				String v[] = values.getString("values").toString().split(",");
 				ArrayList<String> list = new ArrayList<String>();
@@ -1180,10 +1187,7 @@ public class Server {
 			}
             con.commit();
 		} catch (Exception e) {
-            con.rollback();
 			System.err.println("Error getting pickValues: "+e.getMessage());
-		} finally {
-            if (con.isConnected()) con.close();
 		}
 	}
 

@@ -18,7 +18,13 @@ package permeagility.util;
 import java.util.Date;
 import java.util.Locale;
 import com.arcadedb.Constants;
+import com.arcadedb.ContextConfiguration;
+import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.DatabaseFactory;
+import com.arcadedb.engine.ComponentFile;
+import com.arcadedb.engine.ComponentFile.MODE;
+import com.arcadedb.server.ArcadeDBServer;
+import com.arcadedb.server.ServerDatabase;
 
 import permeagility.web.Server;
 
@@ -28,7 +34,12 @@ import permeagility.web.Server;
  */
 public class Database  {
 
+    protected boolean EMBEDDED_SERVER = true;
     private static DatabaseFactory dbFactory = null;
+    private static DatabaseFactory dbFactoryRO = null;
+
+    private static ContextConfiguration config = new ContextConfiguration();
+    ArcadeDBServer server = null;
 
     private String url = null;
     private String user = null;
@@ -40,13 +51,67 @@ public class Database  {
         url = dbUrl;
         user = dbUser;
         password = dbPass;
-        if (dbFactory == null) {
+        if (dbFactory == null && !EMBEDDED_SERVER) {
             dbFactory = new DatabaseFactory(url);
             if (!dbFactory.exists()) {
                 createLocal("",dbPass);
             }
+            dbFactoryRO = new DatabaseFactory(url);
+        }
+        if (server == null && EMBEDDED_SERVER) {
+            //config.setValue(GlobalConfiguration.HA_SERVER_LIST, "192.168.10.1,192.168.10.2,192.168.10.3");
+            //config.setValue(GlobalConfiguration.HA_REPLICATION_INCOMING_HOST, "0.0.0.0");
+            //config.setValue(GlobalConfiguration.HA_ENABLED, true);
+//            config.setValue(GlobalConfiguration.SERVER_ROOT_PASSWORD, "886E0728");
+            server = new ArcadeDBServer(config);
+            server.start();
+            if (!server.existsDatabase(url)) {
+                ServerDatabase serverdb = server.createDatabase(url, MODE.READ_WRITE);
+                if (serverdb.isOpen()) {
+                    System.out.println("Database is open");
+                }
+            }
         }
       }
+
+    public DatabaseConnection getReadOnlyConnection() {
+        if (EMBEDDED_SERVER) {
+            return new DatabaseConnection(this, server.getDatabase(url));
+        } else {
+             return new DatabaseConnection(this,dbFactoryRO.open(ComponentFile.MODE.READ_ONLY));
+        }
+    }
+
+    public DatabaseConnection getConnection() {
+        if (EMBEDDED_SERVER) {
+            return new DatabaseConnection(this, server.getDatabase(url));
+        } else {
+            return new DatabaseConnection(this,dbFactory.open());
+        }
+    }
+
+    public void close() {
+        if (EMBEDDED_SERVER) {
+            if (server.isStarted()) {
+                server.stop();
+            }
+        } else {
+            try {
+                dbFactory.close();
+                System.out.println("database closed.");
+            } catch (Exception e) {
+                System.out.println("Error closing db "+e.getMessage());
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public boolean isConnected() {
+        if (EMBEDDED_SERVER) {
+            return server.isStarted();
+        }
+        return dbFactory != null && dbFactory.exists();
+    }
 
     public boolean isPassword(String pass) {
         if (pass == null) pass = "";
@@ -65,24 +130,6 @@ public class Database  {
     public void setLocale(Locale l) { locale = l; }
 
     public Locale getLocale() { return locale;  }
-
-    public boolean isConnected() {
-        return dbFactory != null && dbFactory.exists();
-    }
-
-    public void close() {
-        try {
-            dbFactory.close();
-            System.out.println("database closed.");
-        } catch (Exception e) {
-            System.out.println("Error closing db "+e.getMessage());
-            e.printStackTrace();
-        }
-    }
-
-    public DatabaseConnection getConnection() {
-         return new DatabaseConnection(this,dbFactory.open());
-    }
 
     /** Create a local database and load starterdb.json if it exists - if no starter DatabaseSetup.Schema update will install what is needed */
     public void createLocal(String backupFile, String serverPass) {
