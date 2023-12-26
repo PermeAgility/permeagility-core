@@ -155,7 +155,7 @@ public abstract class Weblet {
         if (target != null && !target.equals(DEFAULT_TARGET)) {
             return "";  // if we have a target but it is not the main default service, then don't update the header
         } else {
-            return "<div _=\"on load wait 200ms then put '" + serviceText + "' into #headerservice\"></div>\n"; 
+            return "<div _=\"on load wait 100ms then put '" + serviceText + "' into #headerservice\"></div>\n"; 
         }
     }
 
@@ -1030,42 +1030,9 @@ public abstract class Weblet {
 
         return result.toString();
     }
-/* 
-    public String getLinkMap(String name, String table, List<String> names, List<String> values, List<String> tooltips, List<String> checks, List<String> listmaps, List<String> listnames, List<String> listvalues, List<String> listtooltips, List<String> listchecks, Locale l) {   
-        StringBuilder result = new StringBuilder();
-        result.append("<div ng-controller=\"LinkMapControl\" ng-init=\"values=[\n");
-        for (int i=0; i<names.size(); i++) {
-                if (i > 0) { result.append(","); }
-                result.append("{ name: '"+names.get(i)+"', rid: '"+values.get(i)+"', active:"+checks.get(i)+" }\n");
-        }
-        result.append("];\n listValues=[");
-        for (int i=0; i<listnames.size(); i++) {
-                if (i > 0) { result.append(","); }
-                result.append("{ name: '"+listnames.get(i)+"', rid: '"+listvalues.get(i)+"', map:'"+listmaps.get(i)+"', active:"+listchecks.get(i)+" }\n");
-        }
-        result.append("];\">\n");
-        result.append(" <ol>\n");
-        result.append("  <li ng-tooltip=\""+Message.get(l, "USE_CONTROLS_TO_CHANGE")+"\" ng-repeat=\"v in listValues\">\n");
-        result.append("<a title=\""+Message.get(l, "CLICK_TO_MOVE_UP")+"\" ng-click=\"up(v)\">&#x2191;</a>&nbsp;");
-        result.append("<a title=\""+Message.get(l, "CLICK_TO_MOVE_DOWN")+"\" ng-click=\"down(v)\">&#x2193;</a>&nbsp;");
-        result.append("<input class=\"text\" name=\"map\" ng-model=\"v.map\" SIZE=20  VALUE=\"{{v.map}}\"/>&nbsp;");
-        result.append("{{v.name}}&nbsp;&nbsp;&nbsp;");
-        result.append("  <a title=\""+Message.get(l, "CLICK_TO_DELETE")+"\" ng-click=\"delete(v)\">&times;</a>\n");
-        result.append("  <a target=\"_blank\" HREF=\"permeagility.web.Table?TABLENAME="+table+"&EDIT_ID={{v.rid}}\">"+Message.get(l, "GOTO_ROW")+"</a>\n");
-        result.append("  </li>\n");
-        result.append(" </ol>\n");
-        result.append(Message.get(l, "ADD_ITEM")+"&nbsp;");
-        result.append("  <select ng-model=\"selValue\" ng-options=\"v.name for v in values\" ng-change=\"selected(selValue)\">\n");
-        result.append("    <option value=\"\">"+Message.get(l, "OPTION_NONE")+"</option>\n");
-        result.append("  </select>\n");
-        result.append("<input class=\"text\" type=\"hidden\" id=\""+name+"\" name=\""+name+"\" value=\"{{resultList()}}\"/>\n");  // TYPE=\"hidden\"
-//		result.append("<INPUT CLASS=\"text\" NAME=\""+name+"\"  VALUE=\"{{resultList()}}\"/>\n"); 
-        result.append("</div>\n");
-        return result.toString();
-    }
-*/
+    
     public static String getQueryForTable(DatabaseConnection con, String table) {
-            String query = "SELECT FROM "+table;
+            String query = "SELECT FROM "+table+" LIMIT "+Table.ROW_COUNT_LIMIT;
         //    QueryResult lists = getCache().getResult(con, "SELECT FROM "+Setup.TABLE_PICKLIST+" WHERE tablename='"+table+"'");
         //    if (lists != null && lists.size()>0) {
         //            return lists.getStringValue(0, "query");

@@ -50,8 +50,9 @@ public class Table extends Weblet {
     public static boolean ALWAYS_TEXT_AREA = true;  // Use text areas for all string fields
     public static int TEXT_AREA_THRESHOLD = 40;  // When the data is larger than this size, the input will be a text area
     public static int TEXT_AREA_WIDTH = 50;      // When showing a column as a cell, only show this many characters
-    public static long ROW_COUNT_LIMIT = 500;    // All text areas will be this width
+    public static long ROW_COUNT_LIMIT = 500;    // Limit to number of rows to retrieve before paging
     public static long DOT_INTERVAL = 5;         // Interval for dot when numerous pages - probably should derive this to be more dynamic
+    public static long DOT_LIMIT = 100;         // Limit to number of dot-links to show, browser slows with too many
     public static long PAGE_WINDOW = 3;          // Always show this many pages around the current page when there are many dots
     public static String PARM_PREFIX = "PARM_";  // Use this prefix in front of all column names as form field names (parameter names) 
     public static boolean SHOW_ALL_RELATED_TABLES = true;   // Will show that relationships exist even if no access to the table
@@ -978,7 +979,7 @@ public class Table extends Weblet {
         }
 
         if (type == Type.BOOLEAN) {
-            return row(label + column(hidden(PARM_PREFIX + name, "") + checkbox(PARM_PREFIX + name, (initialValue == null ? false : Boolean.valueOf(initialValue.toString())))));
+            return row(label + column(checkbox(PARM_PREFIX + name, (initialValue == null ? false : Boolean.valueOf(initialValue.toString())))));
 
         // Number
         } else if (type == Type.DECIMAL || type == Type.INTEGER || type == Type.LONG || type == Type.FLOAT || type == Type.DOUBLE || type == Type.SHORT) {
@@ -1439,15 +1440,17 @@ public class Table extends Weblet {
                 if (totalRows > ROW_COUNT_LIMIT) {
                     sb.append(Message.get(con.getLocale(), "PAGE_NAV") + "&nbsp;");
                     long pageCount = totalRows / ROW_COUNT_LIMIT + 1;
+                    long dotInterval = DOT_INTERVAL;
+                    if (pageCount/dotInterval > DOT_LIMIT) dotInterval = pageCount/DOT_LIMIT;
                     for (long p = 1; p <= pageCount; p++) {
                         if (Math.abs(page - p) < PAGE_WINDOW || pageCount - p < PAGE_WINDOW || p < PAGE_WINDOW) {
                             if (p == page || (page == 0 && p == 1)) {
-                                sb.append(bold(color("red", "" + p)) + "&nbsp;");
+                                sb.append(bold(color("red", "" + p)) + "&nbsp;");  // the page you on is not a link (TODO: use a style here)
                             } else {
                                 sb.append(linkWithTipHTMX(this.getClass().getName()+"/" + table + "&PAGE=" + p, "" + p, "Page " + p, parms.get("HX-TARGET")) + "&nbsp;");
                             }
                         } else {
-                            if (p % DOT_INTERVAL == 0) {
+                            if (p % dotInterval == 0) {
                                 sb.append(linkWithTipHTMX(this.getClass().getName()+"/" + table + "&PAGE=" + p, ".", "Page " + p, parms.get("HX-TARGET")));
                             }
                         }
