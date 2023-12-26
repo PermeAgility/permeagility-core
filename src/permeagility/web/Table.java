@@ -140,6 +140,16 @@ public class Table extends Weblet {
                         System.out.println("Delete errors: "+errors.toString());
                         return errors.toString() + getTableRowForm(con, table, parms);
                     }
+                } else if (httpMethod.equals("POST")) {
+                    String opFlag = parms.get("ADVANCED_OPTIONS");
+                    if (opFlag != null && opFlag.equals("YES")) {
+                        String advOp = advancedOptions(con, table, parms, errors);
+                        if (advOp != null && !advOp.isEmpty()) {
+                            return advOp;
+                        }
+                    } else {
+                        return null;
+                    }
                 }
             }
         }
@@ -1348,8 +1358,10 @@ public class Table extends Weblet {
                     ? newColumnPopup(con, table, parms.get("HX-TARGET"))
                     //+ "&nbsp;&nbsp;&nbsp;"
                     //+ popupForm("RIGHTSOPTIONS", null, Message.get(locale, "TABLE_RIGHTS_OPTIONS"), null, "XXX", rightsOptionsForm(con, table, parms, ""))
-                    //+ "&nbsp;&nbsp;&nbsp;"
-                    //+ popupForm("ADVANCEDOPTIONS", null, Message.get(locale, "ADVANCED_TABLE_OPTIONS"), null, "NEWCOLUMNNAME", advancedOptionsForm(con, table, parms, ""))
+                    + "&nbsp;&nbsp;&nbsp;"
+                    + popupFormHTMX("ADVANCEDOPTIONS", this.getClass().getName()+"/"+table, "post", parms.get("HX-TARGET")
+                                 , Message.get(con.getLocale(), "ADVANCED_TABLE_OPTIONS"), "NEWCOLUMNNAME"
+                                 , advancedOptionsForm(con, table, parms, ""))
                     : "") // isDBA switch
                 + br()
                 + getTable(con, table, parms, page);
@@ -1689,9 +1701,8 @@ public class Table extends Weblet {
         return sb.toString();
     }
 
-    public String advancedOptions(DatabaseConnection con, String table, HashMap<String, String> parms) {
+    public String advancedOptions(DatabaseConnection con, String table, HashMap<String, String> parms, StringBuilder errors) {
         Locale locale = con.getLocale();
-        StringBuilder errors = new StringBuilder();
         String submit = parms.get("SUBMIT");
         if (submit != null) {
             if (submit.equals("RENAME_TABLE_BUTTON")) {
@@ -1702,11 +1713,12 @@ public class Table extends Weblet {
                         String newtable = parms.get("RENAME_TABLE");
                         newtable = makePrettyCamelCase(newtable);
                         Server.tableUpdated(con, table);
-                        con.update("ALTER CLASS " + table + " NAME " + newtable);
+                        con.update("ALTER TYPE " + table + " NAME " + newtable);
                         con.update("UPDATE columns SET name='" + newtable + "' WHERE name='" + table + "'");
                         table = newtable;
                         Server.tableUpdated(con, "metadata:schema");
-                        return redirect(parms, this, "TABLENAME=" + table);
+                        return getTableWithControls(con, parms, table);
+//                        return redirect(parms, this, "TABLENAME=" + table);
                     } catch (Exception e) {
                         errors.append(paragraph("error", e.getMessage()));
                     }
@@ -1753,8 +1765,11 @@ public class Table extends Weblet {
                 }
             } else if (submit.equals("DROP_TABLE_BUTTON")) {
                 try {
-                    Setup.dropTable(con, table);
-                    return redirect(parms, this);
+                    if (Setup.dropTable(con, table, errors)) {
+                        return errors + new Schema().getPage(con, parms);
+                    } else {
+                        return null;
+                    }
                 } catch (Exception e) {
                     errors.append(paragraph("error", e.getMessage()));
                 }
@@ -1765,29 +1780,28 @@ public class Table extends Weblet {
         return headMinimum(con, title)
                 + body(         //advancedOptionsForm(con, table, parms, errors.toString())
                                 //+ br()
-                                 link(this.getClass().getName()+"?TABLENAME=" + table, Message.get(locale, "BACK_TO_TABLE"))
+                                 linkHTMX(this.getClass().getName()+"/" + table, Message.get(locale, "BACK_TO_TABLE"), parms.get("HX-TARGET"))
                         );
     }
 
     public String advancedOptionsForm(DatabaseConnection con, String table, HashMap<String, String> parms, String errors) {
         Locale locale = con.getLocale();
+        Collection<Property> properties = con.getSchema().getType(table).getProperties();
         return hidden("ADVANCED_OPTIONS", "YES")
                 + paragraph("banner", Message.get(locale, "ADVANCED_OPTIONS"))
                 + errors
                 + paragraph(Message.get(locale, "RENAME_TABLE_TO") + input("RENAME_TABLE", (parms != null ? parms.get("RENAME_TABLE") : ""))
-                        + submitButton(locale, "RENAME_TABLE_BUTTON"))
+                    + submitButton(locale, "RENAME_TABLE_BUTTON"))
                 + paragraph(Message.get(locale, "RENAME_COLUMN") + " "
-                        + createListFromCache("COLUMN_TO_RENAME", (parms != null ? parms.get("COLUMN_TO_RENAME") : ""), con,
-                                "SELECT name as rid, name FROM (SELECT expand(properties) FROM (select expand(classes) from metadata:schema) where name = '" + table + "') ORDER BY name")
-                        + Message.get(locale, "CHANGE_NAME_TO")
-                        + input("RENAME_COLUMN", (parms != null ? parms.get("RENAME_COLUMN") : ""))
-                        + submitButton(locale, "RENAME_COLUMN_BUTTON"))
+                    + createColumnList(locale, "COLUMN_TO_RENAME", null, null, true, null, true, properties )
+                    + Message.get(locale, "CHANGE_NAME_TO")
+                    + input("RENAME_COLUMN", (parms != null ? parms.get("RENAME_COLUMN") : ""))
+                    + submitButton(locale, "RENAME_COLUMN_BUTTON"))
                 + paragraph(Message.get(locale, "DROP_COLUMN") + " "
-                        + createListFromCache("COLUMN_TO_DROP", (parms != null ? parms.get("COLUMN_TO_DROP") : ""), con,
-                                "SELECT name as rid, name FROM (SELECT expand(properties) FROM (select expand(classes) from metadata:schema) where name = '" + table + "') ORDER BY name")
-                        + confirmButton(locale, "DROP_COLUMN_BUTTON", "DROP_COLUMN"))
+                    + createColumnList(locale, "COLUMN_TO_DROP", null, null, true, null, true, properties )
+                    + confirmButton(locale, "DROP_COLUMN_BUTTON", "DROP_COLUMN"))
                 + paragraph(Message.get(locale, "DROP_TABLE") + " " + table + "   "
-                        + confirmButton(locale, "DROP_TABLE_BUTTON", "DROP_TABLE_CONFIRM"));
+                    + confirmButton(locale, "DROP_TABLE_BUTTON", "DROP_TABLE_CONFIRM"));
     }
 
     public String rightsOptions(DatabaseConnection con, String table, HashMap<String, String> parms) {

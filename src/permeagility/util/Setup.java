@@ -1012,7 +1012,7 @@ public class Setup {
             return;
         }
         for (Document id : q.get()) {  // For each document that may contain the reference to the class
-            MutableDocument d = (MutableDocument)id;
+            MutableDocument d = id.modify();
             String tableList = d.getString("tables");
             if (tableList == null || tableList.equals("")) {
                 return;
@@ -1170,14 +1170,14 @@ public class Setup {
 
     public static boolean dropTable(DatabaseConnection con, String classname, StringBuilder errors) {
         try {
-            con.update("ALTER CLASS "+classname+" SUPERCLASSES NULL");  // Clear superclasses first otherwise will fail
+            //con.update("ALTER TYPE "+classname+" SUPERTYPE NULL");  // Clear superclasses first otherwise will fail
             Schema schema = con.getSchema();
             schema.dropType(classname);
             Setup.removeTableFromAllTableGroups(con, classname);
             QueryResult qr = con.query("SELECT FROM columns WHERE name='"+classname+"'");
             List<String> colIds = qr.getIds();
             for (String colId : colIds) {
-                Document d = con.get(colId);
+                MutableDocument d = con.get(colId).modify();
                 if (d != null) d.delete();
             }
             DatabaseConnection.rowCountChanged(classname);
@@ -1185,6 +1185,7 @@ public class Setup {
             return true;
         } catch (Exception e) {
             if (errors != null) errors.append(Weblet.paragraph("error","Table "+classname+" could not be dropped: "+e.getMessage()));
+            e.printStackTrace();
             return false;
         }
     }

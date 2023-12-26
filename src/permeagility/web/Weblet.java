@@ -28,6 +28,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -45,6 +46,7 @@ import permeagility.util.Setup;
 import com.arcadedb.database.Document;
 import com.arcadedb.database.RID;
 import com.arcadedb.query.select.Select;
+import com.arcadedb.schema.Property;
 import com.arcadedb.serializer.json.JSONObject;
 
 /** The Weblet help you build web pages with simple functional coding - can't be explained here - see examples */
@@ -1134,6 +1136,13 @@ public abstract class Weblet {
         return sb.toString();
     }
 
+    public static String createColumnList(Locale locale, String name, String initial, String attributes, boolean allowNull, String classname, boolean enabled, Collection<Property> properties) {
+        ArrayList<String> names = new ArrayList<String>();
+        for (Property p : properties) {
+            names.add(p.getName());
+        }
+        return createList(locale, name, initial, names, attributes, allowNull, classname, enabled);
+    }
     public static String createList(Locale locale, String name, String initial, List<String> names, String attributes, boolean allowNull, String classname, boolean enabled) {
         StringBuilder sb = new StringBuilder(1024);
         sb.append("<SELECT " 
