@@ -474,11 +474,11 @@ public abstract class Weblet {
     }
 
     public String checkbox(String name) {
-            return "<input type=\"CHECKBOX\" " + (isReadOnly() ? "DISABLED" : "") + " name=\"" + name + "\">";
+            return checkbox(name, false);
     }
 
     public String checkbox(String name, boolean checked) {
-            return "<input type=\"CHECKBOX\" " + (isReadOnly() ? "DISABLED" : "") + " name=\"" + name + "\"" + ((checked) ? " CHECKED " : "") + ">";
+            return "<input type=\"hidden\" name=\""+name+"\"/><input value=\"on\" type=\"CHECKBOX\" " + (isReadOnly() ? "DISABLED" : "") + " name=\"" + name + "\"" + ((checked) ? " CHECKED " : "") + ">";
     }
 
     public static String checkboxDisabled(String name) {

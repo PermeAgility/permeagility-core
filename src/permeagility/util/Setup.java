@@ -1218,7 +1218,7 @@ a.headerlogo:hover { text-decoration: none; background-color: transparent;}
 }
 
 /* anchor tags appearance */
-a { text-decoration: none; }
+a { text-decoration: none; user-select: none; }
 a:hover { text-decoration: underline; }
 a, a.menuitem, a.popuplink {color: black;}
 a.menuitem:link { text-decoration: none; }
@@ -1451,7 +1451,7 @@ a.headerlogo:hover { text-decoration: none; background-color: transparent;}
 }
 
 /* anchor tags appearance */
-a { text-decoration: none; }
+a { text-decoration: none; user-select: none; }
 a:hover { text-decoration: underline; }
 a, a.menuitem, a.popuplink {color: lightgray;}
 a.menuitem:link { text-decoration: none; }

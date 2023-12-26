@@ -546,8 +546,8 @@ public class Table extends Weblet {
                 if (type == Type.BOOLEAN) { // Boolean
                     Boolean oldval = updateRow.getBoolean(columnName);
                     boolean newbool = false;
-                    if (newValue != null) {
-                        if (newValue.equalsIgnoreCase("on") || newValue.equalsIgnoreCase("true") || newValue.equalsIgnoreCase("yes")) {
+                    if (newValue != null) {  // boolean could have commas because of the hidden input to force the value into the form
+                        if (newValue.contains("on")) {
                             newbool = true;
                         }
                         if (oldval == null || oldval != newbool) {
