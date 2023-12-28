@@ -26,21 +26,21 @@ import permeagility.util.Setup;
 public class News extends Weblet {
 	
     public String getPage(DatabaseConnection con, HashMap<String,String> parms) {
-
-        StringBuilder sb = new StringBuilder();
+        StringBuilder result = new StringBuilder();
 		String query = "SELECT FROM "+Setup.TABLE_NEWS
 				+" WHERE (archive IS NULL or archive=false) and (locale IS NULL or locale.name='"+con.getLocale().getLanguage()+"') "
 				+" ORDER BY dateline desc ";
-
 		QueryResult qr = con.query(query);
 		for (Document d : qr.get()) {
-			sb.append(div("headline","headline", d.getString("name")));
-			sb.append(div("dateline", "dateline", formatDate(con.getLocale(), d.getDate("dateline"), "MMMM dd yyyy")));
-			sb.append(div("article", "article", d.getString("description")));
+			result.append(div("newsitem","newsitem",
+				span("headline", d.getString("name"))
+			  + span("dateline", formatDate(con.getLocale(), d.getDate("dateline"), "MMMM dd yyyy"))
+			  + span("article", d.getString("description"))
+			));
 		}
 		String title = Message.get(con.getLocale(), "NEWS_PAGE_TITLE");
 		return headMinimum(con, title) 
-                + body (sb.toString()+serviceHeaderUpdateDiv(parms, title));
+             + bodyMinimum(result.toString()+serviceHeaderUpdateDiv(parms, title));
     }
 
 }

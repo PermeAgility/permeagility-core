@@ -427,16 +427,17 @@ public class Table extends Weblet {
                     }
                 } else if (type == Type.LIST) { // LinkList
                     String[] newValues = {};
+                    if (value.startsWith(",")) value = value.substring(1);
                     if (value != null && !value.trim().equals("")) {
                         newValues = value.split(",");
                     }
                     // Add new list
-                    List<Document> list = new ArrayList<>();
+                    List<RID> list = new ArrayList<>();
                     boolean okToUpdate = true;
                     for (String nv : newValues) {
                         Document doc = con.get(nv);
                         if (doc != null) {
-                            list.add(doc);
+                            list.add(doc.getIdentity());
                         } else {
                             okToUpdate = false;
                             System.out.println("INSERT WARNING: attempted to add a non-existent document to a list - list will remain unchanged");
@@ -882,7 +883,7 @@ public class Table extends Weblet {
                         ? Message.get(con.getLocale(), "CREATE_ROW")+" "+makeCamelCasePretty(table)
                         : Message.get(con.getLocale(), "UPDATE") + "&nbsp;" + makeCamelCasePretty(table)))
                 + formContent
-                + getTableRowRelated(con, table, parms)
+               // + getTableRowRelated(con, table, parms)
                 + serviceHeaderUpdateDiv(parms, title);
     }
 
@@ -992,7 +993,9 @@ public class Table extends Weblet {
             return row(label + column(checkbox(PARM_PREFIX + name, (initialValue == null ? false : Boolean.valueOf(initialValue.toString())))));
 
         // Number
-        } else if (type == Type.DECIMAL || type == Type.INTEGER || type == Type.LONG || type == Type.FLOAT || type == Type.DOUBLE || type == Type.SHORT) {
+        } else if (type == Type.DECIMAL || type == Type.INTEGER || type == Type.LONG 
+                || type == Type.FLOAT || type == Type.DOUBLE 
+                || type == Type.SHORT || type == Type.BYTE) {
             List<String> pickValues = Server.getPickValues(table, name);
             if (pickValues != null) {
                 return row(label + column(createList(con.getLocale(), PARM_PREFIX + name, initialValue != null ? initialValue.toString() : null, pickValues, null, false, null, true)));

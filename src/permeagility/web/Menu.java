@@ -32,7 +32,7 @@ public class Menu extends Weblet {
 
     public static boolean DEBUG = false;
     public static boolean HORIZONTAL_LAYOUT = true;
-    public static String PAGE_RUNNER = "permeagility.web.Scriptlet";
+    public static String PAGE_RUNNER = "permeagility.web.Home";
 
     private static ConcurrentHashMap<String, String> menuCache = new ConcurrentHashMap<>();
     private static Locale guestLocale = Locale.getDefault();  // Saves the locale of the guest menu cache

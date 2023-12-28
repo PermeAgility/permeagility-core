@@ -17,6 +17,7 @@ package permeagility.util;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -250,6 +251,10 @@ public class DatabaseConnection {
         if (tableClass == null) {
             System.out.println("Server: getColumns(tableClass not found for "+table+")");
             return result;
+        }
+        List<DocumentType> sups = tableClass.getSuperTypes();
+        for (DocumentType sup : sups) {
+            result.addAll(sup.getProperties());
         }
         result.addAll(tableClass.getProperties());
         if (DEBUG) {

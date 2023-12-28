@@ -104,7 +104,7 @@ public class PageBuilder extends Table {
                     + (readOnly ? "" : deleteButton(con.getLocale(),TABLE_NAME, edit_id, parms.get("HX-TARGET")) + "<br>" + submitButton(con.getLocale(), "COPY"))
             )
             +"<br>"
-            +frame("previewFrame","previewFrame","permeagility.web.Scriptlet?ID="+edit_id);
+            +frame("previewFrame","previewFrame","permeagility.web.Home?ID="+edit_id);
 
             return div("leftHand","split split-horizontal",div("styleEditor","split split-vertical",styleEditor)+div("scriptEditor","split split-vertical",scriptEditor))
                   +div("rightHand","split split-horizontal",div("resultView",resultView))
@@ -124,7 +124,7 @@ public class PageBuilder extends Table {
                             //+ addFormData("_allowRead")                           // send it to be processed
                             // Todo: should convert this to htmx and target errors to a place where they could be seen
                         + "   fetch('/"+this.getClass().getName()+"/"+TABLE_NAME+"/"+edit_id+"', { method: \"PATCH\", body: formData } ).then(data => {   \n"                        
-                       + "      d3.select('#previewFrame').attr('src','permeagility.web.Scriptlet?ID="+edit_id+"');\n"  // refresh the preview
+                       + "      d3.select('#previewFrame').attr('src','permeagility.web.Home?ID="+edit_id+"');\n"  // refresh the preview
                         + "      d3.select('#headerservice').text('"+APP_NAME+": ' + document.getElementById('"+PARM_PREFIX+"name').value);\n"  // update the header
                         + "   });\n"
                         + "});\n")

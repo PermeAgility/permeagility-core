@@ -55,58 +55,90 @@ public class Setup {
 
     public static String schemaScript = 
     """
+      CREATE DOCUMENT TYPE restricted IF NOT EXISTS;
+      CREATE DOCUMENT TYPE identity IF NOT EXISTS;
+
+      CREATE DOCUMENT TYPE role IF NOT EXISTS;
+      ALTER TYPE role SUPERTYPE +identity;
+      CREATE DOCUMENT TYPE user IF NOT EXISTS;
+      ALTER TYPE user SUPERTYPE +identity;
+
       CREATE DOCUMENT TYPE constant IF NOT EXISTS;
       CREATE DOCUMENT TYPE locale IF NOT EXISTS;
       CREATE DOCUMENT TYPE message IF NOT EXISTS;
-      CREATE DOCUMENT TYPE style IF NOT EXISTS;
       CREATE DOCUMENT TYPE pickList IF NOT EXISTS;
       CREATE DOCUMENT TYPE tableGroup IF NOT EXISTS;
       CREATE DOCUMENT TYPE columns IF NOT EXISTS;
       CREATE DOCUMENT TYPE menu IF NOT EXISTS;
+
       CREATE DOCUMENT TYPE menuItem IF NOT EXISTS;
+      ALTER TYPE menuItem SUPERTYPE +restricted;
       CREATE DOCUMENT TYPE news IF NOT EXISTS;
+      ALTER TYPE news SUPERTYPE +restricted;
+
       CREATE DOCUMENT TYPE pickValues IF NOT EXISTS;
       CREATE DOCUMENT TYPE userProfile IF NOT EXISTS;
+
+      CREATE PROPERTY identity.name IF NOT EXISTS STRING;
+      CREATE PROPERTY restricted._allowUpdate IF NOT EXISTS LIST OF identity;
+      CREATE PROPERTY restricted._allowDelete IF NOT EXISTS LIST OF identity;
+      CREATE PROPERTY restricted._allowRead IF NOT EXISTS LIST OF identity;
+      CREATE PROPERTY restricted._allow IF NOT EXISTS LIST OF identity;
+
+      CREATE PROPERTY role.mode IF NOT EXISTS BYTE;
+      CREATE PROPERTY role.inheritedRole IF NOT EXISTS LINK OF role;
+      CREATE PROPERTY role.rules IF NOT EXISTS EMBEDDED;
+
+      CREATE PROPERTY user.password IF NOT EXISTS STRING;
+      CREATE PROPERTY user.status IF NOT EXISTS STRING;
+      CREATE PROPERTY user.roles IF NOT EXISTS LIST OF role;
+
       CREATE PROPERTY constant.classname IF NOT EXISTS STRING;
       CREATE PROPERTY constant.description IF NOT EXISTS STRING;
       CREATE PROPERTY constant.field IF NOT EXISTS STRING;
       CREATE PROPERTY constant.value IF NOT EXISTS STRING;
+
       CREATE PROPERTY locale.name IF NOT EXISTS STRING;
       CREATE PROPERTY locale.description IF NOT EXISTS STRING;
       CREATE PROPERTY locale.active IF NOT EXISTS BOOLEAN;
+
       CREATE PROPERTY message.name IF NOT EXISTS STRING;
       CREATE PROPERTY message.description IF NOT EXISTS STRING;
       CREATE PROPERTY message.locale IF NOT EXISTS LINK OF locale;
-      CREATE PROPERTY style.name IF NOT EXISTS STRING;
-      CREATE PROPERTY style.horizontal IF NOT EXISTS BOOLEAN;
-      CREATE PROPERTY style.logo IF NOT EXISTS STRING;
-      CREATE PROPERTY style.editorTheme IF NOT EXISTS STRING;
-      CREATE PROPERTY style.CSSStyle IF NOT EXISTS STRING;
+
       CREATE PROPERTY pickList.tablename IF NOT EXISTS STRING;
       CREATE PROPERTY pickList.query IF NOT EXISTS STRING;
       CREATE PROPERTY pickList.description IF NOT EXISTS STRING;
+
       CREATE PROPERTY tableGroup.name IF NOT EXISTS STRING;
       CREATE PROPERTY tableGroup.tables IF NOT EXISTS STRING;
+
       CREATE PROPERTY columns.name IF NOT EXISTS STRING;
       CREATE PROPERTY columns.columnList IF NOT EXISTS STRING;
+
       CREATE PROPERTY menu.name IF NOT EXISTS STRING;
       CREATE PROPERTY menu.active IF NOT EXISTS BOOLEAN;
       CREATE PROPERTY menu.description IF NOT EXISTS STRING;
       CREATE PROPERTY menu.sortOrder IF NOT EXISTS INTEGER;
+
       CREATE PROPERTY menuItem.name IF NOT EXISTS STRING;
       CREATE PROPERTY menuItem.classname IF NOT EXISTS STRING;
       CREATE PROPERTY menuItem.active IF NOT EXISTS BOOLEAN;
       CREATE PROPERTY menuItem.description IF NOT EXISTS STRING;
       CREATE PROPERTY menuItem.pageScript IF NOT EXISTS STRING;
       CREATE PROPERTY menuItem.pageStyle IF NOT EXISTS STRING;
+
       CREATE PROPERTY menu.items IF NOT EXISTS LIST OF menuItem;
+
       CREATE PROPERTY news.name IF NOT EXISTS STRING;
       CREATE PROPERTY news.description IF NOT EXISTS STRING;
       CREATE PROPERTY news.dateline IF NOT EXISTS DATETIME;
       CREATE PROPERTY news.locale IF NOT EXISTS LINK OF locale;
       CREATE PROPERTY news.archive IF NOT EXISTS BOOLEAN;
+
       CREATE PROPERTY pickValues.name IF NOT EXISTS STRING;
       CREATE PROPERTY pickValues.values IF NOT EXISTS STRING;
+
       CREATE PROPERTY userProfile.name IF NOT EXISTS STRING;
       CREATE PROPERTY userProfile.password IF NOT EXISTS STRING;
       """;
@@ -216,7 +248,7 @@ public class Setup {
             Setup.checkCreateColumn(con, tableGroupTable, "tables", Type.STRING, installMessages);
 
             if (con.getRowCount(TABLE_TABLEGROUP) == 0) {
-                    con.create(TABLE_TABLEGROUP).set("name","Application").set("tables","news,columns,constant,locale,pickList,pickValues,menu,menuItem,message,style,tableGroup,userProfile,auditTrail,-thumbnail").save();
+                    con.create(TABLE_TABLEGROUP).set("name","Application").set("tables","news,tableGroup,columns,locale,message,pickList,pickValues,constant,menuItem,menu,role,user,userProfile,auditTrail,-thumbnail").save();
                  //   con.create(TABLE_TABLEGROUP).set("name","System").set("tables","ORole,OUser,OFunction,OSchedule,OSequence,-ORIDs,-E,-V,-_studio").save();
                     con.create(TABLE_TABLEGROUP).set("name","Content").set("tables","").save();
                     con.create(TABLE_TABLEGROUP).set("name","Plus").set("tables","").save();
@@ -252,8 +284,7 @@ public class Setup {
                 con.create(TABLE_CONSTANT).set("classname","permeagility.web.RecordHook").set("description","Audit all changes to the database").set("field","AUDIT_WRITES").set("value","true").save();
                 con.create(TABLE_CONSTANT).set("classname","permeagility.web.Table").set("description","Table page count").set("field","ROW_COUNT_LIMIT").set("value","200").save();
                 con.create(TABLE_CONSTANT).set("classname","permeagility.web.Table").set("description","Show related tables even if no privilege").set("field","SHOW_ALL_RELATED_TABLES").set("value","true").save();
-                con.create(TABLE_CONSTANT).set("classname","permeagility.web.Context").set("description","Style sheet").set("field","DEFAULT_STYLE").set("value","dark").save();
-                con.create(TABLE_CONSTANT).set("classname","permeagility.web.Context").set("description","Code editor theme").set("field","EDITOR_THEME").set("value","blackboard").save();
+                con.create(TABLE_CONSTANT).set("classname","permeagility.web.Context").set("description","Code editor theme").set("field","EDITOR_THEME").set("value","ambiance").save();
                 con.create(TABLE_CONSTANT).set("classname","permeagility.web.Header").set("description","Logo for header").set("field","LOGO_FILE").set("value","Logo-yel.svg").save();
                 con.create(TABLE_CONSTANT).set("classname","permeagility.web.Menu").set("description","Menu direction (true=horizontal, false=vertical)").set("field","HORIZONTAL_LAYOUT").set("value","true").save();
                 con.create(TABLE_CONSTANT).set("classname","permeagility.web.Schema").set("description","Number of columns in tables view").set("field","NUMBER_OF_COLUMNS").set("value","8").save();
@@ -336,7 +367,6 @@ public class Setup {
             mCount += checkCreateMessage(con, loc, "CONFIRM_PASSWORD", "Confirm password");
             mCount += checkCreateMessage(con, loc, "CONFIRM_RESTORE", "Confirm database restore to {0}");
             mCount += checkCreateMessage(con, loc, "SERVER_SETTINGS", "Server settings");
-            mCount += checkCreateMessage(con, loc, "SET_STYLE", "Stylesheet");
             mCount += checkCreateMessage(con, loc, "SET_ROWCOUNT", "Table page size");
             mCount += checkCreateMessage(con, loc, "INVALID_USER_OR_PASSWORD", "Invalid user/password");
             mCount += checkCreateMessage(con, loc, "YOU_ARE_NOT_LOGGED_IN", "You are not logged in");
@@ -387,7 +417,6 @@ public class Setup {
             mCount += checkCreateMessage(con, loc, "NEW_ROW_CREATED", "New row created: ");
             mCount += checkCreateMessage(con, loc, "NEW_COLUMN_CREATED", "New column created");
             mCount += checkCreateMessage(con, loc, "ROW_UPDATED", "Row updated: {0}");
-            mCount += checkCreateMessage(con, loc, "SYSTEM_STYLE_UPDATED", "Style changed");
             mCount += checkCreateMessage(con, loc, "ROW_COUNT_LIMIT_UPDATED", "Page size updated");
             mCount += checkCreateMessage(con, loc, "GOTO_ROW", "Goto&gt;");
             mCount += checkCreateMessage(con, loc, "COPY", "Copy");
@@ -528,19 +557,6 @@ public class Setup {
             Setup.checkCreateColumn(con, newsTable, "archive", Type.BOOLEAN, installMessages);
 
             if (con.getRowCount(TABLE_NEWS) == 0) {
-                MutableDocument n1 = con.create(TABLE_NEWS);
-                n1.set("name","Welcome to PermeAgility");
-                n1.set("description","The core template for big data applications in a micro service. Now with Visuility! Default logins are:\n"
-                    + "<ul><li><a href='permeagility.web.Home?USERNAME=admin&PASSWORD=admin'>admin/admin</a></li>\n"
-                    + "<li><a href='permeagility.web.Home?USERNAME=writer&PASSWORD=writer'>writer/writer</a></li>\n"
-                    + "<li><a href='permeagility.web.Home?USERNAME=reader&PASSWORD=reader'>reader/reader</a></li></ul>\n"
-                    + "<br><img style='width: 30%; float: right;' src='images/Logo-blk.svg'>");
-                n1.set("dateline",new Date());
-                n1.set("locale",loc);
-                n1.set("archive",false);
-                //n1.set("_allowRead", guestRoles.toArray());
-                n1.save();
-
                 MutableDocument n2 = con.create(TABLE_NEWS);
                 n2.set("name","Welcome admin");
                 n2.set("description","Tips for administrators\n"
@@ -577,32 +593,19 @@ public class Setup {
                 n4.set("archive",false);
        //         n4.set("_allowRead", writerRoles.toArray());
                 n4.save();
-            }
- 
-            System.out.println(TABLE_STYLE+" ");
-            DocumentType styleTable = Setup.checkCreateTable(oschema, TABLE_STYLE, installMessages);
-            Setup.checkCreateColumn(con, styleTable, "name", Type.STRING, installMessages);
-            Setup.checkCreateColumn(con, styleTable, "horizontal", Type.BOOLEAN, installMessages);
-            Setup.checkCreateColumn(con, styleTable, "logo", Type.STRING, installMessages);
-            Setup.checkCreateColumn(con, styleTable, "editorTheme", Type.STRING, installMessages);
-            Setup.checkCreateColumn(con, styleTable, "CSSStyle", Type.STRING, installMessages);
 
-            if (con.getRowCount(TABLE_STYLE) == 0) {
-                MutableDocument style = con.create(TABLE_STYLE);
-                style.set("name", "light");
-                style.set("horizontal", false);
-                style.set("logo", "Logo-blk.svg");
-                style.set("editorTheme","default");
-                style.set("CSSStyle", DEFAULT_ALT_STYLESHEET);
-                style.save();
+                MutableDocument n1 = con.create(TABLE_NEWS);
+                n1.set("name","Welcome to PermeAgility");
+                n1.set("description","The core template for big data applications in a micro service.\n"
+                    + "<ul><li><a href='/Home?NAME=home-light'>Open Application (Light)</a></li>"
+                    + "<li><a href='/Home?NAME=home-dark'>Open Application (Dark)</a></li></ul>");
+                n1.set("dateline",new Date());
+                n1.set("locale",loc);
+                n1.set("archive",false);
+                //n1.set("_allowRead", guestRoles.toArray());
+                n1.save();
 
-                MutableDocument style2 = con.create(TABLE_STYLE);
-                style2.set("name", "dark");
-                style2.set("horizontal", true);
-                style2.set("logo", "Logo-yel.svg");
-                style2.set("editorTheme","ambiance");
-                style2.set("CSSStyle", DEFAULT_STYLESHEET);
-                style2.save();
+
             }
  
             System.out.println(TABLE_PICKLIST+" ");
@@ -625,10 +628,10 @@ public class Setup {
             Setup.checkCreateColumn(con, pickValuesTable, "values", Type.STRING, installMessages);
 
             if (con.getRowCount(TABLE_PICKVALUES) == 0) {
-                con.create(TABLE_PICKVALUES).set("name","OUser.status").set("values","ACTIVE,SUSPENDED").save();
-                con.create(TABLE_PICKVALUES).set("name","OFunction.language").set("values","javascript").save();
-                con.create(TABLE_PICKVALUES).set("name","OSequence.type").set("values","CACHED,ORDERED").save();
-                con.create(TABLE_PICKVALUES).set("name","style.editorTheme").set("values","default,3024-day,3024-night,ambiance-mobile,ambiance,base16-dark,base16-light,blackboard,cobalt,colorforth,eclipse,elegant,erlang-dark,lesser-dark,mbo,mdn-like,midnight,monokai,neat,neo,night,paraiso-dark,paraiso-light,pastel-on-dark,rubyblue,solarized,the-matrix,tomorrow-night-bright,tomorrow-night-eighties,twilight,vibrant-ink,xq-dark,xq-light,zenburn").save();
+                con.create(TABLE_PICKVALUES).set("name","user.status").set("values","ACTIVE,SUSPENDED").save();
+//                con.create(TABLE_PICKVALUES).set("name","OFunction.language").set("values","javascript").save();
+ //               con.create(TABLE_PICKVALUES).set("name","OSequence.type").set("values","CACHED,ORDERED").save();
+//                con.create(TABLE_PICKVALUES).set("name","style.editorTheme").set("values","default,3024-day,3024-night,ambiance-mobile,ambiance,base16-dark,base16-light,blackboard,cobalt,colorforth,eclipse,elegant,erlang-dark,lesser-dark,mbo,mdn-like,midnight,monokai,neat,neo,night,paraiso-dark,paraiso-light,pastel-on-dark,rubyblue,solarized,the-matrix,tomorrow-night-bright,tomorrow-night-eighties,twilight,vibrant-ink,xq-dark,xq-light,zenburn").save();
             }
  
             System.out.println(TABLE_MENU+" ");
@@ -669,7 +672,7 @@ public class Setup {
             //    mi_login.set("_allowRead", allRoles);
             //    mi_login.set("_allow", adminRoles);
                 mi_login.save();
-
+/* 
                 MutableDocument mi_home = con.create(TABLE_MENUITEM);
                 mi_home.set("name","Home");
                 mi_home.set("description","Home page including news");
@@ -678,7 +681,7 @@ public class Setup {
            //     mi_home.set("_allowRead", allRoles);
            //     mi_home.set("_allow", adminRoles);
                 mi_home.save();
-
+*/
                 MutableDocument mi_password = con.create(TABLE_MENUITEM);
                 mi_password.set("name","Profile");
                 mi_password.set("description","Change profile or password");
@@ -760,14 +763,32 @@ public class Setup {
              //   mi_pagebuilder.set("_allow", adminRoles);
                 mi_pagebuilder.save();
 
-                MutableDocument mi_scriptlet = con.create(TABLE_MENUITEM);  // Not added to menu, to support page Builder
-                mi_scriptlet.set("name","Page Runner");
-                mi_scriptlet.set("description","run JavaScript pages");
-                mi_scriptlet.set("classname","permeagility.web.Scriptlet");
-                mi_scriptlet.set("active",true);
-              //  mi_scriptlet.set("_allowRead",  allRolesButGuest);
-              //  mi_scriptlet.set("_allow", adminRoles);
-                mi_scriptlet.save();
+                MutableDocument mi_welcome = con.create(TABLE_MENUITEM);  // Not added to menu, to support page Builder
+                mi_welcome.set("name","welcome");
+                mi_welcome.set("description","Default welcome page for guests");
+                //mi_welcome.set("classname","permeagility.web.Home");
+                mi_welcome.set("pageStyle", DEFAULT_WELCOME_STYLE);
+                mi_welcome.set("pageScript", DEFAULT_WELCOME_SCRIPT);
+                mi_welcome.set("active",true);
+                mi_welcome.save();
+
+                MutableDocument mi_home = con.create(TABLE_MENUITEM);  // Not added to menu, to support page Builder
+                mi_home.set("name","home-dark");
+                mi_home.set("description","Home Application page in dark mode");
+                //mi_home.set("classname","permeagility.web.Home");
+                mi_home.set("pageStyle", DEFAULT_STYLESHEET);
+                mi_home.set("pageScript", DEFAULT_HOME_SCRIPT);
+                mi_home.set("active",true);
+                mi_home.save();
+
+                MutableDocument mi_homel = con.create(TABLE_MENUITEM);  // Not added to menu, to support page Builder
+                mi_homel.set("name","home-light");
+                mi_homel.set("description","Home Application page in light mode");
+                //mi_homel.set("classname","permeagility.web.Home");
+                mi_homel.set("pageStyle", DEFAULT_ALT_STYLESHEET);
+                mi_homel.set("pageScript", DEFAULT_HOME_SCRIPT);
+                mi_homel.set("active",true);
+                mi_homel.save();
 
                 MutableDocument mi_visuility = con.create(TABLE_MENUITEM);
                 mi_visuility.set("name","Visuility");
@@ -864,6 +885,13 @@ public class Setup {
             if (!installMessages.isEmpty()) System.out.println("\n\nSetup repaired:\n"+installMessages);
 
             con.commit();
+
+            con.begin();
+            System.out.print("Checking database...");
+            con.update("CHECK DATABASE FIX");
+            System.out.println("complete.");
+            con.commit();
+
         } catch (Exception e) {
             con.rollback();
             System.out.println("- failed: "+e.getMessage());
@@ -1191,6 +1219,36 @@ public class Setup {
     }
 
     public static final String DEFAULT_ALT_STYLESHEET = """
+<script type="text/javascript" src="/js/_hyperscript.min.js"></script>
+<script type="text/javascript" src="/js/htmx.min.js"></script>
+<script src="/js/sorttable.js"></script>
+<script  type='text/javascript' src="/js/Sortable.min.js"></script>
+<script  type='text/javascript' src="/js/d3.min.js"></script>
+<link rel="stylesheet" type="text/css" href="/js/codemirror/lib/codemirror.css" />
+<link rel="stylesheet" type="text/css" href="/js/codemirror/theme/ambiance.css" />
+<link rel="stylesheet" type="text/css" href="/js/codemirror/addon/hint/show-hint.css" />
+<link rel="stylesheet" type="text/css" href="/js/codemirror/addon/dialog/dialog.css" />
+<link rel="stylesheet" type="text/css" href="/js/codemirror/addon/tern/tern.css" />
+<script type="text/javascript" src="/js/codemirror/lib/codemirror.js"></script>
+<script type="text/javascript" src="/js/codemirror/mode/javascript/javascript.js"></script>
+<script type="text/javascript" src="/js/codemirror/mode/clike/clike.js"></script>
+<script type="text/javascript" src="/js/codemirror/mode/css/css.js"></script>
+<script type="text/javascript" src="/js/codemirror/mode/r/r.js"></script>
+<script type="text/javascript" src="/js/codemirror/mode/xml/xml.js"></script>
+<script type="text/javascript" src="/js/codemirror/mode/sql/sql.js"></script>
+<script type="text/javascript" src="/js/codemirror/mode/htmlmixed/htmlmixed.js"></script>
+<script type="text/javascript" src="/js/codemirror/addon/dialog/dialog.js"></script>
+<script type="text/javascript" src="/js/codemirror/addon/tern/tern.js"></script>
+<script type="text/javascript" src="/js/codemirror/addon/hint/show-hint.js"></script>
+<script type="text/javascript" src="/js/codemirror/addon/hint/javascript-hint.js"></script>
+<script type="text/javascript" src="/js/codemirror/addon/hint/css-hint.js"></script>
+<script type="text/javascript" src="/js/codemirror/addon/lint/lint.js"></script>
+<script type="text/javascript" src="/js/codemirror/addon/lint/javascript-lint.js"></script>
+<script type="text/javascript" src="/js/codemirror/addon/lint/css-lint.js"></script>
+<script type="text/javascript" src="/js/codemirror/addon/selection/active-line.js"></script>
+<script type="text/javascript" src="/js/codemirror/addon/edit/matchbrackets.js"></script>
+<script  type='text/javascript' src="/js/split.min.js"></script>
+<style type='text/css'>
 /* This is the light PermeAgility stylesheet */
 
 /* Reset from the default browser styles */
@@ -1267,11 +1325,6 @@ table.sortable thead { color: black; font-weight: bold; cursor: default; }
 .sortable tfoot { position: sticky; bottom: 0; background-color: #eee; opacity: 0.85;}
 
 /* paragraphs types */
-p.headline { color: #339999; font-size: large; font-weight: bold;
-            margin-bottom: 2px; }
-p.dateline { font-size: 6pt; line-height: 50%;
-            margin-bottom: 1px; margin-top: 1px; }
-p.article { font-size: 12pt; }
 p.menuheader {  color: white;  margin: 0.2em 0em 0em 0em; }
 P.banner { background-color: white;
         font-weight: bold;  text-align:center;  color: black;
@@ -1317,31 +1370,31 @@ P.bannerleft { background-color: #303b43;
 div.CodeMirror { height: auto; z-index: 0; overflow-x: hidden; overflow-y: hidden; }
 
 /* For split.js - splitter bar */
-    .split {
-    box-sizing: border-box;
-    overflow-y: scroll;
-    overflow-x: clip;
-    }
-    .gutter.gutter-horizontal { cursor: col-resize; }
-    .gutter.gutter-vertical { cursor: row-resize; }
-    .gutter.gutter-horizontal:hover { background-color: #444; }
-    .gutter.gutter-vertical:hover { background-color: #444; }
-    .split.split-horizontal, .gutter.gutter-horizontal {
-    height: 100%;
-    float: left;
-    }
-    /* .split.split-vertical, .gutter.gutter-vertical {
-    height: 50%;
-    float: top;
-    } */
-    .gutter.gutter-vertical { background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAFAQMAAABo7865AAAABlBMVEVHcEzMzMzyAv2sAAAAAXRSTlMAQObYZgAAABBJREFUeF5jOAMEEAIEEFwAn3kMwcB6I2AAAAAASUVORK5CYII=');
-    background-repeat: no-repeat;
-    background-position: center;
-    }
-    .gutter.gutter-horizontal { background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAeCAYAAADkftS9AAAAIklEQVQoU2M4c+bMfxAGAgYYmwGrIIiDjrELjpo5aiZeMwF+yNnOs5KSvgAAAABJRU5ErkJggg==');
-    background-repeat: no-repeat;
-    background-position: center;
-    }
+.split {
+box-sizing: border-box;
+overflow-y: scroll;
+overflow-x: clip;
+}
+.gutter.gutter-horizontal { cursor: col-resize; }
+.gutter.gutter-vertical { cursor: row-resize; }
+.gutter.gutter-horizontal:hover { background-color: #444; }
+.gutter.gutter-vertical:hover { background-color: #444; }
+.split.split-horizontal, .gutter.gutter-horizontal {
+height: 100%;
+float: left;
+}
+/* .split.split-vertical, .gutter.gutter-vertical {
+height: 50%;
+float: top;
+} */
+.gutter.gutter-vertical { background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAFAQMAAABo7865AAAABlBMVEVHcEzMzMzyAv2sAAAAAXRSTlMAQObYZgAAABBJREFUeF5jOAMEEAIEEFwAn3kMwcB6I2AAAAAASUVORK5CYII=');
+background-repeat: no-repeat;
+background-position: center;
+}
+.gutter.gutter-horizontal { background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAeCAYAAADkftS9AAAAIklEQVQoU2M4c+bMfxAGAgYYmwGrIIiDjrELjpo5aiZeMwF+yNnOs5KSvgAAAABJRU5ErkJggg==');
+background-repeat: no-repeat;
+background-position: center;
+}
 
 /* For visuility */
 .nodeTitle { fill: white; filter: url(#drop-shadow); font-size: small; }
@@ -1421,9 +1474,62 @@ iframe.previewFrame { width: calc(100% - 10px); height: calc(100vh - 110px); }
 @media print { *.alert { border: solid medium; border-color: #FF0000;} }
 @media print { *.changed { border: double thin; } }
 @media print { *.button { display: none; } }
+</style>
 """;
 
-	public static final String DEFAULT_STYLESHEET = """
+public static final String DEFAULT_HOME_SCRIPT = """
+<div id="header" hx-trigger="load" hx-get="/Header" hx-swap="innerHTML"></div>
+<div id="service">
+    <PermeAgility table="news" order="dateline desc"
+                where="(archive IS NULL or archive=false) AND (locale IS NULL or locale.name='${locale}' )">
+    <div class="card-content">
+        <h2>${news.name}</h2>
+        <p style="font-size:8pt">${news.dateline} ${locale} #${news.rid}</p>
+        <p>${news.description}</p>
+    </div>
+    </PermeAgility>         
+</div>
+
+<div id="nav-container">
+    <div id="underlay" class="bg"></div>
+    <div id="nav-button" class="nav-button" tabindex="0">
+    <span class="icon-bar"></span><span class="icon-bar"></span><span class="icon-bar"></span>
+    </div>
+    <div id="nav-content" hx-get="/Menu?TARGET=service" hx-trigger="load" hx-swap="innerHTML" tabindex="0"></div>
+</div>
+""";
+
+public static final String DEFAULT_STYLESHEET = """
+<script type="text/javascript" src="/js/_hyperscript.min.js"></script>
+<script type="text/javascript" src="/js/htmx.min.js"></script>
+<script src="/js/sorttable.js"></script>
+<script  type='text/javascript' src="/js/Sortable.min.js"></script>
+<script  type='text/javascript' src="/js/d3.min.js"></script>
+<link rel="stylesheet" type="text/css" href="/js/codemirror/lib/codemirror.css" />
+<link rel="stylesheet" type="text/css" href="/js/codemirror/theme/ambiance.css" />
+<link rel="stylesheet" type="text/css" href="/js/codemirror/addon/hint/show-hint.css" />
+<link rel="stylesheet" type="text/css" href="/js/codemirror/addon/dialog/dialog.css" />
+<link rel="stylesheet" type="text/css" href="/js/codemirror/addon/tern/tern.css" />
+<script type="text/javascript" src="/js/codemirror/lib/codemirror.js"></script>
+<script type="text/javascript" src="/js/codemirror/mode/javascript/javascript.js"></script>
+<script type="text/javascript" src="/js/codemirror/mode/clike/clike.js"></script>
+<script type="text/javascript" src="/js/codemirror/mode/css/css.js"></script>
+<script type="text/javascript" src="/js/codemirror/mode/r/r.js"></script>
+<script type="text/javascript" src="/js/codemirror/mode/xml/xml.js"></script>
+<script type="text/javascript" src="/js/codemirror/mode/sql/sql.js"></script>
+<script type="text/javascript" src="/js/codemirror/mode/htmlmixed/htmlmixed.js"></script>
+<script type="text/javascript" src="/js/codemirror/addon/dialog/dialog.js"></script>
+<script type="text/javascript" src="/js/codemirror/addon/tern/tern.js"></script>
+<script type="text/javascript" src="/js/codemirror/addon/hint/show-hint.js"></script>
+<script type="text/javascript" src="/js/codemirror/addon/hint/javascript-hint.js"></script>
+<script type="text/javascript" src="/js/codemirror/addon/hint/css-hint.js"></script>
+<script type="text/javascript" src="/js/codemirror/addon/lint/lint.js"></script>
+<script type="text/javascript" src="/js/codemirror/addon/lint/javascript-lint.js"></script>
+<script type="text/javascript" src="/js/codemirror/addon/lint/css-lint.js"></script>
+<script type="text/javascript" src="/js/codemirror/addon/selection/active-line.js"></script>
+<script type="text/javascript" src="/js/codemirror/addon/edit/matchbrackets.js"></script>
+<script  type='text/javascript' src="/js/split.min.js"></script>
+<style type='text/css'>
 /* This is the dark PermeAgility stylesheet */
 
 /* Reset from the default browser styles */
@@ -1500,11 +1606,6 @@ table.sortable thead { color: white; font-weight: bold; cursor: default; }
 .sortable tfoot { position: sticky; bottom: 0; background-color: #222; opacity: 0.85;}
 
 /* paragraphs types */
-p.headline { color: #339999; font-size: large; font-weight: bold;
-            margin-bottom: 2px; }
-p.dateline { font-size: 6pt; line-height: 50%;
-            margin-bottom: 1px; margin-top: 1px; }
-p.article { font-size: 12pt; }
 p.menuheader {  color: white;  margin: 0.2em 0em 0em 0em; }
 P.banner { background-color: #336666;
         font-weight: bold;  text-align:center;  color: white;
@@ -1550,31 +1651,31 @@ P.bannerleft { background-color: #303b43;
 div.CodeMirror { height: auto; z-index: 0; overflow-x: hidden; overflow-y: hidden; }
 
 /* For split.js - splitter bar */
-    .split {
-    box-sizing: border-box;
-    overflow-y: scroll;
-    overflow-x: clip;
-    }
-    .gutter.gutter-horizontal { cursor: col-resize; }
-    .gutter.gutter-vertical { cursor: row-resize; }
-    .gutter.gutter-horizontal:hover { background-color: #444; }
-    .gutter.gutter-vertical:hover { background-color: #444; }
-    .split.split-horizontal, .gutter.gutter-horizontal {
-    height: 100%;
-    float: left;
-    }
-    /* .split.split-vertical, .gutter.gutter-vertical {
-    height: 50%;
-    float: top;
-    } */
-    .gutter.gutter-vertical { background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAFAQMAAABo7865AAAABlBMVEVHcEzMzMzyAv2sAAAAAXRSTlMAQObYZgAAABBJREFUeF5jOAMEEAIEEFwAn3kMwcB6I2AAAAAASUVORK5CYII=');
-    background-repeat: no-repeat;
-    background-position: center;
-    }
-    .gutter.gutter-horizontal { background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAeCAYAAADkftS9AAAAIklEQVQoU2M4c+bMfxAGAgYYmwGrIIiDjrELjpo5aiZeMwF+yNnOs5KSvgAAAABJRU5ErkJggg==');
-    background-repeat: no-repeat;
-    background-position: center;
-    }
+.split {
+box-sizing: border-box;
+overflow-y: scroll;
+overflow-x: clip;
+}
+.gutter.gutter-horizontal { cursor: col-resize; }
+.gutter.gutter-vertical { cursor: row-resize; }
+.gutter.gutter-horizontal:hover { background-color: #444; }
+.gutter.gutter-vertical:hover { background-color: #444; }
+.split.split-horizontal, .gutter.gutter-horizontal {
+height: 100%;
+float: left;
+}
+/* .split.split-vertical, .gutter.gutter-vertical {
+height: 50%;
+float: top;
+} */
+.gutter.gutter-vertical { background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAFAQMAAABo7865AAAABlBMVEVHcEzMzMzyAv2sAAAAAXRSTlMAQObYZgAAABBJREFUeF5jOAMEEAIEEFwAn3kMwcB6I2AAAAAASUVORK5CYII=');
+background-repeat: no-repeat;
+background-position: center;
+}
+.gutter.gutter-horizontal { background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAeCAYAAADkftS9AAAAIklEQVQoU2M4c+bMfxAGAgYYmwGrIIiDjrELjpo5aiZeMwF+yNnOs5KSvgAAAABJRU5ErkJggg==');
+background-repeat: no-repeat;
+background-position: center;
+}
 
 /* For visuility */
 .nodeTitle { fill: white; filter: url(#drop-shadow); font-size: small; }
@@ -1655,6 +1756,72 @@ iframe.previewFrame { width: calc(100% - 10px); height: calc(100vh - 110px); }
 @media print { *.alert { border: solid medium; border-color: #FF0000;} }
 @media print { *.changed { border: double thin; } }
 @media print { *.button { display: none; } }
+</style>
+""";
+
+public static final String DEFAULT_WELCOME_SCRIPT = """
+<div class="header">
+    <a class="headerlogo" href="/Home" title="Go to the home page">
+        <img class="headerlogo" src="/images/Logo-yel.svg"/>
+    </a>
+    Welcome to PermeAgility
+</div>
+
+<PermeAgility table="news" order="dateline desc"
+    where="(archive IS NULL or archive=false) AND (locale IS NULL or locale.name='${locale}' )">
+    <div class="card">
+        <img src="https://source.unsplash.com/random/800x800" alt="" />
+        <div class="card-content">
+            <h1>${news.name}</h1>
+            <p style="font-size:8pt;">${news.dateline} ${locale} ${news.rid}</p>
+            <h4>${news.description}</h4>
+            <p></p>
+        </div>
+    </div>
+</PermeAgility>         
+
+<div class="footer">Footer</div>        
+""";
+
+public static final String DEFAULT_WELCOME_STYLE = """
+<style type='text/css'>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: sans-serif; }
+
+img.headerlogo { width: 90px; left: 20px; top: 15px; position: absolute; border: none; user-select: none; }
+a.headerlogo:hover { text-decoration: none; background-color: transparent;}
+a { color: lightblue; }
+
+.header, .footer {
+    background-color: #222;  color: white;
+    height: 70px;  display: flex;
+    justify-content: center; align-items: center;
+}
+
+.card {
+    width: 100vw; height: 100vh;
+    background: rgb(20, 50, 100, 0.8);  color: white;
+    display: flex; align-items: center;
+    justify-content: center;
+    position: sticky; top: 0;
+}
+
+.card img {
+    position: absolute; z-index: 1;
+    left: 0; top: 0; width: 100%; height: 100%;
+    object-fit: cover;
+    filter: brightness(0.5);
+}
+
+.card-content {
+    position: absolute; z-index: 2;
+    left: 0; top: 0; width: 100%; height: 100%;
+    margin: 20px;
+    display: flex; flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+</style>        
 """;
 
 }
