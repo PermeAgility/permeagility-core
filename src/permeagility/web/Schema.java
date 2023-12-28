@@ -104,12 +104,7 @@ public class Schema extends Weblet {
                     if (privs > 0) {
                         tableName = tableName.trim();
                         if (con.getSchema().existsType(tableName)) {
-                            if (HTMX_MODE) {
-//                                tablelist.append(linkHTMX("/"+parms.get("HTMX")+"/" + tableName, pretty, "_on=\"on click call UIkit.modal(#"+HTMX_MODAL+").hide();\"") + br());
-                                tablelist.append(linkHTMX("/Table/" + tableName, pretty, parms.get("HX-TARGET")) + br());
-                            } else {
-                                tablelist.append(link("permeagility.web.Table?TABLENAME=" + tableName, pretty) + br());
-                            }
+                            tablelist.append(linkHTMX("/Table/" + tableName, pretty, parms.get("HX-TARGET")) + br());
                             groupHasTable = true;
                         } else {
                             if (!tableName.isEmpty()) {
@@ -142,12 +137,7 @@ public class Schema extends Weblet {
                         if (pretty != null && ("TABLE_" + tablename).equals(pretty)) {
                             pretty = makeCamelCasePretty(tablename);
                         }
-                        if (HTMX_MODE) {
-//                            tablelist.append(linkHTMX("/"+parms.get("HTMX")+"/" + tablename, pretty, "_on=\"on click call alert('Trying to close "+HTMX_MODAL+"')\"") + br());
-                            tablelist.append(linkHTMX("/Table"+"/" + tablename, pretty, parms.get("HX-TARGET")) + br());
-                        } else {
-                            tablelist.append(link("permeagility.web.Table?TABLENAME=" + tablename, pretty) + br());
-                        }
+                        tablelist.append(linkHTMX("/Table"+"/" + tablename, pretty, parms.get("HX-TARGET")) + br());
                     }
                 }
             }

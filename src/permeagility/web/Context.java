@@ -257,7 +257,6 @@ public class Context extends Weblet {
             if (os != null && os.toLowerCase().startsWith("window")) {
                 System.out.println("Cannot do this in Windows, sorry");
             }
-            //ln -sf permeagility-0.6.1.jar permeagility.jar
             try {
                 String[] cmd = {"ln -sf "+latestVersion+" permeagility.jar"};
                 Process proc = Runtime.getRuntime().exec(cmd);

@@ -61,7 +61,7 @@ public class D3Builder extends Table {
                 sb.append(form("svgform", hidden("format", "") + hidden("data", "")));
                 sb.append(chartDiv("chart"));
                 sb.append(additionalScript + "\n" + script);
-                return head(con, "D3 Builder", getScripts(con.getLocale()) + additionalStyle) + body(errors.toString()+div("service",sb.toString()));
+                return head(con, "D3 Builder", style(additionalStyle)) + body(errors.toString()+div("service",sb.toString()));
             }
         }
         
@@ -97,7 +97,7 @@ public class D3Builder extends Table {
         }
         
         // Return the default result
-        return head(con, "D3 Builder", getScripts(con.getLocale()) + additionalStyle)
+        return head(con, "D3 Builder", style(additionalStyle))
                 + body(standardLayout(con, parms,
                     ((Security.getTablePriv(con, PlusSetup.TABLE) & PRIV_CREATE) > 0 && view == null
                     ? popupForm("CREATE_NEW_ROW", null, Message.get(locale, "CREATE_ROW"), null, "NAME",
@@ -169,8 +169,7 @@ public class D3Builder extends Table {
             )
             +"<br>"+frame("previewFrame","permeagility.plus.d3.D3Builder?PREVIEW="+edit_id);  //<iframe id='previewFrame' width='100%' height='100%'></iframe>\n";
 
-        return getSplitScript()
-               +div("leftHand","split split-horizontal",div("styleEditor","split content",styleEditor)+div("scriptEditor",scriptEditor))
+        return div("leftHand","split split-horizontal",div("styleEditor","split content",styleEditor)+div("scriptEditor",scriptEditor))
                +div("rightHand","split split-horizontal",div("dataEditor","split content",dataEditor)+div("resultView",resultView))
                +script("Split(['#leftHand', '#rightHand'], { gutterSize: 8, minSize: [5,5], cursor: 'col-resize' });\n"
                         + "Split(['#styleEditor', '#scriptEditor'], { direction: 'vertical', sizes: [20, 95], minSize: [5,90], gutterSize: 8, cursor: 'row-resize' });\n"

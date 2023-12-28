@@ -202,7 +202,7 @@ public class ImportCSV extends Weblet {
     }
 
     /**
-     * Determine the best lossless OrientDB representation of the given column
+     * Determine the best lossless representation of the given column
      */
     public Type determineTypeFromColumnNameAndData(String columnName, String data) {
         Type otype = Type.STRING;  // Default

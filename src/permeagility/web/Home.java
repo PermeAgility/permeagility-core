@@ -27,25 +27,6 @@ import permeagility.util.QueryResult;
 
 public class Home extends Weblet {
 	
-  String pageBody = """
-    <div id="header" hx-trigger="load" hx-get="/Header" hx-swap="innerHTML"></div>
-    <div id="service" hx-trigger="load" hx-get="/News" hx-swap="innerHTML"></div>
-    <div id="nav-container">
-        <div id="underlay" class="bg"></div>
-        <div id="nav-button" class="nav-button" tabindex="0">
-            <span class="icon-bar"></span><span class="icon-bar"></span><span class="icon-bar"></span>
-        </div>
-        <div id="nav-content" hx-get="/Menu?TARGET=service" hx-trigger="load" hx-swap="innerHTML" tabindex="0"></div>
-    </div>
-""";
-
-//    public String getPage(DatabaseConnection con, HashMap<String,String> parms) {
-//
-//        String title = Message.get(con.getLocale(), "HOME_PAGE_TITLE");
-//        return head(con, title)
-//             + body(pageBody+serviceHeaderUpdateDiv(parms, title));
-//    }
-//}
     public static String DEFAULT_HOME = "welcome";
 
     public String getPage(DatabaseConnection con, HashMap<String,String> parms) {
@@ -78,10 +59,12 @@ public class Home extends Weblet {
             for (org.jsoup.nodes.Element ele : elements) {
                 ele.html(runTemplate(con, ele));
             }
-            htmlScript = htmlDoc.select("body").html();
+            htmlScript = htmlDoc.select("body").html(); // remove the permeagility tag, no trace we were here
             htmlScript = htmlScript.replace("<permeagility>","");
             htmlScript = htmlScript.replace("</permeagility>","");
         }
+
+        // returning
         return head(con, serviceName,(styleScript == null ? "" : styleScript))
                 + body(htmlScript);
     }
@@ -172,8 +155,10 @@ public class Home extends Weblet {
     String replaceToken(DatabaseConnection con, String token) {
         if (token.equals("locale")) {
             return con.getLocale().toString();
-        } else if (token.equals("timestamp" )) {
+        } else if (token.equals("timestamp")) {
             return (new Date()).toString();
+        } else if (token.equals("user")) {
+            return con.getUser();
         }
         System.out.println("!! Error on token replacement for token: "+token);
         return "!{"+token+"}";

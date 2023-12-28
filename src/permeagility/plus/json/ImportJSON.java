@@ -344,7 +344,7 @@ public class ImportJSON extends Weblet {
         return doc;
     }
     /**
-     * Determine the best lossless OrientDB representation of the given java classname (fully qualified) of an object given in a result set (not necessarily the most efficient storage or what you expect) Note: This is a good candidate to be a general utility function but this is the only place it is used right now
+     * Determine the best lossless representation of the given java classname (fully qualified) of an object given in a result set (not necessarily the most efficient storage or what you expect) Note: This is a good candidate to be a general utility function but this is the only place it is used right now
      */
     public Type determineTypeFromClassName(String className) {
         Type otype = Type.STRING;  // Default

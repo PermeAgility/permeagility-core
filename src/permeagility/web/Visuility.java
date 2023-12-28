@@ -24,7 +24,7 @@ public class Visuility extends Weblet {
         String type = parms.get("TYPE");
         String id = parms.get("ID");
         return 	
-            head(con, Message.get(con.getLocale(), "VISUILITY"),getD3V3Script())+
+            head(con, Message.get(con.getLocale(), "VISUILITY"),"")+
             body(standardLayout(con, parms,  
                 Schema.getTableSelector(con)
                 +"<button style=\"position: fixed; bottom: 0px;\" id=\"save_as_svg\" download=\"view.svg\">to SVG</button>"

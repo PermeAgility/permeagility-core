@@ -37,7 +37,7 @@ public class Query extends Weblet {
         parms.put("SERVICE", Message.get(locale, "SQL_WEBLET"));
         String query = parms.get("SQL");
         return 	
-            head(con, Message.get(locale, "SQL_WEBLET")+"&nbsp;"+query,getSortTableScript())+
+            head(con, Message.get(locale, "SQL_WEBLET")+"&nbsp;"+query,"")+
             body( standardLayout(con, parms,  
                 getSQLBuilder(con)
                 +form("QUERY","#",

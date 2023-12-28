@@ -82,10 +82,10 @@ public class DatabaseConnection {
 	/** Get the native connection object. A ODatabaseDocumentTx */
 	public com.arcadedb.database.Database getDb() { return c; }
 
-	/** Get the OrientDB OSchema object */
+	/** Get the Schema object */
 	public com.arcadedb.schema.Schema getSchema() { return c.getSchema(); }
 
-	/** Get the OrientDB OSecurity object */
+	/** Get the Security object */
 	public com.arcadedb.security.SecurityManager getSecurity() {
 	//	if (c == null) {
 			return null;
@@ -327,66 +327,5 @@ public class DatabaseConnection {
         }
         return result;  // will be empty but not null
     }
-
-    /**
-     * Used to create a column for a button in the UI. These buttons can be invoked via columnOverride
-     */
-/*     class ButtonProperty implements Property {
-            String name;
-            @Override public Property setType(Type t) { return this; }
-            @Override public boolean isMandatory() { return false; }
-            @Override public int compareTo(OProperty o) { return 0; }
-            @Override public String getName() { return name; }
-            @Override public String getFullName() { return null; }
-            @Override public OProperty setName(String iName) {
-                    name = iName;
-                    return this;
-            }
-            @Override public void set(ATTRIBUTES attribute, Object iValue) { }
-            @Override public OType getType() { return OType.TRANSIENT; }
-            @Override public OClass getLinkedClass() { return null; }
-            @Override public OProperty setLinkedClass(OClass oClass) { return null; }
-            @Override public OType getLinkedType() { return null; }
-            @Override public OProperty setLinkedType(OType type) { return null; }
-            @Override public boolean isNotNull() { return false; }
-            @Override public OProperty setNotNull(boolean iNotNull) { return null; }
-            @Override public OCollate getCollate() { return null; }
-            @Override public OProperty setCollate(String iCollateName) { return null; }
-            @Override public OProperty setCollate(OCollate collate) { return null; }
-            @Override public OProperty setMandatory(boolean mandatory) { return null; }
-            @Override public boolean isReadonly() { return false; }
-            @Override public OProperty setReadonly(boolean iReadonly) { return null; }
-            @Override public String getMin() { return null; }
-            @Override public OProperty setMin(String min) { return null; }
-            @Override public String getMax() { return null; }
-            @Override public OProperty setMax(String max) { return null; }
-            @Override public OIndex<?> createIndex(INDEX_TYPE iType) { return null; }
-            @Override public OIndex<?> createIndex(String iType) {	return null;	}
-            @Override @Deprecated public OProperty dropIndexes() {	return null;	}
-            @Override @Deprecated public Set<OIndex<?>> getIndexes() {		return null;	}
-            @Override @Deprecated public OIndex<?> getIndex() {	return null;	}
-            @Override public Collection<OIndex<?>> getAllIndexes() {	return null;		}
-            @Override @Deprecated public boolean isIndexed() {	return false;	}
-            @Override public String getRegexp() {		return null;	}
-            @Override public OProperty setRegexp(String regexp) {			return null;	}
-            @Override public String getCustom(String iName) {	return null;			}
-            @Override public OProperty setCustom(String iName, String iValue) {	return null;	}
-            @Override public void removeCustom(String iName) {	}
-            @Override public void clearCustom() {		}
-            @Override public Set<String> getCustomKeys() {			return null;		}
-            @Override public OClass getOwnerClass() {	return null;			}
-            @Override  public Object get(ATTRIBUTES iAttribute) {	return null;		}
-            @Override public Integer getId() { return null; }
-            @Override public String getDefaultValue() { return null;  }
-            @Override public OProperty setDefaultValue(String arg0) { return null;  };
-            @Override public OIndex<?> createIndex(String iType, ODocument metadata) {
-                throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-            }
-            @Override public OIndex<?> createIndex(INDEX_TYPE iType, ODocument metadata) {
-                throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-            }
-            @Override public String getDescription() { return "Button";  }
-            @Override public OProperty setDescription(String arg0) { return this; }
-	} */
 
 }

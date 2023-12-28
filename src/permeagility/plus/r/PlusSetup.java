@@ -35,7 +35,7 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 	public static String INSTALLED_VERSION = "0";  // Set via constant to complete installation
 	
 	// Override these to change the names of the tables that will be created and used by this importer
-	public static String TABLE = "RScript";   // Local OrientDB table name to hold connection specs
+	public static String TABLE = "RScript";   // Local table name to hold connection specs
 	
 	public static String MENU_CLASS = "permeagility.plus.r.RBuilder";
 	public static String DATA_CLASS = "permeagility.plus.r.Data";

@@ -31,8 +31,8 @@ import permeagility.util.Setup;
 public class Menu extends Weblet {
 
     public static boolean DEBUG = false;
-    public static boolean HORIZONTAL_LAYOUT = true;
-    public static String PAGE_RUNNER = "permeagility.web.Home";
+    public static boolean HORIZONTAL_LAYOUT = false;
+    public static String PAGE_RUNNER = "Home";
 
     private static ConcurrentHashMap<String, String> menuCache = new ConcurrentHashMap<>();
     private static Locale guestLocale = Locale.getDefault();  // Saves the locale of the guest menu cache
@@ -49,15 +49,16 @@ public class Menu extends Weblet {
         if (menuTarget == null) menuTarget = hxTarget;
         if (menuTarget == null) menuTarget = DEFAULT_TARGET;
         Locale locale = con.getLocale();
-        String selector = Message.getLocaleSelector(locale, parms);
-        String localeSelector = (selector.length() > 0
-                ? (HORIZONTAL_LAYOUT && !HTMX_MODE // this gets a popup form instead of a list
-                        ? " <div style=\"float: right;\">" + popupForm("LANGUAGE", null, Message.get(locale, "LANGUAGE"), null, null,
-                                paragraph("banner", Message.get(locale, "SELECT_LANGUAGE"))
-                                + "<p align=\"left\">" + selector + "</p>\n")
-                        + "</div>\n"
-                        : "<BR><BR><BR><BR>" + selector)
-                : "");
+ //       String selector = Message.getLocaleSelector(locale, parms);
+        String localeSelector = "";
+//                            (selector.length() > 0
+//                ? (HORIZONTAL_LAYOUT // this gets a popup form instead of a list
+//                        ? " <div style=\"float: right;\">" + popupForm("LANGUAGE", null, Message.get(locale, "LANGUAGE"), null, null,
+//                                paragraph("banner", Message.get(locale, "SELECT_LANGUAGE"))
+//                                + "<p align=\"left\">" + selector + "</p>\n")
+//                        + "</div>\n"
+//                        : "<BR><BR><BR><BR>" + selector)
+//                : "");
 
         // Return value from cache if it is there
         String cmenu = menuCache.get(con.getUser());
@@ -103,23 +104,23 @@ public class Menu extends Weblet {
                                 //}
                                 if (classname == null || Security.authorized(con.getUser(),authClass)) {
                                     if (menuName == null || menuName.equals("")) {
-                                        itemMenu.append((HORIZONTAL_LAYOUT && !HTMX_MODE ? "&nbsp;&nbsp;" : "<br>") + "\n");  // Spacer
+                                        itemMenu.append((HORIZONTAL_LAYOUT  ? "&nbsp;&nbsp;" : "<br>") + "\n");  // Spacer
                                     } else {
                                         String pageScript = i.getString("pageScript");
                                         if (pageScript != null && !pageScript.equals("")) {   // Use page runner on pageScript
-                                              if (HTMX_MODE) itemMenu.append("<li>");
+                                              itemMenu.append("<li>");
                                               itemMenu.append(link(PAGE_RUNNER+"?ID="+i.getIdentity().toString().substring(1), pretty, prettyDesc, menuTarget));
-                                              if (HTMX_MODE) itemMenu.append("</li>");
+                                              itemMenu.append("</li>");
                                         } else {
                                             if (classname != null) {
-                                              if (HTMX_MODE) itemMenu.append("<li>");
+                                              itemMenu.append("<li>");
                                               itemMenu.append(link(classname, pretty, prettyDesc, menuTarget));
-                                              if (HTMX_MODE) itemMenu.append("</li>");
+                                              itemMenu.append("</li>");
                                             } else {
                                               System.out.println("Menu item "+i.getIdentity().toString()+" could not be added name="+menuName+" class="+classname);
                                             }
                                         }
-                                        itemMenu.append((HORIZONTAL_LAYOUT && !HTMX_MODE ? "&nbsp;" : "<br>") + "\n");
+                                        //itemMenu.append((HORIZONTAL_LAYOUT  ? "&nbsp;" : "<br>") + "\n");
                                     }
                                     if (DEBUG) System.out.println("MenuItem3.added?=" + pretty+" desc="+prettyDesc+" class="+classname);
                                 } else {
@@ -140,8 +141,7 @@ public class Menu extends Weblet {
                         } else if (menuHeader == null) {
                             pretty = "";
                         }
-//                        menu.append((HORIZONTAL_LAYOUT && !HTMX_MODE ? "&nbsp;&nbsp;&nbsp;" : paragraph("menuheader", pretty)));
-                        menu.append((HORIZONTAL_LAYOUT && !HTMX_MODE ? "&nbsp;&nbsp;&nbsp;" : ""));
+                        menu.append((HORIZONTAL_LAYOUT ? "&nbsp;&nbsp;&nbsp;" : ""));
                         menu.append(itemMenu);
                     }
                 }
@@ -153,7 +153,7 @@ public class Menu extends Weblet {
         if (DEBUG) {
             System.out.println("Menu: Adding menu for " + con.getUser() + " to menuCache");
         }
-        String newMenu = HTMX_MODE ? "<ul>\n"+menu.toString()+ localeSelector+"</ul>" : menu.toString()+localeSelector;
+        String newMenu = "<ul>\n"+menu.toString()+ localeSelector+"</ul>";
         menuCache.put(con.getUser(), newMenu);
         if (con.getUser().equals("guest")) {
             guestLocale = locale;

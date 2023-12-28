@@ -117,7 +117,7 @@ public class RBuilder extends Table {
         }
         
         // Return the default result
-        return head(con, "R Builder", getScripts(con.getLocale()))
+        return head(con, "R Builder", "")
         + body(standardLayout(con, parms,
             ((Security.getTablePriv(con, PlusSetup.TABLE) & PRIV_CREATE) > 0
                 ? popupForm("CREATE_NEW_ROW", null, Message.get(locale, "CREATE_ROW"), null, "NAME",
@@ -212,8 +212,7 @@ public class RBuilder extends Table {
                 )
                 +"<br>"+frame("previewFrame","permeagility.plus.r.RBuilder?PREVIEW="+edit_id);  // <iframe id='previewFrame' width='100%' height='100%'></iframe>\n";
 
-        return getSplitScript()
-               +div("leftHand","split split-horizontal",div("scriptEditor","split content",scriptEditor)+div("resultText",resultText))
+        return div("leftHand","split split-horizontal",div("scriptEditor","split content",scriptEditor)+div("resultText",resultText))
                +div("rightHand","split split-horizontal",resultView)
                +script("Split(['#leftHand', '#rightHand'], { sizes:[50,50], gutterSize: 8, cursor: 'col-resize' });\n"
                         + "Split(['#scriptEditor', '#resultText'], { direction: 'vertical', sizes: [50, 50], gutterSize: 8, cursor: 'row-resize' });\n"

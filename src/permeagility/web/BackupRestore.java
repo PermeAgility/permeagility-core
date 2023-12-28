@@ -208,7 +208,7 @@ public class BackupRestore extends Weblet {
             }
         }
         String backupFilename = "Backup_"+formatDate(locale,new Date(),"yyyy-MM-dd_HH-mm");
-    	return headMinimum(con, service,getSortTableScript())+bodyMinimum(
+    	return headMinimum(con, service,"")+bodyMinimum(
 	    	errors
     		+paragraph("banner",Message.get(locale, "BACKUP_THE_DATABASE"))
     		+form(table("layout",

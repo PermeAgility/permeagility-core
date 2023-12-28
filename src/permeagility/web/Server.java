@@ -43,6 +43,10 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.arcadedb.Constants;
 import com.arcadedb.database.Document;
+import com.arcadedb.database.RecordEvents;
+import com.arcadedb.event.AfterRecordCreateListener;
+import com.arcadedb.event.AfterRecordDeleteListener;
+import com.arcadedb.event.AfterRecordUpdateListener;
 import java.net.InetSocketAddress;
 import java.nio.channels.ClosedChannelException;
 import java.nio.charset.StandardCharsets;
@@ -133,7 +137,6 @@ public class Server {
 
 	private static ConcurrentHashMap<String,List<String>> pickValues = new ConcurrentHashMap<>();
 
-	private static DatabaseHook databaseHook = null;
 	private static ClassLoader plusClassLoader;
 
         // Websocket op codes
@@ -1159,8 +1162,8 @@ public class Server {
 		if (table.equals("user")
 		  || table.equals("menu")
 		  || table.equals("menuItem")
-		  || table.equals("ORole")
-		  || table.equals("OUser")) {
+		  || table.equals("role")
+		  || table.equals("user")) {
 			Security.refreshSecurity();  // Will display its own messages
 			Menu.clearCache();
 		}
@@ -1258,10 +1261,45 @@ public class Server {
 					System.out.println("***\n*** Exit condition: Could not apply constant overrides\n***");
 					exit(-1);
 				}
-
                 con.commit();
 
-					if (restore_lockout) restore_lockout = false;
+                // Start up the record listeners
+                RecordEvents events = con.getDb().getEvents();
+               // events.registerListener((BeforeRecordCreateListener) record -> { 
+               //         System.out.println("BeforeRecordCreate event record="+record.toJSON(true).toString());
+               //         return true;
+               // });
+              // works but not useful except in high security situations (or could implement row level security here)
+              //  events.registerListener((BeforeRecordReadListener) rid -> { 
+              //          System.out.println("BeforeRecordRead event record="+rid.toString());
+              //          return true;
+              //  });
+                //events.registerListener((BeforeRecordUpdateListener) record -> { 
+                //        System.out.println("BeforeRecordUpdate event record="+record.toJSON(true).toString());
+                //        return true;
+                //});
+                // Could use to prevent deletes of critical data
+                //events.registerListener((BeforeRecordDeleteListener) record -> { 
+                //        System.out.println("BeforeRecordDelete event record="+record.toJSON(true).toString());
+                //        return true;
+                //});
+
+                events.registerListener((AfterRecordCreateListener) record -> { 
+                        System.out.println("AfterRecordCreate event record="+record.toJSON(true).toString());
+                });
+             // this causes BufferUnderflowExceptions
+             //   events.registerListener((AfterRecordReadListener) record -> { 
+             //           System.out.println("AfterRecordRead event record="+record.toJSON(true).toString());
+             //           return record;
+             //   });
+                events.registerListener((AfterRecordUpdateListener) record -> { 
+                        System.out.println("AfterRecordUpdate event record="+record.toJSON(true).toString());
+                });
+                events.registerListener((AfterRecordDeleteListener) record -> { 
+                        System.out.println("AfterRecordDelete event record="+record.toJSON(true).toString());
+                });
+
+				if (restore_lockout) restore_lockout = false;
 			} else {
                 System.out.println("Database not connected. Wha?");
             }

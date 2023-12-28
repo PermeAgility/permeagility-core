@@ -476,7 +476,7 @@ public class Setup {
             mCount += checkCreateMessage(con, loc, "SERVER_CONNECT", "connected to");
             mCount += checkCreateMessage(con, loc, "SERVER_JAR", "using jar");
             mCount += checkCreateMessage(con, loc, "SERVER_USER", "with user");
-            mCount += checkCreateMessage(con, loc, "SERVER_VERSION", "OrientDB version is");
+            mCount += checkCreateMessage(con, loc, "SERVER_VERSION", "Database version is");
             mCount += checkCreateMessage(con, loc, "SERVER_CACHE", "Cached lists");
             mCount += checkCreateMessage(con, loc, "CACHE_COUNT", "{0} Cached");
             mCount += checkCreateMessage(con, loc, "CACHE_CLEAR_COLUMNS", "Clear table columns cache");

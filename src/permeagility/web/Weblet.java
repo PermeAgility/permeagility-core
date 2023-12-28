@@ -41,7 +41,6 @@ import permeagility.util.DatabaseConnection;
 import permeagility.util.QueryCache;
 import permeagility.util.QueryResult;
 import permeagility.util.QueryResultCache;
-import permeagility.util.Setup;
 
 import com.arcadedb.database.Document;
 import com.arcadedb.database.RID;
@@ -66,14 +65,6 @@ public abstract class Weblet {
     public static String DECIMAL_FORMAT = "#,##0;(#,##0)";
     public static String DEFAULT_STYLE = "dark (horizontal menu)";
     public static String POPUP_SUFFIX = "..";
-    public static boolean HYPERSCRIPT_MIN = true;
-    public static boolean HTMX_MIN = true;
-    public static boolean D3_MIN = true;
-    public static boolean SPLIT_MIN = true;
-    public static boolean SORTABLE_MIN = true;
-    public static boolean LOAD_ANIMATION = true;
-    public static boolean LOAD_ANIM_MIN = true;
-    protected boolean HTMX_MODE = true;   // descendent instances can set this flag
     public static String DEFAULT_TARGET = "service";
 
     
@@ -545,7 +536,6 @@ public abstract class Weblet {
     }
 
     public String deleteButton(Locale locale, String table, String edit_id, String target) {  // HTMX Version
-        if (HTMX_MODE) {
             if (target == null) target = DEFAULT_TARGET;
             return "<button hx-target=\"#"+target+"\" hx-swap=\"innerHTML\" hx-delete=\""
                 +"/"+this.getClass().getName()+"/"+table+"/"+edit_id+"\" " 
@@ -553,9 +543,6 @@ public abstract class Weblet {
                 + (isReadOnly() ? " DISABLED " : "") 
                 + " class=\"button\" name=\"SUBMIT\" value=\"" + "DELETE" + "\">"
             + Message.get(locale,"DELETE") + "</button>";
-        } else {
-            return deleteButton(locale);
-        }
     }
 
     public String deleteButton(Locale locale, String confirm) {
@@ -658,77 +645,17 @@ public abstract class Weblet {
         return "<input type=\"FILE\" " + (isReadOnly() ? "DISABLED" : "") + "  name=\"" + name + "\">";
     }
 
-    public static String getSplitScript() {
-        if (SPLIT_MIN) {
-            return "<script  type='text/javascript' src=\"/js/split.min.js\"></script>\n";
-        } else {
-            return "<script  type='text/javascript' src=\"/js/split.js\"></script>\n";
-        }
-    }
-
-    public static String getD3Script() {
-        if (D3_MIN) {
-            return "<script  type='text/javascript' src=\"/js/d3.min.js\"></script>\n";
-        } else {
-            return "<script  type='text/javascript' src=\"/js/d3.js\"></script>\n";
-        }
-    }
-
-    public static String getD3V3Script() {
-        if (D3_MIN) {
-            return "<script  type='text/javascript' src=\"/js/d3_v3/d3.min.js\"></script>\n";
-        } else {
-            return "<script  type='text/javascript' src=\"/js/d3_v3/d3.js\"></script>\n";
-        }
-    }
-
-    public static String getSortableScript() {
-        if (SORTABLE_MIN) {
-            return "<script  type='text/javascript' src=\"/js/Sortable.min.js\"></script>\n";
-        } else {
-            return "<script  type='text/javascript' src=\"/js/Sortable.js\"></script>\n";
-        }
-    }
-
-    public static String getSortTableScript() { return "<script src=\"/js/sorttable.js\"></script>\n"; }
-
     public static String getScript(String name) { return "<script src=\"/js/"+name+"\"></script>\n"; }
 
     public static String script(String script) { return "<script>"+script+"</script>\n"; }
 
     public static String style(String script) { return "<style type=\"text/css\">\n" + script + "</style>\n"; }
 
-    public static String EDITOR_THEME = "night";
-
-    public static String getCodeEditorScript() {
-        return "<link rel=\"stylesheet\" type=\"text/css\" href=\"/js/codemirror/lib/codemirror.css\" />\n"
-            +(EDITOR_THEME != null && !EDITOR_THEME.equals("default") ? "<link rel=\"stylesheet\" type=\"text/css\" href=\"/js/codemirror/theme/"+EDITOR_THEME+".css\" />\n" : "")
-            +"<link rel=\"stylesheet\" type=\"text/css\" href=\"/js/codemirror/addon/hint/show-hint.css\" />\n"
-            +"<link rel=\"stylesheet\" type=\"text/css\" href=\"/js/codemirror/addon/dialog/dialog.css\" />\n"
-            +"<link rel=\"stylesheet\" type=\"text/css\" href=\"/js/codemirror/addon/tern/tern.css\" />\n"
-            + "<script type=\"text/javascript\" src=\"/js/codemirror/lib/codemirror.js\"></script>\n"
-            + "<script type=\"text/javascript\" src=\"/js/codemirror/mode/javascript/javascript.js\"></script>\n"
-            + "<script type=\"text/javascript\" src=\"/js/codemirror/mode/clike/clike.js\"></script>\n"
-            + "<script type=\"text/javascript\" src=\"/js/codemirror/mode/css/css.js\"></script>\n"
-            + "<script type=\"text/javascript\" src=\"/js/codemirror/mode/r/r.js\"></script>\n"
-            + "<script type=\"text/javascript\" src=\"/js/codemirror/mode/xml/xml.js\"></script>\n"
-            + "<script type=\"text/javascript\" src=\"/js/codemirror/mode/sql/sql.js\"></script>\n"
-            + "<script type=\"text/javascript\" src=\"/js/codemirror/mode/htmlmixed/htmlmixed.js\"></script>\n"
-            + "<script type=\"text/javascript\" src=\"/js/codemirror/addon/dialog/dialog.js\"></script>\n"
-            + "<script type=\"text/javascript\" src=\"/js/codemirror/addon/tern/tern.js\"></script>\n"
-            + "<script type=\"text/javascript\" src=\"/js/codemirror/addon/hint/show-hint.js\"></script>\n"
-            + "<script type=\"text/javascript\" src=\"/js/codemirror/addon/hint/javascript-hint.js\"></script>\n"
-            + "<script type=\"text/javascript\" src=\"/js/codemirror/addon/hint/css-hint.js\"></script>\n"
-            + "<script type=\"text/javascript\" src=\"/js/codemirror/addon/lint/lint.js\"></script>\n"
-            + "<script type=\"text/javascript\" src=\"/js/codemirror/addon/lint/javascript-lint.js\"></script>\n"
-            + "<script type=\"text/javascript\" src=\"/js/codemirror/addon/lint/css-lint.js\"></script>\n"
-            + "<script type=\"text/javascript\" src=\"/js/codemirror/addon/selection/active-line.js\"></script>\n"
-            + "<script type=\"text/javascript\" src=\"/js/codemirror/addon/edit/matchbrackets.js\"></script>\n";
-    }
-
     public String getCodeEditorControl(String formName, String controlName, String initialValue, String mode, ArrayList<String> submitCodeLines) {
         return getCodeEditorControl(formName, controlName, initialValue, mode, null, submitCodeLines);
     }
+
+    public static String EDITOR_THEME = "ambiance";
 
     public String getCodeEditorControl(String formName, String controlName, String initialValue, String mode, String options, ArrayList<String> submitCodeLines) {
         if (submitCodeLines != null) submitCodeLines.add("call "+controlName+"Editor.save()");

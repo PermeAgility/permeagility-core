@@ -84,7 +84,7 @@ public class ShaderBuilder extends Table {
         }
         
         // Return the default page
-        return head(con, "Shader Builder", getScripts(con.getLocale()) )
+        return head(con, "Shader Builder", "" )
                 + body(standardLayout(con, parms,
                     ((Security.getTablePriv(con, TABLE_NAME) & PRIV_CREATE) > 0
                     ? popupForm("CREATE_NEW_ROW", null, Message.get(locale, "CREATE_ROW"), null, "NAME",
@@ -153,8 +153,7 @@ public class ShaderBuilder extends Table {
             )
             +"<br>"+frame("previewFrame","permeagility.plus.webgl.ShaderBuilder?PREVIEW="+edit_id);
 
-        return getSplitScript()
-               +div("leftHand","split split-horizontal",div("vertexEditor","split content",vertexEditor)+div("testScriptEditor",testScriptEditor))
+        return div("leftHand","split split-horizontal",div("vertexEditor","split content",vertexEditor)+div("testScriptEditor",testScriptEditor))
                +div("rightHand","split split-horizontal",div("fragmentEditor","split content",fragmentEditor)+div("resultView",resultView))
                +script("Split(['#leftHand', '#rightHand'], { gutterSize: 8, minSize: [5,5], cursor: 'col-resize' });\n"
                         + "Split(['#vertexEditor', '#testScriptEditor'], { direction: 'vertical', sizes: [50, 50], minSize: [10,10], gutterSize: 8, cursor: 'row-resize' });\n"
