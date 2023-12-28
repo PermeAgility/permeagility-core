@@ -996,7 +996,7 @@ public class Table extends Weblet {
         } else if (type == Type.DECIMAL || type == Type.INTEGER || type == Type.LONG 
                 || type == Type.FLOAT || type == Type.DOUBLE 
                 || type == Type.SHORT || type == Type.BYTE) {
-            List<String> pickValues = Server.getPickValues(table, name);
+            List<String> pickValues = Server.getPickValues(con, table, name);
             if (pickValues != null) {
                 return row(label + column(createList(con.getLocale(), PARM_PREFIX + name, initialValue != null ? initialValue.toString() : null, pickValues, null, false, null, true)));
             }
@@ -1048,7 +1048,7 @@ public class Table extends Weblet {
             return row(label + column(getCodeEditorControl(formName, PARM_PREFIX + name, (String) initialValue, "css", submitCodeLines)));
             // String
         } else if (type == Type.STRING) {
-            List<String> pickValues = Server.getPickValues(table, name);
+            List<String> pickValues = Server.getPickValues(con, table, name);
             if (pickValues != null) {
                 return row(label + column(createList(con.getLocale(), PARM_PREFIX + name, initialValue != null ? initialValue.toString() : null, pickValues, null, false, null, true)));
             }
@@ -1157,19 +1157,19 @@ public class Table extends Weblet {
             } catch (NullPointerException e) {
                 e.printStackTrace();
             } // It will do this if it doesn't exist
-            String linkedClass = column.getOfType();
+            String linkedType = column.getOfType();
             if (column.getOfType() == null && list != null && list.size() > 0) {
                 System.out.println("table.getColumnAsField: Will deduce LINK OfType from contents");
                 Document d = con.get(list.get(0));
                 if (d != null) {
-                    linkedClass = d.getTypeName();
-                    System.out.println("table.getColumnAsField: Deduced that LINK is OfType "+linkedClass);
+                    linkedType = d.getTypeName();
+                    System.out.println("table.getColumnAsField: Deduced that LINK is OfType "+linkedType);
                 }
             }
-            if (linkedClass != null) {
-                return row(label + columnNoWrap(linkListControl(con, PARM_PREFIX + name, linkedClass, getCache().getResult(con, getQueryForTable(con, linkedClass)), con.getLocale(), list)));
+            if (linkedType != null) {
+                return row(label + columnNoWrap(linkListControl(con, PARM_PREFIX + name, linkedType, getCache().getResult(con, getQueryForTable(con, linkedType)), con.getLocale(), list)));
             } else {
-                return paragraph("error","table.getColumnAsField: Could not determine linked class");
+                return paragraph("error","table.getColumnAsField: Could not determine linked class for "+name);
             }
            // Link map
         } else if (type == Type.MAP) { 
@@ -1446,6 +1446,7 @@ public class Table extends Weblet {
      */
     public String getTable(DatabaseConnection con, HashMap<String, String> parms, String table, String query, String hideColumn, long page, String columnOverride) {
         try {
+            StringBuilder pageNav = new StringBuilder();
             StringBuilder sb = new StringBuilder();
             int rowCount = 0;
             
@@ -1453,20 +1454,20 @@ public class Table extends Weblet {
             // Handle Paging
             if (page > -1) {
                 if (totalRows > ROW_COUNT_LIMIT) {
-                    sb.append(Message.get(con.getLocale(), "PAGE_NAV") + "&nbsp;");
+                    pageNav.append(Message.get(con.getLocale(), "PAGE_NAV") + "&nbsp;");
                     long pageCount = totalRows / ROW_COUNT_LIMIT + 1;
                     long dotInterval = DOT_INTERVAL;
                     if (pageCount/dotInterval > DOT_LIMIT) dotInterval = pageCount/DOT_LIMIT;
                     for (long p = 1; p <= pageCount; p++) {
                         if (Math.abs(page - p) < PAGE_WINDOW || pageCount - p < PAGE_WINDOW || p < PAGE_WINDOW) {
                             if (p == page || (page == 0 && p == 1)) {
-                                sb.append(bold(color("red", "" + p)) + "&nbsp;");  // the page you on is not a link (TODO: use a style here)
+                                pageNav.append(bold(color("red", "" + p)) + "&nbsp;");  // the page you on is not a link (TODO: use a style here)
                             } else {
-                                sb.append(linkWithTipHTMX(this.getClass().getName()+"/" + table + "&PAGE=" + p, "" + p, "Page " + p, parms.get("HX-TARGET")) + "&nbsp;");
+                                pageNav.append(linkWithTipHTMX(this.getClass().getName()+"/" + table + "&PAGE=" + p, "" + p, "Page " + p, parms.get("HX-TARGET")) + "&nbsp;");
                             }
                         } else {
                             if (p % dotInterval == 0) {
-                                sb.append(linkWithTipHTMX(this.getClass().getName()+"/" + table + "&PAGE=" + p, ".", "Page " + p, parms.get("HX-TARGET")));
+                                pageNav.append(linkWithTipHTMX(this.getClass().getName()+"/" + table + "&PAGE=" + p, ".", "Page " + p, parms.get("HX-TARGET")));
                             }
                         }
                     }
@@ -1523,7 +1524,7 @@ public class Table extends Weblet {
                 }
                 sb.append(tableFooter(row(columnSpan(columns.size(), rowCountInfo))));
             }
-            return tableHTMX("sortable_"+table, (rowCount > 0 ? "sortable" : ""), sb.toString());  // sort table breaks if you have no rows in the tbody
+            return pageNav+tableHTMX("sortable_"+table, (rowCount > 0 ? "sortable" : ""), sb.toString());  // sort table breaks if you have no rows in the tbody
 
         } catch (Exception e) {
             Throwable cause = e.getCause();
@@ -1559,7 +1560,7 @@ public class Table extends Weblet {
                 }
             }
         }
-        return tableHeader(sb.toString());
+        return tableHeader(row(sb.toString()));
     }
 
     public String getRow(Collection<Property> columns, Document d, DatabaseConnection con, String hideColumn) throws SQLException {

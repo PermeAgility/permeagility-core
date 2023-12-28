@@ -1171,9 +1171,9 @@ public class Server {
 		Weblet.queryCache.refreshContains(table);
 	}
 
-	public final static List<String> getPickValues(String table, String column) {
+	public final static List<String> getPickValues(DatabaseConnection con, String table, String column) {
 		if (pickValues.isEmpty()) {
-		//	updatePickValues();  // There must be a few by default - empty means not loaded yet (Note: restart server if delete)
+			updatePickValues(con);  // There must be a few by default - empty means not loaded yet (Note: restart server if delete)
 		}
 		return pickValues.get(table+"."+column);
 	}
@@ -1188,7 +1188,6 @@ public class Server {
 				}
 				pickValues.put(values.getString("name"),list);
 			}
-            con.commit();
 		} catch (Exception e) {
 			System.err.println("Error getting pickValues: "+e.getMessage());
 		}
@@ -1313,6 +1312,67 @@ public class Server {
         System.out.println("init complete");
 		return true;
 	}
+
+/* this is here to implement the auditTrail at some point
+    @Override
+    public void onUnregister() {
+        System.out.println("Unregistering the RecordHook");
+    }
+
+    @Override
+    public RESULT onTrigger(TYPE iType, ORecord iRecord) {
+        if (ODatabaseRecordThreadLocal.instance().isDefined() && ODatabaseRecordThreadLocal.instance().get().getStatus() != STATUS.OPEN) return null;  // Not sure I need this - found in an example
+        boolean typeRead = (iType == TYPE.BEFORE_READ || iType == TYPE.AFTER_READ);
+        boolean typeDelete = iType == TYPE.BEFORE_DELETE;
+        boolean typeFail = (iType == TYPE.CREATE_FAILED || iType == TYPE.DELETE_FAILED || iType == TYPE.UPDATE_FAILED || iType == TYPE.READ_FAILED);
+        // Filter out the before and after create and update
+        if (!typeRead && !typeDelete && !typeFail && FINALIZE_ONLY && !iType.name().startsWith("FINALIZE")) {
+            return null;
+        }
+        if (typeFail || (typeRead && AUDIT_READS) || (!typeRead && AUDIT_WRITES)) {
+            if (iRecord instanceof ODocument) {
+                final ODocument document = (ODocument) iRecord;
+                String className = document.getClassName();
+                String user = iRecord.getDatabase().getUser().getName();  //ODatabaseRecordThreadLocal.instance().get().getUser().getName();
+                if (className != null && !className.equalsIgnoreCase("auditTrail")) {
+                    if (DEBUG) System.out.println("RecordHook:onTrigger type="+iType.name()+" table="+className+" record="+iRecord.toJSON());
+                    try {
+                        String table = document.getClassName();
+                        String rid = document.getIdentity().toString().substring(1);
+                        int recordVersion = document.getVersion();
+                        for (String n : document.fieldNames()) {
+                            if (document.fieldType(n) == OType.CUSTOM) {
+                            if (DEBUG) System.out.println("REMOVING Name="+n+" Type="+document.fieldType(n));
+                                document.removeField(n);
+                            }
+                        }
+                        String json = document.toJSON();
+                        ODocument log = iRecord.getDatabase().newInstance("auditTrail");
+                        log.field("timestamp", new Date())
+                            .field("action", iType.toString())
+                            .field("table", table)
+                            .field("rid", rid)
+                            .field("user", user)
+                            .field("recordVersion", recordVersion)
+                            .field("detail", json)
+                            .save();
+                        DatabaseConnection.rowCountChanged("auditTrail");  // This should clear the rowcount for the auditTrail from the cache
+                    } catch (Exception e) {
+                        System.err.println("Unable to write audit trail using user "+user+" with message "+e.getMessage());
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+        return RESULT.RECORD_NOT_CHANGED;
+    }
+
+    @Override
+    public DISTRIBUTED_EXECUTION_MODE getDistributedExecutionMode() {
+        if (DEBUG) System.out.println("Hook:gdem");
+        return DISTRIBUTED_EXECUTION_MODE.BOTH;
+    }
+*/
 
 	/** Get the guest connection */
 	public final static Database getNonUserDatabase() {

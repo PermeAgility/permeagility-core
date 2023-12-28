@@ -15,6 +15,7 @@
  */
 package permeagility.util;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -281,7 +282,6 @@ public class Setup {
                 con.create(TABLE_CONSTANT).set("classname","permeagility.web.Security").set("description","Security debug flag").set("field","DEBUG").set("value",SETUP_DEBUG_FLAG).save();
                 con.create(TABLE_CONSTANT).set("classname","permeagility.web.Table").set("description","Table debug flag").set("field","DEBUG").set("value",SETUP_DEBUG_FLAG).save();
                 con.create(TABLE_CONSTANT).set("classname","permeagility.web.Server").set("description","Use images/js in jar").set("field","WWW_IN_JAR").set("value","true").save();
-                con.create(TABLE_CONSTANT).set("classname","permeagility.web.RecordHook").set("description","Audit all changes to the database").set("field","AUDIT_WRITES").set("value","true").save();
                 con.create(TABLE_CONSTANT).set("classname","permeagility.web.Table").set("description","Table page count").set("field","ROW_COUNT_LIMIT").set("value","200").save();
                 con.create(TABLE_CONSTANT).set("classname","permeagility.web.Table").set("description","Show related tables even if no privilege").set("field","SHOW_ALL_RELATED_TABLES").set("value","true").save();
                 con.create(TABLE_CONSTANT).set("classname","permeagility.web.Context").set("description","Code editor theme").set("field","EDITOR_THEME").set("value","ambiance").save();
@@ -300,7 +300,6 @@ public class Setup {
             Setup.checkCreateColumn(con, auditTable, "table", OType.STRING, installMessages);
             Setup.checkCreateColumn(con, auditTable, "rid", OType.STRING, installMessages);
             Setup.checkCreateColumn(con, auditTable, "user", OType.STRING, installMessages);
-            Setup.checkCreateColumn(con, auditTable, "recordVersion", OType.LONG, installMessages);
             Setup.checkCreateColumn(con, auditTable, "detail", OType.STRING, installMessages);
 
      */  
@@ -549,7 +548,7 @@ public class Setup {
             
             System.out.println(TABLE_NEWS+" ");
             DocumentType newsTable = Setup.checkCreateTable(oschema, TABLE_NEWS, installMessages);
-      //      Setup.checkTableSuperclass(oschema, newsTable, "ORestricted", installMessages);
+      //      Setup.checkTableSuperclass(oschema, newsTable, "restricted", installMessages);
             Setup.checkCreateColumn(con, newsTable, "name", Type.STRING, installMessages);
             Setup.checkCreateColumn(con, newsTable, "description", Type.STRING, installMessages);
             Setup.checkCreateColumn(con, newsTable, "dateline", Type.DATETIME, installMessages);
@@ -566,8 +565,10 @@ public class Setup {
                     + "<li>Change the admin, reader, writer, and server passwords</li>\n"
                     + "<li>If a system table is deleted or truncated, it will be restored to factory settings during startup</li>\n"
                     + "<li>see <a target='_blank' href='http://www.permeagility.com'>www.permeagility.com</a> for more information</li>\n"
-                    + "</ul>\n");
-                n2.set("dateline",new Date());
+                    + "</ul>\n"
+                    + "<ul><li><a href='/Home?NAME=home-light'>Open Application (Light)</a></li>\n"
+                   + "<li><a href='/Home?NAME=home-dark'>Open Application (Dark)</a></li></ul>\n");
+                n2.set("dateline", LocalDateTime.now());
                 n2.set("locale",loc);
                 n2.set("archive",false);
                // n2.set("_allowRead", adminRoles.toArray());
@@ -576,8 +577,9 @@ public class Setup {
                 MutableDocument n3 = con.create(TABLE_NEWS);
                 n3.set("name","Welcome reader");
                 n3.set("description","This is a place where you can navigate data and connections, click away!<br><br>\n"
-                    + "Click <a href='permeagility.web.Schema'><b><i>Tables</i></b></a> to get started\n");
-                n3.set("dateline",new Date());
+                    + "<ul><li><a href='/Home?NAME=home-light'>Open Application (Light)</a></li>\n"
+                   + "<li><a href='/Home?NAME=home-dark'>Open Application (Dark)</a></li></ul>\n");
+                n3.set("dateline", LocalDateTime.now());
                 n3.set("locale",loc);
                 n3.set("archive",false);
             //    n3.set("_allowRead", readerRoles.toArray());
@@ -586,9 +588,9 @@ public class Setup {
                 MutableDocument n4 = con.create(TABLE_NEWS);
                 n4.set("name","Welcome writer");
                 n4.set("description","PermeAgility lets you create and navigate data every way it is connected.<br><br>\n"
-                    + "Click <a href='permeagility.web.Schema'><b><i>Tables</i></b></a> to browse the data<br>\n"
-                    + "Use <a href='permeagility.web.Query'><b><i>Query</i></b></a> to run custom SQL-like queries\n");
-                n4.set("dateline",new Date());
+                    + "<ul><li><a href='/Home?NAME=home-light'>Open Application (Light)</a></li>\n"
+                   + "<li><a href='/Home?NAME=home-dark'>Open Application (Dark)</a></li></ul>\n");
+                n4.set("dateline", LocalDateTime.now());
                 n4.set("locale",loc);
                 n4.set("archive",false);
        //         n4.set("_allowRead", writerRoles.toArray());
@@ -599,7 +601,7 @@ public class Setup {
                 n1.set("description","The core template for big data applications in a micro service.\n"
                     + "<ul><li><a href='/Home?NAME=home-light'>Open Application (Light)</a></li>"
                     + "<li><a href='/Home?NAME=home-dark'>Open Application (Dark)</a></li></ul>");
-                n1.set("dateline",new Date());
+                n1.set("dateline", LocalDateTime.now());
                 n1.set("locale",loc);
                 n1.set("archive",false);
                 //n1.set("_allowRead", guestRoles.toArray());
@@ -776,7 +778,7 @@ public class Setup {
                 mi_home.set("name","home-dark");
                 mi_home.set("description","Home Application page in dark mode");
                 //mi_home.set("classname","permeagility.web.Home");
-                mi_home.set("pageStyle", DEFAULT_STYLESHEET);
+                mi_home.set("pageStyle", DEFAULT_DARK_STYLESHEET);
                 mi_home.set("pageScript", DEFAULT_HOME_SCRIPT);
                 mi_home.set("active",true);
                 mi_home.save();
@@ -785,7 +787,7 @@ public class Setup {
                 mi_homel.set("name","home-light");
                 mi_homel.set("description","Home Application page in light mode");
                 //mi_homel.set("classname","permeagility.web.Home");
-                mi_homel.set("pageStyle", DEFAULT_ALT_STYLESHEET);
+                mi_homel.set("pageStyle", DEFAULT_LIGHT_STYLESHEET);
                 mi_homel.set("pageScript", DEFAULT_HOME_SCRIPT);
                 mi_homel.set("active",true);
                 mi_homel.save();
@@ -1218,7 +1220,7 @@ public class Setup {
         }
     }
 
-    public static final String DEFAULT_ALT_STYLESHEET = """
+    public static final String DEFAULT_LIGHT_STYLESHEET = """
 <script type="text/javascript" src="/js/_hyperscript.min.js"></script>
 <script type="text/javascript" src="/js/htmx.min.js"></script>
 <script src="/js/sorttable.js"></script>
@@ -1265,7 +1267,7 @@ img.headerlogo { width: 90px; left: 20px; top: 15px; position: absolute; border:
 a.headerlogo:hover { text-decoration: none; background-color: transparent;}
 
 #header { position: absolute; top: 0px; left: 0px; right: 0px; height: 70px;
-            background-image: linear-gradient(to left, white, #ccc) !important;   }
+            background-image: linear-gradient(to left, white, #aaa) !important;   }
 
 #headertitle { font-size: 0.75em; position: absolute; top: 20px; left: 120px; }
 #headerservice { font-size: 1em; position: absolute; top: 40px; left: 120px; }
@@ -1309,8 +1311,9 @@ th { font-weight: bold;
     font-weight: bold; 
 }
 tbody { overflow-y: scroll; }
-tr.data, td.data { background-color: #fff; vertical-align: top; }
-tr.clickable { background-color: #fff; vertical-align: top; }
+tr { background-color: #fff; vertical-align: top; }
+tr:nth-of-type(2n) { background-color: #eee; }
+tr.clickable { vertical-align: top; }
 tr.clickable:hover {
     background: radial-gradient(ellipse, darkorange, white);
 }
@@ -1405,7 +1408,7 @@ rect.node { opacity: 0.5; }
 rect.selection { opacity:0.8; fill: none; stroke: white; stroke-width: 4px; stroke-dasharray: 5,5; }
 
 /* For popup modal forms */
-.popbox {padding: 0.2em 0.2em; background-color: #ccc; border-radius: 3px; }
+.popbox {padding: 0.2em 0.2em; border-radius: 3px; }
 .modal {
     background-color: #ccc;
     border-radius: 6px;
@@ -1499,7 +1502,7 @@ public static final String DEFAULT_HOME_SCRIPT = """
 </div>
 """;
 
-public static final String DEFAULT_STYLESHEET = """
+public static final String DEFAULT_DARK_STYLESHEET = """
 <script type="text/javascript" src="/js/_hyperscript.min.js"></script>
 <script type="text/javascript" src="/js/htmx.min.js"></script>
 <script src="/js/sorttable.js"></script>
@@ -1590,8 +1593,9 @@ th { font-weight: bold;
     font-weight: bold; color: white;
 }
 tbody { overflow-y: scroll; }
-tr.data, td.data { background-color: #222; vertical-align: top; }
-tr.clickable { background-color: #222; vertical-align: top; }
+tr { background-color: #222; vertical-align: top; }
+tr:nth-of-type(2n) { background-color: #2a2a2a; }
+tr.clickable { vertical-align: top; }
 tr.clickable:hover {
     background: radial-gradient(ellipse, darkorange, black);
 }
@@ -1686,7 +1690,7 @@ rect.node { opacity: 0.5; }
 rect.selection { opacity:0.8; fill: none; stroke: white; stroke-width: 4px; stroke-dasharray: 5,5; }
 
 /* For popup modal forms */
-.popbox {padding: 0.2em 0.2em; background-color: #333; border-radius: 3px; }
+.popbox {padding: 0.2em 0.2em; border-radius: 3px; }
 .modal {
     background-color: #333;
     border-radius: 6px;

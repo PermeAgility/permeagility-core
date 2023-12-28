@@ -155,10 +155,12 @@ public class Home extends Weblet {
     String replaceToken(DatabaseConnection con, String token) {
         if (token.equals("locale")) {
             return con.getLocale().toString();
-        } else if (token.equals("timestamp")) {
-            return (new Date()).toString();
         } else if (token.equals("user")) {
             return con.getUser();
+        } else if (token.equals("dbname")) {
+            return Server.getDBName();
+        } else if (token.equals("timestamp")) {
+            return (new Date()).toString();
         }
         System.out.println("!! Error on token replacement for token: "+token);
         return "!{"+token+"}";

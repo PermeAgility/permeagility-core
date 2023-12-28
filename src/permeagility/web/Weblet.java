@@ -225,7 +225,7 @@ public abstract class Weblet {
     public static String tableFooter(String c, String s) { return "<tfoot class=\"" + c + "\">\n" + s + "</tfoot>\n"; }
     public static String tableFooter(String s) { return "<tfoot>" + s + "</tfoot>\n"; }
     public static String row(String c, String s) { return "<tr class=\"" + c + "\">\n" + s + "</tr>\n";  }
-    public static String row(String s) { return "<tr valign=\"TOP\">\n" + s + "</tr>\n"; }
+    public static String row(String s) { return "<tr>\n" + s + "</tr>\n"; }
 
     public static String rowOnClick(String c, String s, String onClick) {
         return rowOnClick(c, s, onClick, null);
@@ -242,9 +242,9 @@ public abstract class Weblet {
         return "<tr class=\"" + c + "\" hx-target=\"#"+target+"\" hx-trigger=\"click\" hx-get=\"" + onClick + "\" "+(title!=null ? " title=\""+title+"\"" : "")+" >\n" + (s == null ? "&nbsp;" : s) + "</tr>\n";
     }
 
-    public static String columnHeader(String c, String s) { return "<th class=\"" + c + "\">\n" + s + "</th>\n"; }
-    public static String columnHeader(String s) { return "<th>\n" + s + "</th>\n"; }
-    public static String columnHeaderNoSort(String s) { return "<th class=\"sorttable_nosort\">\n" + s + "</th>\n"; }
+    public static String columnHeader(String c, String s) { return "<th class=\"" + c + "\">" + s + "</th>\n"; }
+    public static String columnHeader(String s) { return "<th>" + s + "</th>\n"; }
+    public static String columnHeaderNoSort(String s) { return "<th class=\"sorttable_nosort\">" + s + "</th>\n"; }
     public static String column(String s) { return "<td>" + (s == null ? "&nbsp;" : s) + "</td>\n"; }
 
     public static String column(String c, String s) {
@@ -408,7 +408,7 @@ public abstract class Weblet {
             return "<input "+TEXT_INPUT_OPTIONS+" id=\"" + n + "\" name=\"" + n + "\" " + (isReadOnly() ? "DISABLED" : "") + "  value=\"" + (value == null ? "" : value) + "\">";
     }
     public String inputWithPlaceholder(String n, String placeholder) {
-            return "<input "+TEXT_INPUT_OPTIONS+" placeholder=\""+placeholder+"\" id=\"" + n + "\" name=\"" + n + "\" " + (isReadOnly() ? "DISABLED" : "") + "\">";
+            return "<input "+TEXT_INPUT_OPTIONS+" placeholder=\""+placeholder+"\" id=\"" + n + "\" name=\"" + n + "\" " + (isReadOnly() ? "DISABLED" : "") + ">";
     }
 
     public String input(String c, String n, Object value) {
