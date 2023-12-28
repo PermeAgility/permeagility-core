@@ -39,7 +39,7 @@ public class PageBuilder extends Table {
     // The default view when no record specified - the list page
     @Override public String getTableWithControls(DatabaseConnection con, HashMap<String,String> parms, String table) {
         Locale locale = con.getLocale();
-        return headMinimum(con, APP_NAME)
+        return head(con, APP_NAME)
                 + bodyMinimum(
                     ((Security.getTablePriv(con, TABLE_NAME) & PRIV_CREATE) > 0
                     ? popupFormHTMX("CREATE_NEW_ROW", this.getClass().getName()+"/"+TABLE_NAME, "put", parms.get("HX-TARGET"), Message.get(locale, "CREATE_ROW"), "NAME",

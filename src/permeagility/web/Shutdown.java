@@ -31,7 +31,7 @@ public class Shutdown extends Weblet {
         }
 
         if (parms.get("SUBMIT") == null || !parms.get("SUBMIT").equals("CONFIRM_SHUTDOWN")) {
-            return headMinimum(con, service) + bodyMinimum(
+            return head(con, service) + bodyMinimum(
                             errors
                             + paragraph("banner", Message.get(con.getLocale(), "CONFIRM_SHUTDOWN"))
                             + form("SHUTDOWN_FORM",

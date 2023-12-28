@@ -43,7 +43,7 @@ public class Home extends Weblet {
         }
         if (menuItem == null) {
             // If no script (probably new) return blank, otherwise, show an error
-            return headMinimum(con, "Error")
+            return head(con, "Error")
               + body(paragraph("error","No Page to generate: "+menuItem+" maybe the ID or NAME was not specified, try adding ?ID=rid or ?NAME=name"));
         }
 

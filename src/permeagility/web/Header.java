@@ -28,7 +28,7 @@ public class Header extends Weblet {
 	
 	public String getPage(DatabaseConnection con, HashMap<String,String> parms) {
 		return 
-			headMinimum(con, "Header")+
+			head(con, "Header")+
 			body(getHTML(con, parms));
 	}
 	

@@ -167,7 +167,7 @@ public class Table extends Weblet {
 
         // Show edit form if row selected for edit
         if (editId != null && submit == null) {
-            return headMinimum(con, "Edit", "")
+            return head(con, "Edit", "")
                     + body(getTableRowForm(con, table, parms));
         }
 
@@ -186,7 +186,7 @@ public class Table extends Weblet {
                 redirectUsingSource(parms, "TABLENAME=" + table + "&EDIT_ID="+parms.get("EDIT_ID"));
             } else {
                 errors.append(paragraph("error", "Could not insert"));
-                return headMinimum(con, "Insert", "")
+                return head(con, "Insert", "")
                         + body(
                             errors.toString()
                             + form("NEWROW", "#",
@@ -206,7 +206,7 @@ public class Table extends Weblet {
                     return redirectHTMX(parms, parms.get("EDIT_ID"));  // Copy will put new record in edit id
                 } else {
                     errors.append(paragraph("error", "Could not copy"));
-                    return headMinimum(con, "Insert", "")
+                    return head(con, "Insert", "")
                         + body(
                             errors.toString()
                             + form("NEWROW", "#",
@@ -219,7 +219,7 @@ public class Table extends Weblet {
                 if (deleteRow(con, table, parms, errors)) {
                    return null;
                 } else {
-                    return headMinimum(con, "Could not delete", "")
+                    return head(con, "Could not delete", "")
                             + bodyMinimum(errors.toString()+getTableRowForm(con, table, parms));
                 }
             } else if (submit.equals("UPDATE")) {
@@ -230,7 +230,7 @@ public class Table extends Weblet {
                     return null;
 //                    return redirectUsingSource(parms, "TABLENAME=" + table);
                 } else {
-                    return headMinimum(con, "Could not update", "")
+                    return head(con, "Could not update", "")
                             + bodyMinimum(errors.toString()+getTableRowForm(con, table, parms));
                 }
             }
@@ -1781,7 +1781,7 @@ public class Table extends Weblet {
         }
         String title = table + " " + Message.get(locale, "ADVANCED_OPTIONS");
         parms.put("SERVICE", title);
-        return headMinimum(con, title)
+        return head(con, title)
                 + body(         //advancedOptionsForm(con, table, parms, errors.toString())
                                 //+ br()
                                  linkHTMX(this.getClass().getName()+"/" + table, Message.get(locale, "BACK_TO_TABLE"), parms.get("HX-TARGET"))
