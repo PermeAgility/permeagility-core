@@ -34,12 +34,13 @@ import permeagility.web.Server;
  */
 public class Database  {
 
-    protected boolean EMBEDDED_SERVER = true;
+    protected static boolean EMBEDDED_SERVER = true;
+    private static int MAX_NESTED = 5;
     private static DatabaseFactory dbFactory = null;
     private static DatabaseFactory dbFactoryRO = null;
 
     private static ContextConfiguration config = new ContextConfiguration();
-    ArcadeDBServer server = null;
+    private static ArcadeDBServer server = null;
 
     private String url = null;
     private String user = null;
@@ -69,6 +70,7 @@ public class Database  {
                 ServerDatabase serverdb = server.createDatabase(url, MODE.READ_WRITE);
                 if (serverdb.isOpen()) {
                     System.out.println("Database is open");
+                    serverdb.getContext().setMaxNested(MAX_NESTED);
                 }
             }
         }
@@ -93,6 +95,7 @@ public class Database  {
     public void close() {
         if (EMBEDDED_SERVER) {
             if (server.isStarted()) {
+                System.out.println("Calling server.stop()");
                 server.stop();
             }
         } else {

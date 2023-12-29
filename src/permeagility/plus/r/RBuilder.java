@@ -76,7 +76,7 @@ public class RBuilder extends Table {
                 errors.append(paragraph("Could not retrieve preview using " + preview));
             } else {
                 StringBuilder desc = new StringBuilder();
-                String tid = Thumbnail.getThumbnailId(tableName, preview, "PDFResult", desc);
+                String tid = Thumbnail.getThumbnailId(con, tableName, preview, "PDFResult", desc);
                 if (tid != null) {
                     sb.append("<object data=\"thumbnail?SIZE=FULL&ID=" + tid + "\" width=\"100%\" height=\"100%\">"
                            + "<a href=\"thumbnail?SIZE=FULL&ID=" + tid + "\">Click to download " + desc.toString() + "</a> " + "</object>");
@@ -132,7 +132,7 @@ public class RBuilder extends Table {
         ));
     }
 
-    public boolean updateBlobFromFile(Document doc, String table, String blobName, String blobFile) {
+    public boolean updateBlobFromFile(DatabaseConnection con, Document doc, String table, String blobName, String blobFile) {
         if (doc != null) {
             try {
                 if (blobFile != null && !blobFile.trim().equals("")) {
@@ -152,7 +152,7 @@ public class RBuilder extends Table {
          //           }
          //           record.save();
          //           doc.field(blobName, record);
-                    Thumbnail.createThumbnail(table, doc, blobName);
+                    Thumbnail.createThumbnail(con, table, doc, blobName);
                 }
             } catch (Exception e) {
                 System.out.println("Cannot save PDF:" + e.getMessage());
@@ -300,7 +300,7 @@ public class RBuilder extends Table {
                     String textResult = result.toString().substring(endOfHeader > rCode.length() ? endOfHeader+38 : 0)
                             .replace("<", "&lt;").replace(">", "&gt;").replace("\n", "<br>");
                     runDoc.set("textResult", textResult);
-                    if (updateBlobFromFile(runDoc, "RScript", "PDFResult", pdf.getAbsolutePath())) {
+                    if (updateBlobFromFile(con, runDoc, "RScript", "PDFResult", pdf.getAbsolutePath())) {
                         runDoc.set("status", "Finished");
                     } else {
                         runDoc.set("status", "No PDF");

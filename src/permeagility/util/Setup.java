@@ -70,15 +70,17 @@ public class Setup {
       CREATE DOCUMENT TYPE pickList IF NOT EXISTS;
       CREATE DOCUMENT TYPE tableGroup IF NOT EXISTS;
       CREATE DOCUMENT TYPE columns IF NOT EXISTS;
-      CREATE DOCUMENT TYPE menu IF NOT EXISTS;
+      CREATE DOCUMENT TYPE pickValues IF NOT EXISTS;
+      CREATE DOCUMENT TYPE auditTrail IF NOT EXISTS;
+      CREATE DOCUMENT TYPE thumbnail IF NOT EXISTS;
+      CREATE DOCUMENT TYPE userProfile IF NOT EXISTS;
 
+      CREATE DOCUMENT TYPE menu IF NOT EXISTS;
       CREATE DOCUMENT TYPE menuItem IF NOT EXISTS;
       ALTER TYPE menuItem SUPERTYPE +restricted;
       CREATE DOCUMENT TYPE news IF NOT EXISTS;
       ALTER TYPE news SUPERTYPE +restricted;
 
-      CREATE DOCUMENT TYPE pickValues IF NOT EXISTS;
-      CREATE DOCUMENT TYPE userProfile IF NOT EXISTS;
 
       CREATE PROPERTY identity.name IF NOT EXISTS STRING;
       CREATE PROPERTY restricted._allowUpdate IF NOT EXISTS LIST OF identity;
@@ -140,19 +142,40 @@ public class Setup {
       CREATE PROPERTY pickValues.name IF NOT EXISTS STRING;
       CREATE PROPERTY pickValues.values IF NOT EXISTS STRING;
 
+      CREATE PROPERTY auditTrail.timestamp IF NOT EXISTS DATETIME;
+      CREATE PROPERTY auditTrail.user IF NOT EXISTS STRING;
+      CREATE PROPERTY auditTrail.action IF NOT EXISTS STRING;
+      CREATE PROPERTY auditTrail.table IF NOT EXISTS STRING;
+      CREATE PROPERTY auditTrail.rid IF NOT EXISTS STRING;
+      CREATE PROPERTY auditTrail.detail IF NOT EXISTS EMBEDDED;
+      CREATE INDEX IF NOT EXISTS ON auditTrail (timestamp) NOTUNIQUE;
+      CREATE INDEX IF NOT EXISTS ON auditTrail (rid) NOTUNIQUE;
+
+      CREATE PROPERTY thumbnail.name IF NOT EXISTS STRING;
+      CREATE PROPERTY thumbnail.table IF NOT EXISTS STRING;
+      CREATE PROPERTY thumbnail.column IF NOT EXISTS STRING;
+      CREATE PROPERTY thumbnail.id IF NOT EXISTS STRING;
+      CREATE PROPERTY thumbnail.type IF NOT EXISTS STRING;
+      CREATE PROPERTY thumbnail.size IF NOT EXISTS LONG;
+      CREATE PROPERTY thumbnail.width IF NOT EXISTS INTEGER;
+      CREATE PROPERTY thumbnail.height IF NOT EXISTS INTEGER;
+      CREATE PROPERTY thumbnail.small IF NOT EXISTS BINARY;
+      CREATE PROPERTY thumbnail.medium IF NOT EXISTS BINARY;
+      CREATE INDEX IF NOT EXISTS ON thumbnail (id) NOTUNIQUE; 
+
       CREATE PROPERTY userProfile.name IF NOT EXISTS STRING;
       CREATE PROPERTY userProfile.password IF NOT EXISTS STRING;
+
+      CHECK DATABASE FIX;
       """;
 
     /* This should not be run inside a transaction */
     public static boolean checkInstallation(DatabaseConnection con) {
         try {
-            //con.begin();
             System.out.println("DatabaseSetup.checkInstallation ");
             con.updateScript(schemaScript);
             System.out.println("DatabaseSetup.checkInstallation finished schemaScript");
-            //con.commit();
-
+  
             con.begin();
             Schema oschema = con.getSchema();
      //       com.arcadedb.security.SecurityManager osecurity = con.getSecurity();
@@ -249,26 +272,25 @@ public class Setup {
             Setup.checkCreateColumn(con, tableGroupTable, "tables", Type.STRING, installMessages);
 
             if (con.getRowCount(TABLE_TABLEGROUP) == 0) {
-                    con.create(TABLE_TABLEGROUP).set("name","Application").set("tables","news,tableGroup,columns,locale,message,pickList,pickValues,constant,menuItem,menu,role,user,userProfile,auditTrail,-thumbnail").save();
+                    con.create(TABLE_TABLEGROUP).set("name","Application").set("tables","news,tableGroup,columns,locale,message,pickList,pickValues,constant,menuItem,menu,role,user,userProfile,auditTrail,restricted,identity,-thumbnail").save();
                  //   con.create(TABLE_TABLEGROUP).set("name","System").set("tables","ORole,OUser,OFunction,OSchedule,OSequence,-ORIDs,-E,-V,-_studio").save();
                     con.create(TABLE_TABLEGROUP).set("name","Content").set("tables","").save();
                     con.create(TABLE_TABLEGROUP).set("name","Plus").set("tables","").save();
             }
   
-/* 
             System.out.println(TABLE_THUMBNAIL+" ");
-            OClass thumbnailTable = Setup.checkCreateTable(oschema, TABLE_THUMBNAIL, installMessages);
-            Setup.checkCreateColumn(con, thumbnailTable, "name", OType.STRING, installMessages);
-            Setup.checkCreateColumn(con, thumbnailTable, "table", OType.STRING, installMessages);
-            Setup.checkCreateColumn(con, thumbnailTable, "column", OType.STRING, installMessages);
-            Setup.checkCreateColumn(con, thumbnailTable, "id", OType.STRING, installMessages);
-            Setup.checkCreateColumn(con, thumbnailTable, "type", OType.STRING, installMessages);
-            Setup.checkCreateColumn(con, thumbnailTable, "size", OType.INTEGER, installMessages);
-            Setup.checkCreateColumn(con, thumbnailTable, "width", OType.INTEGER, installMessages);
-            Setup.checkCreateColumn(con, thumbnailTable, "height", OType.INTEGER, installMessages);
-            Setup.checkCreateColumn(con, thumbnailTable, "small", OType.CUSTOM, installMessages);
-            Setup.checkCreateColumn(con, thumbnailTable, "medium", OType.CUSTOM, installMessages);
-*/
+            DocumentType thumbnailTable = Setup.checkCreateTable(oschema, TABLE_THUMBNAIL, installMessages);
+            Setup.checkCreateColumn(con, thumbnailTable, "name", Type.STRING, installMessages);
+            Setup.checkCreateColumn(con, thumbnailTable, "table", Type.STRING, installMessages);
+            Setup.checkCreateColumn(con, thumbnailTable, "column", Type.STRING, installMessages);
+            Setup.checkCreateColumn(con, thumbnailTable, "id", Type.STRING, installMessages);
+            Setup.checkCreateColumn(con, thumbnailTable, "type", Type.STRING, installMessages);
+            Setup.checkCreateColumn(con, thumbnailTable, "size", Type.LONG, installMessages);
+            Setup.checkCreateColumn(con, thumbnailTable, "width", Type.INTEGER, installMessages);
+            Setup.checkCreateColumn(con, thumbnailTable, "height", Type.INTEGER, installMessages);
+            Setup.checkCreateColumn(con, thumbnailTable, "small", Type.BINARY, installMessages);
+            Setup.checkCreateColumn(con, thumbnailTable, "medium", Type.BINARY, installMessages);
+
             System.out.println(TABLE_CONSTANT+" ");
             DocumentType constantTable = Setup.checkCreateTable(oschema, TABLE_CONSTANT, installMessages);
             Setup.checkCreateColumn(con, constantTable, "classname", Type.STRING, installMessages);
@@ -279,30 +301,29 @@ public class Setup {
             if (con.getRowCount(TABLE_CONSTANT) == 0) {
                 System.out.println("Inserting constants");
                 con.create(TABLE_CONSTANT).set("classname","permeagility.web.Server").set("description","Server debug flag").set("field","DEBUG").set("value",SETUP_DEBUG_FLAG).save();
+                con.create(TABLE_CONSTANT).set("classname","permeagility.web.Server").set("description","Audit Trail").set("field","AUDIT_WRITES").set("value","true").save();
+                con.create(TABLE_CONSTANT).set("classname","permeagility.web.Server").set("description","Use images/js in jar").set("field","WWW_IN_JAR").set("value","true").save();
                 con.create(TABLE_CONSTANT).set("classname","permeagility.web.Security").set("description","Security debug flag").set("field","DEBUG").set("value",SETUP_DEBUG_FLAG).save();
                 con.create(TABLE_CONSTANT).set("classname","permeagility.web.Table").set("description","Table debug flag").set("field","DEBUG").set("value",SETUP_DEBUG_FLAG).save();
-                con.create(TABLE_CONSTANT).set("classname","permeagility.web.Server").set("description","Use images/js in jar").set("field","WWW_IN_JAR").set("value","true").save();
                 con.create(TABLE_CONSTANT).set("classname","permeagility.web.Table").set("description","Table page count").set("field","ROW_COUNT_LIMIT").set("value","200").save();
                 con.create(TABLE_CONSTANT).set("classname","permeagility.web.Table").set("description","Show related tables even if no privilege").set("field","SHOW_ALL_RELATED_TABLES").set("value","true").save();
                 con.create(TABLE_CONSTANT).set("classname","permeagility.web.Context").set("description","Code editor theme").set("field","EDITOR_THEME").set("value","ambiance").save();
                 con.create(TABLE_CONSTANT).set("classname","permeagility.web.Header").set("description","Logo for header").set("field","LOGO_FILE").set("value","Logo-yel.svg").save();
-                con.create(TABLE_CONSTANT).set("classname","permeagility.web.Menu").set("description","Menu direction (true=horizontal, false=vertical)").set("field","HORIZONTAL_LAYOUT").set("value","true").save();
                 con.create(TABLE_CONSTANT).set("classname","permeagility.web.Schema").set("description","Number of columns in tables view").set("field","NUMBER_OF_COLUMNS").set("value","8").save();
-                con.create(TABLE_CONSTANT).set("classname","permeagility.util.Setup").set("description","When true, ORestricted tables will be by user (Change OIdentity pickList if setting to true)").set("field","RESTRICTED_BY_ROLE").set("value","false").save();
+                con.create(TABLE_CONSTANT).set("classname","permeagility.util.Setup").set("description","When true, restricted tables will be by user (Change identity pickList if setting to true)").set("field","RESTRICTED_BY_ROLE").set("value","false").save();
                 con.create(TABLE_CONSTANT).set("classname","permeagility.web.UserRequest").set("description","Automatically assign new users to this role, leave blank to prevent automatic new user creation").set("field","ACCEPT_TO_ROLE").set("value","user").save();
             }
  
-/* 
             System.out.println(TABLE_AUDIT+" ");
-            OClass auditTable = Setup.checkCreateTable(oschema, TABLE_AUDIT, installMessages);
-            Setup.checkCreateColumn(con, auditTable, "timestamp", OType.DATETIME, installMessages);
-            Setup.checkCreateColumn(con, auditTable, "action", OType.STRING, installMessages);
-            Setup.checkCreateColumn(con, auditTable, "table", OType.STRING, installMessages);
-            Setup.checkCreateColumn(con, auditTable, "rid", OType.STRING, installMessages);
-            Setup.checkCreateColumn(con, auditTable, "user", OType.STRING, installMessages);
-            Setup.checkCreateColumn(con, auditTable, "detail", OType.STRING, installMessages);
+            DocumentType auditTable = Setup.checkCreateTable(oschema, TABLE_AUDIT, installMessages);
+            Setup.checkCreateColumn(con, auditTable, "timestamp", Type.DATETIME, installMessages);
+            Setup.checkCreateColumn(con, auditTable, "user", Type.STRING, installMessages);
+            Setup.checkCreateColumn(con, auditTable, "action", Type.STRING, installMessages);
+            Setup.checkCreateColumn(con, auditTable, "table", Type.STRING, installMessages);
+            Setup.checkCreateColumn(con, auditTable, "rid", Type.STRING, installMessages);
+            Setup.checkCreateColumn(con, auditTable, "detail", Type.EMBEDDED, installMessages);
 
-     */  
+      
             System.out.println(TABLE_LOCALE+" ");
             DocumentType localeTable = Setup.checkCreateTable(oschema, TABLE_LOCALE, installMessages);
             Setup.checkCreateColumn(con, localeTable, "name", Type.STRING, installMessages);
@@ -617,11 +638,11 @@ public class Setup {
             Setup.checkCreateColumn(con, pickListTable, "description", Type.STRING, installMessages);
 
             if (con.getRowCount(TABLE_PICKLIST) == 0) {
-         //       con.create(TABLE_PICKLIST)
-         //       .set("tablename","OIdentity")
-         //       .set("query","select @rid.asString(), format('%s - %s',@class,name) as name from OIdentity")
-         //       .set("description","This will restrict row level table privileges to only selecting Roles, if Setup.RESTRICTED_BY_ROLE is true replace OIdentity pickList with SELECT @rid.asString(), name from ORole")
-         //       .save();
+//                con.create(TABLE_PICKLIST)
+//                .set("tablename","identity")
+//                .set("query","select @rid.asString(), format('%s - %s',@class,name) as name from identity")
+//                .set("description","This will restrict row level table privileges to only selecting Roles, if Setup.RESTRICTED_BY_ROLE is true replace identity pickList with SELECT @rid.asString(), name from ORole")
+//                .save();
             }
  
             System.out.println(TABLE_PICKVALUES+" ");
@@ -633,7 +654,6 @@ public class Setup {
                 con.create(TABLE_PICKVALUES).set("name","user.status").set("values","ACTIVE,SUSPENDED").save();
 //                con.create(TABLE_PICKVALUES).set("name","OFunction.language").set("values","javascript").save();
  //               con.create(TABLE_PICKVALUES).set("name","OSequence.type").set("values","CACHED,ORDERED").save();
-//                con.create(TABLE_PICKVALUES).set("name","style.editorTheme").set("values","default,3024-day,3024-night,ambiance-mobile,ambiance,base16-dark,base16-light,blackboard,cobalt,colorforth,eclipse,elegant,erlang-dark,lesser-dark,mbo,mdn-like,midnight,monokai,neat,neo,night,paraiso-dark,paraiso-light,pastel-on-dark,rubyblue,solarized,the-matrix,tomorrow-night-bright,tomorrow-night-eighties,twilight,vibrant-ink,xq-dark,xq-light,zenburn").save();
             }
  
             System.out.println(TABLE_MENU+" ");
@@ -888,12 +908,10 @@ public class Setup {
 
             con.commit();
 
-            con.begin();
             System.out.print("Checking database...");
             con.update("CHECK DATABASE FIX");
             System.out.println("complete.");
-            con.commit();
-
+    
         } catch (Exception e) {
             con.rollback();
             System.out.println("- failed: "+e.getMessage());

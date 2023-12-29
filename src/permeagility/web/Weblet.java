@@ -41,6 +41,7 @@ import permeagility.util.DatabaseConnection;
 import permeagility.util.QueryCache;
 import permeagility.util.QueryResult;
 import permeagility.util.QueryResultCache;
+import permeagility.util.Setup;
 
 import com.arcadedb.database.Document;
 import com.arcadedb.database.RID;
@@ -350,6 +351,15 @@ public abstract class Weblet {
                 +"           hx-"+method.toLowerCase()+"=\""+action+"\" hx-target=\"#"+target+"\" hx-swap=\"innerHTML\" class=\"form-container\">\n"
                 +        content + "&nbsp;<a href=\"#\" class=\"box-close\">x</a>\n"
                 +"    </form>\n"
+                +"  </div>\n"
+                +"</div>\n";
+    }
+
+    public static String popupHTMX(String formName, String linkText, String focusField, String content) {
+        return "<a href=\"#popup-"+formName+"\" class=\"popbox\">"+linkText+POPUP_SUFFIX+"</a>\n"
+                +"<div id=\"popup-"+formName+"\" class=\"modal\">\n"
+                +"  <div class=\"pop-content\">\n"
+                +        content + "&nbsp;<a href=\"#\" class=\"box-close\">x</a>\n"
                 +"  </div>\n"
                 +"</div>\n";
     }
@@ -798,7 +808,7 @@ public abstract class Weblet {
         StringBuilder valuesList = new StringBuilder();
         // Selected values
         result.append("<ol id=\""+name+"_list"+"\" class=\""+name+"_class"+"\" _=\"on change put '' into the innerHTML of #"+name+"_result \n"
-                   + " then for i in the children of #"+name+"_list"+" put ',' + @rid of i at end of #"+name+"_result \n"
+                   + " then for i in the children of #"+name+"_list"+" put ',' + @rid of i at end of #"+name+"_result end \n"
                    + " then put the innerHTML of #"+name+"_result"+" into the value of #"+name+"\">\n");
         for (int i=0; i<listnames.size(); i++) {
                 result.append("<li rid=\"" + listvalues.get(i) + "\">" + listnames.get(i)
@@ -812,7 +822,7 @@ public abstract class Weblet {
                 "     + '&nbsp;<a title=\\'delete me\\' _=\\'on click remove the closest <li/> then send change to #"+name+"_list"+"\\'>x</a>'\n" + 
                 "     + '</li>' at end of #" + name + "_list" + " \n" + 
                 "     then put '' into the innerHTML of #"+name+"_result"+"\n" + 
-                "     then for i in the children of #"+name+"_list"+" put ',' + @rid of i at end of #"+name+"_result" + "\n" +
+                "     then for i in the children of #"+name+"_list"+" put ',' + @rid of i at end of #"+name+"_result end \n" +
                 "     then put the innerHTML of #"+name+"_result"+" into the value of #"+name+"\">\n");
         // The default null option
         result.append("<option value=\"null\" selected=\"yes\">- Select an item -</option>\n");
@@ -845,14 +855,15 @@ public abstract class Weblet {
         List<String> listchecks = new ArrayList<>(qr.size());
         if (picked != null) {
             for (String key : picked.keySet()) {
-                RID pickedRID = (RID)picked.get(key);
-                Document pick = con.get(pickedRID);
+                Object po = picked.get(key);
+                RID pickedRID = po instanceof RID ? (RID)po : null;
+                Document pick = po instanceof Document ? (Document)po : pickedRID != null ? con.get(pickedRID) : null;
                 if (pick != null) {
-                    String rid = pickedRID.toString();
+                    String rid = pickedRID != null ? pickedRID.toString() : pick.getIdentity().toString();
                     if (rid.startsWith("#")) rid = rid.substring(1);
                     // For some reason, map keys have single quotes around them now
                     if (key.startsWith("'") && key.endsWith("'")) {
-                        //System.out.println("Removing single quotes from map key");
+                        System.out.println("Removing single quotes from map key");
                         key = key.substring(1,key.length() - 1);
                     }
                     listmaps.add(key);
@@ -930,12 +941,11 @@ public abstract class Weblet {
     }
     
     public static String getQueryForTable(DatabaseConnection con, String table) {
-            String query = "SELECT FROM "+table+" LIMIT "+Table.ROW_COUNT_LIMIT;
-        //    QueryResult lists = getCache().getResult(con, "SELECT FROM "+Setup.TABLE_PICKLIST+" WHERE tablename='"+table+"'");
-        //    if (lists != null && lists.size()>0) {
-        //            return lists.getStringValue(0, "query");
-        //    }
-            return query;
+            QueryResultCache lists = getCache().getResult(con, "SELECT FROM "+Setup.TABLE_PICKLIST+" WHERE tablename='"+table+"'");
+            if (lists != null && lists.size()>0) {
+                    return lists.getStringValue(0, "query");
+            }
+            return "SELECT FROM "+table+" LIMIT "+Table.ROW_COUNT_LIMIT;
     }
 
     /** Prepare a string value for insertion into a JSON document (convert \ to \\ and ' to \') */
@@ -958,10 +968,6 @@ public abstract class Weblet {
         } else {
             return NONE_STRING;
         }
-//        } else {
-//            System.out.println("Doing table lookup for document description.  document="+document.getIdentity()+" class="+document.getTypeName());
-//            return getDescriptionFromTable(con, document.getTypeName(), document.getIdentity().toString());
-//        }
     }
 
     public static String getDescriptionFromTable(DatabaseConnection con, String table, String id) {

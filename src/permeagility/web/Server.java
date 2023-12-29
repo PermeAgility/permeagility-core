@@ -31,6 +31,7 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLDecoder;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -43,6 +44,10 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.arcadedb.Constants;
 import com.arcadedb.database.Document;
+import com.arcadedb.database.EmbeddedDocument;
+import com.arcadedb.database.MutableDocument;
+import com.arcadedb.database.MutableEmbeddedDocument;
+import com.arcadedb.database.Record;
 import com.arcadedb.database.RecordEvents;
 import com.arcadedb.event.AfterRecordCreateListener;
 import com.arcadedb.event.AfterRecordDeleteListener;
@@ -98,6 +103,7 @@ public class Server {
 
 	/* Overrideable constants */
 	public static boolean DEBUG = false;
+    public static boolean AUDIT_WRITES = true;
     public static boolean LOG_REQUESTS = true;
     public static int WEBSOCKET_QUEUE_CHUNK = 100;   // Number of message to spit out from queue before a pause
     public static int WEBSOCKET_PAUSE_MS = 50;
@@ -742,18 +748,34 @@ public class Server {
                                         if (DEBUG) System.out.println("Retrieving thumbnail "+tid);
                                         StringBuilder ttypeb = new StringBuilder();
                                         StringBuilder tfileb = new StringBuilder();
-                                        theData = Thumbnail.getThumbnail(tid, tsize, ttypeb, tfileb);
-                                        String ttype = ttypeb.toString();
-                                        String tfile = tfileb.toString();
-                                        if (theData != null) {
-                                                os.write(getThumbnailImageHeader(ttype, tfile, theData.length, keep_alive).getBytes());
-                                                os.write(theData);
-                                                os.flush();
-                                                if (DEBUG) System.out.println("Thumbnail(Server) - sent "+ttype+" size="+theData.length);
-                                                return keep_alive;
-                                        } else {
-                                                System.out.println("Thumbnail(Server) - no data found in thumbnail "+tid);
-                                                return false;
+                                        DatabaseConnection con = userdb.getReadOnlyConnection();
+                                        if (con != null) {
+                                            try {
+                                                con.begin();
+                                                theData = Thumbnail.getThumbnail(con, tid, tsize, ttypeb, tfileb);
+                                                con.commit();
+                                            } catch (Exception e) {
+                                                e.printStackTrace();
+                                                con.rollback();
+                                            } finally {
+                                                con.close();
+                                            }
+                                            String ttype = ttypeb.toString();
+                                            String tfile = tfileb.toString();
+                                            if (theData != null) {
+                                                try {
+                                                    os.write(getThumbnailImageHeader(ttype, tfile, theData.length, keep_alive).getBytes());
+                                                    os.write(theData);
+                                                    os.flush();
+                                                    if (DEBUG) System.out.println("Thumbnail(Server) - sent "+ttype+" size="+theData.length);
+                                                    return keep_alive;
+                                                } catch (IOException e) {
+                                                    System.out.println("IO Exception while returning thumbnail");
+                                                    return false;
+                                                }
+                                            }
+                                            System.out.println("Thumbnail(Server) - no data found in thumbnail "+tid);
+                                            return false;
                                         }
                                 }
 
@@ -816,6 +838,18 @@ public class Server {
                                 }
                                 try {
                                     if (con != null) {
+                                        int retries = 0;  // this may not be necessary but useful to trap problems
+                                        while(con.getDb().isTransactionActive() && retries < DBCON_RETRY_LIMIT) {
+                                            System.out.println("Transaction is already active, waiting..."+DBCON_RETRY_SLEEP+"ms");
+                                            Thread.sleep(DBCON_RETRY_SLEEP);
+                                            retries++;
+                                            if (retries == DBCON_RETRY_LIMIT) System.out.println("wait for active transaction - DBCON_RETRY_LIMIT reached");
+                                        }  
+                                        if (retries > DBCON_RETRY_REPORT) System.out.println("\n--- waited " + (retries * DBCON_RETRY_SLEEP) + "ms for active transaction ---");
+                                        if (retries == DBCON_RETRY_LIMIT) {
+                                            if (DBCON_RETRY_SLEEP < DBCON_RETRY_SLEEP_LIMIT) DBCON_RETRY_SLEEP += DBCON_RETRY_SLEEP_INCR;
+                                            System.out.println("\n*** Gave up after "+retries+" retries for active transaction - sleep increased by "+DBCON_RETRY_SLEEP_INCR+" to "+DBCON_RETRY_SLEEP+" ***\n");
+                                        }
                                         con.begin();
                                         theData = weblet.doPage(con, parms);
                                         con.commit();
@@ -1237,8 +1271,6 @@ public class Server {
 
                 con.begin();
 
-			//	database.setPoolSize(SERVER_POOL_SIZE);
-
 				// Initialize security
 		//		Security.refreshSecurity();
 		//		if (Security.keyRoleCount() < 1) {
@@ -1284,7 +1316,8 @@ public class Server {
                 //});
 
                 events.registerListener((AfterRecordCreateListener) record -> { 
-                        System.out.println("AfterRecordCreate event record="+record.toJSON(true).toString());
+                    if (DEBUG) System.out.println("AfterRecordCreate event record="+record.toJSON(true).toString());
+                    appendAuditTrail("CREATE",record);
                 });
              // this causes BufferUnderflowExceptions
              //   events.registerListener((AfterRecordReadListener) record -> { 
@@ -1292,10 +1325,12 @@ public class Server {
              //           return record;
              //   });
                 events.registerListener((AfterRecordUpdateListener) record -> { 
-                        System.out.println("AfterRecordUpdate event record="+record.toJSON(true).toString());
+                    if (DEBUG) System.out.println("AfterRecordUpdate event record="+record.toJSON(true).toString());
+                    appendAuditTrail("UPDATE",record);
                 });
                 events.registerListener((AfterRecordDeleteListener) record -> { 
-                        System.out.println("AfterRecordDelete event record="+record.toJSON(true).toString());
+                    if (DEBUG) System.out.println("AfterRecordDelete event record="+record.toJSON(true).toString());
+                    appendAuditTrail("DELETE",record);
                 });
 
 				if (restore_lockout) restore_lockout = false;
@@ -1313,66 +1348,21 @@ public class Server {
 		return true;
 	}
 
-/* this is here to implement the auditTrail at some point
-    @Override
-    public void onUnregister() {
-        System.out.println("Unregistering the RecordHook");
-    }
+    private static void appendAuditTrail(String action, Record record) {
+        if (!AUDIT_WRITES) return;
+        com.arcadedb.serializer.json.JSONObject rjson = record.toJSON(true);
+        if (rjson.getString("@type").equals(Setup.TABLE_AUDIT)) return;  // do not log anything on this table (endless loop)
 
-    @Override
-    public RESULT onTrigger(TYPE iType, ORecord iRecord) {
-        if (ODatabaseRecordThreadLocal.instance().isDefined() && ODatabaseRecordThreadLocal.instance().get().getStatus() != STATUS.OPEN) return null;  // Not sure I need this - found in an example
-        boolean typeRead = (iType == TYPE.BEFORE_READ || iType == TYPE.AFTER_READ);
-        boolean typeDelete = iType == TYPE.BEFORE_DELETE;
-        boolean typeFail = (iType == TYPE.CREATE_FAILED || iType == TYPE.DELETE_FAILED || iType == TYPE.UPDATE_FAILED || iType == TYPE.READ_FAILED);
-        // Filter out the before and after create and update
-        if (!typeRead && !typeDelete && !typeFail && FINALIZE_ONLY && !iType.name().startsWith("FINALIZE")) {
-            return null;
-        }
-        if (typeFail || (typeRead && AUDIT_READS) || (!typeRead && AUDIT_WRITES)) {
-            if (iRecord instanceof ODocument) {
-                final ODocument document = (ODocument) iRecord;
-                String className = document.getClassName();
-                String user = iRecord.getDatabase().getUser().getName();  //ODatabaseRecordThreadLocal.instance().get().getUser().getName();
-                if (className != null && !className.equalsIgnoreCase("auditTrail")) {
-                    if (DEBUG) System.out.println("RecordHook:onTrigger type="+iType.name()+" table="+className+" record="+iRecord.toJSON());
-                    try {
-                        String table = document.getClassName();
-                        String rid = document.getIdentity().toString().substring(1);
-                        int recordVersion = document.getVersion();
-                        for (String n : document.fieldNames()) {
-                            if (document.fieldType(n) == OType.CUSTOM) {
-                            if (DEBUG) System.out.println("REMOVING Name="+n+" Type="+document.fieldType(n));
-                                document.removeField(n);
-                            }
-                        }
-                        String json = document.toJSON();
-                        ODocument log = iRecord.getDatabase().newInstance("auditTrail");
-                        log.field("timestamp", new Date())
-                            .field("action", iType.toString())
-                            .field("table", table)
-                            .field("rid", rid)
-                            .field("user", user)
-                            .field("recordVersion", recordVersion)
-                            .field("detail", json)
-                            .save();
-                        DatabaseConnection.rowCountChanged("auditTrail");  // This should clear the rowcount for the auditTrail from the cache
-                    } catch (Exception e) {
-                        System.err.println("Unable to write audit trail using user "+user+" with message "+e.getMessage());
-                        e.printStackTrace();
-                    }
-                }
-            }
-        }
-        return RESULT.RECORD_NOT_CHANGED;
+        com.arcadedb.database.Database db = record.getDatabase();
+        MutableDocument atr = db.newDocument(Setup.TABLE_AUDIT);
+        atr.set("timestamp", LocalDateTime.now());
+        atr.set("user", db.getCurrentUserName());
+        atr.set("action",action);
+        atr.set("table",rjson.getString("@type"));
+        atr.set("rid",rjson.getString("@rid"));
+        atr.newEmbeddedDocument( rjson.getString("@type"), "detail").fromJSON(rjson);
+        atr.save();
     }
-
-    @Override
-    public DISTRIBUTED_EXECUTION_MODE getDistributedExecutionMode() {
-        if (DEBUG) System.out.println("Hook:gdem");
-        return DISTRIBUTED_EXECUTION_MODE.BOTH;
-    }
-*/
 
 	/** Get the guest connection */
 	public final static Database getNonUserDatabase() {

@@ -28,12 +28,16 @@ import java.util.Stack;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.arcadedb.database.Document;
+import com.arcadedb.database.EmbeddedDocument;
 import com.arcadedb.database.MutableDocument;
 import com.arcadedb.database.RID;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.Property;
 import com.arcadedb.schema.Type;
 
+import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.text.DateFormat;
@@ -120,7 +124,7 @@ public class Table extends Weblet {
                 } else if (httpMethod.equals("PATCH")) {
                     // PATCH to update and return the updated row (Possibly Copy button was pressed in this form)
                     if (!rid.equals("-")) parms.put("EDIT_ID", rid);  // updateRow needs this
-                    if (parms.get("SUBMIT").equals("COPY")) {
+                    if (parms.get("SUBMIT") != null && parms.get("SUBMIT").equals("COPY")) {
                         if (copyRow(con, table, parms, errors)) {
                             return errors.toString() + getTableRowForm(con, table, parms);
                         }
@@ -365,6 +369,8 @@ public class Table extends Weblet {
 
     public boolean insertRow(DatabaseConnection con, String table, HashMap<String, String> parms, StringBuilder errors) {
         MutableDocument newDoc = con.create(table);
+        ArrayList<String> thumbsToUpdate = new ArrayList<String>();
+
         for (Property column : con.getColumns(table)) {
             Type type = column.getType();
             String name = column.getName();
@@ -410,10 +416,9 @@ public class Table extends Weblet {
                     }
                 } else if (type == Type.STRING) {  // String
                     newDoc.set(name, value);
-                } else if (type == Type.BINARY) {  // Binary/image (8 = binary, 20 = custom)
-          //          updateBlob(newDoc, table, name, parms, errors);
-            //    } else if (type >= 9 && type <= 12) {  // Embedded types
-            //        newDoc.set(name, value);
+                } else if (type == Type.BINARY) {  // Binary/image 
+                    updateBlob(con, newDoc, table, name, parms, errors);
+                    thumbsToUpdate.add(name);
                 } else if (type == Type.LINK) {  // Link
                     Document linkDoc = null;
                     if (value != null) {
@@ -490,6 +495,9 @@ public class Table extends Weblet {
                 MutableDocument createdDoc = newDoc.save();
                 parms.put("EDIT_ID", createdDoc.getIdentity().toString().substring(1));  // In case we want to go straight to the new record's editor
                 errors.append(paragraph("success", Message.get(con.getLocale(), "NEW_ROW_CREATED", (newDoc.isDirty() ? "false" : "true"))));
+                for (String thumbCol : thumbsToUpdate) {
+                    Thumbnail.createThumbnail(con, table, createdDoc, thumbCol);
+                }
                 Server.tableUpdated(con, table);
                 DatabaseConnection.rowCountChanged(table);
                 return true;
@@ -508,24 +516,23 @@ public class Table extends Weblet {
         }
     }
 
-    public boolean updateBlob(Document doc, String table, String blobName, HashMap<String, String> parms, StringBuilder errors) {
+    public boolean updateBlob(DatabaseConnection con, MutableDocument doc, String table, String blobName, HashMap<String, String> parms, StringBuilder errors) {
         if (doc != null) {
             String blob_temp_file = parms.get(PARM_PREFIX + blobName);
             String blob_file_name = parms.get(PARM_PREFIX + blobName + "_FILENAME");
             String blob_type = parms.get(PARM_PREFIX + blobName + "_TYPE");
             if (blob_temp_file != null && !blob_temp_file.trim().equals("")) {
-                if (DEBUG) {
-                    System.out.println("Writing blob " + blob_file_name + " type:" + blob_type + " file:" + blob_temp_file);
+                if (DEBUG) System.out.println("Writing blob " + blob_file_name + " type:" + blob_type + " file:" + blob_temp_file);
+                try {
+                    FileInputStream is = new FileInputStream(blob_temp_file);
+                    byte[] byteArray = is.readAllBytes();
+                    is.close();
+                    if (byteArray.length > 0) {
+                        doc.set(blobName, byteArray);
+                    }
+                } catch (IOException ioe) {
+                    ioe.printStackTrace();
                 }
-            //    ORecordBytes record = new ORecordBytes();
-            //    try {
-            //        record.fromInputStream(new FileInputStream(blob_temp_file));
-            //    } catch (IOException ioe) {
-            //        ioe.printStackTrace();
-            //    }
-            //    record.save();
-            //    doc.field(blobName, record);
-            //    Thumbnail.createThumbnail(table, doc, blobName);
             }
         } else {
             System.out.println("Table.updateBlobs() - document is null");
@@ -655,7 +662,9 @@ public class Table extends Weblet {
                         if (DEBUG) {
                             System.out.println("Updating BLOB");
                         }
-                        updateBlob(updateRow, table, columnName, parms, errors);
+                        updateBlob(con, updateRow, table, columnName, parms, errors);
+                        Thumbnail.createThumbnail(con, table, updateRow, columnName);
+
                     }
                 } else if (type == Type.EMBEDDED) { // Embedded types - treat like a string (without quotes) - user beware
                     Object originalValue = updateRow.get(columnName);
@@ -692,7 +701,7 @@ public class Table extends Weblet {
                     if (DEBUG) System.out.println("Updating LinkList " + (o == null ? "" : o));
                     String[] newValues = {};
                     if (newValue.startsWith(",")) newValue = newValue.substring(1);
-                    if (newValue != null && !newValue.trim().equals("")) {
+                    if (newValue != null && !newValue.isBlank()) {
                         newValues = newValue.split(",");
                     }
                     // Remove all from original list as this list is ordered
@@ -741,7 +750,7 @@ public class Table extends Weblet {
                         try {
                             Document doc = con.get(nv);
                             if (doc != null) {
-                                o.put(newMaps[mapIndex], doc.getIdentity());
+                                o.put(newMaps[mapIndex], doc);
                             } else {
                                 okToUpdate = false;
                                 System.out.println("UPDATE WARNING: attempted to add a non-existent document to a map - map will remain unchanged");
@@ -798,6 +807,7 @@ public class Table extends Weblet {
                 doc.delete();
                 Server.tableUpdated(con, table);
                 DatabaseConnection.rowCountChanged(table);
+                Thumbnail.deleteThumbnail(con, table, edit_id );
                 parms.remove("EDIT_ID");
                 errors.append(serviceNotificationDiv(paragraph("success", Message.get(con.getLocale(), "ROW_DELETED", delName))));
                 return true;
@@ -1069,7 +1079,7 @@ public class Table extends Weblet {
             StringBuilder desc = new StringBuilder();
             if (edit_id != null) {
                 String nail = null;
-                String blobid = Thumbnail.getThumbnailId(table, edit_id, name, desc);
+                String blobid = Thumbnail.getThumbnailId(con, table, edit_id, name, desc);
                 if (blobid != null) {
                     nail = Thumbnail.getThumbnailLink(con.getLocale(), blobid, desc.toString());
                 } else {
@@ -1079,56 +1089,15 @@ public class Table extends Weblet {
             } else {
                 return row(label + column(fileInput(PARM_PREFIX + name)));
             }
-            // Embedded
+        // Embedded
         } else if (type == Type.EMBEDDED) {
-            String val = (initialValue == null ? "" : initialValue.toString());
+            EmbeddedDocument ed = initialValues == null ? null : initialValues.getEmbedded(name);
+            String val = ed == null ? "" : ed.toJSON().toString();
             return row(label + column(textArea(PARM_PREFIX + name, val, 5, TEXT_AREA_WIDTH)));
-            // Embedded list
-     /*    } else if (type == Type.LIST) {
-            String val = (initialValue == null ? "" : initialValue.toString());
-            // convert val to JSON format for editing directly
-            if (initialValue != null) {
-                StringBuilder sb = new StringBuilder();
-                sb.append("[\n");
-                if (initialValue instanceof List) {
-                    @SuppressWarnings("unchecked")
-                    List<Object> l = (List<Object>) initialValue;
-                    String comma = " ";
-                    for (Object o : l.toArray()) {
-                        if (o instanceof String) {
-                            sb.append(comma + "\"" + o + "\"\n");
-                        } else {
-                            sb.append(comma + o + "\n");
-                        }
-                        comma = ",";
-                    }
-                    sb.append("]");
-                    val = sb.toString();
-                }
-            }
-            return row(label + column(50, textArea(PARM_PREFIX + name, val, 5, TEXT_AREA_WIDTH)));
-           // Embedded map
-        } else if (type == Type.MAP) {
-            String val = (initialValue == null ? "" : initialValue.toString());
-            // convert val to JSON format for editing directly
-            if (initialValue != null && initialValue instanceof Map) {
-                StringBuilder sb = new StringBuilder();
-                sb.append("{\n");
-                @SuppressWarnings("unchecked")
-                Map<String, Object> m = (Map<String, Object>) initialValue;
-                String comma = " ";
-                for (String key : m.keySet()) {
-                    Object o = m.get(key);
-                    sb.append(comma + "\"" + key + "\":" + (o instanceof String ? "\"" + o + "\"" : o) + "\n");
-                    comma = ",";
-                }
-                sb.append("}");
-                val = sb.toString();
-            }
-            return row(label + column(textArea(PARM_PREFIX + name, val, 5, TEXT_AREA_WIDTH)));
-            */
         // Single link
-        } else if (type == Type.LINK && column.getOfType() != null) {
+        } else if (type == Type.LINK) {
+            String ofType = column.getOfType();
+            if (ofType == null) System.out.println("Table.getColumnAsField LINK type is null for "+name);
             if (DEBUG) System.out.println("Table.getColumnAsField found LINK type");
             String v = null;
             if (initialValue != null) {
@@ -1143,12 +1112,16 @@ public class Table extends Weblet {
             }
             String gotoLink = "";
             if (initialValues != null || initialValue != null) {
-                gotoLink = linkHTMX("/"+this.getClass().getName() + "/" + column.getOfType() + "/" + v, Message.get(con.getLocale(), "GOTO_ROW"), parms.get("HX-TARGET"));
+                gotoLink = linkHTMX("/"+this.getClass().getName() + "/" + ofType + "/" + v, Message.get(con.getLocale(), "GOTO_ROW"), parms.get("HX-TARGET"));
             }
-            return row(label 
-                    + column(createListFromTable(PARM_PREFIX + name, (v == null ? "" : v), con, column.getOfType(), null, true, null, true)
-                    + gotoLink          
-                    ));
+            if (ofType != null) {
+                return row(label 
+                        + column(createListFromTable(PARM_PREFIX + name, (v == null ? "" : v), con, ofType, null, true, null, true)
+                        + gotoLink          
+                        ));
+            } else {
+                return paragraph("error","table.getColumnAsField: Could not determine linked type for "+name);
+            }
         // Link list
         } else if (type == Type.LIST) {
             List<RID> list = null;
@@ -1158,7 +1131,11 @@ public class Table extends Weblet {
                 e.printStackTrace();
             } // It will do this if it doesn't exist
             String linkedType = column.getOfType();
-            if (column.getOfType() == null && list != null && list.size() > 0) {
+            if (linkedType == null && name.startsWith("_allow")) {
+                    System.out.println("Assuming a link type of identity for "+name);
+                    linkedType = "identity";
+            }
+            if (linkedType == null && list != null && list.size() > 0) {
                 System.out.println("table.getColumnAsField: Will deduce LINK OfType from contents");
                 Document d = con.get(list.get(0));
                 if (d != null) {
@@ -1169,7 +1146,7 @@ public class Table extends Weblet {
             if (linkedType != null) {
                 return row(label + columnNoWrap(linkListControl(con, PARM_PREFIX + name, linkedType, getCache().getResult(con, getQueryForTable(con, linkedType)), con.getLocale(), list)));
             } else {
-                return paragraph("error","table.getColumnAsField: Could not determine linked class for "+name);
+                return paragraph("error","table.getColumnAsField: Could not determine linked type for "+name);
             }
            // Link map
         } else if (type == Type.MAP) { 
@@ -1181,8 +1158,12 @@ public class Table extends Weblet {
             if (l != null && DEBUG) {
                 System.out.println("linkmap size=" + l.size());
             }
-            String linkedClass = column.getOfType();
-            return row(label + columnNoWrap(linkMapControl(con, PARM_PREFIX + name, linkedClass, getCache().getResult(con, getQueryForTable(con, linkedClass)), con.getLocale(), l)));
+            String linkedType = column.getOfType();
+            if (linkedType != null) {
+                return row(label + columnNoWrap(linkMapControl(con, PARM_PREFIX + name, linkedType, getCache().getResult(con, getQueryForTable(con, linkedType)), con.getLocale(), l)));
+            } else {
+                return paragraph("error","table.getColumnAsField: Could not determine linked type for "+name);
+            }
         } else {
             System.out.println("Table.GetColumnAsField: Unrecognized type: " + type);
             return row(label + column(input("other", PARM_PREFIX + name, initialValue)));
@@ -1614,21 +1595,28 @@ public class Table extends Weblet {
                 }
                 sb.append(column(stringvalue));
             }
-   //     } else if (columnType == 20) {  // Binary (Using CUSTOM OType)
-   //         StringBuilder desc = new StringBuilder();
-   //         String blobid = Thumbnail.getThumbnailId(d.getTypeName(), d.getIdentity().toString().substring(1), columnName, desc);
-   //         if (blobid != null) {
-   //             sb.append(column(Thumbnail.getThumbnailLink(con.getLocale(), blobid, desc.toString())));
-   //         } else {
-   //             sb.append(column("<div title=\"" + Message.get(con.getLocale(), "THUMBNAIL_NOT_FOUND", columnName, d.getIdentity().toString() + "\">" + Message.get(con.getLocale(), "OPTION_NONE") + "</div>")));
-   //         }
+        } else if (columnType == Type.BINARY) {  // Binary 
+            StringBuilder desc = new StringBuilder();
+            String blobid = Thumbnail.getThumbnailId(con, d.getTypeName(), d.getIdentity().toString().substring(1), columnName, desc);
+            if (blobid != null) {
+                sb.append(column(Thumbnail.getThumbnailAsCell(con.getLocale(), blobid, desc.toString())));
+            } else {
+                sb.append(column("<div title=\"" + Message.get(con.getLocale(), "THUMBNAIL_NOT_FOUND", columnName, d.getIdentity().toString() + "\">" + Message.get(con.getLocale(), "OPTION_NONE") + "</div>")));
+            }
 
-   //     } else if (columnType >= 9 && columnType <= 12) {  // Embedded
-   //         String stringvalue = "" + d.getString(columnName);
-   //         if (stringvalue != null && stringvalue.length() > MAX_STRING_DISPLAY) {
-   //             stringvalue = stringvalue.substring(0, MAX_STRING_DISPLAY) + "...";
-   //         }
-   //         sb.append(column(stringvalue));
+        } else if (columnType == Type.EMBEDDED) {  // Embedded
+            String stringvalue = "??";
+            try {
+                EmbeddedDocument value = d.getEmbedded(columnName);
+                stringvalue = value == null ? "" : value.toJSON().toString();
+                if (stringvalue != null && stringvalue.length() > MAX_STRING_DISPLAY) {
+                    stringvalue = stringvalue.substring(0, MAX_STRING_DISPLAY) + "...";
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                System.out.println("Table.getColumnAsCell: Error in showing embedded object "+columnName+" from table "+d.getTypeName());
+            }
+            sb.append(column(stringvalue));
         } else if (columnType == Type.LINK) {  // Link
             String desc = "";
             try {
@@ -1685,17 +1673,12 @@ public class Table extends Weblet {
             sb.append(column(ll.toString()));
         } else if (columnType == Type.BYTE) {  // Byte
             sb.append(column("" + d.getByte(columnName)));
-     //   } else if (columnType == 18) {  // Transient
-     //       sb.append(column("transient"));
         } else if (columnType == Type.DATE) {  // Date
             sb.append(column("" + (d.getDate(columnName) == null ? "" : formatDate(con.getLocale(), d.getDate(columnName)))));
         } else if (columnType == Type.DECIMAL) {   // Decimal
             Number num = (Number) d.getDecimal(columnName);
             String formatted = (num == null ? "" : formatNumber(con.getLocale(), num, FLOAT_FORMAT));
             sb.append(column("number", formatted));
-   //     } else if (columnType == 23) {   // Any
-   //         Object value = d.get(columnName);
-   //         sb.append(column(value == null ? "null" : value.toString()));
         } else {
             if (DEBUG) {
                 System.out.println("Table: unrecognized type " + columnType);

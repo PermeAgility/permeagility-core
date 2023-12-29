@@ -50,8 +50,11 @@ public class DatabaseConnection {
 		if (DEBUG) System.out.println("New database connection initiated "+c.getName());
 	}
 
-	public void close() { if (!db.EMBEDDED_SERVER) c.close(); }
-	public boolean isConnected() { return c != null && c.isOpen(); }
+	public void close() { 
+        if (!Database.EMBEDDED_SERVER) c.close(); 
+    }
+	
+    public boolean isConnected() { return c != null && c.isOpen(); }
 
         // The NewConnection functions are for thread processes that need another connection after the user has moved on from this one
 //        public DatabaseConnection getNewConnection() {
@@ -302,7 +305,7 @@ public class DatabaseConnection {
                         }
                     }
                     if (!found) {
-                        System.out.println("Could not find column "+name+" in the columns for table "+table+" even though this column was explicitly mentioned in the columns table - huh!");
+                        System.out.println("Could not find column '"+name+"' in the columns for table "+table+" even though this column was explicitly mentioned in the columns table - huh!");
                     }
                 }
             }
