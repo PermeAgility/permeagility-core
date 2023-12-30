@@ -940,6 +940,18 @@ public abstract class Weblet {
         return result.toString();
     }
     
+    public static String getQueryForTable(DatabaseConnection con, String table, String column) {
+            QueryResultCache lists = getCache().getResult(con, "SELECT FROM "+Setup.TABLE_PICKLIST+" WHERE tablename='"+table+"."+column+"'");
+            if (lists != null && lists.size()>0) {
+                    return lists.getStringValue(0, "query");
+            }
+            lists = getCache().getResult(con, "SELECT FROM "+Setup.TABLE_PICKLIST+" WHERE tablename='"+table+"'");
+            if (lists != null && lists.size()>0) {
+                    return lists.getStringValue(0, "query");
+            }
+            return "SELECT FROM "+table+" LIMIT "+Table.ROW_COUNT_LIMIT;
+    }
+
     public static String getQueryForTable(DatabaseConnection con, String table) {
             QueryResultCache lists = getCache().getResult(con, "SELECT FROM "+Setup.TABLE_PICKLIST+" WHERE tablename='"+table+"'");
             if (lists != null && lists.size()>0) {
@@ -970,6 +982,7 @@ public abstract class Weblet {
         }
     }
 
+    // used only by Table.getLinkTrail
     public static String getDescriptionFromTable(DatabaseConnection con, String table, String id) {
         if (id == null || id.equals("")) return NONE_STRING;
         //System.out.println(getQueryForTable(con, table));
@@ -1093,6 +1106,19 @@ public abstract class Weblet {
             }
             sb.append("</select>\n");
             return sb.toString();
+    }
+
+    public static String getTabPanel(String name, ArrayList<String> tabNames, ArrayList<String> tabTargets) {
+        StringBuilder result = new StringBuilder();
+        result.append("<div id=\"tabs\" class=\"tabpanel\" hx-target=\"#"+name+"\" role=\"tablist\" "
+          +" _=\"on htmx:afterOnLoad set @aria-selected of <[aria-selected=true]/> to false "
+          +" tell the target take .selected set @aria-selected to true\">\n");
+        for (int i = 0; i < tabNames.size(); i++) {
+            result.append("<a role=\"tab\" aria-controls=\""+name+"\" aria-selected=\"false\" hx-get=\""+tabTargets.get(i)+"\">&nbsp;"+tabNames.get(i)+"&nbsp;</a>\n");
+        }
+        result.append("</div>\n");
+        result.append("<div id=\""+name+"\" role=\"tabpanel\"></div>\n");
+        return result.toString();
     }
 
     public static boolean isNullOrBlank(String string) {

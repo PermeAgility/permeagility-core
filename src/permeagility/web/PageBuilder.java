@@ -45,12 +45,12 @@ public class PageBuilder extends Table {
                     ? popupFormHTMX("CREATE_NEW_ROW", this.getClass().getName()+"/"+TABLE_NAME, "put", parms.get("HX-TARGET"), Message.get(locale, "CREATE_ROW"), "NAME",
                             paragraph("banner", Message.get(locale, "CREATE_ROW"))
                             + hidden("TABLENAME", TABLE_NAME)
-                            + super.getTableRowFields(con, TABLE_NAME, null, "name,description,-", null)
+                            + super.getTableRowFields(con, TABLE_NAME, null, "name,description,useStyleFrom,-", null)
                             + submitButton(locale, "CREATE_ROW"))
                     : "")
                     + getTable(con, parms, TABLE_NAME
                         , "SELECT FROM " + TABLE_NAME+" WHERE name != '' AND (classname is null OR classname = '')"
-                        , null, 0, "name,description,-")
+                        , null, 0, "name,description,useStyleFrom,-")
                     + serviceHeaderUpdateDiv(parms, APP_NAME)
                 );
     }
@@ -79,11 +79,13 @@ public class PageBuilder extends Table {
         String scriptEditor = "";
         String formName = (edit_id == null ? "NEWROW" : "UPDATEROW");
 
-        String init = initialValues.getString("pageStyle");
+        String init = null;
+        if (initialValues != null) init = initialValues.getString("pageStyle");
         if (init == null) init = "<style type='text/css'>\n/* CSS Styles in here */\n\n</style>\n";
         styleEditor = getCodeEditorControl(formName, PARM_PREFIX + "pageStyle", init, "css", null);
 
-        init = initialValues.getString("pageScript");
+        init = null;
+        if (initialValues != null) init = initialValues.getString("pageScript");
         if (init == null) init = "<!-- "+new Date()+"\n     by "+con.getUser()+"\n     body contents below -->\n";
         scriptEditor = getCodeEditorControl(formName, PARM_PREFIX + "pageScript", init, "htmlmixed", null);
 
@@ -94,7 +96,7 @@ public class PageBuilder extends Table {
                 + popupFormHTMX("UPDATE_NAME", "", "", parms.get("HX-TARGET"), Message.get(con.getLocale(), "DETAILS"), "NAME",
                         paragraph("banner", Message.get(con.getLocale(), "DETAILS"))
                         + hidden("TABLENAME", TABLE_NAME)
-                        + super.getTableRowFields(con, TABLE_NAME, parms, "name,description,-")
+                        + super.getTableRowFields(con, TABLE_NAME, parms, "name,description,useStyleFrom,-")
                 )
                 +"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
             )
@@ -121,6 +123,7 @@ public class PageBuilder extends Table {
                             + addFormData(formName,"pageScript")
                             + addFormData("name")
                             + addFormData("description")
+                            + addFormData("useStyleFrom")
                             //+ addFormData("_allowRead")                           // send it to be processed
                             // Todo: should convert this to htmx and target errors to a place where they could be seen
                         + "   fetch('/"+this.getClass().getName()+"/"+TABLE_NAME+"/"+edit_id+"', { method: \"PATCH\", body: formData } ).then(data => {   \n"                        

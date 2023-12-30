@@ -17,11 +17,12 @@ package permeagility.util;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 
 import com.arcadedb.database.Document;
 import com.arcadedb.database.MutableDocument;
+import com.arcadedb.database.RID;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.Property;
 import com.arcadedb.schema.Schema;
@@ -63,7 +64,8 @@ public class Setup {
       ALTER TYPE role SUPERTYPE +identity;
       CREATE DOCUMENT TYPE user IF NOT EXISTS;
       ALTER TYPE user SUPERTYPE +identity;
-
+      CREATE DOCUMENT TYPE privilege IF NOT EXISTS;
+      
       CREATE DOCUMENT TYPE constant IF NOT EXISTS;
       CREATE DOCUMENT TYPE locale IF NOT EXISTS;
       CREATE DOCUMENT TYPE message IF NOT EXISTS;
@@ -88,13 +90,17 @@ public class Setup {
       CREATE PROPERTY restricted._allowRead IF NOT EXISTS LIST OF identity;
       CREATE PROPERTY restricted._allow IF NOT EXISTS LIST OF identity;
 
-      CREATE PROPERTY role.mode IF NOT EXISTS BYTE;
+      CREATE PROPERTY role.mode IF NOT EXISTS STRING;
       CREATE PROPERTY role.inheritedRole IF NOT EXISTS LINK OF role;
       CREATE PROPERTY role.rules IF NOT EXISTS EMBEDDED;
 
       CREATE PROPERTY user.password IF NOT EXISTS STRING;
       CREATE PROPERTY user.status IF NOT EXISTS STRING;
       CREATE PROPERTY user.roles IF NOT EXISTS LIST OF role;
+
+      CREATE PROPERTY privilege.access IF NOT EXISTS STRING;
+      CREATE PROPERTY privilege.resource IF NOT EXISTS STRING;
+      CREATE PROPERTY privilege.identity IF NOT EXISTS LINK OF identity;
 
       CREATE PROPERTY constant.classname IF NOT EXISTS STRING;
       CREATE PROPERTY constant.description IF NOT EXISTS STRING;
@@ -130,6 +136,7 @@ public class Setup {
       CREATE PROPERTY menuItem.description IF NOT EXISTS STRING;
       CREATE PROPERTY menuItem.pageScript IF NOT EXISTS STRING;
       CREATE PROPERTY menuItem.pageStyle IF NOT EXISTS STRING;
+      CREATE PROPERTY menuItem.useStyleFrom IF NOT EXISTS LINK OF menuItem;
 
       CREATE PROPERTY menu.items IF NOT EXISTS LIST OF menuItem;
 
@@ -177,81 +184,115 @@ public class Setup {
             System.out.println("DatabaseSetup.checkInstallation finished schemaScript");
   
             con.begin();
-            Schema oschema = con.getSchema();
-     //       com.arcadedb.security.SecurityManager osecurity = con.getSecurity();
-/* 
+            Schema schema = con.getSchema();
+  //          com.arcadedb.security.SecurityManager osecurity = con.getSecurity();
+ 
             // Setup roles lists for use later on in this script
-            Set<Document> allRoles = new HashSet<>();
-            Set<Document> allRolesButGuest = new HashSet<>();
-            Set<Document> adminRoles = new HashSet<>();
-            Set<Document> adminAndWriterRoles = new HashSet<>();
-            Set<Document> readerRoles = new HashSet<>();
-            Set<Document> writerRoles = new HashSet<>();
-            Set<Document> guestRoles = new HashSet<>();
-            Set<Document> userRoles = new HashSet<>();
-            List<Document> qr = osecurity.getAllRoles();
-            for (Document roleDoc : qr) {
-                Role role = osecurity.getRole(roleDoc);
-                allRoles.add(role.getDocument());
-                if (!role.getName().equals("guest")) allRolesButGuest.add(role.getDocument());
-                if (role.getName().equals("admin")) adminRoles.add(role.getDocument());
-                if (role.getName().equals("server")) adminRoles.add(role.getDocument());
-                if (role.getName().equals("reader")) readerRoles.add(role.getDocument());
-                if (role.getName().equals("writer")) writerRoles.add(role.getDocument());
-                if (role.getName().equals("guest")) guestRoles.add(role.getDocument());
-                if (role.getName().equals("user")) userRoles.add(role.getDocument());
-                if (role.getName().equals("admin") || role.getName().equals("writer")) adminAndWriterRoles.add(role.getDocument());
+            List<Document> allRoles = new ArrayList<Document>();
+            List<Document> allRolesButGuest = new ArrayList<Document>();
+            List<Document> adminRoles = new ArrayList<Document>();
+            List<Document> staffRoles = new ArrayList<Document>();
+            List<Document> customerRoles = new ArrayList<Document>();
+            List<Document> guestRoles = new ArrayList<Document>();
+            for (Document roleDoc : con.query("SELECT FROM role").get()) {
+                allRoles.add(roleDoc);
+                if (roleDoc.getString("name").equals("admin")) adminRoles.add(roleDoc);
+                if (roleDoc.getString("name").equals("staff")) staffRoles.add(roleDoc);
+                if (roleDoc.getString("name").equals("customer")) customerRoles.add(roleDoc);
+                if (roleDoc.getString("name").equals("guest")) guestRoles.add(roleDoc);
+                if (!roleDoc.getString("name").equals("guest")) allRolesButGuest.add(roleDoc);
             }
 
-            Document guestUser = con.queryDocument("SELECT FROM User WHERE name='guest'");
+            Document adminRole = null;
+            Document staffRole = null;
+            Document customerRole = null;
+            Document guestRole = null;
+            Document adminUser = con.queryDocument("SELECT FROM user WHERE name='admin'");
+            Document guestUser = con.queryDocument("SELECT FROM user WHERE name='guest'");
+
+            if (adminRoles.isEmpty()) {
+                adminRole = (Document)con.update("INSERT INTO role SET name = 'admin', mode = 'SUPER' RETURN @this");
+                installMessages.append(Weblet.paragraph("CheckInstallation: Created admin role"));
+            } else {
+                adminRole = adminRoles.get(0);
+            }
+            if (adminUser == null) {
+                adminUser = (Document)con.update("INSERT INTO user SET name = 'admin', password = 'admin', status = 'ACTIVE', roles = (select from role where name = 'admin') RETURN @this");
+                installMessages.append(Weblet.paragraph("CheckInstallation: Created admin user ")+adminUser.getIdentity());
+            }
 
             if (guestRoles.isEmpty()) {
-                ODocument guestRole = (ODocument)con.update("insert into ORole set name = 'guest', mode = 0");
-                guestRoles.add(guestRole);
-                allRoles.add(guestRole);
+                guestRole = (Document)con.update("INSERT INTO role SET name = 'guest', mode = 'NORMAL' RETURN @this");
                 installMessages.append(Weblet.paragraph("CheckInstallation: Created guest role"));
-            }
-            if (userRoles.isEmpty()) {
-                ODocument userRole = (ODocument)con.update("insert into ORole set name = 'user', mode = 0");
-                userRoles.add(userRole);
-                allRoles.add(userRole);
-                allRolesButGuest.add(userRole);
-                installMessages.append(Weblet.paragraph("CheckInstallation: Created user role"));
+            } else {
+                guestRole = guestRoles.get(0);
             }
             if (guestUser == null) {
-                guestUser = (ODocument)con.update("insert into OUser set name = 'guest', password = 'guest', status = 'ACTIVE', roles = (select from ORole where name = 'guest')");
+                guestUser = (Document)con.update("INSERT INTO user SET name = 'guest', password = 'guest', status = 'ACTIVE', roles = (select from role where name = 'guest') RETURN @this");
                 installMessages.append(Weblet.paragraph("CheckInstallation: Created guest user ")+guestUser.getIdentity());
             }
+            if (guestRoles.isEmpty()) {
+                guestRoles.add(guestRole);
+                allRoles.add(guestRole);
+            }
 
-            // Verify the minimum privileges for the guest and user role
-            checkCreatePrivilege(con,"guest",ResourceGeneric.DATABASE,null,2,installMessages);
-            checkCreatePrivilege(con,"guest",ResourceGeneric.COMMAND,null,2,installMessages);
-            checkCreatePrivilege(con,"guest",ResourceGeneric.SCHEMA,null,2,installMessages);
-            checkCreatePrivilege(con,"guest",ResourceGeneric.CLUSTER,null,2,installMessages);
+            if (staffRoles.isEmpty()) {
+                staffRole = (Document)con.update("INSERT INTO role SET name = 'staff', mode = 'SUPER' RETURN @this");
+            } else {
+                staffRole = staffRoles.get(0);
+            }
+            if (staffRoles.isEmpty()) {
+                staffRoles.add(staffRole);
+                allRoles.add(staffRole);
+                allRolesButGuest.add(staffRole);
+                installMessages.append(Weblet.paragraph("CheckInstallation: Created staff role"));
+            }
 
-            checkCreatePrivilege(con,"user",ResourceGeneric.DATABASE,null,2,installMessages);
-            checkCreatePrivilege(con,"user",ResourceGeneric.COMMAND,null,2,installMessages);
-            checkCreatePrivilege(con,"user",ResourceGeneric.SCHEMA,null,2,installMessages);
-            checkCreatePrivilege(con,"user",ResourceGeneric.CLUSTER,null,3,installMessages);
+            if (customerRoles.isEmpty()) {
+                customerRole = (Document)con.update("INSERT INTO role SET name = 'customer', mode = 'NORMAL', inheritedRole = "+guestRole.getIdentity().toString()+" RETURN @this");
+            } else {
+                customerRole = customerRoles.get(0);
+            }
+            if (customerRoles.isEmpty()) {
+                customerRoles.add(customerRole);
+                allRoles.add(customerRole);
+                allRolesButGuest.add(customerRole);
+                installMessages.append(Weblet.paragraph("CheckInstallation: Created customer role"));
+            }
 
+            // Verify the minimum privileges for the guest role
+            checkCreatePrivilege(con, guestRole.getIdentity(), "READ", "menuItem", installMessages);  // home page (menuItem is restricted)
+            checkCreatePrivilege(con, guestRole.getIdentity(), "READ", "thumbnail", installMessages);  // can read images
+            checkCreatePrivilege(con, guestRole.getIdentity(), "READ", "news", installMessages);  // read the news
+            checkCreatePrivilege(con, guestRole.getIdentity(), "READ", "message", installMessages);  // get messages
+            checkCreatePrivilege(con, guestRole.getIdentity(), "CREATE", "userProfile", installMessages);  // create user request
+            checkCreatePrivilege(con, guestRole.getIdentity(), "UPDATE", "userProfile", installMessages);  // Update their profile
+            checkCreatePrivilege(con, guestRole.getIdentity(), "READ", "userProfile", installMessages);    // see their profile
 
-            // Add ability for reader/writer to read from systemclusters and ORole
+            // Staff are mode SUPER, access everything except for: (protecting the system config)
+            // note: in a mode SUPER, READONLY means no CREATE, UPDATE, or DELETE
+            checkCreatePrivilege(con, staffRole.getIdentity(), "READONLY", "schema", installMessages);   // no add table
+            checkCreatePrivilege(con, staffRole.getIdentity(), "READONLY", "restricted", installMessages);
+            checkCreatePrivilege(con, staffRole.getIdentity(), "READONLY", "identity", installMessages);
+            checkCreatePrivilege(con, staffRole.getIdentity(), "READONLY", "role", installMessages);
+            checkCreatePrivilege(con, staffRole.getIdentity(), "READONLY", "user", installMessages);
+            checkCreatePrivilege(con, staffRole.getIdentity(), "READONLY", "menu", installMessages);
+            checkCreatePrivilege(con, staffRole.getIdentity(), "READONLY", "menuItem", installMessages);
+            checkCreatePrivilege(con, staffRole.getIdentity(), "READONLY", "tableGroup", installMessages);
+            checkCreatePrivilege(con, staffRole.getIdentity(), "READONLY", "columns", installMessages);
+            checkCreatePrivilege(con, staffRole.getIdentity(), "READONLY", "pickList", installMessages);
+            checkCreatePrivilege(con, staffRole.getIdentity(), "READONLY", "pickValues", installMessages);
+            checkCreatePrivilege(con, staffRole.getIdentity(), "READONLY", "constant", installMessages);
 
-            // For some reason, the hasRule function thinks these already exist
-//            checkCreatePrivilege(con,"reader",ResourceGeneric.SYSTEM_CLUSTERS,null,2,installMessages);
-//            checkCreatePrivilege(con,"reader",ResourceGeneric.CLUSTER,"ORole",2,installMessages);
-//            checkCreatePrivilege(con,"writer",ResourceGeneric.SYSTEM_CLUSTERS,null,2,installMessages);
-//            checkCreatePrivilege(con,"writer",ResourceGeneric.CLUSTER,"ORole",2,installMessages);
+            // A customer is a guest until they log in 
+            // then they are guest + whatever is granted to the customer role for the application
+            // ie. orders, reservations, social media posts, etc...
 
-            // So we have to do this manually
-            con.update("GRANT READ on database.systemclusters TO reader");
-            con.update("GRANT READ on database.systemclusters TO writer");
-            con.update("GRANT READ on database.cluster.ORole TO reader");
-            con.update("GRANT READ on database.cluster.ORole TO writer");
-*/
+            
+
             // columns must be first as it will receive the properties as they are created by checkCreateProperty
             System.out.println(TABLE_COLUMNS+" ");
-            DocumentType columnsTable = Setup.checkCreateTable(oschema, TABLE_COLUMNS, installMessages);
+            DocumentType columnsTable = Setup.checkCreateTable(schema, TABLE_COLUMNS, installMessages);
             // Need to create first two column manually then we can call the function that adds it to the new columns
             if (columnsTable != null && !columnsTable.existsProperty("name")) {
                 columnsTable.createProperty("name", Type.STRING);
@@ -266,20 +307,21 @@ public class Setup {
  
             // Create early so we can automatically add tables to them
             System.out.println(TABLE_TABLEGROUP+" ");
-            DocumentType tableGroupTable = Setup.checkCreateTable(oschema, TABLE_TABLEGROUP, installMessages);
-            //Setup.checkTableSuperclass(oschema, tableGroupTable, "ORestricted", installMessages);
+            DocumentType tableGroupTable = Setup.checkCreateTable(schema, TABLE_TABLEGROUP, installMessages);
+            //Setup.checkTableSuperclass(schema, tableGroupTable, "ORestricted", installMessages);
             Setup.checkCreateColumn(con, tableGroupTable, "name", Type.STRING, installMessages);
             Setup.checkCreateColumn(con, tableGroupTable, "tables", Type.STRING, installMessages);
 
             if (con.getRowCount(TABLE_TABLEGROUP) == 0) {
-                    con.create(TABLE_TABLEGROUP).set("name","Application").set("tables","news,tableGroup,columns,locale,message,pickList,pickValues,constant,menuItem,menu,role,user,userProfile,auditTrail,restricted,identity,-thumbnail").save();
+                    con.create(TABLE_TABLEGROUP).set("name","Application").set("tables"
+                    ,"news,tableGroup,columns,locale,message,pickList,pickValues,constant,menuItem,menu,role,user,userProfile,auditTrail,restricted,identity,privilege,-thumbnail").save();
                  //   con.create(TABLE_TABLEGROUP).set("name","System").set("tables","ORole,OUser,OFunction,OSchedule,OSequence,-ORIDs,-E,-V,-_studio").save();
                     con.create(TABLE_TABLEGROUP).set("name","Content").set("tables","").save();
                     con.create(TABLE_TABLEGROUP).set("name","Plus").set("tables","").save();
             }
   
             System.out.println(TABLE_THUMBNAIL+" ");
-            DocumentType thumbnailTable = Setup.checkCreateTable(oschema, TABLE_THUMBNAIL, installMessages);
+            DocumentType thumbnailTable = Setup.checkCreateTable(schema, TABLE_THUMBNAIL, installMessages);
             Setup.checkCreateColumn(con, thumbnailTable, "name", Type.STRING, installMessages);
             Setup.checkCreateColumn(con, thumbnailTable, "table", Type.STRING, installMessages);
             Setup.checkCreateColumn(con, thumbnailTable, "column", Type.STRING, installMessages);
@@ -292,7 +334,7 @@ public class Setup {
             Setup.checkCreateColumn(con, thumbnailTable, "medium", Type.BINARY, installMessages);
 
             System.out.println(TABLE_CONSTANT+" ");
-            DocumentType constantTable = Setup.checkCreateTable(oschema, TABLE_CONSTANT, installMessages);
+            DocumentType constantTable = Setup.checkCreateTable(schema, TABLE_CONSTANT, installMessages);
             Setup.checkCreateColumn(con, constantTable, "classname", Type.STRING, installMessages);
             Setup.checkCreateColumn(con, constantTable, "description", Type.STRING, installMessages);
             Setup.checkCreateColumn(con, constantTable, "field", Type.STRING, installMessages);
@@ -301,6 +343,7 @@ public class Setup {
             if (con.getRowCount(TABLE_CONSTANT) == 0) {
                 System.out.println("Inserting constants");
                 con.create(TABLE_CONSTANT).set("classname","permeagility.web.Server").set("description","Server debug flag").set("field","DEBUG").set("value",SETUP_DEBUG_FLAG).save();
+                con.create(TABLE_CONSTANT).set("classname","permeagility.util.DatabaseConnection").set("description","Database debug (Shows all SQL)").set("field","DEBUG").set("value",SETUP_DEBUG_FLAG).save();
                 con.create(TABLE_CONSTANT).set("classname","permeagility.web.Server").set("description","Audit Trail").set("field","AUDIT_WRITES").set("value","true").save();
                 con.create(TABLE_CONSTANT).set("classname","permeagility.web.Server").set("description","Use images/js in jar").set("field","WWW_IN_JAR").set("value","true").save();
                 con.create(TABLE_CONSTANT).set("classname","permeagility.web.Security").set("description","Security debug flag").set("field","DEBUG").set("value",SETUP_DEBUG_FLAG).save();
@@ -315,7 +358,7 @@ public class Setup {
             }
  
             System.out.println(TABLE_AUDIT+" ");
-            DocumentType auditTable = Setup.checkCreateTable(oschema, TABLE_AUDIT, installMessages);
+            DocumentType auditTable = Setup.checkCreateTable(schema, TABLE_AUDIT, installMessages);
             Setup.checkCreateColumn(con, auditTable, "timestamp", Type.DATETIME, installMessages);
             Setup.checkCreateColumn(con, auditTable, "user", Type.STRING, installMessages);
             Setup.checkCreateColumn(con, auditTable, "action", Type.STRING, installMessages);
@@ -325,7 +368,7 @@ public class Setup {
 
       
             System.out.println(TABLE_LOCALE+" ");
-            DocumentType localeTable = Setup.checkCreateTable(oschema, TABLE_LOCALE, installMessages);
+            DocumentType localeTable = Setup.checkCreateTable(schema, TABLE_LOCALE, installMessages);
             Setup.checkCreateColumn(con, localeTable, "name", Type.STRING, installMessages);
             Setup.checkCreateColumn(con, localeTable, "description", Type.STRING, installMessages);
             Setup.checkCreateColumn(con, localeTable, "active", Type.BOOLEAN, installMessages);
@@ -343,12 +386,12 @@ public class Setup {
             }
 
             System.out.println(TABLE_MESSAGE+" ");
-            DocumentType messageTable = Setup.checkCreateTable(oschema, TABLE_MESSAGE, installMessages);
+            DocumentType messageTable = Setup.checkCreateTable(schema, TABLE_MESSAGE, installMessages);
             Setup.checkCreateColumn(con, messageTable, "name", Type.STRING, installMessages);
             Setup.checkCreateColumn(con, messageTable, "description", Type.STRING, installMessages);
             Setup.checkCreateColumn(con, messageTable, "locale", Type.LINK, localeTable, installMessages);
 
-            Message.initialize(con);
+            Message.initialize(con); // initialize so that we can check if messages exist
 
             int mCount = 0;
             // These are the data types that can be used
@@ -568,8 +611,8 @@ public class Setup {
             }
             
             System.out.println(TABLE_NEWS+" ");
-            DocumentType newsTable = Setup.checkCreateTable(oschema, TABLE_NEWS, installMessages);
-      //      Setup.checkTableSuperclass(oschema, newsTable, "restricted", installMessages);
+            DocumentType newsTable = Setup.checkCreateTable(schema, TABLE_NEWS, installMessages);
+      //      Setup.checkTableSuperclass(schema, newsTable, "restricted", installMessages);
             Setup.checkCreateColumn(con, newsTable, "name", Type.STRING, installMessages);
             Setup.checkCreateColumn(con, newsTable, "description", Type.STRING, installMessages);
             Setup.checkCreateColumn(con, newsTable, "dateline", Type.DATETIME, installMessages);
@@ -627,37 +670,42 @@ public class Setup {
                 n1.set("archive",false);
                 //n1.set("_allowRead", guestRoles.toArray());
                 n1.save();
-
-
             }
  
             System.out.println(TABLE_PICKLIST+" ");
-            DocumentType pickListTable = Setup.checkCreateTable(oschema, TABLE_PICKLIST, installMessages);
+            DocumentType pickListTable = Setup.checkCreateTable(schema, TABLE_PICKLIST, installMessages);
             Setup.checkCreateColumn(con, pickListTable, "tablename", Type.STRING, installMessages);
             Setup.checkCreateColumn(con, pickListTable, "query", Type.STRING, installMessages);
             Setup.checkCreateColumn(con, pickListTable, "description", Type.STRING, installMessages);
 
             if (con.getRowCount(TABLE_PICKLIST) == 0) {
-//                con.create(TABLE_PICKLIST)
-//                .set("tablename","identity")
-//                .set("query","select @rid.asString(), format('%s - %s',@class,name) as name from identity")
-//                .set("description","This will restrict row level table privileges to only selecting Roles, if Setup.RESTRICTED_BY_ROLE is true replace identity pickList with SELECT @rid.asString(), name from ORole")
-//                .save();
+                con.create(TABLE_PICKLIST)
+                .set("tablename","identity")
+                .set("query","SELECT FROM role")
+                .set("description","This will restrict row level table privileges to only selecting Roles, if Setup.RESTRICTED_BY_ROLE is true replace identity pickList with SELECT FROM user")
+                .save();
+
+                con.create(TABLE_PICKLIST)
+                .set("tablename","menuItem.useStyleFrom")
+                .set("query","SELECT FROM menuItem WHERE pageStyle IS NOT NULL")
+                .set("description","Restrict this list to menuItems with styles")
+                .save();
             }
  
             System.out.println(TABLE_PICKVALUES+" ");
-            DocumentType pickValuesTable = Setup.checkCreateTable(oschema, TABLE_PICKVALUES, installMessages);
+            DocumentType pickValuesTable = Setup.checkCreateTable(schema, TABLE_PICKVALUES, installMessages);
             Setup.checkCreateColumn(con, pickValuesTable, "name", Type.STRING, installMessages);
             Setup.checkCreateColumn(con, pickValuesTable, "values", Type.STRING, installMessages);
 
             if (con.getRowCount(TABLE_PICKVALUES) == 0) {
                 con.create(TABLE_PICKVALUES).set("name","user.status").set("values","ACTIVE,SUSPENDED").save();
+                con.create(TABLE_PICKVALUES).set("name","role.mode").set("values","SUPER,NORMAL").save();
 //                con.create(TABLE_PICKVALUES).set("name","OFunction.language").set("values","javascript").save();
  //               con.create(TABLE_PICKVALUES).set("name","OSequence.type").set("values","CACHED,ORDERED").save();
             }
  
             System.out.println(TABLE_MENU+" ");
-            DocumentType menuTable = Setup.checkCreateTable(oschema, TABLE_MENU, installMessages);
+            DocumentType menuTable = Setup.checkCreateTable(schema, TABLE_MENU, installMessages);
             Setup.checkCreateColumn(con, menuTable, "name", Type.STRING, installMessages);
             Setup.checkCreateColumn(con, menuTable, "active", Type.BOOLEAN, installMessages);
             Setup.checkCreateColumn(con, menuTable, "description", Type.STRING, installMessages);
@@ -674,14 +722,15 @@ public class Setup {
             }
 
             System.out.println(TABLE_MENUITEM+" ");
-            DocumentType menuItemTable = Setup.checkCreateTable(oschema, TABLE_MENUITEM, installMessages);
+            DocumentType menuItemTable = Setup.checkCreateTable(schema, TABLE_MENUITEM, installMessages);
             Setup.checkCreateColumn(con, menuItemTable, "name", Type.STRING, installMessages);
             Setup.checkCreateColumn(con, menuItemTable, "classname", Type.STRING, installMessages);
             Setup.checkCreateColumn(con, menuItemTable, "active", Type.BOOLEAN, installMessages).setDefaultValue("true");
             Setup.checkCreateColumn(con, menuItemTable, "description", Type.STRING, installMessages);
             Setup.checkCreateColumn(con, menuItemTable, "pageScript", Type.STRING, installMessages);
             Setup.checkCreateColumn(con, menuItemTable, "pageStyle", Type.STRING, installMessages);
-            //Setup.checkTableSuperclass(oschema, menuItemTable, "ORestricted", installMessages);
+            Setup.checkCreateColumn(con, menuItemTable, "useStyleFrom", Type.LINK, menuItemTable, installMessages);
+            //Setup.checkTableSuperclass(schema, menuItemTable, "ORestricted", installMessages);
             Setup.checkCreateColumn(con, menuTable, "items", Type.LIST, menuItemTable, installMessages);
 
 
@@ -785,6 +834,16 @@ public class Setup {
              //   mi_pagebuilder.set("_allow", adminRoles);
                 mi_pagebuilder.save();
 
+                MutableDocument mi_basestyle = con.create(TABLE_MENUITEM);  // Not added to menu, to support page Builder
+                mi_basestyle.set("name","default-scripts");
+                mi_basestyle.set("description","Default scripts for basic PermeAgility functions");
+                //mi_welcome.set("classname","permeagility.web.Home");
+                mi_basestyle.set("pageStyle", DEFAULT_BASE_STYLE);
+                mi_basestyle.set("pageScript", DEFAULT_BASE_SCRIPT);
+                mi_basestyle.set("active",true);
+                mi_basestyle.save();
+
+
                 MutableDocument mi_welcome = con.create(TABLE_MENUITEM);  // Not added to menu, to support page Builder
                 mi_welcome.set("name","welcome");
                 mi_welcome.set("description","Default welcome page for guests");
@@ -801,6 +860,7 @@ public class Setup {
                 mi_home.set("pageStyle", DEFAULT_DARK_STYLESHEET);
                 mi_home.set("pageScript", DEFAULT_HOME_SCRIPT);
                 mi_home.set("active",true);
+                mi_home.set("useStyleFrom", mi_basestyle.getIdentity());
                 mi_home.save();
 
                 MutableDocument mi_homel = con.create(TABLE_MENUITEM);  // Not added to menu, to support page Builder
@@ -810,6 +870,7 @@ public class Setup {
                 mi_homel.set("pageStyle", DEFAULT_LIGHT_STYLESHEET);
                 mi_homel.set("pageScript", DEFAULT_HOME_SCRIPT);
                 mi_homel.set("active",true);
+                mi_homel.set("useStyleFrom", mi_basestyle.getIdentity());
                 mi_homel.save();
 
                 MutableDocument mi_visuility = con.create(TABLE_MENUITEM);
@@ -873,8 +934,8 @@ public class Setup {
             }
 
             System.out.println(TABLE_USERPROFILE+" ");
-            DocumentType urTable = Setup.checkCreateTable(oschema, TABLE_USERPROFILE, installMessages);
-         //   Setup.checkTableSuperclass(oschema, urTable, "ORestricted", installMessages);
+            DocumentType urTable = Setup.checkCreateTable(schema, TABLE_USERPROFILE, installMessages);
+         //   Setup.checkTableSuperclass(schema, urTable, "ORestricted", installMessages);
             Setup.checkCreateColumn(con, urTable, "name", Type.STRING, installMessages);
             Setup.checkCreateColumn(con, urTable, "password", Type.STRING, installMessages);
  
@@ -1130,10 +1191,10 @@ public class Setup {
     }
 
     /** Check for the existence of a class or add it */
-    public static DocumentType checkCreateTable(Schema oschema, String className, StringBuilder errors) {
-        DocumentType c = oschema.getOrCreateDocumentType(className);
+    public static DocumentType checkCreateTable(Schema schema, String className, StringBuilder errors) {
+        DocumentType c = schema.getOrCreateDocumentType(className);
 //        if (c == null) {
-//            c = oschema.createClass(className);
+//            c = schema.createClass(className);
 //            errors.append(Weblet.paragraph("Schema update: Created "+className+" class/table"));
 //        }
         if (c == null) {
@@ -1149,10 +1210,10 @@ public class Setup {
     }
 
     /** Check for the existence of a class or add it */
-    public static DocumentType checkCreateTable(DatabaseConnection con, Schema oschema, String className, StringBuilder errors, String tableGroup) {
-        DocumentType c = oschema.getOrCreateDocumentType(className);
+    public static DocumentType checkCreateTable(DatabaseConnection con, Schema schema, String className, StringBuilder errors, String tableGroup) {
+        DocumentType c = schema.getOrCreateDocumentType(className);
    //     if (c == null) {
-   //         c = oschema.createClass(className);
+   //         c = schema.createClass(className);
    //         errors.append(Weblet.paragraph("Schema update: Created "+className+" class/table"));
    //     }
         if (c == null) {
@@ -1169,8 +1230,8 @@ public class Setup {
     }
 
     /** Check for the existence of a class's superclass or set it */
-    public static boolean checkTableSuperclass(Schema oschema, DocumentType oclass, String superClassName, StringBuilder errors) {
-        DocumentType s = oschema.getOrCreateDocumentType(superClassName);
+    public static boolean checkTableSuperclass(Schema schema, DocumentType oclass, String superClassName, StringBuilder errors) {
+        DocumentType s = schema.getOrCreateDocumentType(superClassName);
         if (s == null) {
             errors.append(Weblet.paragraph("error","Schema update: Cannot find superclass "+superClassName+" to assign to class "+oclass.getName()));
             return false;
@@ -1192,23 +1253,26 @@ public class Setup {
     }
 
     /** Check for the existence of a privilege or add it */
-    public static boolean checkCreatePrivilege(DatabaseConnection con, String roleName, String resource, String className, int priv, StringBuilder errors) {
- //       OSecurity osecurity = con.getDb().getMetadata().getSecurity();
- //       ORole role = osecurity.getRole(roleName);
- //       if (role == null) {
- //           System.out.println("Setup.checkCreatePrivilege role "+roleName+" is null");
-  //      }
-  //      if (!role.hasRule(resource,className)) {
-            System.out.println("Adding privilege: "+resource+" to "+roleName+" for "+className+" with priv="+priv);
-   //         ORole newRole = role.addRule(resource,className, priv);
-   //         if (newRole.allow(resource,className, priv)){
-   //             newRole.save();
-   //             errors.append(Weblet.paragraph("success",resource.getName()+(className != null ? "."+className : "")+":"+priv+" added to "+roleName));
-   //         } else {
-   //             errors.append(Weblet.paragraph("error",resource.getName()+(className != null ? "."+className : "")+" failed to add privilege "+priv+" to "+roleName));
-   //         }
-   //     }
-        return true;
+    public static boolean checkCreatePrivilege(DatabaseConnection con, RID identity, String access, String resource, StringBuilder errors) {
+        Document existing = con.queryDocument("SELECT FROM privilege WHERE identity="+identity+" AND access='"+access+"' and resource='"+resource+"'");
+        if (existing != null) {
+            errors.append("CheckCreatePrivilege: Privilege "+identity+" already has "+access+" to "+resource+"\n");
+            return true;
+        }
+        try {
+            Object rv = con.update("INSERT INTO privilege SET identity="+identity+", access='"+access+"', resource='"+resource+"'");
+            if (rv != null && rv instanceof Document) {
+                errors.append("CheckCreatePrivilege: Added privilege "+identity+" has "+access+" to "+resource+"\n");
+                return true;
+            } else {
+                System.out.println("CheckCreatePrivilege: Not sure about this result: "+rv);
+                return false;
+            }
+        } catch (Exception e) {
+            errors.append("CheckCreatePrivilege: Failed to insert privilege "+identity+" has "+access+" to "+resource+": "+e.getMessage()+"\n");
+            //e.printStackTrace();
+            return false;
+        }
     }
 
     /** Drop a table */
@@ -1238,7 +1302,7 @@ public class Setup {
         }
     }
 
-    public static final String DEFAULT_LIGHT_STYLESHEET = """
+    public static final String DEFAULT_BASE_STYLE = """
 <script type="text/javascript" src="/js/_hyperscript.min.js"></script>
 <script type="text/javascript" src="/js/htmx.min.js"></script>
 <script src="/js/sorttable.js"></script>
@@ -1267,7 +1331,13 @@ public class Setup {
 <script type="text/javascript" src="/js/codemirror/addon/lint/css-lint.js"></script>
 <script type="text/javascript" src="/js/codemirror/addon/selection/active-line.js"></script>
 <script type="text/javascript" src="/js/codemirror/addon/edit/matchbrackets.js"></script>
-<script  type='text/javascript' src="/js/split.min.js"></script>
+<script  type='text/javascript' src="/js/split.min.js"></script>     
+""";
+
+    public static final String DEFAULT_BASE_SCRIPT = """
+<p>This is the base style script where the various libraries are included</p>            
+""";
+    public static final String DEFAULT_LIGHT_STYLESHEET = """
 <style type='text/css'>
 /* This is the light PermeAgility stylesheet */
 
@@ -1302,11 +1372,11 @@ a:hover { text-decoration: underline; }
 a, a.menuitem, a.popuplink {color: black;}
 a.menuitem:link { text-decoration: none; }
 a.menuitem:visited { text-decoration: none; }
-a:hover, a.menuitem:hover, a.popuplink:hover { text-decoration: none;
-    color: black;
+a:hover, a.menuitem:hover, a.popuplink:hover { 
+    text-decoration: none; color: black; 
     background: radial-gradient(ellipse, darkorange, white);
-/*         border-radius: 6px 6px 6px 6px;   border: 1px solid cyan;  */
 }
+.selected { font-weight: 600; text-decoration: underline; }
 
 /* labels and tables */
 .label { color: black; }
@@ -1339,6 +1409,7 @@ tr.footer { font-weight: bold; }
 td { text-align: left;  }
 td.number { text-align: right; }
 td.total { text-align: right; font-weight:bolder; normal: solid thin black; }
+div.tabpanel { text-align: center; }
 
 /* Sortable tables */
 table.sortable thead { color: black; font-weight: bold; cursor: default; }
@@ -1521,35 +1592,6 @@ public static final String DEFAULT_HOME_SCRIPT = """
 """;
 
 public static final String DEFAULT_DARK_STYLESHEET = """
-<script type="text/javascript" src="/js/_hyperscript.min.js"></script>
-<script type="text/javascript" src="/js/htmx.min.js"></script>
-<script src="/js/sorttable.js"></script>
-<script  type='text/javascript' src="/js/Sortable.min.js"></script>
-<script  type='text/javascript' src="/js/d3.min.js"></script>
-<link rel="stylesheet" type="text/css" href="/js/codemirror/lib/codemirror.css" />
-<link rel="stylesheet" type="text/css" href="/js/codemirror/theme/ambiance.css" />
-<link rel="stylesheet" type="text/css" href="/js/codemirror/addon/hint/show-hint.css" />
-<link rel="stylesheet" type="text/css" href="/js/codemirror/addon/dialog/dialog.css" />
-<link rel="stylesheet" type="text/css" href="/js/codemirror/addon/tern/tern.css" />
-<script type="text/javascript" src="/js/codemirror/lib/codemirror.js"></script>
-<script type="text/javascript" src="/js/codemirror/mode/javascript/javascript.js"></script>
-<script type="text/javascript" src="/js/codemirror/mode/clike/clike.js"></script>
-<script type="text/javascript" src="/js/codemirror/mode/css/css.js"></script>
-<script type="text/javascript" src="/js/codemirror/mode/r/r.js"></script>
-<script type="text/javascript" src="/js/codemirror/mode/xml/xml.js"></script>
-<script type="text/javascript" src="/js/codemirror/mode/sql/sql.js"></script>
-<script type="text/javascript" src="/js/codemirror/mode/htmlmixed/htmlmixed.js"></script>
-<script type="text/javascript" src="/js/codemirror/addon/dialog/dialog.js"></script>
-<script type="text/javascript" src="/js/codemirror/addon/tern/tern.js"></script>
-<script type="text/javascript" src="/js/codemirror/addon/hint/show-hint.js"></script>
-<script type="text/javascript" src="/js/codemirror/addon/hint/javascript-hint.js"></script>
-<script type="text/javascript" src="/js/codemirror/addon/hint/css-hint.js"></script>
-<script type="text/javascript" src="/js/codemirror/addon/lint/lint.js"></script>
-<script type="text/javascript" src="/js/codemirror/addon/lint/javascript-lint.js"></script>
-<script type="text/javascript" src="/js/codemirror/addon/lint/css-lint.js"></script>
-<script type="text/javascript" src="/js/codemirror/addon/selection/active-line.js"></script>
-<script type="text/javascript" src="/js/codemirror/addon/edit/matchbrackets.js"></script>
-<script  type='text/javascript' src="/js/split.min.js"></script>
 <style type='text/css'>
 /* This is the dark PermeAgility stylesheet */
 
@@ -1584,11 +1626,11 @@ a:hover { text-decoration: underline; }
 a, a.menuitem, a.popuplink {color: lightgray;}
 a.menuitem:link { text-decoration: none; }
 a.menuitem:visited { text-decoration: none; }
-a:hover, a.menuitem:hover, a.popuplink:hover { text-decoration: none;
-    color: white;
+a:hover, a.menuitem:hover, a.popuplink:hover { 
+    text-decoration: none; color: white;
     background: radial-gradient(ellipse, darkorange, black);
-/*         border-radius: 6px 6px 6px 6px;   border: 1px solid cyan;  */
 }
+.selected { font-weight: 600; text-decoration: underline; }
 
 /* labels and tables */
 .label { color: black; }
@@ -1621,6 +1663,7 @@ tr.footer { font-weight: bold; }
 td { text-align: left;  }
 td.number { text-align: right; }
 td.total { text-align: right; font-weight:bolder; normal: solid thin black; }
+div.tabpanel { text-align: center; }
 
 /* Sortable tables */
 table.sortable thead { color: white; font-weight: bold; cursor: default; }

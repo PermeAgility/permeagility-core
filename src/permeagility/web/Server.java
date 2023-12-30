@@ -1316,7 +1316,8 @@ public class Server {
                 //});
 
                 events.registerListener((AfterRecordCreateListener) record -> { 
-                    if (DEBUG) System.out.println("AfterRecordCreate event record="+record.toJSON(true).toString());
+//                    if (DEBUG) System.out.println("Server: AfterRecordCreate event record="+record.toJSON(true).toString());
+                    if (DEBUG) System.out.println("Server: AfterRecordCreate event record="+record.getIdentity().toString());
                     appendAuditTrail("CREATE",record);
                 });
              // this causes BufferUnderflowExceptions

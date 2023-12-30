@@ -46,27 +46,47 @@ public class Home extends Weblet {
             return head(con, "Error")
               + body(paragraph("error","No Page to generate: "+menuItem+" maybe the ID or NAME was not specified, try adding ?ID=rid or ?NAME=name"));
         }
-
         serviceName = menuItem.getString("name");
-        parms.put("SERVICE",serviceName);
-        String styleScript = menuItem.getString("pageStyle");
+
+        StringBuilder styleScript = new StringBuilder();
+        adoptStyleFrom(con, styleScript, menuItem);
+        String pageStyle = menuItem.getString("pageStyle");
+        if (pageStyle != null) styleScript.append(pageStyle);
+
         String htmlScript = menuItem.getString("pageScript");
 
         // templating 
-        org.jsoup.nodes.Document htmlDoc = Jsoup.parseBodyFragment(htmlScript);
-        org.jsoup.select.Elements elements = htmlDoc.children().select("PermeAgility");
-        if (elements.size() > 0) {  // If PermeAgility elements inside
-            for (org.jsoup.nodes.Element ele : elements) {
-                ele.html(runTemplate(con, ele));
+        if (htmlScript != null) {
+            org.jsoup.nodes.Document htmlDoc = Jsoup.parseBodyFragment(htmlScript);
+            org.jsoup.select.Elements elements = htmlDoc.children().select("PermeAgility");
+            if (elements.size() > 0) {  // If PermeAgility elements inside
+                for (org.jsoup.nodes.Element ele : elements) {
+                    ele.html(runTemplate(con, ele));
+                }
+                htmlScript = htmlDoc.select("body").html(); 
+                // then remove the permeagility tag, no trace we were here
+                htmlScript = htmlScript.replace("<permeagility>","");
+                htmlScript = htmlScript.replace("</permeagility>","");
             }
-            htmlScript = htmlDoc.select("body").html(); // remove the permeagility tag, no trace we were here
-            htmlScript = htmlScript.replace("<permeagility>","");
-            htmlScript = htmlScript.replace("</permeagility>","");
+        } else {
+            htmlScript = "";
         }
-
         // returning
-        return head(con, serviceName,(styleScript == null ? "" : styleScript))
+        return head(con, serviceName, styleScript.toString())
                 + body(htmlScript);
+    }
+
+    public void adoptStyleFrom(DatabaseConnection con, StringBuilder styleScript, Document menuItem) {
+        Object useStyleDoc = menuItem.get("useStyleFrom");
+        if (useStyleDoc != null) {
+            Document useStyle = null;
+            if (useStyleDoc instanceof RID) useStyle = con.get((RID)useStyleDoc);
+            if (useStyleDoc instanceof Document) useStyle = (Document)useStyleDoc;
+            if (useStyle != null) {
+                adoptStyleFrom(con, styleScript, useStyle);  // Adopt ancestors first
+                styleScript.append(useStyle.getString("pageStyle")+"\n");
+            }
+        }
     }
 
     private String runTemplate(DatabaseConnection con, org.jsoup.nodes.Element ele) {

@@ -35,7 +35,6 @@ import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.Property;
 import com.arcadedb.schema.Type;
 
-import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -98,7 +97,11 @@ public class Table extends Weblet {
             // if table only or *, GET returns all rows in table (with possible filter conditions encoded eg. */dept.name/eq/sales)
             String httpMethod = parms.get("HTTP_METHOD");
             if (httpMethod.equals("GET") && (rid == null || rid.equals("*"))  ) {
-                return getTableWithControls(con, parms, table);
+                if (con.getSchema().existsType(table)) {
+                    return getTableWithControls(con, parms, table);
+                } else {
+                    return paragraph("error","Table: Error "+table+" table not found");
+                }
             }
             if (restParts.length > 2) {
                 System.out.println("Further REST parts not implemented yet and will be ignored");
@@ -310,13 +313,13 @@ public class Table extends Weblet {
             errors.append(paragraph("error", Message.get(locale, "COLUMN_NAME_AND_TYPE_REQUIRED")));
         } else {
             try {
-                    DocumentType c = con.getSchema().getOrCreateDocumentType(table);
+                    DocumentType c = con.getSchema().getType(table);
                     if (c == null) {
                         errors.append(paragraph("error", Message.get(locale, "CANNOT_CREATE_COLUMN") + " Cannot find class to create column in table: " + table));
                     } else {
                         String camel = makePrettyCamelCase(cn);
                         if (tr != null) {
-                            Setup.checkCreateColumn(con, c, camel, type, con.getSchema().getOrCreateDocumentType(tr), errors);
+                            Setup.checkCreateColumn(con, c, camel, type, con.getSchema().getType(tr), errors);
                         } else {
                             Setup.checkCreateColumn(con, c, camel, type, errors);
                         }
@@ -428,7 +431,7 @@ public class Table extends Weblet {
                         }
                     };
                     if (value == null || linkDoc != null) {
-                        newDoc.set(name, linkDoc);
+                        newDoc.set(name, linkDoc.getIdentity());
                     }
                 } else if (type == Type.LIST) { // LinkList
                     String[] newValues = {};
@@ -829,7 +832,7 @@ public class Table extends Weblet {
         }
 
         // Cannot view abstract class directly - redirect to the actual record's class
-        DocumentType tclass = con.getSchema().getOrCreateDocumentType(table);
+        DocumentType tclass = con.getSchema().getType(table);
         if (tclass == null) {
             return paragraph("error", "cannot find class " + table);
         }
@@ -893,7 +896,7 @@ public class Table extends Weblet {
                         ? Message.get(con.getLocale(), "CREATE_ROW")+" "+makeCamelCasePretty(table)
                         : Message.get(con.getLocale(), "UPDATE") + "&nbsp;" + makeCamelCasePretty(table)))
                 + formContent
-               // + getTableRowRelated(con, table, parms)
+                + getTableRowRelated(con, table, parms)
                 + serviceHeaderUpdateDiv(parms, title);
     }
 
@@ -915,9 +918,22 @@ public class Table extends Weblet {
         return ret.toString();
     }
 
-    public String getTableRowFields(DatabaseConnection con, String table) {
-        return getTableRowFields(con, table, null, null, null);
+ //   public String getTableRowFields(DatabaseConnection con, String table) {
+ //       return getTableRowFields(con, table, null, null, null);
+ //   }
+
+    public String getTableRowFieldsNew(DatabaseConnection con, String table, HashMap<String, String> parms) {
+        // must make copy of parms and remove EDIT_ID, still want parms for in progress data values and FORCE_ columns
+        HashMap<String,String> newParms = parms;
+        if (parms.containsKey("EDIT_ID")) {
+            newParms = new HashMap<String,String>();
+            newParms.putAll(parms);
+            newParms.remove("EDIT_ID");
+        }
+        return getTableRowFields(con, table, newParms, null, null);
     }
+    
+    // Used
     public String getTableRowFields(DatabaseConnection con, String table, HashMap<String, String> parms) {
         return getTableRowFields(con, table, parms, null, null);
     }
@@ -953,6 +969,7 @@ public class Table extends Weblet {
                      }
                 } else {
                     if (parms != null && parms.get("FORCE_" + name) != null) {
+                        if (DEBUG) System.out.println("Adding hidden parameter via FORCE_"+name+" with value "+parms.get("FORCE_" + name));
                         hidden.append(hidden(PARM_PREFIX + name, parms.get("FORCE_" + name)));
                         continue;
                     }
@@ -1116,7 +1133,7 @@ public class Table extends Weblet {
             }
             if (ofType != null) {
                 return row(label 
-                        + column(createListFromTable(PARM_PREFIX + name, (v == null ? "" : v), con, ofType, null, true, null, true)
+                        + column(createListFromCache(PARM_PREFIX + name, (v == null ? "" : v), con, getQueryForTable(con,ofType,name), null, true, null, true)
                         + gotoLink          
                         ));
             } else {
@@ -1132,7 +1149,7 @@ public class Table extends Weblet {
             } // It will do this if it doesn't exist
             String linkedType = column.getOfType();
             if (linkedType == null && name.startsWith("_allow")) {
-                    System.out.println("Assuming a link type of identity for "+name);
+                    if (DEBUG) System.out.println("Assuming a link type of identity for "+name);
                     linkedType = "identity";
             }
             if (linkedType == null && list != null && list.size() > 0) {
@@ -1144,9 +1161,9 @@ public class Table extends Weblet {
                 }
             }
             if (linkedType != null) {
-                return row(label + columnNoWrap(linkListControl(con, PARM_PREFIX + name, linkedType, getCache().getResult(con, getQueryForTable(con, linkedType)), con.getLocale(), list)));
+                return row(label + columnNoWrap(linkListControl(con, PARM_PREFIX + name, linkedType, getCache().getResult(con, getQueryForTable(con, linkedType, name)), con.getLocale(), list)));
             } else {
-                return paragraph("error","table.getColumnAsField: Could not determine linked type for "+name);
+                return paragraph("error","table.getColumnAsField: Could not determine linked LIST type for "+name);
             }
            // Link map
         } else if (type == Type.MAP) { 
@@ -1155,14 +1172,13 @@ public class Table extends Weblet {
                 l = initialValues.getMap(name);
             } catch (NullPointerException e) {
             }  // It will do this if it doesn't exist
-            if (l != null && DEBUG) {
-                System.out.println("linkmap size=" + l.size());
-            }
+            if (l != null && DEBUG) System.out.println("linkmap size=" + l.size());
+            
             String linkedType = column.getOfType();
             if (linkedType != null) {
-                return row(label + columnNoWrap(linkMapControl(con, PARM_PREFIX + name, linkedType, getCache().getResult(con, getQueryForTable(con, linkedType)), con.getLocale(), l)));
+                return row(label + columnNoWrap(linkMapControl(con, PARM_PREFIX + name, linkedType, getCache().getResult(con, getQueryForTable(con, linkedType, name)), con.getLocale(), l)));
             } else {
-                return paragraph("error","table.getColumnAsField: Could not determine linked type for "+name);
+                return paragraph("error","table.getColumnAsField: Could not determine linked MAP type for "+name);
             }
         } else {
             System.out.println("Table.GetColumnAsField: Unrecognized type: " + type);
@@ -1171,7 +1187,6 @@ public class Table extends Weblet {
     }
 
     public String getTableRowRelated(DatabaseConnection con, String table, HashMap<String, String> parms) {
-        StringBuilder sb = new StringBuilder();
         Stack<String> tables = new Stack<>();
         Stack<String> columns = new Stack<>();
         Stack<Type> types = new Stack<>();
@@ -1209,54 +1224,26 @@ public class Table extends Weblet {
         parms.put("SOURCEEDIT_ID", (newSourceId != null ? newSourceId : edit_id));
         parms.put("SOURCETABLENAME", (newSourceTable != null ? newSourceTable : table));
 
-        if (DEBUG) {
-            System.out.println("getTableRowRelated " + tables.size());
-        }
+        if (DEBUG) System.out.println("getTableRowRelated " + tables.size());
+
+        ArrayList<String> tabNames = new ArrayList<String>();
+        ArrayList<String> tabTargets = new ArrayList<String>();
+        
         while (!tables.isEmpty()) {
             String relTable = tables.pop();
             String fkColumn = columns.pop();
             Type fkType = types.pop();
-
+            if (DEBUG) System.out.println("Table.getTableRowRelated: fkType="+fkType+" fkColumn="+fkColumn);
             int priv = Security.getTablePriv(con, table);
             //System.out.println("Privilege on table "+table+" for user "+con.getUser()+" = "+priv);
 
-            HashMap<String, String> fkParms = new HashMap<>();
-            fkParms.put("FORCE_" + fkColumn, edit_id);
-
-            String hiddenFields = hidden("TABLENAME", relTable)
-                    + (newSourceId != null ? hidden("SOURCEEDIT_ID", newSourceId) : "")
-                    + (newSourceTable != null ? hidden("SOURCETABLENAME", newSourceTable) : "");
-            sb.append(
-                    paragraph("banner", (table.equals(fkColumn) ? makeCamelCasePretty(relTable) : makeCamelCasePretty(relTable) + " (" + makeCamelCasePretty(fkColumn) + ")"))
-                    + ((priv & PRIV_CREATE) > 0 ? popupForm("CREATE_NEW_ROW_" + relTable, this.getClass().getName(), Message.get(con.getLocale(), "NEW_ROW"), null, "NAME",
-                                    paragraph("banner", Message.get(con.getLocale(), "CREATE_ROW")+" "+makeCamelCasePretty(table))
-                                    + hiddenFields
-                                    + getTableRowFields(con, relTable, fkParms) // send fkcolumn data in parms
-                                    + center(submitButton(con.getLocale(), "CREATE_ROW"))) : "")
-                    + "&nbsp;&nbsp;&nbsp;"
-                    + (Security.isDBA(con)
-                            ? popupForm("NEWCOLUMN_" + relTable, null, Message.get(con.getLocale(), "ADD_COLUMN"), null, "NEWCOLUMNNAME",
-                                    hiddenFields
-                                    + newColumnForm(con))
-                            + "&nbsp;&nbsp;&nbsp;"
-                            + popupForm("RIGHTSOPTIONS_" + relTable, null, Message.get(con.getLocale(), "TABLE_RIGHTS_OPTIONS"), null, "XXX",
-                                    hiddenFields
-                                    + rightsOptionsForm(con, relTable, null, ""))
-                            : "")
-                    + br()
-                    + ((Security.getTablePriv(con, relTable) & PRIV_READ) > 0
-                            ? (fkType == Type.LIST || fkType == Type.MAP
-                                    ? (fkType == Type.MAP ? getTableWhere(con, parms, relTable, fkColumn, "containsvalue", edit_id, -1)
-                                            : getTableWhere(con, parms, relTable, fkColumn, "contains", edit_id, -1))
-                                    : getTableWhere(con, parms, relTable, fkColumn, edit_id, -1) // Need to pass parms so can add source to URL
-                            )
-                            : Message.get(con.getLocale(), "NO_ACCESS_TO_TABLE"))
-            );
+            tabNames.add(makeCamelCasePretty(relTable));
+            tabTargets.add("/Table/"+relTable+"/*/where/"+fkColumn+"/eq/"+edit_id+"?FORCE_"+fkColumn+"="+edit_id);
         }
-        return sb.toString();
+        return getTabPanel("reltables", tabNames, tabTargets);
     }
 
-    String newColumnPopup(DatabaseConnection con, String table, String target) {
+    public String newColumnPopup(DatabaseConnection con, String table, String target) {
         return popupFormHTMX("NEWCOLUMN_"+table, this.getClass().getName()+"/"+table+"/columns", 
              "put", target, Message.get(con.getLocale(), "ADD_COLUMN"), "NEWCOLUMNNAME", newColumnForm(con));
     }
@@ -1334,7 +1321,7 @@ public class Table extends Weblet {
                  + ((Security.getTablePriv(con, table) & PRIV_CREATE) > 0 
                     ? popupFormHTMX("CREATE_NEW_ROW", this.getClass().getName()+"/"+table, "put", parms.get("HX-TARGET"), Message.get(con.getLocale(), "NEW_ROW"), "NAME",
                         paragraph("banner", Message.get(con.getLocale(), "CREATE_ROW")+" "+makeCamelCasePretty(table))
-                        + getTableRowFields(con, table)
+                        + getTableRowFieldsNew(con, table, parms)
                         + submitButton(con.getLocale(), "CREATE_ROW")) 
                     : "")
                 + "&nbsp;&nbsp;&nbsp;"
@@ -1354,69 +1341,46 @@ public class Table extends Weblet {
         return body + serviceHeaderUpdateDiv(parms, title);
     }
 
-    public String getTable(DatabaseConnection con, String table) {
-        String query = "SELECT FROM " + table;
-        return getTable(con, null, table, query, null, 0);
-    }
-
     public String getTable(DatabaseConnection con, String table, HashMap<String,String> parms, long page) {
-        String query = "SELECT FROM " + table;
-        return getTable(con, parms, table, query, null, page);
+        // if rest attributes exist then parse WHERE clause
+        String where = "";
+        String hideColumn = null;
+        String restOfURL = parms.get("REST_OF_URL");  
+        if (restOfURL != null && !restOfURL.isEmpty()) {
+            String[] restParts = restOfURL.split("/"); 
+            String prefix = " WHERE ";
+            if (restParts.length > 2 && restParts[0].equals(table) && restParts[1].equals("*") 
+                 && restParts[2].equalsIgnoreCase("WHERE")) {
+                    if (DEBUG) System.out.println("We have a where clause coming");
+                    int restIndex = 2; // after 0table/1splat/2where/3column/4operator/5value/6and/7col/8eq/9val
+                    while (restIndex + 3 < restParts.length) {  // if there are three more parts to read
+                        String column = restParts[restIndex+1];
+                        if (parms.get("FORCE_"+column) != null) hideColumn = column; // If column is forced (as a subtable, hide it)
+                        String operator = restParts[restIndex+2];
+                        if (operator.equalsIgnoreCase("eq")) operator = "=";
+                        String value = restParts[restIndex+3];
+                        if (!value.startsWith("'") && value.contains(":")) {
+                            value = "#"+value;  // no quotes with colon must be RID
+                        }
+                        where += prefix+column+" "+operator+" "+value;
+                        
+                        restIndex += 3;
+                        if (restIndex + 1 < restParts.length) {  // Are we going to continue?
+                            if (restParts[restIndex+1].equalsIgnoreCase("AND")
+                              || restParts[restIndex+1].equalsIgnoreCase("OR")) {
+                                prefix = " "+restParts[restIndex+1]+" ";
+                                restIndex++;
+                            }
+                        }
+                    }
+            }
+        }
+        String query = "SELECT FROM " + table + where;
+        if (!where.isBlank() && DEBUG) System.out.println("Table.getTable with REST where query="+query);
+
+        return getTable(con, parms, table, query, hideColumn, page);
     }
 
-    public String getTableWhere(DatabaseConnection con, String table, String column, String columnValue) {
-        String query = "SELECT FROM " + table + " WHERE " + column + " = #" + columnValue;
-        return getTable(con, null, table, query, column, 0);
-    }
-
-    public String getTableWhere(DatabaseConnection con, String table, String column, String operator, String columnValue) {
-        String query = "SELECT FROM " + table + " WHERE " + column + " " + operator + " #" + columnValue;
-        return getTable(con, null, table, query, column, 0);
-    }
-
-    public String getTableWhere(DatabaseConnection con, String table, String column, String columnValue, long page) {
-        String query = "SELECT FROM " + table + " WHERE " + column + "= #" + columnValue;
-        return getTable(con, null, table, query, column, page);
-    }
-
-    public String getTableWhere(DatabaseConnection con, String table, String column, String operator, String columnValue, long page) {
-        String query = "SELECT FROM " + table + " WHERE " + column + " " + operator + " #" + columnValue;
-        return getTable(con, null, table, query, column, page);
-    }
-
-    public String getTable(DatabaseConnection con, String table, String query, String hideColumn, long page) {
-        return getTable(con, null, table, query, hideColumn, page, null);
-    }
-
-    public String getTable(DatabaseConnection con, HashMap<String, String> parms, String table) {
-        String query = "SELECT FROM " + table;
-        return getTable(con, table, query, null, 0);
-    }
-
-    public String getTable(DatabaseConnection con, HashMap<String, String> parms, String table, long page) {
-        String query = "SELECT FROM " + table;
-        return getTable(con, table, query, null, page);
-    }
-
-    public String getTableWhere(DatabaseConnection con, HashMap<String, String> parms, String table, String column, String columnValue) {
-        String query = "SELECT FROM " + table + " WHERE " + column + " = #" + columnValue;
-        return getTable(con, parms, table, query, column, 0);
-    }
-
-    public String getTableWhere(DatabaseConnection con, HashMap<String, String> parms, String table, String column, String operator, String columnValue) {
-        String query = "SELECT FROM " + table + " WHERE " + column + " " + operator + " #" + columnValue;
-        return getTable(con, parms, table, query, column, 0);
-    }
-
-    public String getTableWhere(DatabaseConnection con, HashMap<String, String> parms, String table, String column, String columnValue, long page) {
-        String query = "SELECT FROM " + table + " WHERE " + column + "= #" + columnValue;
-        return getTable(con, parms, table, query, column, page);
-    }
-
-    public String getTableWhere(DatabaseConnection con, HashMap<String, String> parms, String table, String column, String operator, String columnValue, long page) {
-        String query = "SELECT FROM " + table + " WHERE " + column + " " + operator + " #" + columnValue;
-        return getTable(con, parms, table, query, column, page);
-    }
 
     public String getTable(DatabaseConnection con, HashMap<String, String> parms, String table, String query, String hideColumn, long page) {
         return getTable(con, parms, table, query, hideColumn, page, null);
@@ -1571,7 +1535,7 @@ public class Table extends Weblet {
         StringBuilder sb = new StringBuilder();
         String columnName = column.getName();
         Type columnType = column.getType();
-		if (DEBUG) System.out.println("permeagility.web.Table.getColumnAsCell name = "+columnName+" type = "+(columnType==null ? "null" : columnType));
+		//if (DEBUG) System.out.println("permeagility.web.Table.getColumnAsCell name = "+columnName+" type = "+(columnType==null ? "null" : columnType));
         if (columnType == Type.BOOLEAN) {
             sb.append(column(checkboxDisabled(columnName, (d.getBoolean(columnName) == null ? false : d.getBoolean(columnName)))));
         } else if (columnType == Type.INTEGER || columnType == Type.SHORT || columnType == Type.LONG) {   // int, short, long type
@@ -1740,7 +1704,7 @@ public class Table extends Weblet {
                     String colToDrop = parms.get("COLUMN_TO_DROP");
                     try {
                         Object ret = con.update("UPDATE " + table + " REMOVE " + colToDrop);  // Otherwise, column actually remains in the data
-                        DocumentType c = con.getSchema().getOrCreateDocumentType(table);
+                        DocumentType c = con.getSchema().getType(table);
                         c.dropProperty(colToDrop);
                         errors.append(paragraph("success", "Data for column removed:" + ret));
                         Setup.removeColumnFromColumns(con, table, colToDrop);

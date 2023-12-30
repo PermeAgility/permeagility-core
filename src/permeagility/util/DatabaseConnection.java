@@ -26,6 +26,7 @@ import permeagility.web.Server;
 import com.arcadedb.database.Document;
 import com.arcadedb.database.MutableDocument;
 import com.arcadedb.database.RID;
+import com.arcadedb.query.sql.executor.Result;
 import com.arcadedb.query.sql.executor.ResultSet;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.Property;
@@ -43,6 +44,8 @@ public class DatabaseConnection {
 
         // Row counts are shared by all users
 	private static ConcurrentHashMap<String,Long> tableCountCache = new ConcurrentHashMap<>();
+
+  	protected DatabaseConnection() {}
 
 	protected DatabaseConnection(Database _db, com.arcadedb.database.Database _c) {
 		db = _db;
@@ -206,6 +209,23 @@ public class DatabaseConnection {
         if (closethis) {
             commit();
         }
+        if (ro instanceof ResultSet) {
+            ArrayList<Document> docs = new ArrayList<Document>();
+            ResultSet rs = (ResultSet)ro;
+            if (rs.hasNext()) {
+                Result r = rs.next();
+                docs.add(r.toElement());
+                if (!rs.hasNext()) {
+                    return docs.get(0);
+                } else {
+                    do {
+                        r = rs.next();
+                        docs.add(r.toElement());
+                    } while (rs.hasNext()); 
+                    return docs;
+                }
+            }
+        }
       	return ro;  // run the query return the resulting object
     }
 
@@ -250,7 +270,7 @@ public class DatabaseConnection {
 
         // Original list of columns
         Schema schema = getSchema();
-        DocumentType tableClass = schema.getOrCreateDocumentType(table);
+        DocumentType tableClass = schema.getType(table);
         if (tableClass == null) {
             System.out.println("Server: getColumns(tableClass not found for "+table+")");
             return result;

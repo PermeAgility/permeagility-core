@@ -70,7 +70,7 @@ public class Database  {
                 ServerDatabase serverdb = server.createDatabase(url, MODE.READ_WRITE);
                 if (serverdb.isOpen()) {
                     System.out.println("Database is open");
-                    serverdb.getContext().setMaxNested(MAX_NESTED);
+                    serverdb.getContext().setMaxNested(MAX_NESTED);  // doesn't work
                 }
             }
         }
