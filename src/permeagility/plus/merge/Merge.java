@@ -212,7 +212,7 @@ public class Merge extends Table {
         return head(con, "Merge")
                 + body(standardLayout(con, parms,
                                 errors.toString()
-                                + ((Security.getTablePriv(con, PlusSetup.MERGE_TABLE) & PRIV_CREATE) > 0
+                                + ((Security.getTablePriv(con, PlusSetup.MERGE_TABLE) & Security.PRIV_CREATE) > 0
                                         ? popupForm("CREATE_NEW_ROW", this.getClass().getName(), "New merge path", null, "name",
                                                 paragraph("banner", Message.get(con.getLocale(), "CREATE_ROW"))
                                                 + hidden("TABLENAME", PlusSetup.MERGE_TABLE)

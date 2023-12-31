@@ -41,12 +41,13 @@ public class PageBuilder extends Table {
         Locale locale = con.getLocale();
         return head(con, APP_NAME)
                 + bodyMinimum(
-                    ((Security.getTablePriv(con, TABLE_NAME) & PRIV_CREATE) > 0
+                    ((Security.getTablePriv(con, TABLE_NAME) & Security.PRIV_CREATE) > 0
                     ? popupFormHTMX("CREATE_NEW_ROW", this.getClass().getName()+"/"+TABLE_NAME, "put", parms.get("HX-TARGET"), Message.get(locale, "CREATE_ROW"), "NAME",
                             paragraph("banner", Message.get(locale, "CREATE_ROW"))
                             + hidden("TABLENAME", TABLE_NAME)
                             + super.getTableRowFields(con, TABLE_NAME, null, "name,description,useStyleFrom,-", null)
-                            + submitButton(locale, "CREATE_ROW"))
+                            + submitButton(locale, "CREATE_ROW")
+                            + POPUP_FORM_CLOSER)
                     : "")
                     + getTable(con, parms, TABLE_NAME
                         , "SELECT FROM " + TABLE_NAME+" WHERE name != '' AND (classname is null OR classname = '')"
@@ -97,13 +98,17 @@ public class PageBuilder extends Table {
                         paragraph("banner", Message.get(con.getLocale(), "DETAILS"))
                         + hidden("TABLENAME", TABLE_NAME)
                         + super.getTableRowFields(con, TABLE_NAME, parms, "name,description,useStyleFrom,-")
+                        + POPUP_FORM_CLOSER
                 )
                 +"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
             )
             + popupFormHTMX("UPDATE_MORE", this.getClass().getName()+"/"+TABLE_NAME+"/"+edit_id, "PATCH", parms.get("HX-TARGET"),Message.get(con.getLocale(), "MORE"),  "NAME",
                     paragraph("banner", Message.get(con.getLocale(), "MORE"))
                     //+ hidden("TABLENAME", TABLE_NAME)
-                    + (readOnly ? "" : deleteButton(con.getLocale(),TABLE_NAME, edit_id, parms.get("HX-TARGET")) + "<br>" + submitButton(con.getLocale(), "COPY"))
+                    + (readOnly ? "" : deleteButton(con.getLocale(),TABLE_NAME, edit_id, parms.get("HX-TARGET")) 
+                                      + "<br>" 
+                                      + submitButton(con.getLocale(), "COPY")
+                                      + POPUP_FORM_CLOSER)
             )
             +"<br>"
             +frame("previewFrame","previewFrame","permeagility.web.Home?ID="+edit_id);

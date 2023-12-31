@@ -30,7 +30,7 @@ import permeagility.util.Setup;
 
 public class Menu extends Weblet {
 
-    public static boolean DEBUG = true;
+    public static boolean DEBUG = false;
     public static boolean HORIZONTAL_LAYOUT = false;
     public static String PAGE_RUNNER = "Home";
 

@@ -18,15 +18,11 @@ package permeagility.web;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.arcadedb.database.Document;
 import com.arcadedb.database.RID;
-
-import permeagility.util.Database;
 
 import permeagility.util.DatabaseConnection;
 import permeagility.util.QueryResult;
@@ -36,11 +32,17 @@ public class Security {
     public static boolean DEBUG = true;
     public static Date securityRefreshTime = new Date();
     
+    public static final int PRIV_CREATE = 1;
+    public static final int PRIV_READ = 2;
+    public static final int PRIV_UPDATE = 4;
+    public static final int PRIV_DELETE = 8;
+    public static final int PRIV_ALL = 15;
+
     private static final ConcurrentHashMap<String,List<RID>> userRoles = new ConcurrentHashMap<>();
-    private static final ConcurrentHashMap<String,HashMap<String,Number>> userRules = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String,HashMap<String,Integer>> userRules = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<String,List<RID>> keyRoles = new ConcurrentHashMap<>();
-    private static final ConcurrentHashMap<String,HashMap<String,Number>> tablePrivsCache = new ConcurrentHashMap<>();
-    public static boolean CACHE_TABLE_PRIVS = false;
+    private static final ConcurrentHashMap<String,HashMap<String,Integer>> tablePrivsCache = new ConcurrentHashMap<>();
+    public static boolean CACHE_TABLE_PRIVS = true;
     
     public static boolean authorized(String user, String className) {
         if (DEBUG) System.out.println("Authorizing "+user+" to "+className);
@@ -121,23 +123,29 @@ public class Security {
                 }
                 if (DEBUG) System.out.println(user+" rules="+rules);
                 // Collapse the rules into a single HashMap 
-                HashMap<String,Number> newRules = new HashMap<>();
+                HashMap<String,Integer> newRules = new HashMap<>();
                 for (List<Document> m : rules) {
                     for (Document rule : m) {
-                        //ResourceGeneric rg = rule.getResourceGeneric();
-                        //if (rg != null) {
-                        //    if (DEBUG) System.out.println("ResourceGeneric="+rg.getName()+" priv="+rule.getAccess());
-                        //    newRules.put(rg.getName(), rule.getAccess());
-                        //}
-                       // Map<String,Byte> spec = rule.getSpecificResources();
                        System.out.println("Security.refreshSecurity found rule "+rule);
-                       newRules.put(rule.getString("resource"),16);
-//                        for (String res : spec.keySet()) {
-//                            String resource = res;
-//                            Number newPriv = spec.get(res);
-//                            if (DEBUG) System.out.println("Resource="+resource+" newPriv="+newPriv+" generic="+rule.getResourceGeneric());
-//                            newRules.put(resource, newPriv);
-//                        }
+                       Integer privN = newRules.get(rule.getString("resource"));
+                       int priv = 0;
+                       if (privN != null) priv = privN.intValue();
+                       String access = rule.getString("access");
+                       if (access.equals("ALL")) {
+                            priv |= PRIV_ALL;
+                       } else if (access.equals("CREATE")) {
+                            priv |= PRIV_CREATE;
+                       } else if (access.equals("READ")) {
+                            priv |= PRIV_READ;
+                       } else if (access.equals("UPDATE")) {
+                            priv |= PRIV_UPDATE;
+                       } else if (access.equals("DELETE")) {
+                            priv |= PRIV_DELETE;
+                       } else if (access.equals("READONLY")) { // makes sense in SUPER mode
+                            priv |= PRIV_CREATE | PRIV_UPDATE | PRIV_DELETE;
+                            if (DEBUG) System.out.println("Readonly priv is "+priv);
+                       }
+                       newRules.put(rule.getString("resource"),priv);
                     }
                 }
                 if (DEBUG) System.out.println(user+" newRules="+newRules);
@@ -146,8 +154,6 @@ public class Security {
         } catch (Exception e) {
             System.out.println("Error retrieving security model into cache - "+e.getMessage());
             e.printStackTrace();
-        } finally {
-            //Server.freeServerConnection(con);
         }
         securityRefreshTime = new Date();
     }
@@ -182,13 +188,13 @@ public class Security {
     public static int getRoleRules(DatabaseConnection con, RID role, ArrayList<List<Document>> rules) {
         Document roleDoc = con.get(role);
         if (roleDoc.get("inheritedRole") != null) {
-            System.out.println("found inherited role for "+roleDoc.getString("name"));
-                getRoleRules(con, (RID)roleDoc.get("inheritedRole"), rules);
+            if (DEBUG) System.out.println("found inherited role for "+roleDoc.getString("name"));
+            getRoleRules(con, (RID)roleDoc.get("inheritedRole"), rules);
         } 
         List<Document> privs = con.query("SELECT FROM privilege WHERE identity="+role.toString()).get();
         List<Document> ru = new ArrayList<>();
         for (Document p : privs) {
-            System.out.println("Security.getRoleRules added " + p.toString());
+            if (DEBUG) System.out.println("Security.getRoleRules added " + p.toString());
             ru.add(p);
         }
         rules.add(ru);
@@ -229,80 +235,78 @@ public class Security {
 
     /** Get the privileges that the connected user has to the given table */
     public static int getTablePriv(DatabaseConnection con, String table) {
+        boolean superuser = false;
         int priv = 0;
         String user = con.getUser();
-        HashMap<String,Number> newRules = userRules.get(user);
-
-        // if starts with database, it is a specific privilege
-        if (table.startsWith("database.")) {
-            Number r = newRules.get(table);
-            if (r != null) {
-                return r.intValue();
+        List<RID> roles = userRoles.get(user);
+        for (RID r : roles) {
+            Document role = con.get(r);
+            if (role != null) {
+                if (role.getString("mode").equals("SUPER")) {
+                    //System.out.println("We have a SUPER user called "+user);
+                    superuser = true;
+                    priv = Security.PRIV_ALL;
+                }
             }
         }
+        HashMap<String,Integer> newRules = userRules.get(user);
         if (DEBUG) {
             for (String n : newRules.keySet()) {
                 System.out.println("Security.getTablePriv: rule="+n+" access="+newRules.get(n));
             }
         }
-        
         // Find the most specific privilege for the table from the user's rules
-        Number o;
-//        o = newRules.get(ResourceGeneric.BYPASS_RESTRICTED.getName()); 
-//        if (o != null) {
-//            if (DEBUG) System.out.println("Security.getTablePriv: Found "+ResourceGeneric.BYPASS_RESTRICTED.getName()+"="+o);
-//            priv |= o.intValue();
-//        }
-//        o = newRules.get(ResourceGeneric.CLASS.getName());
-//        if (o != null) {
-//            if (DEBUG) System.out.println("Security.getTablePriv: Found "+ResourceGeneric.CLASS.getName()+"="+o);
-//            priv |= o.intValue();
-//        }
-        o = newRules.get(table);
+        Integer o = newRules.get(table);
         if (o != null) {
             if (DEBUG) System.out.println("Security.getTablePriv: Found database.class."+table+"="+o);
-            priv |= o.intValue();
+            if (superuser) {
+                priv ^= o.intValue();  // XOR the priv for super user
+            } else {
+                priv |= o.intValue();  // OR the priv
+            }
         }
-  //      priv = Table.PRIV_ALL;
         return priv;
     }
 
-    public static HashMap<String,Number> getTablePrivs(DatabaseConnection con, String table) {
+    public static HashMap<String,Integer> getTablePrivs(DatabaseConnection con, String table) {
         if (CACHE_TABLE_PRIVS) {
-            HashMap<String,Number> cmap = Security.tablePrivsCache.get(table);
+            HashMap<String,Integer> cmap = Security.tablePrivsCache.get(table);
             if (cmap != null) {
                 return cmap;
             }
         }
         if (DEBUG) System.out.println("Retrieving privs for table "+table);
-        HashMap<String,Number> map = new HashMap<>();
+        HashMap<String,Integer> map = new HashMap<>();
         for (Document role : con.query("SELECT FROM role").get()) {
             String roleName = role.getString("name");
             ArrayList<List<Document>> rules = new ArrayList<>();
-            getRoleRules(con, role.getIdentity(),rules);
+            getRoleRules(con, role.getIdentity(), rules);
             for (List<Document> rs : rules) {
+                int priv = 0;
                 for (Document rule : rs) {
                     if (DEBUG) System.out.println("getTablePrivs: rule="+roleName+" "+rule.getString("resource")+": "+rule.getString("access"));
                     if (rule.getString("resource").equals(table)) {
-                        Byte access = 0;
-                        String ra = rule.getString("access");
-
-                        if (ra.equals("CREATE")) access = 16;
-
-                        if (DEBUG) System.out.println("getTablePrivs: specific "+roleName+" "+rule.toString()+": "+access);
-                        map.put(roleName, access);
-//                    } else if (rule.getResourceGeneric() == ResourceGeneric.CLASS) {
-//                        if (DEBUG) System.out.println("getTablePrivs: all classes: "+roleName+" "+rule.getAccess());
-//                        if (rule.getAccess() != null) {
-//                                map.put(roleName, rule.getAccess());
-//                        }
-//                    } else if (rule.getResourceGeneric() == ResourceGeneric.BYPASS_RESTRICTED) {
-//                        if (DEBUG) System.out.println("getTablePrivs: all classes: "+roleName+" "+rule.getAccess());
-//                        if (rule.getAccess() != null) {
-//                                map.put(roleName, rule.getAccess());
-//                        }
+                        Integer privN = map.get(rule.getString(table));
+                        if (privN != null) priv = privN.intValue();
+                        String access = rule.getString("access");
+                        if (access.equals("ALL")) {
+                             priv |= PRIV_ALL;
+                        } else if (access.equals("CREATE")) {
+                             priv |= PRIV_CREATE;
+                        } else if (access.equals("READ")) {
+                             priv |= PRIV_READ;
+                        } else if (access.equals("UPDATE")) {
+                             priv |= PRIV_UPDATE;
+                        } else if (access.equals("DELETE")) {
+                             priv |= PRIV_DELETE;
+                        } else if (access.equals("READONLY")) { // makes sense in SUPER mode
+                             priv |= PRIV_CREATE | PRIV_UPDATE | PRIV_DELETE;
+                             if (DEBUG) System.out.println("Readonly priv is "+priv);
+                        }
+                        if (DEBUG) System.out.println("getTablePrivs: specific "+roleName+" "+rule.toString()+": "+priv);
                     }
                 }
+                map.put(roleName, priv);
             }
         }		
         if (CACHE_TABLE_PRIVS) {
@@ -344,12 +348,10 @@ public class Security {
             System.out.println("Cannot change password for user "+con.getUser());
             e.printStackTrace();
             return false;
-        } finally {
-           // if (c != null) Server.freeServerConnection(c);
         }
     }
 
-    /* See if document is view-only based on the ORestricted fields, 
+    /* See if document is view-only based on the restricted fields, 
     Note: this does not check table privileges
     */
     public static boolean isReadOnlyDocument(DatabaseConnection con, Document doc) {

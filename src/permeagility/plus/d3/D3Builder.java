@@ -99,7 +99,7 @@ public class D3Builder extends Table {
         // Return the default result
         return head(con, "D3 Builder", style(additionalStyle))
                 + body(standardLayout(con, parms,
-                    ((Security.getTablePriv(con, PlusSetup.TABLE) & PRIV_CREATE) > 0 && view == null
+                    ((Security.getTablePriv(con, PlusSetup.TABLE) & Security.PRIV_CREATE) > 0 && view == null
                     ? popupForm("CREATE_NEW_ROW", null, Message.get(locale, "CREATE_ROW"), null, "NAME",
                             paragraph("banner", Message.get(locale, "CREATE_ROW"))
                             + hidden("TABLENAME", PlusSetup.TABLE)

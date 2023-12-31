@@ -15,6 +15,8 @@
  */
 package permeagility.web;
 
+import static permeagility.web.Weblet.POPUP_FORM_CLOSER;
+
 import java.awt.Graphics2D;
 import java.awt.GraphicsEnvironment;
 import java.awt.RenderingHints;
@@ -49,6 +51,7 @@ public class Thumbnail {
 						Weblet.paragraph("banner",Message.get(locale,"IMAGE_VIEW_HEADER"))+description
 						+"<a href=\"/thumbnail?SIZE=FULL&ID="+rid+"\" target=\"_blank\">"+Message.get(locale,"DOWNLOAD_FULL_SIZE")+"</a><br>"
 						+ "<IMG SRC=\"../thumbnail?SIZE=MEDIUM&ID="+rid+"\"/>\n"
+						+ POPUP_FORM_CLOSER
 					);
 		} else {
 			return "<A href=\"/thumbnail?SIZE=FULL&ID="+rid+"\" title=\""+description+"\">"+Message.get(locale,"DOWNLOAD_FILE")+"</A>";			

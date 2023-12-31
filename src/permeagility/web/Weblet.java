@@ -349,17 +349,18 @@ public abstract class Weblet {
                 +"  <div class=\"pop-content\">\n"
                 +"    <form  id=\""+formName+"\" name=\""+formName+"\" enctype=\"multipart/form-data\""
                 +"           hx-"+method.toLowerCase()+"=\""+action+"\" hx-target=\"#"+target+"\" hx-swap=\"innerHTML\" class=\"form-container\">\n"
-                +        content + "&nbsp;<a href=\"#\" class=\"box-close\">x</a>\n"
+                +        content 
                 +"    </form>\n"
                 +"  </div>\n"
                 +"</div>\n";
     }
+    public static String POPUP_FORM_CLOSER = "&nbsp;<a href=\"#\" class=\"box-close\">x</a>\n";
 
     public static String popupHTMX(String formName, String linkText, String focusField, String content) {
         return "<a href=\"#popup-"+formName+"\" class=\"popbox\">"+linkText+POPUP_SUFFIX+"</a>\n"
                 +"<div id=\"popup-"+formName+"\" class=\"modal\">\n"
                 +"  <div class=\"pop-content\">\n"
-                +        content + "&nbsp;<a href=\"#\" class=\"box-close\">x</a>\n"
+                +        content
                 +"  </div>\n"
                 +"</div>\n";
     }

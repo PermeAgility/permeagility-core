@@ -30,7 +30,6 @@ import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.Property;
 import com.arcadedb.schema.Type;
 
-import static permeagility.web.Table.PRIV_READ;
 import static permeagility.web.Table.SHOW_ALL_RELATED_TABLES;
 
 public class VisuilityData extends Download {
@@ -318,7 +317,7 @@ public class VisuilityData extends Download {
             for (DocumentType c : con.getSchema().getTypes()) {
                 for (Property p : c.getProperties()) {
                     if (p.getOfType() != null && p.getOfType().equals(classname)) {
-                        if (SHOW_ALL_RELATED_TABLES || (Security.getTablePriv(con, c.getName()) & PRIV_READ) > 0) {
+                        if (SHOW_ALL_RELATED_TABLES || (Security.getTablePriv(con, c.getName()) & Security.PRIV_READ) > 0) {
                             tables.push(c.getName());
                             columns.push(p.getName());
                             types.push(p.getType());
@@ -331,7 +330,7 @@ public class VisuilityData extends Download {
                 String col = columns.pop();
                 Type fkType = types.pop();
                 String operator;
-                if ((Security.getTablePriv(con, relTable) & PRIV_READ) > 0) {
+                if ((Security.getTablePriv(con, relTable) & Security.PRIV_READ) > 0) {
                     if (fkType == Type.LIST) {
                         operator = "contains";
                     } else if (fkType == Type.MAP) {

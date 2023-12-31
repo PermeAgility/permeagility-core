@@ -60,28 +60,16 @@ public class Table extends Weblet {
     public static String PARM_PREFIX = "PARM_";  // Use this prefix in front of all column names as form field names (parameter names) 
     public static boolean SHOW_ALL_RELATED_TABLES = true;   // Will show that relationships exist even if no access to the table
 
-    public static String USERS_LIST = "SELECT name as rid, name FROM OUser ORDER BY name";
-    public static String ROLES_LIST = "SELECT name as rid, name FROM ORole ORDER BY name";
-
-    public static final int PRIV_CREATE = 1;
-    public static final int PRIV_READ = 2;
-    public static final int PRIV_UPDATE = 4;
-    public static final int PRIV_DELETE = 8;
-    public static final int PRIV_ALL = 15;
-
-    public String getPage(DatabaseConnection con, java.util.HashMap<String, String> parms) {
-        
+    public String getPage(DatabaseConnection con, java.util.HashMap<String, String> parms) {      
         String restResult = processREST(con, parms);
-
-        // Return default of schema page if no result
-        return restResult != null ?restResult : new Schema().getPage(con,parms);
+        return restResult != null ? restResult 
+            : new Schema().getPage(con,parms); // Return default of schema page if no result
     }
 
  /*        // Todo: Check for translation, if no translation, make pretty
         String prettyTable = Message.get(locale, "TABLE_" + table);
         if (table != null && ("TABLE_" + table).equals(prettyTable)) {  prettyTable = makeCamelCasePretty(table); }
         String title = Message.get(locale, "TABLE_EDITOR", table != null ? prettyTable : "None");
-
   */
 
     public String processREST(DatabaseConnection con, HashMap<String, String> parms) {
@@ -149,10 +137,16 @@ public class Table extends Weblet {
                     }
                 } else if (httpMethod.equals("POST")) {
                     String opFlag = parms.get("ADVANCED_OPTIONS");
+                    String ropFlag = parms.get("RIGHTS_OPTIONS");
                     if (opFlag != null && opFlag.equals("YES")) {
                         String advOp = advancedOptions(con, table, parms, errors);
                         if (advOp != null && !advOp.isEmpty()) {
                             return advOp;
+                        }
+                    } else if (ropFlag != null && ropFlag.equals("YES")) {
+                        String rOp = rightsOptions(con, table, parms);
+                        if (rOp != null && !rOp.isEmpty()) {
+                            return rOp;
                         }
                     } else {
                         return null;
@@ -778,10 +772,7 @@ public class Table extends Weblet {
                     StringWriter sw = new StringWriter();
                     e.printStackTrace(new PrintWriter(sw));
                     errors.append(paragraph("error", Message.get(con.getLocale(), "CANNOT_UPDATE") + e.getMessage()) + (DEBUG ? "<br>" + xxSmall(sw.toString()) : ""));
-             //       if (DEBUG || e instanceof OSecurityAccessException) {
-             //           System.err.println(sw.toString());  // Security messages will always go to log
-             //       }
-                    return false;
+                     return false;
                 }
             } else {
                 errors.append(paragraph("warning", Message.get(con.getLocale(), "NOTHING_TO_UPDATE")));
@@ -837,16 +828,6 @@ public class Table extends Weblet {
             return paragraph("error", "cannot find class " + table);
         }
 
-   //     if (DEBUG) System.out.println("Table.getTableRowForm: table=" + table + " class.isAbstract=" + tclass.isAbstract());
-
-   //     if (tclass.isAbstract() && edit_id != null) {  // If table name is abstract, get the table name from the document itself
-   //         ODocument d = con.get(edit_id);
-   //         if (d != null) {
-   //             OClass c = d.getSchemaClass();
-   //             table = c.getName();
-   //             parms.put("TABLENAME", table);
-   //         }
-   //     }
         String allRowsLink = "";
         if (!con.getUser().equals("guest")) {
             allRowsLink = linkHTMX("/"+this.getClass().getName() + "/" + table, "&lt;"+Message.get(con.getLocale(), "ALL_ROWS_IN_TABLE", makeCamelCasePretty(table)), parms.get("HX-TARGET"));
@@ -872,17 +853,17 @@ public class Table extends Weblet {
         String formName = (edit_id == null ? "NEWROW" : "UPDATEROW");
         String formContent = rowForm
                         + center((edit_id == null
-                            ? ((Security.getTablePriv(con, table) & PRIV_CREATE) > 0 
+                            ? ((Security.getTablePriv(con, table) & Security.PRIV_CREATE) > 0 
                                     ? submitButton(con.getLocale(), "CREATE_ROW", submitCodeLines.size()>0 ? submitCode.toString() : "") 
                                     : "")
-                            : ((Security.getTablePriv(con, table) & PRIV_UPDATE) > 0 && !readOnly 
+                            : ((Security.getTablePriv(con, table) & Security.PRIV_UPDATE) > 0 && !readOnly 
                                     ? submitButton(con.getLocale(), "UPDATE", submitCodeLines.size()>0 ? submitCode.toString() : "") 
                                     : "")
                             + "&nbsp;&nbsp;"
                             + cancelButton(con.getLocale(), table, parms.get("HX-TARGET"))))
                         + paragraph("delete",
-                                (edit_id != null && (Security.getTablePriv(con, table) & PRIV_CREATE) > 0 ? submitButton(con.getLocale(), "COPY") : "") + "&nbsp;&nbsp;"
-                                + (edit_id != null && (Security.getTablePriv(con, table) & PRIV_DELETE) > 0 && !readOnly ? deleteButton(con.getLocale(),table,edit_id, parms.get("HX-TARGET")) : ""));
+                                (edit_id != null && (Security.getTablePriv(con, table) & Security.PRIV_CREATE) > 0 ? submitButton(con.getLocale(), "COPY") : "") + "&nbsp;&nbsp;"
+                                + (edit_id != null && (Security.getTablePriv(con, table) & Security.PRIV_DELETE) > 0 && !readOnly ? deleteButton(con.getLocale(),table,edit_id, parms.get("HX-TARGET")) : ""));
         if (edit_id == null) {  // PUT
             formContent = formHTMX(formName, "/"+this.getClass().getName()+"/"+table, "put", parms.get("HX-TARGET"), formContent);
         } else {                // PATCH
@@ -1196,7 +1177,7 @@ public class Table extends Weblet {
         for (DocumentType c : con.getSchema().getTypes()) {
             for (Property p : c.getProperties()) {
                 if (p.getOfType() != null && p.getOfType().equals(table)) {
-                    if (SHOW_ALL_RELATED_TABLES || (Security.getTablePriv(con, c.getName()) & PRIV_READ) > 0) {
+                    if (SHOW_ALL_RELATED_TABLES || (Security.getTablePriv(con, c.getName()) & Security.PRIV_READ) > 0) {
                         tables.push(c.getName());
                         columns.push(p.getName());
                         types.push(p.getType());
@@ -1261,7 +1242,7 @@ public class Table extends Weblet {
                 + getDatatypeList(l, "NEWDATATYPE", "DATATYPE_TEXT", typeSelAttr)
                 + createListFromDocumentTypes("NEWTABLEREF", null, con, tableSelAttr, false, null, true) + br()
                 + inputWithPlaceholder("NEWCOLUMNNAME", "Column name") + br()
-                + center(submitButton(l, "NEW_COLUMN"));
+                + center(submitButton(l, "NEW_COLUMN")+POPUP_FORM_CLOSER);
     }
 
     public String createListFromDocumentTypes(String name, String initial, DatabaseConnection con, String attributes, boolean allowNull, String classname, boolean enabled) {
@@ -1318,21 +1299,25 @@ public class Table extends Weblet {
         }
         String body = linkHTMX(this.getClass().getName(), "&lt;" + Message.get(con.getLocale(), "ALL_TABLES"), parms.get("HX-TARGET"))
                 + "&nbsp;&nbsp;&nbsp;"
-                 + ((Security.getTablePriv(con, table) & PRIV_CREATE) > 0 
+                 + ((Security.getTablePriv(con, table) & Security.PRIV_CREATE) > 0 
                     ? popupFormHTMX("CREATE_NEW_ROW", this.getClass().getName()+"/"+table, "put", parms.get("HX-TARGET"), Message.get(con.getLocale(), "NEW_ROW"), "NAME",
                         paragraph("banner", Message.get(con.getLocale(), "CREATE_ROW")+" "+makeCamelCasePretty(table))
                         + getTableRowFieldsNew(con, table, parms)
-                        + submitButton(con.getLocale(), "CREATE_ROW")) 
+                        + submitButton(con.getLocale(), "CREATE_ROW")
+                        + POPUP_FORM_CLOSER) 
                     : "")
                 + "&nbsp;&nbsp;&nbsp;"
                 + (Security.isDBA(con)
                     ? newColumnPopup(con, table, parms.get("HX-TARGET"))
-                    //+ "&nbsp;&nbsp;&nbsp;"
-                    //+ popupForm("RIGHTSOPTIONS", null, Message.get(locale, "TABLE_RIGHTS_OPTIONS"), null, "XXX", rightsOptionsForm(con, table, parms, ""))
+                    + "&nbsp;&nbsp;&nbsp;"
+//                    + popupFormHTMX("RIGHTSOPTIONS", this.getClass().getName()+"/"+table, "post", parms.get("HX-TARGET")
+                    + popupFormHTMX("RIGHTSOPTIONS", this.getClass().getName()+"/"+table, "post", "RIGHTSOPTIONS"
+                                , Message.get(con.getLocale(), "TABLE_RIGHTS_OPTIONS"), "XXX"
+                                , rightsOptionsForm(con, table, parms, ""))
                     + "&nbsp;&nbsp;&nbsp;"
                     + popupFormHTMX("ADVANCEDOPTIONS", this.getClass().getName()+"/"+table, "post", parms.get("HX-TARGET")
-                                 , Message.get(con.getLocale(), "ADVANCED_TABLE_OPTIONS"), "NEWCOLUMNNAME"
-                                 , advancedOptionsForm(con, table, parms, ""))
+                                 , Message.get(con.getLocale(), "ADVANCED_TABLE_OPTIONS"), "XXX"
+                                 , advancedOptionsForm(con, table, parms, "") + POPUP_FORM_CLOSER)
                     : "") // isDBA switch
                 + br()
                 + getTable(con, table, parms, page);
@@ -1490,7 +1475,7 @@ public class Table extends Weblet {
             } else {
                 colNameI18N = makeCamelCasePretty(columnName);
             }
-            if (column.getOfType() != null && (Security.getTablePriv(con, column.getOfType()) & PRIV_READ) == 0) {
+            if (column.getOfType() != null && (Security.getTablePriv(con, column.getOfType()) & Security.PRIV_READ) == 0) {
                 continue;
             }
             if (!columnName.toUpperCase().endsWith("PASSWORD") // && !columnName.startsWith("_")
@@ -1513,7 +1498,7 @@ public class Table extends Weblet {
 //		if (DEBUG) System.out.println("Table.getRow colCount="+columns.size());
         for (Property column : columns) {
             String fieldName = column.getName();
-            if (column.getOfType() != null && (Security.getTablePriv(con, column.getOfType()) & PRIV_READ) == 0) {
+            if (column.getOfType() != null && (Security.getTablePriv(con, column.getOfType()) & Security.PRIV_READ) == 0) {
                 continue;
             }
             if (!fieldName.toUpperCase().endsWith("PASSWORD") // && !fieldName.startsWith("_")
@@ -1761,104 +1746,84 @@ public class Table extends Weblet {
         String submit = (parms != null ? parms.get("SUBMIT") : null);
         String right = (parms != null ? parms.get("RIGHT") : null);
         String role = (parms != null ? parms.get("ROLESELECT") : null);
-        if (submit != null && submit.equals("GRANT_RIGHT")) {
-            if (DEBUG) System.out.println("Granting right");
-            String grantQuery = "GRANT " + right
-                    + " ON database.class." + table
-                    + " TO " + role;
-            System.out.println("Executing GRANT: " + grantQuery);
+        // need to validate the right value
+        if (submit != null && submit.equals("GRANT_RIGHT")
+            && right != null && role != null) {
+            if (DEBUG) System.out.println("Granting right (via INSERT to priv table)");
             try {
-                con.update(grantQuery);
-            } catch (Exception e) {
-                errors.append(e.getLocalizedMessage());
-                e.printStackTrace();
-            }
-            grantQuery = "GRANT " + right
-                    + " ON database.cluster." + table
-                    + " TO " + role;
-            System.out.println("Executing GRANT for cluster: " + grantQuery);
-            try {
-                con.update(grantQuery);
-                Server.tableUpdated(con, "ORole");  // Privs are stored in ORole
+                MutableDocument privilege = con.create("privilege");
+                privilege.set("access", right);
+                privilege.set("resource", table);
+                privilege.set("identity", "#"+role);
+                privilege.save();
+                Server.tableUpdated(con, "privilege"); 
                 Security.tablePrivUpdated(table);
             } catch (Exception e) {
                 errors.append(e.getLocalizedMessage());
                 e.printStackTrace();
             }
-            return redirect(parms, this, "TABLENAME=" + table);
         }
-        if (submit != null && submit.equals("REVOKE_RIGHT")) {
-            if (DEBUG) {
-                System.out.println("Revoking right ");
+        if (submit != null && submit.equals("REVOKE_RIGHT")
+               && right != null && role != null) {
+            if (DEBUG)  System.out.println("Revoking right (via DELETE from priv table)");
+            
+            String revokeQuery;
+            if (right.equals("ALL")) {
+                revokeQuery = "DELETE FROM privilege WHERE resource='"+table+"' AND identity=#"+role;
+            } else {
+                revokeQuery = "DELETE FROM privilege WHERE access='"+right+"' AND resource='"+table+"' AND identity=#"+role;
             }
-            String revokeQuery = "REVOKE " + right
-                    + " ON database.class." + table
-                    + " FROM " + role;
             System.out.println("Executing REVOKE: " + revokeQuery);
             try {
                 con.update(revokeQuery);
-            } catch (Exception e) {
-                errors.append(e.getLocalizedMessage());
-                e.printStackTrace();
-            }
-            revokeQuery = "REVOKE " + right
-                    + " ON database.cluster." + table
-                    + " FROM " + role;
-            System.out.println("Executing REVOKE on cluster: " + revokeQuery);
-            try {
-                con.update(revokeQuery);
-                Server.tableUpdated(con, "ORole");  // Stored in ORole
+                //Server.tableUpdated(con, "privilege");
                 Security.tablePrivUpdated(table);
             } catch (Exception e) {
                 errors.append(e.getLocalizedMessage());
                 e.printStackTrace();
             }
-            return redirect(parms, this, "TABLENAME=" + table);
         }
-
-        String title = table + " " + Message.get(locale, "ADVANCED_OPTIONS");
-        parms.put("SERVICE", title);
-        return head(con, title)
-             + body(
-                    rightsOptionsForm(con, table, parms, errors.toString())
-                    + br()
-                    + link(this.getClass().getName()+"?TABLENAME=" + table, Message.get(locale, "BACK_TO_TABLE"))
-                );
+        return rightsOptionsForm(con, table, parms, errors.toString());
+                
     }
 
     public String rightsOptionsForm(DatabaseConnection con, String table, HashMap<String, String> parms, String errors) {
         StringBuilder currentRights = new StringBuilder();
         List<String> rightsNames = new ArrayList<>();
-        HashMap<String, Number> privs = Security.getTablePrivs(con, table);
+        HashMap<String, Integer> privs = Security.getTablePrivs(con, table);
 
         for (String role : privs.keySet()) {
-            Number b = privs.get(role);
+            Integer b = privs.get(role);
             if (b != null) {
                 StringBuilder sb = new StringBuilder();
                 if (b.intValue() == 0) {
                     //sb.append(Message.get(con.getLocale(), "PRIV_NONE"));
-                } else if (b.intValue() == PRIV_ALL) {
+                } else if (b.intValue() == Security.PRIV_ALL) {
                     sb.append(Message.get(con.getLocale(), "PRIV_ALL"));
                 } else {
                     if (DEBUG) {
-                        System.out.println("role=" + role + " table=" + table + " create=" + (b.intValue() & PRIV_CREATE) + " read=" + (b.intValue() & PRIV_READ) + " update=" + (b.intValue() & PRIV_UPDATE) + " delete=" + (b.intValue() & PRIV_DELETE));
+                        System.out.println("role=" + role + " table=" + table 
+                        + " create=" + (b.intValue() & Security.PRIV_CREATE) 
+                        + " read=" + (b.intValue() & Security.PRIV_READ) 
+                        + " update=" + (b.intValue() & Security.PRIV_UPDATE) 
+                        + " delete=" + (b.intValue() & Security.PRIV_DELETE));
                     }
-                    if ((b.intValue() & PRIV_CREATE) > 0) {
+                    if ((b.intValue() & Security.PRIV_CREATE) > 0) {
                         sb.append(Message.get(con.getLocale(), "PRIV_CREATE"));
                     }
-                    if ((b.intValue() & PRIV_READ) > 0) {
+                    if ((b.intValue() & Security.PRIV_READ) > 0) {
                         if (sb.length() > 0) {
                             sb.append(", ");
                         }
                         sb.append(Message.get(con.getLocale(), "PRIV_READ"));
                     }
-                    if ((b.intValue() & PRIV_UPDATE) > 0) {
+                    if ((b.intValue() & Security.PRIV_UPDATE) > 0) {
                         if (sb.length() > 0) {
                             sb.append(", ");
                         }
                         sb.append(Message.get(con.getLocale(), "PRIV_UPDATE"));
                     }
-                    if ((b.intValue() & PRIV_DELETE) > 0) {
+                    if ((b.intValue() & Security.PRIV_DELETE) > 0) {
                         if (sb.length() > 0) {
                             sb.append(", ");
                         }
@@ -1882,10 +1847,11 @@ public class Table extends Weblet {
                 + paragraph("banner", Message.get(con.getLocale(), "EXISTING_RIGHTS"))
                 + currentRights.toString()
                 + paragraph("banner", Message.get(con.getLocale(), "ADD_OR_REMOVE_RIGHT"))
-               // + createListFromCache("ROLESELECT", null, con, ROLES_LIST, null, false, null, true)
+                + createListFromCache("ROLESELECT", null, con, getQueryForTable(con, "identity"), null, false, null, true)
                 + createList(con.getLocale(), "RIGHT", null, rightsNames, null, false, null, true)
                 + submitButton(con.getLocale(), "GRANT_RIGHT")
-                + submitButton(con.getLocale(), "REVOKE_RIGHT");
+                + submitButton(con.getLocale(), "REVOKE_RIGHT")
+                + POPUP_FORM_CLOSER;
     }
 
     public static String password(String name, Object value, int size) {

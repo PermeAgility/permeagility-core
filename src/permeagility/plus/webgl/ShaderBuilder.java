@@ -86,7 +86,7 @@ public class ShaderBuilder extends Table {
         // Return the default page
         return head(con, "Shader Builder", "" )
                 + body(standardLayout(con, parms,
-                    ((Security.getTablePriv(con, TABLE_NAME) & PRIV_CREATE) > 0
+                    ((Security.getTablePriv(con, TABLE_NAME) & Security.PRIV_CREATE) > 0
                     ? popupForm("CREATE_NEW_ROW", null, Message.get(locale, "CREATE_ROW"), null, "NAME",
                             paragraph("banner", Message.get(locale, "CREATE_ROW"))
                             + hidden("TABLENAME", TABLE_NAME)

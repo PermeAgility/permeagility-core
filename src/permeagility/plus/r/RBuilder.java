@@ -119,7 +119,7 @@ public class RBuilder extends Table {
         // Return the default result
         return head(con, "R Builder", "")
         + body(standardLayout(con, parms,
-            ((Security.getTablePriv(con, PlusSetup.TABLE) & PRIV_CREATE) > 0
+            ((Security.getTablePriv(con, PlusSetup.TABLE) & Security.PRIV_CREATE) > 0
                 ? popupForm("CREATE_NEW_ROW", null, Message.get(locale, "CREATE_ROW"), null, "NAME",
                     paragraph("banner", Message.get(locale, "CREATE_ROW"))
                     + hidden("TABLENAME", PlusSetup.TABLE)

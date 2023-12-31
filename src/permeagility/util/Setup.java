@@ -37,7 +37,7 @@ public class Setup {
     static StringBuilder installMessages = new StringBuilder();
 
     public static boolean RESTRICTED_BY_ROLE = true;
-    private static String SETUP_DEBUG_FLAG = "true";    // default setting for debug constants
+    private static String SETUP_DEBUG_FLAG = "false";    // default setting for debug constants
 
     public static final String TABLE_THUMBNAIL = "thumbnail";
     public static final String TABLE_CONSTANT = "constant";
@@ -256,6 +256,7 @@ public class Setup {
                 customerRole = (Document)con.update("INSERT INTO role SET name = 'customer', mode = 'NORMAL', inheritedRole = "+guestRole.getIdentity().toString()+" RETURN @this");
             } else {
                 customerRole = customerRoles.get(0);
+
             }
             if (customerRoles.isEmpty()) {
                 customerRoles.add(customerRole);
@@ -639,7 +640,8 @@ public class Setup {
                 n2.set("dateline", LocalDateTime.now());
                 n2.set("locale",loc);
                 n2.set("archive",false);
-                n2.set("_allowRead", adminRoles.toArray());
+                n2.set("_allowRead", adminRoles);
+                n2.set("_allow", adminRoles);
                 n2.save();
 
                 MutableDocument n3 = con.create(TABLE_NEWS);
@@ -650,7 +652,8 @@ public class Setup {
                 n3.set("dateline", LocalDateTime.now());
                 n3.set("locale",loc);
                 n3.set("archive",false);
-                n3.set("_allowRead", customerRoles.toArray());
+                n3.set("_allowRead", customerRoles);
+                n3.set("_allow", adminRoles);
                 n3.save();
 
                 MutableDocument n4 = con.create(TABLE_NEWS);
@@ -661,7 +664,8 @@ public class Setup {
                 n4.set("dateline", LocalDateTime.now());
                 n4.set("locale",loc);
                 n4.set("archive",false);
-                n4.set("_allowRead", staffRoles.toArray());
+                n4.set("_allowRead", staffRoles);
+                n4.set("_allow", adminRoles);
                 n4.save();
 
                 MutableDocument n1 = con.create(TABLE_NEWS);
@@ -672,7 +676,8 @@ public class Setup {
                 n1.set("dateline", LocalDateTime.now());
                 n1.set("locale",loc);
                 n1.set("archive",false);
-                n1.set("_allowRead", guestRoles.toArray());
+                n1.set("_allowRead", guestRoles);
+                n1.set("_allow", adminRoles);
                 n1.save();
             }
  
