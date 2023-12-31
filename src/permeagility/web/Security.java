@@ -15,33 +15,38 @@
  */
 package permeagility.web;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.arcadedb.database.Document;
+import com.arcadedb.database.RID;
 
 import permeagility.util.Database;
 
 import permeagility.util.DatabaseConnection;
+import permeagility.util.QueryResult;
 
 public class Security {
 
-    public static boolean DEBUG = false;
+    public static boolean DEBUG = true;
     public static Date securityRefreshTime = new Date();
     
-    private static final ConcurrentHashMap<String,Set<String>> userRoles = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String,List<RID>> userRoles = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<String,HashMap<String,Number>> userRules = new ConcurrentHashMap<>();
-    private static final ConcurrentHashMap<String,Set<String>> keyRoles = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String,List<RID>> keyRoles = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<String,HashMap<String,Number>> tablePrivsCache = new ConcurrentHashMap<>();
     public static boolean CACHE_TABLE_PRIVS = false;
     
     public static boolean authorized(String user, String className) {
         if (DEBUG) System.out.println("Authorizing "+user+" to "+className);
-        Set<String> uRoles = userRoles.get(user);
-        Set<String> kRoles = keyRoles.get(className);
-        return isRoleMatch(uRoles,kRoles);
+        List<RID> uRoles = userRoles.get(user);
+        List<RID> kRoles = keyRoles.get(className);
+        return isRoleMatch(uRoles,kRoles);  // unauthorized if any list null
     }
 
     public static int keyRoleCount() { 
@@ -49,7 +54,7 @@ public class Security {
     }
 
     /** Refresh the cached security model in the server */
-    public static void refreshSecurity() {
+    public static void refreshSecurity(DatabaseConnection con) {
 
       //  // If security has changed, close all existing connections for all users but admin
       //  for (String usr : Server.sessionsDB.keySet()) {
@@ -59,84 +64,85 @@ public class Security {
       //      }
       //  }
   
-        //DatabaseConnection con = Server.database.getConnection();
-        //System.out.println("Security: refreshing using "+con.getUser()+" user");
+        System.out.println("Security: refreshing using "+con.getUser()+" user");
         int entryCount = 0;
         try {
-//          OSecurity osec = con.getSecurity();
-//            List<ODocument> users = osec.getAllUsers();
-//            if (users != null) {
-//                for (ODocument user : users) {
-//                    String n = user.field("name");
-//                    OUser u = osec.getUser(n);
-//                    Set<ORole> roles = u.getRoles();
-//                    if (roles != null) {
-//                        if (DEBUG) System.out.println("Adding security keyuser "+n+" - "+roles.size());
-//                        entryCount++;
-//                        Set<String> roleSet = new HashSet<>();
-//                        for (ORole r : roles) {
-//                            if (r != null) {
-//                                roleSet.add(r.getDocument().getIdentity().toString());
-//                            }
-//                        }
-//                        userRoles.put(n, roleSet);
-//                    }
-//                }
-//                System.out.println("Security.refreshSecurity() - loaded "+entryCount+" users");
-//            }
-//            entryCount = 0;
-//            QueryResult qr = con.query("SELECT FROM menuItem");
-//            if (qr != null) {
-//                for (ODocument menuItem : qr.get()) {
-//                        String n = menuItem.field("classname");
-//                        Set<ODocument> roles = menuItem.field("_allowRead");
-//                        if (n != null && roles != null) {
-//                                if (DEBUG) System.out.println("Adding security keyrole "+n);
-//                                entryCount++;
-//                                Set<String> roleSet = keyRoles.get(n);
-//                                if (roleSet == null) {
-//                                    roleSet = new HashSet<>();
-//                                    keyRoles.put(n, roleSet);
-//                                }
-//                                for (ODocument r : roles) {
-//                                    if (r != null) {
-//                                        roleSet.add(r.getIdentity().toString());
-//                                    }
-//                                }
-//                        }
-//                }
-//                System.out.println("Security.refreshSecurity() - loaded "+entryCount+" menuItems");
-//            }
+            List<Document> users = con.query("SELECT FROM user").get();
+            if (users != null) {
+                for (Document user : users) {
+                    String n = user.getString("name");
+                    List<RID> roles = user.getList("roles");
+                    if (roles != null) {
+                        if (DEBUG) System.out.println("Adding security keyuser "+n+" - "+roles.size());
+                        entryCount++;
+                        List<RID> roleSet = new ArrayList<>();
+                        for (RID r : roles) {
+                            if (r != null) {
+                                roleSet.add(r);
+                            }
+                        }
+                        userRoles.put(n, roleSet);
+                    }
+                }
+                System.out.println("Security.refreshSecurity() - loaded "+entryCount+" users");
+            }
+            entryCount = 0;
+            QueryResult qr = con.query("SELECT FROM menuItem");
+            if (qr != null) {
+                for (Document menuItem : qr.get()) {
+                    String n = menuItem.getString("classname");
+                    List<RID> roles = menuItem.getList("_allowRead");
+                    if (n != null && roles != null) {
+                        if (DEBUG) System.out.print("Adding security keyrole "+n+" - ");
+                        entryCount++;
+                        List<RID> roleSet = keyRoles.get(n);
+                        if (roleSet == null) {
+                            roleSet = new ArrayList<>();
+                            keyRoles.put(n, roleSet);
+                        }
+                        for (RID r : roles) {
+                            if (r != null) {
+                                if (DEBUG) System.out.print(r+" ");
+                                roleSet.add(r);
+                            }
+                        }
+                    }
+                    if (DEBUG) System.out.println("done.");
+                }
+                System.out.println("Security.refreshSecurity() - loaded "+entryCount+" menuItems");
+            }
 
-//            for (String user : userRoles.keySet()) {
-                // User object rules are compiled into a simple HashMap<String,Byte>
-//                Set<String> roles = userRoles.get(user);  
-//                ArrayList<Set<ORule>> rules = new ArrayList<>();  // To hold the rules
-//                for (String role : roles) {
-//                    getRoleRules(osec.getRole((con.get(role)).getIdentity()),rules);				
-//                }
-//                if (DEBUG) System.out.println(user+" rules="+rules);
-//                // Collapse the rules into a single HashMap 
-//                HashMap<String,Number> newRules = new HashMap<>();
-//                for (Set<ORule> m : rules) {
-//                    for (ORule rule : m) {
-//                        ResourceGeneric rg = rule.getResourceGeneric();
-//                        if (rg != null) {
-//                            if (DEBUG) System.out.println("ResourceGeneric="+rg.getName()+" priv="+rule.getAccess());
-//                            newRules.put(rg.getName(), rule.getAccess());
-//                        }
-//                        Map<String,Byte> spec = rule.getSpecificResources();
+            for (String user : userRoles.keySet()) {
+               // User object rules are compiled into a simple HashMap<String,Byte>
+                List<RID> roles = userRoles.get(user);  
+                ArrayList<List<Document>> rules = new ArrayList<>();  // To hold the rules
+                for (RID role : roles) {
+                    getRoleRules(con, role, rules);				
+                }
+                if (DEBUG) System.out.println(user+" rules="+rules);
+                // Collapse the rules into a single HashMap 
+                HashMap<String,Number> newRules = new HashMap<>();
+                for (List<Document> m : rules) {
+                    for (Document rule : m) {
+                        //ResourceGeneric rg = rule.getResourceGeneric();
+                        //if (rg != null) {
+                        //    if (DEBUG) System.out.println("ResourceGeneric="+rg.getName()+" priv="+rule.getAccess());
+                        //    newRules.put(rg.getName(), rule.getAccess());
+                        //}
+                       // Map<String,Byte> spec = rule.getSpecificResources();
+                       System.out.println("Security.refreshSecurity found rule "+rule);
+                       newRules.put(rule.getString("resource"),16);
 //                        for (String res : spec.keySet()) {
 //                            String resource = res;
 //                            Number newPriv = spec.get(res);
 //                            if (DEBUG) System.out.println("Resource="+resource+" newPriv="+newPriv+" generic="+rule.getResourceGeneric());
 //                            newRules.put(resource, newPriv);
 //                        }
-//                    }
-//                }
-//                if (DEBUG) System.out.println(user+" newRules="+newRules);
-//                userRules.put(user, newRules);
-//            }
+                    }
+                }
+                if (DEBUG) System.out.println(user+" newRules="+newRules);
+                userRules.put(user, newRules);
+            }
         } catch (Exception e) {
             System.out.println("Error retrieving security model into cache - "+e.getMessage());
             e.printStackTrace();
@@ -147,51 +153,62 @@ public class Security {
     }
 
     /** Returns true is one of the first set of roles is a match for a role in the second set - please pass in arrays of ORoles */
-    public static boolean isRoleMatch(Set<String> uRoles, Set<String> kRoles) {
-  //      boolean authorized = false;
-  //      if (uRoles == null || kRoles == null) {
-  //          System.out.println("Server.isRoleAuthorized: kRoles/uRoles is null");
-  //          return authorized;
-  //      }
-  //      if (DEBUG) System.out.println("Server.isRoleAuthorized: uRoles="+uRoles.size()+" kRoles="+kRoles.size());
-  //      OUT: for (String ur: uRoles) {
-  //          for (String kr: kRoles) {
-  //              if (DEBUG) System.out.println("Server.isRoleAuthorized: comparing "+ur+" with "+kr);
-  //              if (ur != null && kr != null && ur.equals(kr)) {
-  //                  if (DEBUG) System.out.println("Server.isRoleAuthorized: Match on user role "+ur+" Authorized!");
-  //                  authorized = true;
-  //                  break OUT;
-  //              }
-  //          }
-  //      }
-  //      return authorized;
-        return true;
+    public static boolean isRoleMatch(List<RID> uRoles, List<RID> kRoles) {
+        boolean authorized = false;
+        if (uRoles == null) {
+            System.out.println("Server.isRoleAuthorized: uRoles is null");
+            return authorized;
+        }
+        if (kRoles == null) {
+            System.out.println("Server.isRoleAuthorized: kRoles is null");
+            return authorized;
+        }
+        if (DEBUG) System.out.println("Server.isRoleAuthorized: uRoles="+uRoles.size()+" kRoles="+kRoles.size());
+        OUT: for (RID ur: uRoles) {
+            for (RID kr: kRoles) {
+                if (DEBUG) System.out.println("Server.isRoleAuthorized: comparing "+ur+" with "+kr);
+                if (ur != null && kr != null && ur.equals(kr)) {
+                    if (DEBUG) System.out.println("Server.isRoleAuthorized: Match on user role "+ur+" Authorized!");
+                    authorized = true;
+                    break OUT;
+                }
+            }
+        }
+        return authorized;
+  //      return true;
     }
 
     /** Recursive function to return the rules for a role that has been given (includes inherited rules) */
-//    public static int getRoleRules(ORole role, ArrayList<Set<ORule>> rules) {
-//        if (role.getParentRole() != null) {
-//                getRoleRules(role.getParentRole(), rules);
-//        } 
-//        Set<ORule> ru = (Set<ORule>)role.getRuleSet();
-//        rules.add(ru);
-//        return rules.size();
-//    }
+    public static int getRoleRules(DatabaseConnection con, RID role, ArrayList<List<Document>> rules) {
+        Document roleDoc = con.get(role);
+        if (roleDoc.get("inheritedRole") != null) {
+            System.out.println("found inherited role for "+roleDoc.getString("name"));
+                getRoleRules(con, (RID)roleDoc.get("inheritedRole"), rules);
+        } 
+        List<Document> privs = con.query("SELECT FROM privilege WHERE identity="+role.toString()).get();
+        List<Document> ru = new ArrayList<>();
+        for (Document p : privs) {
+            System.out.println("Security.getRoleRules added " + p.toString());
+            ru.add(p);
+        }
+        rules.add(ru);
+        return rules.size();
+    }
 
-    /** Get the connected user's roles in an object array (be warned, they could be ODocuments or ORecordIds) */ 
-    public static Set<String> getUserRoles(DatabaseConnection con) {
+    /** Get the connected user's roles in an object array  */ 
+    public static List<RID> getUserRoles(DatabaseConnection con) {
         return userRoles.get(con.getUser());  
     }
 
     /** Get the connected user's roles as a list that can be used in SQL. Example: #1:1,#1:2,#1:3 */
     public static String getUserRolesList(DatabaseConnection con) {
-        Set<String> roles = userRoles.get(con.getUser());
+        List<RID> roles = userRoles.get(con.getUser());
         if (roles != null) {
             StringBuilder rb = new StringBuilder();
             String comma = "";
-            for(String r : roles) {
+            for(RID r : roles) {
                 rb.append(comma);
-                rb.append(r);
+                rb.append(r.toString());
                 comma = ",";
             }
             if (DEBUG) System.out.println("Security.getUserRolesList for user "+con.getUser()+" = "+rb.toString());
@@ -203,11 +220,11 @@ public class Security {
     }
 
     public static boolean isDBA(DatabaseConnection con) {
-      //  String user = con.getUser();
-      //  if (user.equals("admin") || user.equals("server") || user.equals("dba")) {
-      //      return true;
-      //  }
-        return true;
+        String user = con.getUser();
+        if (user.equals("admin") || user.equals("server") || user.equals("dba")) {
+            return true;
+        }
+        return false;
     }
 
     /** Get the privileges that the connected user has to the given table */
@@ -230,27 +247,27 @@ public class Security {
         }
         
         // Find the most specific privilege for the table from the user's rules
-  //      Number o;
-  //      o = newRules.get(ResourceGeneric.BYPASS_RESTRICTED.getName()); 
-  //      if (o != null) {
-  //          if (DEBUG) System.out.println("Security.getTablePriv: Found "+ResourceGeneric.BYPASS_RESTRICTED.getName()+"="+o);
-  //          priv |= o.intValue();
-  //      }
-  //      o = newRules.get(ResourceGeneric.CLASS.getName());
-  //      if (o != null) {
-  //          if (DEBUG) System.out.println("Security.getTablePriv: Found "+ResourceGeneric.CLASS.getName()+"="+o);
-  //          priv |= o.intValue();
-  //      }
-  //      o = newRules.get(table.toLowerCase());
-  //      if (o != null) {
-  //          if (DEBUG) System.out.println("Security.getTablePriv: Found database.class."+table.toLowerCase()+"="+o);
-  //          priv |= o.intValue();
-  //      }
-        priv = Table.PRIV_ALL;
+        Number o;
+//        o = newRules.get(ResourceGeneric.BYPASS_RESTRICTED.getName()); 
+//        if (o != null) {
+//            if (DEBUG) System.out.println("Security.getTablePriv: Found "+ResourceGeneric.BYPASS_RESTRICTED.getName()+"="+o);
+//            priv |= o.intValue();
+//        }
+//        o = newRules.get(ResourceGeneric.CLASS.getName());
+//        if (o != null) {
+//            if (DEBUG) System.out.println("Security.getTablePriv: Found "+ResourceGeneric.CLASS.getName()+"="+o);
+//            priv |= o.intValue();
+//        }
+        o = newRules.get(table);
+        if (o != null) {
+            if (DEBUG) System.out.println("Security.getTablePriv: Found database.class."+table+"="+o);
+            priv |= o.intValue();
+        }
+  //      priv = Table.PRIV_ALL;
         return priv;
     }
 
-    public static HashMap<String,Number> getTablePrivs(String table) {
+    public static HashMap<String,Number> getTablePrivs(DatabaseConnection con, String table) {
         if (CACHE_TABLE_PRIVS) {
             HashMap<String,Number> cmap = Security.tablePrivsCache.get(table);
             if (cmap != null) {
@@ -259,34 +276,35 @@ public class Security {
         }
         if (DEBUG) System.out.println("Retrieving privs for table "+table);
         HashMap<String,Number> map = new HashMap<>();
-  //      DatabaseConnection con = Server.getServerConnection();	
-  //      OSecurity osec = con.getSecurity();
-  //      for (ODocument role : osec.getAllRoles()) {
-  //          String roleName = role.field("name");
-  //          ArrayList<Set<ORule>> rules = new ArrayList<>();
-  //          getRoleRules(osec.getRole(role.getIdentity()),rules);
-  //          for (Set<ORule> rs : rules) {
-  //              for (ORule rule : rs) {
-  //                  if (DEBUG) System.out.println("getTablePrivs: rule="+roleName+" "+rule.getSpecificResources()+": "+rule.getAccess());
-  //                  if (rule.containsSpecificResource(table.toLowerCase())) {
-  //                      Byte access = rule.getSpecificResources().get(table.toLowerCase());
-  //                      if (DEBUG) System.out.println("getTablePrivs: specific "+roleName+" "+rule.toString()+": "+access);
-  //                      map.put(roleName, access);
-  //                  } else if (rule.getResourceGeneric() == ResourceGeneric.CLASS) {
-  //                      if (DEBUG) System.out.println("getTablePrivs: all classes: "+roleName+" "+rule.getAccess());
-  //                      if (rule.getAccess() != null) {
-  //                              map.put(roleName, rule.getAccess());
-  //                      }
-  //                  } else if (rule.getResourceGeneric() == ResourceGeneric.BYPASS_RESTRICTED) {
-  //                      if (DEBUG) System.out.println("getTablePrivs: all classes: "+roleName+" "+rule.getAccess());
-  //                      if (rule.getAccess() != null) {
-  //                              map.put(roleName, rule.getAccess());
-  //                      }
-  //                  }
-  //              }
-  //          }
-  //      }		
-  //      Server.freeServerConnection(con);		
+        for (Document role : con.query("SELECT FROM role").get()) {
+            String roleName = role.getString("name");
+            ArrayList<List<Document>> rules = new ArrayList<>();
+            getRoleRules(con, role.getIdentity(),rules);
+            for (List<Document> rs : rules) {
+                for (Document rule : rs) {
+                    if (DEBUG) System.out.println("getTablePrivs: rule="+roleName+" "+rule.getString("resource")+": "+rule.getString("access"));
+                    if (rule.getString("resource").equals(table)) {
+                        Byte access = 0;
+                        String ra = rule.getString("access");
+
+                        if (ra.equals("CREATE")) access = 16;
+
+                        if (DEBUG) System.out.println("getTablePrivs: specific "+roleName+" "+rule.toString()+": "+access);
+                        map.put(roleName, access);
+//                    } else if (rule.getResourceGeneric() == ResourceGeneric.CLASS) {
+//                        if (DEBUG) System.out.println("getTablePrivs: all classes: "+roleName+" "+rule.getAccess());
+//                        if (rule.getAccess() != null) {
+//                                map.put(roleName, rule.getAccess());
+//                        }
+//                    } else if (rule.getResourceGeneric() == ResourceGeneric.BYPASS_RESTRICTED) {
+//                        if (DEBUG) System.out.println("getTablePrivs: all classes: "+roleName+" "+rule.getAccess());
+//                        if (rule.getAccess() != null) {
+//                                map.put(roleName, rule.getAccess());
+//                        }
+                    }
+                }
+            }
+        }		
         if (CACHE_TABLE_PRIVS) {
             Security.tablePrivsCache.put(table,map);
         }
@@ -336,30 +354,20 @@ public class Security {
     */
     public static boolean isReadOnlyDocument(DatabaseConnection con, Document doc) {
         if (Security.isDBA(con)) return false;  // admin, dba not read only
-        Set<String> roles = Security.getUserRoles(con);
-//        if (doc.containsField("_allow")) {
-//            Set<ODocument> allowed = doc.field("_allow");
-//            for (ODocument r : allowed) {
-//                String aname = r.field("name");
-//                if (r.getClassName().equals("ORole")) {
-//                    if (roles.contains(aname)) return false; // role on the _allow
-//                } else {
-//                    if (con.getUser().equals(aname)) return false;  // on the _allow list
-//                }
-//            }            
-//        }
-//        if (doc.containsField("_allowUpdate")) {
-//            Set<ODocument> allowed = doc.field("_allowUpdate");
-//            for (ODocument r : allowed) {
-//                String aname = r.field("name");
-//                if (r.getClassName().equals("ORole")) {
-//                    if (roles.contains(aname)) return false; // role on the _allowUpdate
-//                } else {
-//                    if (con.getUser().equals(aname)) return false;  // on the _allowUpdate
-//                }
-//            }            
-//            return true;
-//        }
+        List<RID> roles = Security.getUserRoles(con);
+        if (doc.has("_allow")) {
+            List<RID> allowed = doc.getList("_allow");
+            for (RID r : allowed) {
+                if (roles.contains(r)) return false; // role on the _allow
+            }            
+        }
+        if (doc.has("_allowUpdate")) {
+            List<RID> allowed = doc.getList("_allowUpdate");
+            for (RID r : allowed) {
+                if (roles.contains(r)) return false; // role on the _allowUpdate
+            }            
+            return true;
+        }
         return false;
     }
 

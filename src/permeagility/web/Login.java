@@ -51,7 +51,7 @@ public class Login extends Weblet {
 			head(con, Message.get(locale, "LOGIN_TITLE"))+
 			bodyOnLoad(
 				link(Server.HOME_CLASS,image(Header.LOGO_FILE))+br()
-				+form("LOGIN",destinationClass,
+				+form("LOGIN",destinationClass+"?NAME=home-dark",
 				    hidden("LOCALE",locale.toString())
 				    +(error != null ? paragraph("error",error) : "")
 					+table("data",

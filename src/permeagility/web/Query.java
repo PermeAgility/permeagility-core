@@ -94,7 +94,7 @@ public class Query extends Weblet {
         try {
             rc = con.update(query);
             if (rc != null && (query.trim().toUpperCase().startsWith("GRANT") || query.trim().toUpperCase().startsWith("REVOKE"))) {
-                Security.refreshSecurity();
+                Security.refreshSecurity(con);
                 secRef = true;
             }
         } catch (Exception e) {

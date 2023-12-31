@@ -44,9 +44,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.arcadedb.Constants;
 import com.arcadedb.database.Document;
-import com.arcadedb.database.EmbeddedDocument;
 import com.arcadedb.database.MutableDocument;
-import com.arcadedb.database.MutableEmbeddedDocument;
 import com.arcadedb.database.Record;
 import com.arcadedb.database.RecordEvents;
 import com.arcadedb.event.AfterRecordCreateListener;
@@ -335,7 +333,7 @@ public class Server {
                                 if (DEBUG) System.out.println("REQUESTHEADER="+get);
                                 if (get.startsWith("Cookie:")) {
                                         StringTokenizer cookiet = new StringTokenizer(get.substring(7)," =;");
-                                        while (cookiet.hasMoreTokens() && !cookiet.nextToken().equalsIgnoreCase("value")) {}
+                                        while (cookiet.hasMoreTokens() && !cookiet.nextToken().equalsIgnoreCase("name")) {}
                                         if (cookiet.hasMoreTokens()) {
                                                 cookieValue = cookiet.nextToken();
                                                 if (DEBUG) System.out.println("GOT COOKIE "+cookieValue);
@@ -779,21 +777,6 @@ public class Server {
                                         }
                                 }
 
-                                // Validate that class is allowed to be used
-                                if (userdb != null) {
-                                        if (DEBUG) System.out.println("Authorizing user "+userdb.getUser()+" for class "+className);
-                                   //     if (Security.authorized(userdb.getUser(),className)) {
-                                   //             if (DEBUG) System.out.println("User "+userdb.getUser()+" is allowed to use "+className);
-                                   //     } else {
-                                   //         if (userdb.getUser().equals("admin") && className.equals("permeagility.web.Query")) {
-                                   //             // Allow admin to use Query tool if something needs to be fixed with security or the database
-                                   //         } else {
-                                   //             System.out.println("User "+userdb.getUser()+" is attempting to use "+className+" without authorization");
-                                   //             parms.put("SECURITY_VIOLATION","You are not authorized to access "+className);
-                                   //             className = HOME_CLASS;
-                                   //         }
-                                   //     }
-                                }
                                 if (className.contains("/")) {  // If the URL continues with a slash, put it into REST_OF_URL - get it?
                                     int slashLoc = className.indexOf("/");
                                     if (slashLoc + 1 < className.length()) parms.put("REST_OF_URL",className.substring(slashLoc+1));
@@ -802,6 +785,33 @@ public class Server {
                                 if (!className.startsWith("permeagility.plus.") // allow plus packages
                                     && !className.startsWith("permeagility.web.")) {  // could allow additional packages to be added in future
                                     className = "permeagility.web."+className;
+                                }
+
+                                // Validate that class is allowed to be used
+                                if (userdb != null) {
+                                    if (DEBUG) System.out.println("Authorizing user "+userdb.getUser()+" for class "+className);
+                                    if (className.equals(HOME_CLASS) || Security.authorized(userdb.getUser(),className)) {
+                                            if (DEBUG) System.out.println("User "+userdb.getUser()+" is allowed to use "+className);
+                                    } else {
+                                        if (userdb.getUser().equals("admin") && className.equals("permeagility.web.Query")) {
+                                            // Allow admin to use Query tool if something needs to be fixed with security or the database
+                                        } else {
+                                            System.out.println("User "+userdb.getUser()+" is attempting to use "+className+" without authorization");
+                                            parms.put("SECURITY_VIOLATION","You are not authorized to access "+className);
+                                            //className = HOME_CLASS;
+                                            if (version.startsWith("HTTP/")) {  // send a MIME header
+                                                os.write(("HTTP/1.1 401 Unauthorized\r\n").getBytes());
+                                                os.write(("Date: " + new java.util.Date() + "\r\n").getBytes());
+                                                os.write(("Server: PermeAgility 1.0\r\n").getBytes());
+                                                os.write(("Content-type: text/html" + "\r\n\r\n").getBytes());
+                                            }
+                                            os.write(("<HTML><HEAD><TITLE>401: Unauthorized</TITLE></HEAD>").getBytes());
+                                            os.write(("<BODY><H1>HTTP Error 401: Unauthorized</H1></BODY></HTML>").getBytes());
+                                            os.flush();
+                                            return false;
+
+                                        }
+                                    }
                                 }
 
                                 Class<?> classOf = Class.forName( className, true, plusClassLoader );
@@ -1070,7 +1080,8 @@ public class Server {
 			+"Date: " + new java.util.Date() + "\r\n"
 			+"Server: PermeAgility 1.0\r\n"
 			+(keep_alive ? "Connection: keep-alive\n" : "")
-			+(newCookieValue != null ? "Set-Cookie: name=PermeAgilitySession"+HTTP_PORT+"; SameSite=Lax; value="+newCookieValue+";\r\n" : "")
+//			+(newCookieValue != null ? "Set-Cookie: name=PermeAgilitySession"+HTTP_PORT+"; SameSite=Lax; value="+newCookieValue+";\r\n" : "")
+			+(newCookieValue != null ? "Set-Cookie: name="+newCookieValue+"; SameSite=Lax;\r\n" : "")
 			+"Content-length: " + size + "\r\n"
 			+"Content-type: " + ct + "\r\n"
 			+(content_disposition != null ? "Content-disposition: " + content_disposition + "\r\n" : "")
@@ -1198,7 +1209,7 @@ public class Server {
 		  || table.equals("menuItem")
 		  || table.equals("role")
 		  || table.equals("user")) {
-			Security.refreshSecurity();  // Will display its own messages
+			Security.refreshSecurity(con);  // Will display its own messages
 			Menu.clearCache();
 		}
 		if (DEBUG) System.out.println("Server: tableUpdated("+table+") - query cache updated");
@@ -1253,9 +1264,9 @@ public class Server {
 		System.out.println("Initializing "+Constants.PRODUCT+" Version "+Constants.getVersion());
 		DatabaseConnection con = null;
 		try {
-             String p = getLocalSetting(DB_NAME+HTTP_PORT, null);
+            // String p = getLocalSetting(DB_NAME+HTTP_PORT, null);
             try {
-    			database = new Database(DB_NAME, "server", (p == null ? "server" : p));
+    			database = new Database(DB_NAME, "server", null);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -1272,11 +1283,11 @@ public class Server {
                 con.begin();
 
 				// Initialize security
-		//		Security.refreshSecurity();
-		//		if (Security.keyRoleCount() < 1) {
-		//			System.out.println("***\n*** Exit condition: No key roles found for security - no functions to enable\n***");
-		//			exit(-1);
-		//		}
+				Security.refreshSecurity(con);
+				if (Security.keyRoleCount() < 1) {
+					System.out.println("***\n*** Exit condition: No key roles found for security - no functions to enable\n***");
+					exit(-1);
+				}
 
 				// Initialize PlusClassLoader
 				plusClassLoader = PlusClassLoader.get();
@@ -1367,18 +1378,12 @@ public class Server {
 
 	/** Get the guest connection */
 	public final static Database getNonUserDatabase() {
-        return database;
-//		if (dbNone == null)	{
-//			Database d = null;
-//			try {
-//				d = new Database(DB_NAME,"guest","guest");
-//				d.setPoolSize(GUEST_POOL_SIZE);
-//				dbNone = d;
-//			} catch (Exception e) {
-//				System.out.println("Cannot connect guest database");
-//			}
-//		}
-//		return dbNone;
+        try {
+    		return new Database(DB_NAME,"guest","guest");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
 	}
 
 	protected final static void closeAllConnections() {

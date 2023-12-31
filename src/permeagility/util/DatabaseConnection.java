@@ -50,7 +50,7 @@ public class DatabaseConnection {
 	protected DatabaseConnection(Database _db, com.arcadedb.database.Database _c) {
 		db = _db;
 		c = _c;
-		if (DEBUG) System.out.println("New database connection initiated "+c.getName());
+		if (DEBUG) System.out.println("New database connection initiated to database "+c.getName()+" for user "+db.getUser());
 	}
 
 	public void close() { 

@@ -53,7 +53,7 @@ public class Table extends Weblet {
     public static boolean ALWAYS_TEXT_AREA = true;  // Use text areas for all string fields
     public static int TEXT_AREA_THRESHOLD = 40;  // When the data is larger than this size, the input will be a text area
     public static int TEXT_AREA_WIDTH = 50;      // When showing a column as a cell, only show this many characters
-    public static long ROW_COUNT_LIMIT = 500;    // Limit to number of rows to retrieve before paging
+    public static long ROW_COUNT_LIMIT = 200;    // Limit to number of rows to retrieve before paging
     public static long DOT_INTERVAL = 5;         // Interval for dot when numerous pages - probably should derive this to be more dynamic
     public static long DOT_LIMIT = 100;         // Limit to number of dot-links to show, browser slows with too many
     public static long PAGE_WINDOW = 3;          // Always show this many pages around the current page when there are many dots
@@ -1829,7 +1829,7 @@ public class Table extends Weblet {
     public String rightsOptionsForm(DatabaseConnection con, String table, HashMap<String, String> parms, String errors) {
         StringBuilder currentRights = new StringBuilder();
         List<String> rightsNames = new ArrayList<>();
-        HashMap<String, Number> privs = Security.getTablePrivs(table);
+        HashMap<String, Number> privs = Security.getTablePrivs(con, table);
 
         for (String role : privs.keySet()) {
             Number b = privs.get(role);

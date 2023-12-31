@@ -52,6 +52,7 @@ public class Database  {
         url = dbUrl;
         user = dbUser;
         password = dbPass;
+        System.out.println("Creating new DatabaseObject for user "+dbUser);
         if (dbFactory == null && !EMBEDDED_SERVER) {
             dbFactory = new DatabaseFactory(url);
             if (!dbFactory.exists()) {

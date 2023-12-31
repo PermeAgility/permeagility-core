@@ -17,7 +17,6 @@ package permeagility.util;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 
 import com.arcadedb.database.Document;
@@ -38,7 +37,7 @@ public class Setup {
     static StringBuilder installMessages = new StringBuilder();
 
     public static boolean RESTRICTED_BY_ROLE = true;
-    private static String SETUP_DEBUG_FLAG = "false";    // default setting for debug constants
+    private static String SETUP_DEBUG_FLAG = "true";    // default setting for debug constants
 
     public static final String TABLE_THUMBNAIL = "thumbnail";
     public static final String TABLE_CONSTANT = "constant";
@@ -185,7 +184,6 @@ public class Setup {
   
             con.begin();
             Schema schema = con.getSchema();
-  //          com.arcadedb.security.SecurityManager osecurity = con.getSecurity();
  
             // Setup roles lists for use later on in this script
             List<Document> allRoles = new ArrayList<Document>();
@@ -212,9 +210,15 @@ public class Setup {
 
             if (adminRoles.isEmpty()) {
                 adminRole = (Document)con.update("INSERT INTO role SET name = 'admin', mode = 'SUPER' RETURN @this");
+                allRoles.add(adminRole);
+                adminRoles.add(adminRole);
+                allRolesButGuest.add(adminRole);
                 installMessages.append(Weblet.paragraph("CheckInstallation: Created admin role"));
             } else {
                 adminRole = adminRoles.get(0);
+                allRoles.add(adminRole);
+                adminRoles.add(adminRole);
+                allRolesButGuest.add(adminRole);
             }
             if (adminUser == null) {
                 adminUser = (Document)con.update("INSERT INTO user SET name = 'admin', password = 'admin', status = 'ACTIVE', roles = (select from role where name = 'admin') RETURN @this");
@@ -635,29 +639,29 @@ public class Setup {
                 n2.set("dateline", LocalDateTime.now());
                 n2.set("locale",loc);
                 n2.set("archive",false);
-               // n2.set("_allowRead", adminRoles.toArray());
+                n2.set("_allowRead", adminRoles.toArray());
                 n2.save();
 
                 MutableDocument n3 = con.create(TABLE_NEWS);
-                n3.set("name","Welcome reader");
+                n3.set("name","Welcome customer");
                 n3.set("description","This is a place where you can navigate data and connections, click away!<br><br>\n"
                     + "<ul><li><a href='/Home?NAME=home-light'>Open Application (Light)</a></li>\n"
                    + "<li><a href='/Home?NAME=home-dark'>Open Application (Dark)</a></li></ul>\n");
                 n3.set("dateline", LocalDateTime.now());
                 n3.set("locale",loc);
                 n3.set("archive",false);
-            //    n3.set("_allowRead", readerRoles.toArray());
+                n3.set("_allowRead", customerRoles.toArray());
                 n3.save();
 
                 MutableDocument n4 = con.create(TABLE_NEWS);
-                n4.set("name","Welcome writer");
+                n4.set("name","Welcome staff");
                 n4.set("description","PermeAgility lets you create and navigate data every way it is connected.<br><br>\n"
                     + "<ul><li><a href='/Home?NAME=home-light'>Open Application (Light)</a></li>\n"
                    + "<li><a href='/Home?NAME=home-dark'>Open Application (Dark)</a></li></ul>\n");
                 n4.set("dateline", LocalDateTime.now());
                 n4.set("locale",loc);
                 n4.set("archive",false);
-       //         n4.set("_allowRead", writerRoles.toArray());
+                n4.set("_allowRead", staffRoles.toArray());
                 n4.save();
 
                 MutableDocument n1 = con.create(TABLE_NEWS);
@@ -668,7 +672,7 @@ public class Setup {
                 n1.set("dateline", LocalDateTime.now());
                 n1.set("locale",loc);
                 n1.set("archive",false);
-                //n1.set("_allowRead", guestRoles.toArray());
+                n1.set("_allowRead", guestRoles.toArray());
                 n1.save();
             }
  
@@ -740,26 +744,35 @@ public class Setup {
                 mi_login.set("description","Login page");
                 mi_login.set("classname","permeagility.web.Login");
                 mi_login.set("active",true);
-            //    mi_login.set("_allowRead", allRoles);
-            //    mi_login.set("_allow", adminRoles);
+                mi_login.set("_allowRead", allRoles);
+                mi_login.set("_allow", adminRoles);
                 mi_login.save();
-/* 
-                MutableDocument mi_home = con.create(TABLE_MENUITEM);
-                mi_home.set("name","Home");
-                mi_home.set("description","Home page including news");
-                mi_home.set("classname","permeagility.web.Home");
-                mi_home.set("active",true);
-           //     mi_home.set("_allowRead", allRoles);
-           //     mi_home.set("_allow", adminRoles);
-                mi_home.save();
-*/
+
+                MutableDocument mi_menu = con.create(TABLE_MENUITEM);
+                mi_menu.set("name","Menu");
+                mi_menu.set("description","Menu page");
+                mi_menu.set("classname","permeagility.web.Menu");
+                mi_menu.set("active",true);
+                mi_menu.set("_allowRead", allRoles);
+                mi_menu.set("_allow", adminRoles);
+                mi_menu.save();
+
+                MutableDocument mi_header = con.create(TABLE_MENUITEM);
+                mi_header.set("name","Header");
+                mi_header.set("description","Header page");
+                mi_header.set("classname","permeagility.web.Header");
+                mi_header.set("active",true);
+                mi_header.set("_allowRead", allRoles);
+                mi_header.set("_allow", adminRoles);
+                mi_header.save();
+
                 MutableDocument mi_password = con.create(TABLE_MENUITEM);
                 mi_password.set("name","Profile");
                 mi_password.set("description","Change profile or password");
                 mi_password.set("classname","permeagility.web.Profile");
                 mi_password.set("active",true);
-           //     mi_password.set("_allowRead", allRolesButGuest);
-           //     mi_password.set("_allow", adminRoles);
+                mi_password.set("_allowRead", allRolesButGuest);
+                mi_password.set("_allow", adminRoles);
                 mi_password.save();
 
                 MutableDocument mi_userRequest = con.create(TABLE_MENUITEM);
@@ -767,8 +780,8 @@ public class Setup {
                 mi_userRequest.set("description","User Request");
                 mi_userRequest.set("classname","permeagility.web.UserRequest");
                 mi_userRequest.set("active",true);
-            //    mi_userRequest.set("_allowRead", guestRoles);
-            //    mi_userRequest.set("_allow", adminRoles);
+                mi_userRequest.set("_allowRead", guestRoles);
+                mi_userRequest.set("_allow", adminRoles);
                 mi_userRequest.save();
 
                 MutableDocument mi_context = con.create(TABLE_MENUITEM);
@@ -776,8 +789,8 @@ public class Setup {
                 mi_context.set("description","Context");
                 mi_context.set("classname","permeagility.web.Context");
                 mi_context.set("active",true);
-             //   mi_context.set("_allowRead", adminRoles);
-             //   mi_context.set("_allow", adminRoles);
+                mi_context.set("_allowRead", adminRoles);
+                mi_context.set("_allow", adminRoles);
                 mi_context.save();
 
                 MutableDocument mi_settings = con.create(TABLE_MENUITEM);
@@ -785,8 +798,8 @@ public class Setup {
                 mi_settings.set("description","Basic settings");
                 mi_settings.set("classname","permeagility.web.Settings");
                 mi_settings.set("active",true);
-             //   mi_settings.set("_allowRead", adminRoles);
-             //   mi_settings.set("_allow", adminRoles);
+                mi_settings.set("_allowRead", adminRoles);
+                mi_settings.set("_allow", adminRoles);
                 mi_settings.save();
 
                 MutableDocument mi_shutdown = con.create(TABLE_MENUITEM);
@@ -794,8 +807,8 @@ public class Setup {
                 mi_shutdown.set("description","Shutdown the server");
                 mi_shutdown.set("classname","permeagility.web.Shutdown");
                 mi_shutdown.set("active",true);
-             //   mi_shutdown.set("_allowRead", adminRoles);
-             //   mi_shutdown.set("_allow", adminRoles);
+                mi_shutdown.set("_allowRead", adminRoles);
+                mi_shutdown.set("_allow", adminRoles);
                 mi_shutdown.save();
 
                 MutableDocument mi_query = con.create(TABLE_MENUITEM);
@@ -803,8 +816,8 @@ public class Setup {
                 mi_query.set("description","Query the database");
                 mi_query.set("classname","permeagility.web.Query");
                 mi_query.set("active",true);
-             //   mi_query.set("_allowRead", adminAndWriterRoles);
-             //   mi_query.set("_allow", adminRoles);
+                mi_query.set("_allowRead", allRolesButGuest);
+                mi_query.set("_allow", adminRoles);
                 mi_query.save();
 
                 MutableDocument mi_schema = con.create(TABLE_MENUITEM);
@@ -812,8 +825,8 @@ public class Setup {
                 mi_schema.set("description","Table Catalog");
                 mi_schema.set("classname","permeagility.web.Schema");
                 mi_schema.set("active",true);
-             //   mi_schema.set("_allowRead", allRolesButGuest);
-             //   mi_schema.set("_allow", adminRoles);
+                mi_schema.set("_allowRead", allRolesButGuest);
+                mi_schema.set("_allow", adminRoles);
                 mi_schema.save();
 
                 MutableDocument mi_table = con.create(TABLE_MENUITEM);
@@ -821,8 +834,8 @@ public class Setup {
                 mi_table.set("description","Table editor");
                 mi_table.set("classname","permeagility.web.Table");
                 mi_table.set("active",true);
-             //   mi_table.set("_allowRead", allRolesButGuest);
-             //   mi_table.set("_allow", adminRoles);
+                mi_table.set("_allowRead", allRolesButGuest);
+                mi_table.set("_allow", adminRoles);
                 mi_table.save();
 
                 MutableDocument mi_pagebuilder = con.create(TABLE_MENUITEM);
@@ -830,46 +843,50 @@ public class Setup {
                 mi_pagebuilder.set("description","Build pages/apps with JavaScript");
                 mi_pagebuilder.set("classname","permeagility.web.PageBuilder");
                 mi_pagebuilder.set("active",true);
-             //   mi_pagebuilder.set("_allowRead", adminRoles);
-             //   mi_pagebuilder.set("_allow", adminRoles);
+                mi_pagebuilder.set("_allowRead", adminRoles);
+                mi_pagebuilder.set("_allow", adminRoles);
                 mi_pagebuilder.save();
 
                 MutableDocument mi_basestyle = con.create(TABLE_MENUITEM);  // Not added to menu, to support page Builder
                 mi_basestyle.set("name","default-scripts");
                 mi_basestyle.set("description","Default scripts for basic PermeAgility functions");
-                //mi_welcome.set("classname","permeagility.web.Home");
                 mi_basestyle.set("pageStyle", DEFAULT_BASE_STYLE);
                 mi_basestyle.set("pageScript", DEFAULT_BASE_SCRIPT);
                 mi_basestyle.set("active",true);
+                mi_basestyle.set("_allowRead", allRoles);
+                mi_basestyle.set("_allow", adminRoles);
                 mi_basestyle.save();
 
 
                 MutableDocument mi_welcome = con.create(TABLE_MENUITEM);  // Not added to menu, to support page Builder
                 mi_welcome.set("name","welcome");
                 mi_welcome.set("description","Default welcome page for guests");
-                //mi_welcome.set("classname","permeagility.web.Home");
                 mi_welcome.set("pageStyle", DEFAULT_WELCOME_STYLE);
                 mi_welcome.set("pageScript", DEFAULT_WELCOME_SCRIPT);
                 mi_welcome.set("active",true);
+                mi_welcome.set("_allowRead", allRoles);
+                mi_welcome.set("_allow", adminRoles);
                 mi_welcome.save();
 
                 MutableDocument mi_home = con.create(TABLE_MENUITEM);  // Not added to menu, to support page Builder
                 mi_home.set("name","home-dark");
                 mi_home.set("description","Home Application page in dark mode");
-                //mi_home.set("classname","permeagility.web.Home");
                 mi_home.set("pageStyle", DEFAULT_DARK_STYLESHEET);
                 mi_home.set("pageScript", DEFAULT_HOME_SCRIPT);
                 mi_home.set("active",true);
+                mi_home.set("_allowRead", allRoles);
+                mi_home.set("_allow", adminRoles);
                 mi_home.set("useStyleFrom", mi_basestyle.getIdentity());
                 mi_home.save();
 
                 MutableDocument mi_homel = con.create(TABLE_MENUITEM);  // Not added to menu, to support page Builder
                 mi_homel.set("name","home-light");
                 mi_homel.set("description","Home Application page in light mode");
-                //mi_homel.set("classname","permeagility.web.Home");
                 mi_homel.set("pageStyle", DEFAULT_LIGHT_STYLESHEET);
                 mi_homel.set("pageScript", DEFAULT_HOME_SCRIPT);
                 mi_homel.set("active",true);
+                mi_homel.set("_allowRead", allRoles);
+                mi_homel.set("_allow", adminRoles);
                 mi_homel.set("useStyleFrom", mi_basestyle.getIdentity());
                 mi_homel.save();
 
@@ -878,8 +895,8 @@ public class Setup {
                 mi_visuility.set("description","Visuility browser");
                 mi_visuility.set("classname","permeagility.web.Visuility");
                 mi_visuility.set("active",true);
-              //  mi_visuility.set("_allowRead", adminAndWriterRoles);
-              //  mi_visuility.set("_allow", adminRoles);
+                mi_visuility.set("_allowRead", allRolesButGuest);
+                mi_visuility.set("_allow", adminRoles);
                 mi_visuility.save();
 
                 MutableDocument mi_visuilityData = con.create(TABLE_MENUITEM);
@@ -887,8 +904,8 @@ public class Setup {
                 mi_visuilityData.set("description","Visuility browser (data component)");
                 mi_visuilityData.set("classname","permeagility.web.VisuilityData");
                 mi_visuilityData.set("active",true);
-            //    mi_visuilityData.set("_allowRead", allRolesButGuest);
-            //    mi_visuilityData.set("_allow", adminRoles);
+                mi_visuilityData.set("_allowRead", allRolesButGuest);
+                mi_visuilityData.set("_allow", adminRoles);
                 mi_visuilityData.save();
 
                 MutableDocument mi_backup = con.create(TABLE_MENUITEM);
@@ -896,17 +913,17 @@ public class Setup {
                 mi_backup.set("description","Backup and restore the database");
                 mi_backup.set("classname","permeagility.web.BackupRestore");
                 mi_backup.set("active",true);
-             //   mi_backup.set("_allowRead", adminRoles);
-             //   mi_backup.set("_allow", adminRoles);
+                mi_backup.set("_allowRead", adminRoles);
+                mi_backup.set("_allow", adminRoles);
                 mi_backup.save();
 
                 MutableDocument mi_blank = con.create(TABLE_MENUITEM);
                 mi_blank.set("name","");
                 mi_blank.set("active",true);
                 mi_blank.set("description","Blank menu item");
-              //  mi_blank.set("_allow",adminRoles);
-              //  mi_blank.set("_allowRead",allRoles);
-              //  mi_blank.set("_allow",adminRoles);
+                mi_blank.set("_allow",adminRoles);
+                mi_blank.set("_allowRead",allRoles);
+                mi_blank.set("_allow",adminRoles);
                 mi_blank.save();
 
                 // Build default menu
@@ -939,32 +956,6 @@ public class Setup {
             Setup.checkCreateColumn(con, urTable, "name", Type.STRING, installMessages);
             Setup.checkCreateColumn(con, urTable, "password", Type.STRING, installMessages);
  
-            // Add table privileges for the guest and user roles
-          //  checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,TABLE_COLUMNS,2,installMessages);
-          //  checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,TABLE_NEWS,2,installMessages);
-          //  checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,TABLE_MENU,2,installMessages);
-          //  checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,TABLE_MENUITEM,2,installMessages);
-          //  checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,TABLE_STYLE,2,installMessages);
-          //  checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,TABLE_LOCALE,2,installMessages);
-          //  checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,TABLE_USERPROFILE,1,installMessages);
-          //  checkCreatePrivilege(con,"guest",ResourceGeneric.CLUSTER,TABLE_USERPROFILE,1,installMessages);
-
-          //  checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,TABLE_COLUMNS,2,installMessages);
-          //  checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,TABLE_TABLEGROUP,2,installMessages);
-          //  checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,TABLE_NEWS,2,installMessages);
-          //  checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,TABLE_MENU,2,installMessages);
-          //  checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,TABLE_MENUITEM,2,installMessages);
-          //  checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,TABLE_STYLE,2,installMessages);
-          //  checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,TABLE_LOCALE,2,installMessages);
-          //  checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,TABLE_USERPROFILE,6,installMessages);
-          //  checkCreatePrivilege(con,"user",ResourceGeneric.CLUSTER,TABLE_USERPROFILE,6,installMessages);
-
-         //   checkCreatePrivilege(con,"guest",ResourceGeneric.CLASS,TABLE_AUDIT,1,installMessages);
-         //   checkCreatePrivilege(con,"guest",ResourceGeneric.CLUSTER,TABLE_AUDIT,1,installMessages);
-
-         //   checkCreatePrivilege(con,"user",ResourceGeneric.CLASS,TABLE_AUDIT,1,installMessages);
-         //   checkCreatePrivilege(con,"user",ResourceGeneric.CLUSTER,TABLE_AUDIT,1,installMessages);
-
             if (!installMessages.isEmpty()) System.out.println("\n\nSetup repaired:\n"+installMessages);
 
             con.commit();

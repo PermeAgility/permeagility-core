@@ -84,7 +84,7 @@ public class Context extends Weblet {
 
         if (submit != null && submit.equals("REFRESH_SECURITY") && Security.isDBA(con)) {
             if (DEBUG) System.out.println("Context: refresh security");
-            Security.refreshSecurity();
+            Security.refreshSecurity(con);
         }
 
         if (submit != null && submit.equals("CHECK_INSTALLATION") && Security.isDBA(con)) {
