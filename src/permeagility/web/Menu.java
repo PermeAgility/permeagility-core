@@ -72,7 +72,7 @@ public class Menu extends Weblet {
         StringBuilder menu = new StringBuilder();
 
         try { // Assemble menu based on the items the user can see
-            QueryResult qr = con.query("SELECT FROM " + Setup.TABLE_MENU + " WHERE active=TRUE ORDER BY sortOrder");
+            QueryResult qr = con.queryTable(Setup.TABLE_MENU, "active=TRUE", "sortOrder", null);
             for (Document m : qr.get()) {
                 StringBuilder itemMenu = new StringBuilder();
                 List<RID> items = m.getList("items");
@@ -99,10 +99,7 @@ public class Menu extends Weblet {
                                 }
                                 if (DEBUG) System.out.println("MenuItem2=" + pretty+" desc="+prettyDesc+" class="+classname);
                                 String authClass = classname;
-                                //if (authClass.contains("?")) {
-                                //    authClass = authClass.substring(0, authClass.indexOf("?"));
-                                //}
-                                if (classname == null || Security.authorized(con.getUser(),authClass)) {
+                                 if (classname == null || Security.authorized(con.getUser(),authClass)) {
                                     if (menuName == null || menuName.equals("")) {
                                         itemMenu.append((HORIZONTAL_LAYOUT  ? "&nbsp;&nbsp;" : "<br>") + "\n");  // Spacer
                                     } else {

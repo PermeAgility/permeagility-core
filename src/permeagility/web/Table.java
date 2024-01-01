@@ -1216,7 +1216,7 @@ public class Table extends Weblet {
             Type fkType = types.pop();
             if (DEBUG) System.out.println("Table.getTableRowRelated: fkType="+fkType+" fkColumn="+fkColumn);
             int priv = Security.getTablePriv(con, table);
-            //System.out.println("Privilege on table "+table+" for user "+con.getUser()+" = "+priv);
+            System.out.println("Need to check Privilege on table "+table+" for user "+con.getUser()+" = "+priv);
 
             tabNames.add(makeCamelCasePretty(relTable));
             tabTargets.add("/Table/"+relTable+"/*/where/"+fkColumn+"/eq/"+edit_id+"?FORCE_"+fkColumn+"="+edit_id);
@@ -1261,36 +1261,6 @@ public class Table extends Weblet {
         return selectList(l, name, selected, dataTypeNames.get(l), dataTypeValues.get(l), options, false, null, true);
     }
 
-    /**
-     * Get the EDIT_ID from the parms, get the document and populate the parms with the document's field data
-     */
-    public HashMap<String, String> getTableRowParameters(DatabaseConnection con, String schema, String table, HashMap<String, String> parms) {
-        if (DEBUG) {
-            System.out.println("getTableRowParameters: Getting row and injecting into parameters");
-        }
-        String edit_id = parms.get("EDIT_ID");
-        if (edit_id != null) {
-            QueryResult rows = con.query("SELECT FROM #" + edit_id);
-            if (rows != null && rows.size() == 1) {
-                String[] keys = rows.getColumns();
-                for (int i = 0; i < keys.length; i++) {
-                    String value = rows.getStringValue(0, keys[i]);
-                    parms.put(keys[i], value);
-                    if (DEBUG) {
-                        System.out.println("Injected " + keys[i] + "=" + value);
-                    }
-                }
-            } else {
-                if (DEBUG) {
-                    System.out.println("Error in permeagility.web.Table:getTableRowForm: Only one row may be returned by ID for editing rows=" + rows.size());
-                }
-            }
-        } else {
-            System.out.println("getTableRowParameters: EDIT_ID not specified");
-        }
-        return parms;
-    }
-
     String getTableWithControls(DatabaseConnection con, HashMap<String,String> parms, String table) {
         String pagest = parms.get("PAGE");
         long page = 0;
@@ -1310,7 +1280,6 @@ public class Table extends Weblet {
                 + (Security.isDBA(con)
                     ? newColumnPopup(con, table, parms.get("HX-TARGET"))
                     + "&nbsp;&nbsp;&nbsp;"
-//                    + popupFormHTMX("RIGHTSOPTIONS", this.getClass().getName()+"/"+table, "post", parms.get("HX-TARGET")
                     + popupFormHTMX("RIGHTSOPTIONS", this.getClass().getName()+"/"+table, "post", "RIGHTSOPTIONS"
                                 , Message.get(con.getLocale(), "TABLE_RIGHTS_OPTIONS"), "XXX"
                                 , rightsOptionsForm(con, table, parms, ""))
@@ -1333,7 +1302,7 @@ public class Table extends Weblet {
         String restOfURL = parms.get("REST_OF_URL");  
         if (restOfURL != null && !restOfURL.isEmpty()) {
             String[] restParts = restOfURL.split("/"); 
-            String prefix = " WHERE ";
+            String prefix = " ";
             if (restParts.length > 2 && restParts[0].equals(table) && restParts[1].equals("*") 
                  && restParts[2].equalsIgnoreCase("WHERE")) {
                     if (DEBUG) System.out.println("We have a where clause coming");
@@ -1360,21 +1329,19 @@ public class Table extends Weblet {
                     }
             }
         }
-        String query = "SELECT FROM " + table + where;
-        if (!where.isBlank() && DEBUG) System.out.println("Table.getTable with REST where query="+query);
-
-        return getTable(con, parms, table, query, hideColumn, page);
+        //String query = "SELECT FROM " + table + where;
+        if (!where.isBlank() && DEBUG) System.out.println("Table.getTable with REST where query="+where);
+        return getTable(con, parms, table, where, hideColumn, page);
     }
 
-
-    public String getTable(DatabaseConnection con, HashMap<String, String> parms, String table, String query, String hideColumn, long page) {
-        return getTable(con, parms, table, query, hideColumn, page, null);
+    public String getTable(DatabaseConnection con, HashMap<String, String> parms, String table, String where, String hideColumn, long page) {
+        return getTable(con, parms, table, where, hideColumn, page, null);
     }
 
     /**
      * Get a row-clickable table - See example usages Note: page=-1 will show all records, use where clause to limit data
      */
-    public String getTable(DatabaseConnection con, HashMap<String, String> parms, String table, String query, String hideColumn, long page, String columnOverride) {
+    public String getTable(DatabaseConnection con, HashMap<String, String> parms, String table, String where, String hideColumn, long page, String columnOverride) {
         try {
             StringBuilder pageNav = new StringBuilder();
             StringBuilder sb = new StringBuilder();
@@ -1382,6 +1349,7 @@ public class Table extends Weblet {
             
             long totalRows = con.getRowCount(table);
             // Handle Paging
+            String skip = "";
             if (page > -1) {
                 if (totalRows > ROW_COUNT_LIMIT) {
                     pageNav.append(Message.get(con.getLocale(), "PAGE_NAV") + "&nbsp;");
@@ -1402,11 +1370,10 @@ public class Table extends Weblet {
                         }
                     }
                 }
-                String skip = "";
                 if (page > 0) skip = " SKIP " + ((page - 1) * ROW_COUNT_LIMIT);
-                query += skip + " LIMIT " + ROW_COUNT_LIMIT;
+                skip += " LIMIT " + ROW_COUNT_LIMIT;
             }
-            QueryResult rs = con.query(query);
+            QueryResult rs = con.queryTable(table, where, null, skip);
 
             String sourceTable = (parms != null ? parms.get("SOURCETABLENAME") : null);
             String sourceId = (parms != null ? parms.get("SOURCEEDIT_ID") : null);
@@ -1419,10 +1386,6 @@ public class Table extends Weblet {
                 sourceId = "&SOURCEEDIT_ID=" + sourceId;
             } else {
                 sourceId = "";
-            }
-
-            if (DEBUG) {
-                System.out.println("permeagility.web.Table:query=" + query);
             }
 
             // Get the table's columns
@@ -1654,7 +1617,6 @@ public class Table extends Weblet {
                         table = newtable;
                         Server.tableUpdated(con, "metadata:schema");
                         return getTableWithControls(con, parms, table);
-//                        return redirect(parms, this, "TABLENAME=" + table);
                     } catch (Exception e) {
                         errors.append(paragraph("error", e.getMessage()));
                     }
@@ -1741,46 +1703,47 @@ public class Table extends Weblet {
     }
 
     public String rightsOptions(DatabaseConnection con, String table, HashMap<String, String> parms) {
-        Locale locale = con.getLocale();
         StringBuilder errors = new StringBuilder();
         String submit = (parms != null ? parms.get("SUBMIT") : null);
         String right = (parms != null ? parms.get("RIGHT") : null);
         String role = (parms != null ? parms.get("ROLESELECT") : null);
         // need to validate the right value
-        if (submit != null && submit.equals("GRANT_RIGHT")
-            && right != null && role != null) {
-            if (DEBUG) System.out.println("Granting right (via INSERT to priv table)");
-            try {
-                MutableDocument privilege = con.create("privilege");
-                privilege.set("access", right);
-                privilege.set("resource", table);
-                privilege.set("identity", "#"+role);
-                privilege.save();
-                Server.tableUpdated(con, "privilege"); 
-                Security.tablePrivUpdated(table);
-            } catch (Exception e) {
-                errors.append(e.getLocalizedMessage());
-                e.printStackTrace();
+        if ("CREATE,UPDATE,DELETE,READ,ALL,READONLY".indexOf(right.toUpperCase()) == -1) {
+            errors.append(paragraph("error","Invalid right: "+right));
+        } else {
+            if (submit != null && submit.equals("GRANT_RIGHT")
+                && right != null && role != null) {
+                if (DEBUG) System.out.println("Granting right (via INSERT to priv table)");
+                try {
+                    MutableDocument privilege = con.create("privilege");
+                    privilege.set("access", right);
+                    privilege.set("resource", table);
+                    privilege.set("identity", "#"+role);
+                    privilege.save();
+                    Server.tableUpdated(con, "privilege"); 
+                    Security.tablePrivUpdated(table);
+                } catch (Exception e) {
+                    errors.append(e.getLocalizedMessage());
+                    e.printStackTrace();
+                }
             }
-        }
-        if (submit != null && submit.equals("REVOKE_RIGHT")
-               && right != null && role != null) {
-            if (DEBUG)  System.out.println("Revoking right (via DELETE from priv table)");
-            
-            String revokeQuery;
-            if (right.equals("ALL")) {
-                revokeQuery = "DELETE FROM privilege WHERE resource='"+table+"' AND identity=#"+role;
-            } else {
-                revokeQuery = "DELETE FROM privilege WHERE access='"+right+"' AND resource='"+table+"' AND identity=#"+role;
-            }
-            System.out.println("Executing REVOKE: " + revokeQuery);
-            try {
-                con.update(revokeQuery);
-                //Server.tableUpdated(con, "privilege");
-                Security.tablePrivUpdated(table);
-            } catch (Exception e) {
-                errors.append(e.getLocalizedMessage());
-                e.printStackTrace();
+            if (submit != null && submit.equals("REVOKE_RIGHT")
+                && right != null && role != null) {
+                if (DEBUG)  System.out.println("Revoking right (via DELETE from priv table)");
+                String revokeQuery;
+                if (right.equals("ALL")) {
+                    revokeQuery = "DELETE FROM privilege WHERE resource='"+table+"' AND identity=#"+role;
+                } else {
+                    revokeQuery = "DELETE FROM privilege WHERE access='"+right+"' AND resource='"+table+"' AND identity=#"+role;
+                }
+                System.out.println("Executing REVOKE: " + revokeQuery);
+                try {
+                    con.update(revokeQuery);
+                    Security.tablePrivUpdated(table);
+                } catch (Exception e) {
+                    errors.append(e.getLocalizedMessage());
+                    e.printStackTrace();
+                }
             }
         }
         return rightsOptionsForm(con, table, parms, errors.toString());
@@ -1791,39 +1754,32 @@ public class Table extends Weblet {
         StringBuilder currentRights = new StringBuilder();
         List<String> rightsNames = new ArrayList<>();
         HashMap<String, Integer> privs = Security.getTablePrivs(con, table);
-
         for (String role : privs.keySet()) {
             Integer b = privs.get(role);
             if (b != null) {
+                int priv = b.intValue();
                 StringBuilder sb = new StringBuilder();
-                if (b.intValue() == 0) {
+                if (priv == 0) {
                     //sb.append(Message.get(con.getLocale(), "PRIV_NONE"));
-                } else if (b.intValue() == Security.PRIV_ALL) {
+                } else if (priv == Security.PRIV_ALL) {
                     sb.append(Message.get(con.getLocale(), "PRIV_ALL"));
                 } else {
-                    if (DEBUG) {
-                        System.out.println("role=" + role + " table=" + table 
-                        + " create=" + (b.intValue() & Security.PRIV_CREATE) 
-                        + " read=" + (b.intValue() & Security.PRIV_READ) 
-                        + " update=" + (b.intValue() & Security.PRIV_UPDATE) 
-                        + " delete=" + (b.intValue() & Security.PRIV_DELETE));
-                    }
-                    if ((b.intValue() & Security.PRIV_CREATE) > 0) {
+                    if ((priv & Security.PRIV_CREATE) > 0) {
                         sb.append(Message.get(con.getLocale(), "PRIV_CREATE"));
                     }
-                    if ((b.intValue() & Security.PRIV_READ) > 0) {
+                    if ((priv & Security.PRIV_READ) > 0) {
                         if (sb.length() > 0) {
                             sb.append(", ");
                         }
                         sb.append(Message.get(con.getLocale(), "PRIV_READ"));
                     }
-                    if ((b.intValue() & Security.PRIV_UPDATE) > 0) {
+                    if ((priv & Security.PRIV_UPDATE) > 0) {
                         if (sb.length() > 0) {
                             sb.append(", ");
                         }
                         sb.append(Message.get(con.getLocale(), "PRIV_UPDATE"));
                     }
-                    if ((b.intValue() & Security.PRIV_DELETE) > 0) {
+                    if ((priv & Security.PRIV_DELETE) > 0) {
                         if (sb.length() > 0) {
                             sb.append(", ");
                         }
@@ -1831,7 +1787,7 @@ public class Table extends Weblet {
                     }
                 }
                 if (sb.length() > 0) {
-                    currentRights.append(Message.get(con.getLocale(), "ROLE_CAN_PRIV", role, sb.toString()) + br());
+                    currentRights.append(Message.get(con.getLocale(), (priv & Security.PRIV_SUPER) > 0 ? "ROLE_CANNOT_PRIV" : "ROLE_CAN_PRIV", role, sb.toString()) + br());
                 }
             }
         }
@@ -1842,6 +1798,7 @@ public class Table extends Weblet {
         rightsNames.add("UPDATE");
         rightsNames.add("DELETE");
         rightsNames.add("ALL");
+        rightsNames.add("READONLY");
 
         return hidden("RIGHTS_OPTIONS", "YES") + errors
                 + paragraph("banner", Message.get(con.getLocale(), "EXISTING_RIGHTS"))

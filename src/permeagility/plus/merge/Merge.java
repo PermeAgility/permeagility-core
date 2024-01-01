@@ -203,7 +203,7 @@ public class Merge extends Table {
             try {
                 parms.put("SERVICE", "Merge: Setup/Select merge path");
                 sb.append(paragraph("banner", "Merge paths"));
-                sb.append(getTable(con, parms, PlusSetup.MERGE_TABLE, "SELECT FROM " + PlusSetup.MERGE_TABLE, null, 0, "button_RUN_Run, name, fromTable, toTable, created, executed"));
+                sb.append(getTable(con, parms, PlusSetup.MERGE_TABLE, null, null, 0, "button_RUN_Run, name, fromTable, toTable, created, executed"));
             } catch (Exception e) {
                 e.printStackTrace();
                 sb.append("Error retrieving import patterns: " + e.getMessage());

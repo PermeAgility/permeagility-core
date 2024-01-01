@@ -50,6 +50,8 @@ import com.arcadedb.database.RecordEvents;
 import com.arcadedb.event.AfterRecordCreateListener;
 import com.arcadedb.event.AfterRecordDeleteListener;
 import com.arcadedb.event.AfterRecordUpdateListener;
+import com.arcadedb.event.BeforeRecordReadListener;
+
 import java.net.InetSocketAddress;
 import java.nio.channels.ClosedChannelException;
 import java.nio.charset.StandardCharsets;
@@ -1266,7 +1268,7 @@ public class Server {
 		try {
             // String p = getLocalSetting(DB_NAME+HTTP_PORT, null);
             try {
-    			database = new Database(DB_NAME, "server", null);
+    			database = new Database(DB_NAME, "admin", "admin");
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -1311,7 +1313,7 @@ public class Server {
                //         System.out.println("BeforeRecordCreate event record="+record.toJSON(true).toString());
                //         return true;
                // });
-              // works but not useful except in high security situations (or could implement row level security here)
+              // implement row level security here
               //  events.registerListener((BeforeRecordReadListener) rid -> { 
               //          System.out.println("BeforeRecordRead event record="+rid.toString());
               //          return true;

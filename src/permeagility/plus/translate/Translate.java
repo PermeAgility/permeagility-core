@@ -306,7 +306,7 @@ public class Translate extends Table {
 	    	try {
 	    		parms.put("SERVICE", "Translate messages");
 				sb.append(paragraph("banner","Select locale"));
-				sb.append(getTable(con,parms,WORK_TABLE,"SELECT FROM "+WORK_TABLE, null,0, "name, description, button(RUN:Translate), -"));
+				sb.append(getTable(con,parms,WORK_TABLE,null, null,0, "name, description, button(RUN:Translate), -"));
 	    	} catch (Exception e) {  
 	    		e.printStackTrace();
 	    		sb.append("Error retrieving locales: "+e.getMessage());

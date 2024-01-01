@@ -109,7 +109,7 @@ public class RBuilder extends Table {
         // If nothing else happened, show the list of R Scripts owned by the user
         if (sb.length() == 0) {
             try {
-                sb.append(getTable(con, parms, PlusSetup.TABLE, "SELECT FROM " + PlusSetup.TABLE+" WHERE _allow contains(name='"+con.getUser()+"')", null, 0, "name,description,RScript,-"));
+                sb.append(getTable(con, parms, PlusSetup.TABLE, null, null, 0, "name,description,RScript,-"));
             } catch (Exception e) {
                 e.printStackTrace();
                 sb.append("Error retrieving R Scripts: " + e.getMessage());

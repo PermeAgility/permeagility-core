@@ -21,11 +21,13 @@ import com.arcadedb.Constants;
 import com.arcadedb.ContextConfiguration;
 import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.DatabaseFactory;
+import com.arcadedb.database.Document;
 import com.arcadedb.engine.ComponentFile;
 import com.arcadedb.engine.ComponentFile.MODE;
 import com.arcadedb.server.ArcadeDBServer;
 import com.arcadedb.server.ServerDatabase;
 
+import permeagility.web.Security;
 import permeagility.web.Server;
 
 /**
@@ -35,7 +37,6 @@ import permeagility.web.Server;
 public class Database  {
 
     protected static boolean EMBEDDED_SERVER = true;
-    private static int MAX_NESTED = 5;
     private static DatabaseFactory dbFactory = null;
     private static DatabaseFactory dbFactoryRO = null;
 
@@ -47,16 +48,42 @@ public class Database  {
     private String password = null;
     private Date lastAccessed = null;
     private Locale locale = Locale.getDefault(); 
+    private boolean isValid = false;
+    private com.arcadedb.database.Database db = null;
+    private ServerDatabase sdb = null;
+    private DatabaseConnection con = null;
 
-   public Database(String dbUrl, String dbUser, String dbPass) throws Exception {
+    public Database(String dbUrl, String dbUser, String dbPass) throws Exception {
         url = dbUrl;
         user = dbUser;
-        password = dbPass;
-        System.out.println("Creating new DatabaseObject for user "+dbUser);
+        password = Security.digest(dbPass);
+        if (dbFactory == null && server == null) {
+            startMeUp();        
+            return;
+        }
+        System.out.println("Created new DatabaseObject for user "+dbUser+" password="+password);
+        if (EMBEDDED_SERVER) {
+            sdb = server.getDatabase(url);
+        } else {
+            db = dbFactory.open();
+        }
+        System.out.println("Validating the user login information");
+        con = EMBEDDED_SERVER ? new DatabaseConnection(this,sdb) : new DatabaseConnection(this,db);
+        con.begin();
+        Document udoc = con.queryDocument("SELECT FROM user WHERE name='"+user+"' AND password='"+password+"'");
+        con.commit();
+        if (udoc != null) {
+            isValid = true;
+        } else {
+            isValid = false;
+        }
+    }
+
+    private void startMeUp() {
         if (dbFactory == null && !EMBEDDED_SERVER) {
             dbFactory = new DatabaseFactory(url);
             if (!dbFactory.exists()) {
-                createLocal("",dbPass);
+                createLocal("");
             }
             dbFactoryRO = new DatabaseFactory(url);
         }
@@ -71,25 +98,31 @@ public class Database  {
                 ServerDatabase serverdb = server.createDatabase(url, MODE.READ_WRITE);
                 if (serverdb.isOpen()) {
                     System.out.println("Database is open");
-                    serverdb.getContext().setMaxNested(MAX_NESTED);  // doesn't work
                 }
             }
         }
-      }
+        if (EMBEDDED_SERVER) {
+            sdb = server.getDatabase(url);
+        } else {
+            db = dbFactory.open();
+        }
+        con = EMBEDDED_SERVER ? new DatabaseConnection(this,sdb) : new DatabaseConnection(this,db);
+        isValid = true;
+    }
 
     public DatabaseConnection getReadOnlyConnection() {
         if (EMBEDDED_SERVER) {
-            return new DatabaseConnection(this, server.getDatabase(url));
+            return con;
         } else {
              return new DatabaseConnection(this,dbFactoryRO.open(ComponentFile.MODE.READ_ONLY));
         }
     }
 
     public DatabaseConnection getConnection() {
-        if (EMBEDDED_SERVER) {
-            return new DatabaseConnection(this, server.getDatabase(url));
+        if (isValid && con != null) { 
+            return con;
         } else {
-            return new DatabaseConnection(this,dbFactory.open());
+            return null;
         }
     }
 
@@ -112,7 +145,7 @@ public class Database  {
 
     public boolean isConnected() {
         if (EMBEDDED_SERVER) {
-            return server.isStarted();
+            return isValid && con != null;
         }
         return dbFactory != null && dbFactory.exists();
     }
@@ -136,7 +169,7 @@ public class Database  {
     public Locale getLocale() { return locale;  }
 
     /** Create a local database and load starterdb.json if it exists - if no starter DatabaseSetup.Schema update will install what is needed */
-    public void createLocal(String backupFile, String serverPass) {
+    public void createLocal(String backupFile) {
             System.out.println("*** Creating new database "+url+" in "+System.getProperty("user.dir"));
             com.arcadedb.database.Database d;
             if (!dbFactory.exists()) {

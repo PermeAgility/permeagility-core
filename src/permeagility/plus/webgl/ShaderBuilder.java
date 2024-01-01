@@ -76,7 +76,7 @@ public class ShaderBuilder extends Table {
         if (sb.length() == 0) {
             try {
                 parms.put("SERVICE", "Shader Builder");
-                sb.append(getTable(con, parms, TABLE_NAME, "SELECT FROM " + TABLE_NAME, null, 0, "button_VIEW_View,name,description,-"));
+                sb.append(getTable(con, parms, TABLE_NAME, null, null, 0, "button_VIEW_View,name,description,-"));
             } catch (Exception e) {
                 e.printStackTrace();
                 sb.append("Error retrieving Script table: " + e.getMessage());

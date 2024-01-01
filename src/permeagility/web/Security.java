@@ -15,9 +15,11 @@
  */
 package permeagility.web;
 
+import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -29,7 +31,7 @@ import permeagility.util.QueryResult;
 
 public class Security {
 
-    public static boolean DEBUG = true;
+    public static boolean DEBUG = false;
     public static Date securityRefreshTime = new Date();
     
     public static final int PRIV_CREATE = 1;
@@ -37,6 +39,7 @@ public class Security {
     public static final int PRIV_UPDATE = 4;
     public static final int PRIV_DELETE = 8;
     public static final int PRIV_ALL = 15;
+    public static final int PRIV_SUPER = 16;
 
     private static final ConcurrentHashMap<String,List<RID>> userRoles = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<String,HashMap<String,Integer>> userRules = new ConcurrentHashMap<>();
@@ -58,14 +61,6 @@ public class Security {
     /** Refresh the cached security model in the server */
     public static void refreshSecurity(DatabaseConnection con) {
 
-      //  // If security has changed, close all existing connections for all users but admin
-      //  for (String usr : Server.sessionsDB.keySet()) {
-      //      if (usr != null && !usr.equals("admin")) {
-      //          Database udb = Server.sessionsDB.get(usr);
-      //          udb.close();
-      //      }
-      //  }
-  
         System.out.println("Security: refreshing using "+con.getUser()+" user");
         int entryCount = 0;
         try {
@@ -126,7 +121,7 @@ public class Security {
                 HashMap<String,Integer> newRules = new HashMap<>();
                 for (List<Document> m : rules) {
                     for (Document rule : m) {
-                       System.out.println("Security.refreshSecurity found rule "+rule);
+                       if (DEBUG) System.out.println("Security.refreshSecurity found rule "+rule);
                        Integer privN = newRules.get(rule.getString("resource"));
                        int priv = 0;
                        if (privN != null) priv = privN.intValue();
@@ -181,8 +176,7 @@ public class Security {
             }
         }
         return authorized;
-  //      return true;
-    }
+     }
 
     /** Recursive function to return the rules for a role that has been given (includes inherited rules) */
     public static int getRoleRules(DatabaseConnection con, RID role, ArrayList<List<Document>> rules) {
@@ -243,7 +237,7 @@ public class Security {
             Document role = con.get(r);
             if (role != null) {
                 if (role.getString("mode").equals("SUPER")) {
-                    //System.out.println("We have a SUPER user called "+user);
+                    if (DEBUG) System.out.println("We have a SUPER user called "+user);
                     superuser = true;
                     priv = Security.PRIV_ALL;
                 }
@@ -260,9 +254,9 @@ public class Security {
         if (o != null) {
             if (DEBUG) System.out.println("Security.getTablePriv: Found database.class."+table+"="+o);
             if (superuser) {
-                priv ^= o.intValue();  // XOR the priv for super user
+                priv ^= o.intValue();  // XOR the priv for SUPER user
             } else {
-                priv |= o.intValue();  // OR the priv
+                priv |= o.intValue();  // OR the priv for NORMAL user
             }
         }
         return priv;
@@ -279,6 +273,7 @@ public class Security {
         HashMap<String,Integer> map = new HashMap<>();
         for (Document role : con.query("SELECT FROM role").get()) {
             String roleName = role.getString("name");
+            String roleMode = role.getString("mode");
             ArrayList<List<Document>> rules = new ArrayList<>();
             getRoleRules(con, role.getIdentity(), rules);
             for (List<Document> rs : rules) {
@@ -303,6 +298,7 @@ public class Security {
                              priv |= PRIV_CREATE | PRIV_UPDATE | PRIV_DELETE;
                              if (DEBUG) System.out.println("Readonly priv is "+priv);
                         }
+                        if (roleMode.equals("SUPER")) priv |= PRIV_SUPER;
                         if (DEBUG) System.out.println("getTablePrivs: specific "+roleName+" "+rule.toString()+": "+priv);
                     }
                 }
@@ -371,6 +367,38 @@ public class Security {
             return true;
         }
         return false;
+    }
+
+    // 9b:dc:44:1d:d1:f7:72:e1:01:f2:41:fd:9d:d0:d9:36:81:bc:6e:e6:37:4b:57:5a:74:db:e7:53:46:5f:32:98:9c:df:04:0b:90:70:35:9e:f0:81:61:72:39:c3:8c:28:43:71:b4:df:b5:f1:22:a3:97:e1:65:24:ef:a1:22:5a
+    private static byte[] salt = HexFormat.ofDelimiter(":").parseHex("0c:70:66:ee:29:2c:dd:39:6b:a3:ed:df:a3:18:0a:8f");
+    private static MessageDigest messageDigest = null;
+    
+    public static String digest(String string) {
+
+        // Todo: use salt from file, generate if not found
+        //SecureRandom random = new SecureRandom();
+        //byte[] salt = new byte[16];
+        //random.nextBytes(salt);
+
+        if (messageDigest == null) {
+            try {
+                System.out.println("Salt:"+HexFormat.ofDelimiter(":").formatHex(salt));
+                messageDigest = MessageDigest.getInstance("SHA-512");
+                messageDigest.update(salt);
+                System.out.println("Digest alg="+messageDigest.getAlgorithm()+" length="+messageDigest.getDigestLength()
+                    +" prov="+messageDigest.getProvider().getName()+" provinfo="+messageDigest.getProvider().getInfo());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        if (messageDigest != null) {
+            byte[] hashedPassword = messageDigest.digest(string.getBytes());
+            System.out.println("Salted password="+HexFormat.ofDelimiter(":").formatHex(hashedPassword));
+            return HexFormat.ofDelimiter(":").formatHex(hashedPassword);
+        } else {
+            System.out.println("Security.digest panic: no messageDigest available");
+            return string;
+        }
     }
 
 }

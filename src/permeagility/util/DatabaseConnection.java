@@ -91,15 +91,6 @@ public class DatabaseConnection {
 	/** Get the Schema object */
 	public com.arcadedb.schema.Schema getSchema() { return c.getSchema(); }
 
-	/** Get the Security object */
-	public com.arcadedb.security.SecurityManager getSecurity() {
-	//	if (c == null) {
-			return null;
-	//	} else {
-	//		return c.getConfiguration().;
-	//	}
-	}
-
 	public void begin() { c.begin(); }
 	public void commit() { c.commit(); }
 	public void rollback() { c.rollback(); }
@@ -157,7 +148,42 @@ public class DatabaseConnection {
     	return qr;
     }
 
-   	/** Execute a query and return a QueryResultCache object */
+	/** Execute a query and return a QueryResult object */
+    public QueryResult queryTable(String table) { return queryTable(table, null, null, null); }
+    public QueryResult queryTable(String table, String where) { return queryTable(table, where, null, null); }
+    public QueryResult queryTable(String table, String where, String order) { return queryTable(table, where, order, null); }
+    public QueryResult queryTable(String table, String where, String order, String skipLimit) {
+        boolean closethis = false;
+        if (!c.isTransactionActive()) {
+            System.out.println("DatabaseConnection.query: no active transaction, will create a default one for this query");
+            begin();
+            closethis = true;
+        }
+        if (where != null && !where.isBlank()) where = " WHERE "+where; else where = "";
+        if (order != null && !order.isBlank()) order = " ORDER BY "+order; else order = "";
+        if (skipLimit != null) skipLimit = " "+skipLimit; else skipLimit = "";
+        DocumentType docType = getSchema().getType(table);
+        if (docType.isSubTypeOf("restricted")) {
+            String rolesList = Security.getUserRolesList(this);
+            where += (where.isBlank() ? " WHERE " : " AND ") 
+                   + "(_allowRead IN [" + rolesList + "] OR _allow IN [" + rolesList + "])";
+            System.out.println("DatabaseConnection.queryTable on "+table+" is restricted where="+where+";");
+        }
+        String expression = "SELECT FROM "+table+where+order+skipLimit;
+
+    	if (DEBUG) System.out.println("DatabaseConnection.queryTable="+expression+";");
+       	lastAccess = System.currentTimeMillis();
+        ResultSet result = c.query("SQL", expression);
+        QueryResult qr = new QueryResult(result);
+        if (closethis) {
+            commit();
+        }
+    	return qr;
+    }
+
+
+
+    /** Execute a query and return a QueryResultCache object */
     public QueryResultCache queryToCache(String expression) {
         boolean closethis = false;
         if (!c.isTransactionActive()) {

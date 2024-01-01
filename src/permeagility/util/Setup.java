@@ -15,8 +15,11 @@
  */
 package permeagility.util;
 
+import java.security.MessageDigest;
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HexFormat;
 import java.util.List;
 
 import com.arcadedb.database.Document;
@@ -220,11 +223,23 @@ public class Setup {
                 adminRoles.add(adminRole);
                 allRolesButGuest.add(adminRole);
             }
+            
+//            byte[] salt = HexFormat.ofDelimiter(":").parseHex("0c:70:66:ee:29:2c:dd:39:6b:a3:ed:df:a3:18:0a:8f");
+            //SecureRandom random = new SecureRandom();
+            //byte[] salt = new byte[16];
+            //random.nextBytes(salt);
+//            System.out.println("Salt:"+HexFormat.ofDelimiter(":").formatHex(salt));
+//            MessageDigest md = MessageDigest.getInstance("SHA-512");
+//            md.update(salt);
+//            System.out.println("Digest alg="+md.getAlgorithm()+" length="+md.getDigestLength()+" prov="+md.getProvider().getName()+" provinfo="+md.getProvider().getInfo());
+//            byte[] hashedPassword = md.digest("password".getBytes());
+//            System.out.println("Salted password for admin="+HexFormat.ofDelimiter(":").formatHex(hashedPassword));
+
             if (adminUser == null) {
-                adminUser = (Document)con.update("INSERT INTO user SET name = 'admin', password = 'admin', status = 'ACTIVE', roles = (select from role where name = 'admin') RETURN @this");
+                adminUser = (Document)con.update("INSERT INTO user SET name = 'admin', password = '"+Security.digest("admin")+"', status = 'ACTIVE', roles = (select from role where name = 'admin') RETURN @this");
                 installMessages.append(Weblet.paragraph("CheckInstallation: Created admin user ")+adminUser.getIdentity());
             }
-
+            
             if (guestRoles.isEmpty()) {
                 guestRole = (Document)con.update("INSERT INTO role SET name = 'guest', mode = 'NORMAL' RETURN @this");
                 installMessages.append(Weblet.paragraph("CheckInstallation: Created guest role"));
@@ -232,7 +247,7 @@ public class Setup {
                 guestRole = guestRoles.get(0);
             }
             if (guestUser == null) {
-                guestUser = (Document)con.update("INSERT INTO user SET name = 'guest', password = 'guest', status = 'ACTIVE', roles = (select from role where name = 'guest') RETURN @this");
+                guestUser = (Document)con.update("INSERT INTO user SET name = 'guest', password = '"+Security.digest("guest")+"', status = 'ACTIVE', roles = (select from role where name = 'guest') RETURN @this");
                 installMessages.append(Weblet.paragraph("CheckInstallation: Created guest user ")+guestUser.getIdentity());
             }
             if (guestRoles.isEmpty()) {
@@ -454,6 +469,7 @@ public class Setup {
             mCount += checkCreateMessage(con, loc, "CREATE_ROW", "Create");
             mCount += checkCreateMessage(con, loc, "NEW_COLUMN", "Add column");
             mCount += checkCreateMessage(con, loc, "ROLE_CAN_PRIV", "{0} can {1}");
+            mCount += checkCreateMessage(con, loc, "ROLE_CANNOT_PRIV", "{0} can not {1}");
             mCount += checkCreateMessage(con, loc, "EXISTING_RIGHTS", "Existing rights");
             mCount += checkCreateMessage(con, loc, "ADD_OR_REMOVE_RIGHT", "Add or remove access");
             mCount += checkCreateMessage(con, loc, "GRANT_RIGHT", "Grant");
@@ -798,15 +814,6 @@ public class Setup {
                 mi_context.set("_allow", adminRoles);
                 mi_context.save();
 
-                MutableDocument mi_settings = con.create(TABLE_MENUITEM);
-                mi_settings.set("name","Settings");
-                mi_settings.set("description","Basic settings");
-                mi_settings.set("classname","permeagility.web.Settings");
-                mi_settings.set("active",true);
-                mi_settings.set("_allowRead", adminRoles);
-                mi_settings.set("_allow", adminRoles);
-                mi_settings.save();
-
                 MutableDocument mi_shutdown = con.create(TABLE_MENUITEM);
                 mi_shutdown.set("name","Shutdown");
                 mi_shutdown.set("description","Shutdown the server");
@@ -940,7 +947,6 @@ public class Setup {
                 items.add(mi_blank);
                 items.add(mi_context);
                 items.add(mi_pagebuilder);
-                items.add(mi_settings);
                 items.add(mi_password);
                 items.add(mi_backup);
                 items.add(mi_shutdown);

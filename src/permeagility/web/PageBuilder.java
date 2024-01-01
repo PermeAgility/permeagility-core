@@ -50,7 +50,7 @@ public class PageBuilder extends Table {
                             + POPUP_FORM_CLOSER)
                     : "")
                     + getTable(con, parms, TABLE_NAME
-                        , "SELECT FROM " + TABLE_NAME+" WHERE name != '' AND (classname is null OR classname = '')"
+                        , "name != '' AND (classname is null OR classname = '')"
                         , null, 0, "name,description,useStyleFrom,-")
                     + serviceHeaderUpdateDiv(parms, APP_NAME)
                 );

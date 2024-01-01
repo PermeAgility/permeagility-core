@@ -95,14 +95,12 @@ public class Home extends Weblet {
             String order = ele.attr("order");
             String template = ele.html();
             if (where != null) where = scanForTokens(con, where);  // Replace any global tokens used in the where clause
-            if (where != null && !where.isEmpty()) where = " WHERE " + where;
-            if (order != null && !order.isEmpty()) order = " ORDER BY " + order;
             if (table == null || table.isEmpty()) {
                 return paragraph("error","PermeAgility: table attribute not found for template")+template;
             }
             StringBuilder result = new StringBuilder();
             try {
-                QueryResult qr = con.query("SELECT FROM " + table + where + order);
+                QueryResult qr = con.queryTable(table, where, order, null);
                 for (Document d : qr.get()) {
                     StringBuilder resultline = new StringBuilder();
                     String[] templines = template.split("\\$\\{");
