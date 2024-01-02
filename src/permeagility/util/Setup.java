@@ -15,11 +15,8 @@
  */
 package permeagility.util;
 
-import java.security.MessageDigest;
-import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.HexFormat;
 import java.util.List;
 
 import com.arcadedb.database.Document;
@@ -41,6 +38,7 @@ public class Setup {
 
     public static boolean RESTRICTED_BY_ROLE = true;
     private static String SETUP_DEBUG_FLAG = "false";    // default setting for debug constants
+    public static boolean SETUP_DEMO_USERS = true;        
 
     public static final String TABLE_THUMBNAIL = "thumbnail";
     public static final String TABLE_CONSTANT = "constant";
@@ -180,6 +178,7 @@ public class Setup {
 
     /* This should not be run inside a transaction */
     public static boolean checkInstallation(DatabaseConnection con) {
+
         try {
             System.out.println("DatabaseSetup.checkInstallation ");
             con.updateScript(schemaScript);
@@ -193,93 +192,42 @@ public class Setup {
             List<Document> allRolesButGuest = new ArrayList<Document>();
             List<Document> adminRoles = new ArrayList<Document>();
             List<Document> staffRoles = new ArrayList<Document>();
+            List<Document> adminAndStaffRoles = new ArrayList<Document>();
             List<Document> customerRoles = new ArrayList<Document>();
             List<Document> guestRoles = new ArrayList<Document>();
-            for (Document roleDoc : con.query("SELECT FROM role").get()) {
-                allRoles.add(roleDoc);
-                if (roleDoc.getString("name").equals("admin")) adminRoles.add(roleDoc);
-                if (roleDoc.getString("name").equals("staff")) staffRoles.add(roleDoc);
-                if (roleDoc.getString("name").equals("customer")) customerRoles.add(roleDoc);
-                if (roleDoc.getString("name").equals("guest")) guestRoles.add(roleDoc);
-                if (!roleDoc.getString("name").equals("guest")) allRolesButGuest.add(roleDoc);
-            }
 
-            Document adminRole = null;
-            Document staffRole = null;
-            Document customerRole = null;
-            Document guestRole = null;
-            Document adminUser = con.queryDocument("SELECT FROM user WHERE name='admin'");
-            Document guestUser = con.queryDocument("SELECT FROM user WHERE name='guest'");
+            Document adminRole = checkCreateRole(con, "admin", "SUPER", "", installMessages);
+            adminRoles.add(adminRole);
+            allRoles.add(adminRole);
+            adminAndStaffRoles.add(adminRole);
+            allRolesButGuest.add(adminRole);
 
-            if (adminRoles.isEmpty()) {
-                adminRole = (Document)con.update("INSERT INTO role SET name = 'admin', mode = 'SUPER' RETURN @this");
-                allRoles.add(adminRole);
-                adminRoles.add(adminRole);
-                allRolesButGuest.add(adminRole);
-                installMessages.append(Weblet.paragraph("CheckInstallation: Created admin role"));
-            } else {
-                adminRole = adminRoles.get(0);
-                allRoles.add(adminRole);
-                adminRoles.add(adminRole);
-                allRolesButGuest.add(adminRole);
+            Document staffRole = checkCreateRole(con, "staff", "SUPER", "", installMessages);
+            staffRoles.add(staffRole);
+            adminAndStaffRoles.add(staffRole);
+            allRoles.add(staffRole);
+            allRolesButGuest.add(staffRole);
+
+            Document guestRole = checkCreateRole(con, "guest", "NORMAL", "", installMessages);
+            allRoles.add(guestRole);
+            guestRoles.add(guestRole);
+
+            Document customerRole = checkCreateRole(con, "customer", "NORMAL", "guest", installMessages);
+            allRoles.add(customerRole);
+            allRolesButGuest.add(customerRole);
+            customerRoles.add(customerRole);
+
+            checkCreateUser(con, "admin", "admin", "admin", installMessages);
+            checkCreateUser(con, "guest", "guest", "guest", installMessages);
+            if (SETUP_DEMO_USERS) {  // todo: may need to call up the constant in db since we are before constants have loaded (or are we?)
+                checkCreateUser(con, "cust1", "cust1", "customer", installMessages);
+                checkCreateUser(con, "cust2", "cust2", "customer", installMessages);
+                checkCreateUser(con, "cust3", "cust3", "customer", installMessages);
+                checkCreateUser(con, "staff1", "staff1", "staff", installMessages);
+                checkCreateUser(con, "staff2", "staff2", "staff", installMessages);
+                checkCreateUser(con, "staff3", "staff3", "staff", installMessages);
             }
             
-//            byte[] salt = HexFormat.ofDelimiter(":").parseHex("0c:70:66:ee:29:2c:dd:39:6b:a3:ed:df:a3:18:0a:8f");
-            //SecureRandom random = new SecureRandom();
-            //byte[] salt = new byte[16];
-            //random.nextBytes(salt);
-//            System.out.println("Salt:"+HexFormat.ofDelimiter(":").formatHex(salt));
-//            MessageDigest md = MessageDigest.getInstance("SHA-512");
-//            md.update(salt);
-//            System.out.println("Digest alg="+md.getAlgorithm()+" length="+md.getDigestLength()+" prov="+md.getProvider().getName()+" provinfo="+md.getProvider().getInfo());
-//            byte[] hashedPassword = md.digest("password".getBytes());
-//            System.out.println("Salted password for admin="+HexFormat.ofDelimiter(":").formatHex(hashedPassword));
-
-            if (adminUser == null) {
-                adminUser = (Document)con.update("INSERT INTO user SET name = 'admin', password = '"+Security.digest("admin")+"', status = 'ACTIVE', roles = (select from role where name = 'admin') RETURN @this");
-                installMessages.append(Weblet.paragraph("CheckInstallation: Created admin user ")+adminUser.getIdentity());
-            }
-            
-            if (guestRoles.isEmpty()) {
-                guestRole = (Document)con.update("INSERT INTO role SET name = 'guest', mode = 'NORMAL' RETURN @this");
-                installMessages.append(Weblet.paragraph("CheckInstallation: Created guest role"));
-            } else {
-                guestRole = guestRoles.get(0);
-            }
-            if (guestUser == null) {
-                guestUser = (Document)con.update("INSERT INTO user SET name = 'guest', password = '"+Security.digest("guest")+"', status = 'ACTIVE', roles = (select from role where name = 'guest') RETURN @this");
-                installMessages.append(Weblet.paragraph("CheckInstallation: Created guest user ")+guestUser.getIdentity());
-            }
-            if (guestRoles.isEmpty()) {
-                guestRoles.add(guestRole);
-                allRoles.add(guestRole);
-            }
-
-            if (staffRoles.isEmpty()) {
-                staffRole = (Document)con.update("INSERT INTO role SET name = 'staff', mode = 'SUPER' RETURN @this");
-            } else {
-                staffRole = staffRoles.get(0);
-            }
-            if (staffRoles.isEmpty()) {
-                staffRoles.add(staffRole);
-                allRoles.add(staffRole);
-                allRolesButGuest.add(staffRole);
-                installMessages.append(Weblet.paragraph("CheckInstallation: Created staff role"));
-            }
-
-            if (customerRoles.isEmpty()) {
-                customerRole = (Document)con.update("INSERT INTO role SET name = 'customer', mode = 'NORMAL', inheritedRole = "+guestRole.getIdentity().toString()+" RETURN @this");
-            } else {
-                customerRole = customerRoles.get(0);
-
-            }
-            if (customerRoles.isEmpty()) {
-                customerRoles.add(customerRole);
-                allRoles.add(customerRole);
-                allRolesButGuest.add(customerRole);
-                installMessages.append(Weblet.paragraph("CheckInstallation: Created customer role"));
-            }
-
             // Verify the minimum privileges for the guest role
             checkCreatePrivilege(con, guestRole.getIdentity(), "READ", "menuItem", installMessages);  // home page (menuItem is restricted)
             checkCreatePrivilege(con, guestRole.getIdentity(), "READ", "thumbnail", installMessages);  // can read images
@@ -307,8 +255,6 @@ public class Setup {
             // A customer is a guest until they log in 
             // then they are guest + whatever is granted to the customer role for the application
             // ie. orders, reservations, social media posts, etc...
-
-            
 
             // columns must be first as it will receive the properties as they are created by checkCreateProperty
             System.out.println(TABLE_COLUMNS+" ");
@@ -650,14 +596,12 @@ public class Setup {
                     + "<li>Change the admin, reader, writer, and server passwords</li>\n"
                     + "<li>If a system table is deleted or truncated, it will be restored to factory settings during startup</li>\n"
                     + "<li>see <a target='_blank' href='http://www.permeagility.com'>www.permeagility.com</a> for more information</li>\n"
-                    + "</ul>\n"
-                    + "<ul><li><a href='/Home?NAME=home-light'>Open Application (Light)</a></li>\n"
-                   + "<li><a href='/Home?NAME=home-dark'>Open Application (Dark)</a></li></ul>\n");
+                    + "</ul>\n");
                 n2.set("dateline", LocalDateTime.now());
                 n2.set("locale",loc);
                 n2.set("archive",false);
                 n2.set("_allowRead", adminRoles);
-                n2.set("_allow", adminRoles);
+                n2.set("_allow", adminAndStaffRoles);
                 n2.save();
 
                 MutableDocument n3 = con.create(TABLE_NEWS);
@@ -669,7 +613,7 @@ public class Setup {
                 n3.set("locale",loc);
                 n3.set("archive",false);
                 n3.set("_allowRead", customerRoles);
-                n3.set("_allow", adminRoles);
+                n3.set("_allow", adminAndStaffRoles);
                 n3.save();
 
                 MutableDocument n4 = con.create(TABLE_NEWS);
@@ -681,20 +625,32 @@ public class Setup {
                 n4.set("locale",loc);
                 n4.set("archive",false);
                 n4.set("_allowRead", staffRoles);
-                n4.set("_allow", adminRoles);
+                n4.set("_allow", adminAndStaffRoles);
                 n4.save();
 
                 MutableDocument n1 = con.create(TABLE_NEWS);
-                n1.set("name","Welcome to PermeAgility");
-                n1.set("description","The core template for big data applications in a micro service.\n"
-                    + "<ul><li><a href='/Home?NAME=home-light'>Open Application (Light)</a></li>"
-                    + "<li><a href='/Home?NAME=home-dark'>Open Application (Dark)</a></li></ul>");
+                n1.set("name","Get started");
+                n1.set("description","You are now on a road to unrivaled flexibility, build complex applications with ease like never before.\n"
+                    + "<ul><li><a href='/Login'>Login</a></li></ul>");
                 n1.set("dateline", LocalDateTime.now());
                 n1.set("locale",loc);
                 n1.set("archive",false);
                 n1.set("_allowRead", guestRoles);
-                n1.set("_allow", adminRoles);
+                n1.set("_allow", adminAndStaffRoles);
                 n1.save();
+
+                MutableDocument n5 = con.create(TABLE_NEWS);
+                n5.set("name","Welcome to PermeAgility");
+                n5.set("description","The core template for data driven applications in a micro service.\n"
+                    + "<ul><li><a href='/Home?NAME=home-light'>Open Application (Light)</a></li>"
+                    + "<li><a href='/Home?NAME=home-dark'>Open Application (Dark)</a></li></ul>");
+                n5.set("dateline", LocalDateTime.now());
+                n5.set("locale",loc);
+                n5.set("archive",false);
+                n5.set("_allowRead", guestRoles);
+                n5.set("_allow", adminAndStaffRoles);
+                n5.save();
+
             }
  
             System.out.println(TABLE_PICKLIST+" ");
@@ -828,7 +784,7 @@ public class Setup {
                 mi_query.set("description","Query the database");
                 mi_query.set("classname","permeagility.web.Query");
                 mi_query.set("active",true);
-                mi_query.set("_allowRead", allRolesButGuest);
+                mi_query.set("_allowRead", adminAndStaffRoles);
                 mi_query.set("_allow", adminRoles);
                 mi_query.save();
 
@@ -907,7 +863,7 @@ public class Setup {
                 mi_visuility.set("description","Visuility browser");
                 mi_visuility.set("classname","permeagility.web.Visuility");
                 mi_visuility.set("active",true);
-                mi_visuility.set("_allowRead", allRolesButGuest);
+                mi_visuility.set("_allowRead", adminAndStaffRoles);
                 mi_visuility.set("_allow", adminRoles);
                 mi_visuility.save();
 
@@ -916,7 +872,7 @@ public class Setup {
                 mi_visuilityData.set("description","Visuility browser (data component)");
                 mi_visuilityData.set("classname","permeagility.web.VisuilityData");
                 mi_visuilityData.set("active",true);
-                mi_visuilityData.set("_allowRead", allRolesButGuest);
+                mi_visuilityData.set("_allowRead", adminAndStaffRoles);
                 mi_visuilityData.set("_allow", adminRoles);
                 mi_visuilityData.save();
 
@@ -933,7 +889,6 @@ public class Setup {
                 mi_blank.set("name","");
                 mi_blank.set("active",true);
                 mi_blank.set("description","Blank menu item");
-                mi_blank.set("_allow",adminRoles);
                 mi_blank.set("_allowRead",allRoles);
                 mi_blank.set("_allow",adminRoles);
                 mi_blank.save();
@@ -1156,6 +1111,7 @@ public class Setup {
         }
     }
 
+
     /** Check for the existence of a class property or add it This assumes you want a link type, otherwise the linkClass may have adverse effects */
     public static Property checkCreateColumn(DatabaseConnection con, DocumentType theClass, String propertyName, Type propertyType, DocumentType linkClass, StringBuilder errors) {
         Property p;
@@ -1252,6 +1208,28 @@ public class Setup {
             return true;
         }
         return false;
+    }
+
+    /** Check existence of and Create role if not exist */
+    public static Document checkCreateRole(DatabaseConnection con, String name, String mode, String role, StringBuilder installMessages) {
+        Document r = con.queryDocument("SELECT FROM role WHERE name='"+name+"'");
+        if (r == null) {
+            r = (Document)con.update("INSERT INTO role SET name = '"+name+"', mode = '"+mode
+                   + "', inheritedRole = (SELECT FROM role WHERE name = '"+role+"') RETURN @this");
+            installMessages.append(Weblet.paragraph("CheckInstallation: Created "+name+" role ")+r.getIdentity());
+        }
+        return r;
+    }
+
+    /** Check existence of and Create user if not exist */
+    public static Document checkCreateUser(DatabaseConnection con, String name, String password, String role, StringBuilder installMessages) {
+        Document u = con.queryDocument("SELECT FROM user WHERE name='"+name+"'");
+        if (u == null) {
+            u = (Document)con.update("INSERT INTO user SET name = '"+name+"', password = '"+Security.digest(password)
+                   + "', status = 'ACTIVE', roles = (SELECT FROM role WHERE name = '"+role+"') RETURN @this");
+            installMessages.append(Weblet.paragraph("CheckInstallation: Created "+name+" user "+u.getIdentity()));
+        }
+        return u;
     }
 
     /** Check for the existence of a privilege or add it */
@@ -1503,7 +1481,7 @@ rect.selection { opacity:0.8; fill: none; stroke: white; stroke-width: 4px; stro
 .modal {
     background-color: #ccc;
     border-radius: 6px;
-        position: absolute;
+    position: fixed;
     transition: all 0.8s;
     visibility: hidden;
     opacity: 0; z-index: 1;
@@ -1575,7 +1553,9 @@ public static final String DEFAULT_HOME_SCRIPT = """
 <div id="header" hx-trigger="load" hx-get="/Header" hx-swap="innerHTML"></div>
 <div id="service">
     <PermeAgility table="news" order="dateline desc"
-                where="(archive IS NULL or archive=false) AND (locale IS NULL or locale.name='${locale}' )">
+                where="(archive IS NULL OR archive=false) 
+                AND (locale IS NULL OR locale.name='${locale}')
+                AND ${_allowRead}">
     <div class="card-content">
         <h2>${news.name}</h2>
         <p style="font-size:8pt">${news.dateline} ${locale} #${news.rid}</p>
@@ -1757,7 +1737,7 @@ rect.selection { opacity:0.8; fill: none; stroke: white; stroke-width: 4px; stro
 .modal {
     background-color: #333;
     border-radius: 6px;
-        position: absolute;
+    position: fixed;
     transition: all 0.8s;
     visibility: hidden;
     opacity: 0; z-index: 1;
@@ -1826,44 +1806,27 @@ iframe.previewFrame { width: calc(100% - 10px); height: calc(100vh - 110px); }
 </style>
 """;
 
-public static final String DEFAULT_WELCOME_SCRIPT = """
-<div class="header">
-    <a class="headerlogo" href="/Home" title="Go to the home page">
-        <img class="headerlogo" src="/images/Logo-yel.svg"/>
-    </a>
-    Welcome to PermeAgility
-</div>
-
-<PermeAgility table="news" order="dateline desc"
-    where="(archive IS NULL or archive=false) AND (locale IS NULL or locale.name='${locale}' )">
-    <div class="card">
-        <img src="https://source.unsplash.com/random/800x800" alt="" />
-        <div class="card-content">
-            <h1>${news.name}</h1>
-            <p style="font-size:8pt;">${news.dateline} ${locale} ${news.rid}</p>
-            <h4>${news.description}</h4>
-            <p></p>
-        </div>
-    </div>
-</PermeAgility>         
-
-<div class="footer">Footer</div>        
-""";
-
 public static final String DEFAULT_WELCOME_STYLE = """
+<script type="text/javascript" src="/js/htmx.min.js"></script>
 <style type='text/css'>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: sans-serif; }
-
-img.headerlogo { width: 90px; left: 20px; top: 15px; position: absolute; border: none; user-select: none; }
-a.headerlogo:hover { text-decoration: none; background-color: transparent;}
 a { color: lightblue; }
 
 .header, .footer {
     background-color: #222;  color: white;
-    height: 70px;  display: flex;
+    height: 35px; 
     justify-content: center; align-items: center;
 }
+img.headerlogo { width: 50px; left: 5px; top: 5px; position: absolute; border: none; user-select: none; }
+a.headerlogo:hover { text-decoration: none; background-color: transparent;}
+
+#header { top: 0px; left: 0px; right: 0px; height: 35px; z-index: -1;
+        background-image: linear-gradient(to left, black, #444444) !important;   }
+#headertitle { font-size: 0.75em; text-align: center; }
+#headerservice { display: none; }
+#headertime { display: none; }
+#headeruser { font-size: 0.75em; text-align: right; }
 
 .card {
     width: 100vw; height: 100vh;
@@ -1888,7 +1851,28 @@ a { color: lightblue; }
     justify-content: center;
     align-items: center;
 }
-</style>        
+</style>
+""";
+
+public static final String DEFAULT_WELCOME_SCRIPT = """
+<div id="header" class="header" hx-trigger="load" hx-get="/Header" hx-swap="innerHTML"></div>
+<div>
+    <PermeAgility table="news" order="dateline desc"
+        where="(archive IS NULL OR archive=false) 
+            AND (locale IS NULL OR locale.name='${locale}')
+            AND ${_allowRead}">
+        <div class="card">
+            <img src="https://source.unsplash.com/random/800x800" alt="" />
+            <div class="card-content">
+                <h1>${news.name}</h1>
+                <p style="font-size:8pt;">${news.dateline} ${locale} ${news.rid}</p>
+                <h4>${news.description}</h4>
+                <p></p>
+            </div>
+        </div>
+    </PermeAgility>
+</div>
+<div class="footer">Footer</div>
 """;
 
 }

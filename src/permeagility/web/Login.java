@@ -17,6 +17,8 @@ package permeagility.web;
 
 import java.util.Locale;
 
+import com.arcadedb.database.Document;
+
 import permeagility.util.DatabaseConnection;
 
 public class Login extends Weblet {
@@ -27,6 +29,25 @@ public class Login extends Weblet {
 	
 	public String getHTML(DatabaseConnection con, java.util.HashMap<String,String> parms) {
 	
+		String destinationClass = parms.get("DESTINATIONCLASS");
+		String destinationMode = parms.get("DESTINATIONMODE");
+
+		if (destinationMode == null || destinationMode.isBlank()) destinationMode = "home-dark";
+
+		if (destinationClass == null) {
+			destinationClass = Server.HOME_CLASS+"?NAME="+destinationMode;
+		}
+		if (!con.getUser().equalsIgnoreCase("guest") ) { // We are logged in, redirect to main page
+			return redirect(parms, destinationClass);
+		}
+
+		StringBuilder modeSelect = new StringBuilder();
+		modeSelect.append("<select name='DESTINATIONMODE'>\n");
+		for (Document item : con.queryTable("menuItem","name LIKE 'home%'").get()) {
+			modeSelect.append("<option value='"+item.getString("name")+"' title='"+item.getString("description")+"'>"+item.getString("name")+"</option>");
+		}
+		modeSelect.append("</select>");
+
 		String error = null;
 		if (parms.get("USERNAME") != null || parms.get("PASSWORD") != null) {
 			error = "Error in user name or password";
@@ -35,11 +56,6 @@ public class Login extends Weblet {
 			error = parms.get("SECURITY_VIOLATION");
 		}
 
-		String destinationClass = parms.get("DESTINATIONCLASS");
-		if (destinationClass == null) {
-			destinationClass = Server.HOME_CLASS;
-		}
-		
 		Locale locale = Message.getDefaultLocale();
 		if (parms.get("LOCALE") != null) {
 			Locale newLocale = Message.getLocale(parms.get("LOCALE"));
@@ -48,24 +64,28 @@ public class Login extends Weblet {
 			}
 		}
 		return
-			head(con, Message.get(locale, "LOGIN_TITLE"))+
+			head(con, Message.get(locale, "LOGIN_TITLE"), LOGIN_PAGE_STYLE)+
 			bodyOnLoad(
-				link(Server.HOME_CLASS,image(Header.LOGO_FILE))+br()
-				+form("LOGIN",destinationClass+"?NAME=home-dark",
+				link("/"+Server.HOME_CLASS, image("headerlogo", Header.LOGO_FILE))+br()
+				+form("LOGIN","",
 				    hidden("LOCALE",locale.toString())
 				    +(error != null ? paragraph("error",error) : "")
 					+table("data",
 						row("header",columnSpan(2,center(Message.get(locale, "LOGIN_TITLE")+br())))+
 						row("data",
 							columnRight(40,Message.get(locale,"USER_LABEL")) 
-							+column(60,input(0,"USERNAME",null))
+							+column(60,inputRequired(0,"USERNAME",null))
 						)+
 						row("data",
 							columnRight(40,Message.get(locale,"PASSWORD_LABEL")) 
-							+column(60,password(null))
+							+column(60,passwordRequired())
+						) +
+						row("data",
+							columnRight(40,Message.get(locale,"LIGHTDARK_LABEL")) 
+							+column(60,modeSelect.toString())
 						) +
 						row(
-							column(40,null)
+							column(40,hidden("DESTINATIONCLASS",destinationClass))
 							+column(60,submitButton(locale,"LOGIN_BUTTON_TEXT"))
 						)
 					)
@@ -74,10 +94,21 @@ public class Login extends Weblet {
 				+Message.getLocaleSelector(locale, parms)	
 				+br()
 				+ link("permeagility.web.UserRequest",Message.get(locale, "REQUEST_LOGIN"))+br() 
-				+paragraph("&copy;2015 <A HREF=http://www.permeagility.com>PermeAgility Incorporated</A>")+"\n"
+				+paragraph("&copy; <A HREF=http://www.permeagility.com>PermeAgility Incorporated</A>")+"\n"
 			,"self.focus(); document.LOGIN.USERNAME.focus();");
 	} 
 	
-	public static String form(String n, String action, String s) { return "<FORM AUTOCOMPLETE=\"off\" NAME=\""+n+"\" ACTION=\""+action+"\" METHOD=\"POST\" ENCTYPE=\"application/x-www-form-urlencoded\">"+s+"</FORM>\n"; }
-	
+	public static String form(String n, String action, String s) { 
+		return "<FORM AUTOCOMPLETE=\"off\" NAME=\""+n+"\" ACTION=\""+action
+		     + "\" METHOD=\"POST\" ENCTYPE=\"application/x-www-form-urlencoded\">"+s+"</FORM>\n"; 
+	}
+
+	public static  String LOGIN_PAGE_STYLE = """
+<style type='text/css'>
+body { background-color: #222; color: white; font-family: sans-serif; }
+img.headerlogo { width: 400px; }
+a { color: #999; }
+</style>
+""";
+
 }

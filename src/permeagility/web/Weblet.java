@@ -356,9 +356,9 @@ public abstract class Weblet {
     }
     public static String POPUP_FORM_CLOSER = "&nbsp;<a href=\"#\" class=\"box-close\">x</a>\n";
 
-    public static String popupHTMX(String formName, String linkText, String focusField, String content) {
-        return "<a href=\"#popup-"+formName+"\" class=\"popbox\">"+linkText+POPUP_SUFFIX+"</a>\n"
-                +"<div id=\"popup-"+formName+"\" class=\"modal\">\n"
+    public static String popupHTMX(String name, String linkText, String focusField, String content) {
+        return "<a href=\"#popup-"+name+"\" class=\"popbox\">"+linkText+POPUP_SUFFIX+"</a>\n"
+                +"<div id=\"popup-"+name+"\" class=\"modal\">\n"
                 +"  <div class=\"pop-content\">\n"
                 +        content
                 +"  </div>\n"
@@ -391,6 +391,10 @@ public abstract class Weblet {
             return "<input "+TEXT_INPUT_OPTIONS+" id=\"" + n + "\" name=\"" + n + "\" " + (isReadOnly() ? "DISABLED" : "") + "  value=\"" + (value == null ? "" : value)
                             + "\" tabindex=" + tabIndex + ">";
     }
+    public String inputRequired(int tabIndex, String n, Object value) {
+            return "<input "+TEXT_INPUT_OPTIONS+" id=\"" + n + "\" name=\"" + n + "\" " + (isReadOnly() ? "DISABLED" : "") + "  value=\"" + (value == null ? "" : value)
+                            + "\" tabindex=" + tabIndex + " required>";
+    }
 
     public String input(int tabIndex, String c, String n, Object value) {
             return "<input "+TEXT_INPUT_OPTIONS+" class=\"" + c + "\" id=\"" + n + "\" name=\"" + n + "\" type=\"TEXT\" " + (isReadOnly() ? "DISABLED" : "") + "  value=\""
@@ -399,6 +403,9 @@ public abstract class Weblet {
 
     public String input(String n, Object value) {
             return "<input "+TEXT_INPUT_OPTIONS+" id=\"" + n + "\" name=\"" + n + "\" " + (isReadOnly() ? "DISABLED" : "") + "  value=\"" + (value == null ? "" : value) + "\">";
+    }
+    public String inputRequired(String n, Object value) {
+            return "<input "+TEXT_INPUT_OPTIONS+" id=\"" + n + "\" name=\"" + n + "\" " + (isReadOnly() ? "DISABLED" : "") + "  value=\"" + (value == null ? "" : value) + "\" required>";
     }
     public String inputWithPlaceholder(String n, String placeholder) {
             return "<input "+TEXT_INPUT_OPTIONS+" placeholder=\""+placeholder+"\" id=\"" + n + "\" name=\"" + n + "\" " + (isReadOnly() ? "DISABLED" : "") + ">";
@@ -438,9 +445,8 @@ public abstract class Weblet {
             return "<input "+TEXT_INPUT_OPTIONS+" ng-model=\"" + model + "\" ng-init=\"" + init + "\" type=\"TEXT\" " + (isReadOnly() ? "DISABLED" : "") + ">";
     }
 
-    public static String password() {
-            return "<input type=\"PASSWORD\" name=\"PASSWORD\">";
-    }
+    public static String password() { return "<input type=\"PASSWORD\" name=\"PASSWORD\">"; }
+    public static String passwordRequired() { return "<input type=\"PASSWORD\" name=\"PASSWORD\" required>"; }
 
     public static String password(String value) {
             return "<input type=\"PASSWORD\" name=\"PASSWORD\" value=\"" + (value == null ? "" : value) + "\">";

@@ -19,7 +19,6 @@ import java.util.Date;
 import java.util.Locale;
 import com.arcadedb.Constants;
 import com.arcadedb.ContextConfiguration;
-import com.arcadedb.GlobalConfiguration;
 import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.database.Document;
 import com.arcadedb.engine.ComponentFile;
@@ -58,23 +57,25 @@ public class Database  {
         user = dbUser;
         password = Security.digest(dbPass);
         if (dbFactory == null && server == null) {
-            startMeUp();        
+            startMeUp();    // first connection is passwordless to allow server setup/startup    
             return;
         }
-        System.out.println("Created new DatabaseObject for user "+dbUser+" password="+password);
+        System.out.println("Created new DatabaseObject for user "+dbUser);
         if (EMBEDDED_SERVER) {
             sdb = server.getDatabase(url);
         } else {
             db = dbFactory.open();
         }
-        System.out.println("Validating the user login information");
+        //if ()
+        System.out.println("Validating the user login information for "+user);
         con = EMBEDDED_SERVER ? new DatabaseConnection(this,sdb) : new DatabaseConnection(this,db);
         con.begin();
-        Document udoc = con.queryDocument("SELECT FROM user WHERE name='"+user+"' AND password='"+password+"'");
+        Document udoc = con.queryDocument("SELECT FROM user WHERE name='"+user+"' AND status='ACTIVE' AND password='"+password+"'");
         con.commit();
         if (udoc != null) {
             isValid = true;
         } else {
+            System.out.println("Database Warning: Failed attempt to login user "+user);
             isValid = false;
         }
     }

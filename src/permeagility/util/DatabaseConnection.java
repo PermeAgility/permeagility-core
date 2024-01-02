@@ -42,7 +42,7 @@ public class DatabaseConnection {
 	com.arcadedb.database.Database c = null;
 	long lastAccess = System.currentTimeMillis();
 
-        // Row counts are shared by all users
+    // Row counts are shared by all users
 	private static ConcurrentHashMap<String,Long> tableCountCache = new ConcurrentHashMap<>();
 
   	protected DatabaseConnection() {}
@@ -58,15 +58,6 @@ public class DatabaseConnection {
     }
 	
     public boolean isConnected() { return c != null && c.isOpen(); }
-
-        // The NewConnection functions are for thread processes that need another connection after the user has moved on from this one
-//        public DatabaseConnection getNewConnection() {
-//            return db.getConnection();
-//        }
-
- //       public void freeNewConnection(DatabaseConnection con) {
- //           db.freeConnection(con);
- //       }
 
 	/** Verification of password when changing password */
 	public boolean isPassword(String pass) {
@@ -164,11 +155,16 @@ public class DatabaseConnection {
         if (skipLimit != null) skipLimit = " "+skipLimit; else skipLimit = "";
         DocumentType docType = getSchema().getType(table);
         if (docType.isSubTypeOf("restricted")) {
-            String rolesList = Security.getUserRolesList(this);
-            where += (where.isBlank() ? " WHERE " : " AND ") 
-                   + "(_allowRead IN [" + rolesList + "] OR _allow IN [" + rolesList + "])";
-            System.out.println("DatabaseConnection.queryTable on "+table+" is restricted where="+where+";");
+            if (where.contains("_allow")) {  // bybass adding _allows if an _allow is already specified in the query
+                System.out.println("DatabaseConnection.queryTable restricted table "+table+" query has _allow in it (not added)");
+            } else {
+                List<RID> roles = Security.getUserRoles(this);
+                where += (where.isBlank() ? " WHERE " : " AND ") 
+                    + "("+makeAllowExpression("_allowRead", roles)+" OR "+makeAllowExpression("_allow", roles)+ ")";
+                System.out.println("DatabaseConnection.queryTable on "+table+" is restricted where="+where+";");
+            }
         }
+
         String expression = "SELECT FROM "+table+where+order+skipLimit;
 
     	if (DEBUG) System.out.println("DatabaseConnection.queryTable="+expression+";");
@@ -181,7 +177,14 @@ public class DatabaseConnection {
     	return qr;
     }
 
-
+    public String makeAllowExpression(String name, List<RID> list) {
+        StringBuilder roleExp = new StringBuilder();
+        for (RID ur : Security.getUserRoles(this)) {
+            if (roleExp.length() > 0) roleExp.append(" OR ");
+            roleExp.append(name+" CONTAINS "+ur.toString());
+        }
+        return roleExp.toString();
+    }
 
     /** Execute a query and return a QueryResultCache object */
     public QueryResultCache queryToCache(String expression) {

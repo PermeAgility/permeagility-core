@@ -50,8 +50,6 @@ import com.arcadedb.database.RecordEvents;
 import com.arcadedb.event.AfterRecordCreateListener;
 import com.arcadedb.event.AfterRecordDeleteListener;
 import com.arcadedb.event.AfterRecordUpdateListener;
-import com.arcadedb.event.BeforeRecordReadListener;
-
 import java.net.InetSocketAddress;
 import java.nio.channels.ClosedChannelException;
 import java.nio.charset.StandardCharsets;
@@ -93,7 +91,7 @@ public class Server {
 	private static String DB_NAME = "db";  // Second parameter
 	private static boolean SELF_TEST = false; // Will exit after initialization
 	private static Date serverInitTime = new Date();
-	private static String DEFAULT_DBFILE = "starterdb.json.gz";  //  Used at initial start
+	//private static String DEFAULT_DBFILE = "starterdb.json.gz";  //  Used at initial start
 	private static String codeSource;  // The file this class is in, for version reporting
 	static boolean restore_lockout = false;
 	static String restore_file = null;  // Backup file to restore when initializing
@@ -109,17 +107,19 @@ public class Server {
     public static int WEBSOCKET_PAUSE_MS = 50;
 	public static boolean ALLOW_KEEP_ALIVE = true;
 	public static boolean KEEP_ALIVE = false;  // if true Keep sockets alive by default, don't wait for browser to ask
-	public static String LOGIN_CLASS = "permeagility.web.Login";
-	public static String REQUEST_CLASS = "permeagility.web.UserRequest";
-	public static String HOME_CLASS = "permeagility.web.Home";
+	public static String LOGIN_CLASS = "Login";  // Default login
+	public static String LOGOUT_CLASS = "Logout";  // Server will recognize this and log the user out
+	public static String REQUEST_CLASS = "permeagility.web.UserRequest";  // Default user request
+	public static String HOME_CLASS = "permeagility.web.Home";   // Default home page / like index.html
+	public static String USER_CLASS = "permeagility.web.Home?NAME=home-dark";  // Default user page
 	public static String FAV_ICON = "/images/pa_icon_ani.gif";
 	public static boolean WWW_IN_JAR = true; // If true Use Class loader for www files/images (include images in Jar)
 	public static int SESSION_TIMEOUT = 3600000; // One hour (in ms) - override with -1 to have no timeout
-	public static int GUEST_POOL_SIZE = 10;
-	public static double GUEST_POOL_GROWTH_STEP = 5;  // When growing the pool, increase by this size
-	public static double GUEST_POOL_GROWTH_FACTOR = 0.75; // When active connections reaches this portion of the MAX, increase the pool
-	public static boolean ALLOW_GUEST_POOL_GROWTH = true;   // Will increase size by if active guest connections > 75% of pool
-	public static int SERVER_POOL_SIZE = 5;
+	// public static int GUEST_POOL_SIZE = 10;
+	// public static double GUEST_POOL_GROWTH_STEP = 5;  // When growing the pool, increase by this size
+	// public static double GUEST_POOL_GROWTH_FACTOR = 0.75; // When active connections reaches this portion of the MAX, increase the pool
+	// public static boolean ALLOW_GUEST_POOL_GROWTH = true;   // Will increase size by if active guest connections > 75% of pool
+	// public static int SERVER_POOL_SIZE = 5;
 	public static boolean LOGOUT_KILLS_USER = false; // Set this to true to kill all sessions for a user when a user logs out (more secure)
 	public static String LOCKOUT_MESSAGE = "<p>The system is unavailable because a system restore is being performed. Please try again later.</p><a href='/'>Try it now</a>";
 
@@ -511,8 +511,8 @@ public class Server {
                                         }
                                 }
 
-                                // Logout if logged in and login class requested
-                                if (userdb != null && className.equals(LOGIN_CLASS)) {  // If you ask to login and you are already connected, then you have asked to log out
+                                // Logout if logged in and logout class requested
+                                if (userdb != null && className.equalsIgnoreCase(LOGOUT_CLASS)) {  // If you ask to login and you are already connected, then you have asked to log out
                                         System.out.println("User "+userdb.getUser()+" logging out");
                                         sessions.remove(cookieValue);
                                                 // Should remove other cookies for this user (They asked to log out - their user ID will be removed from memory)
@@ -531,11 +531,14 @@ public class Server {
                                                                         sessions.remove(c);
                                                                         sessionsLocale.remove(c);
                                                                 }
-                                                                //sessionsDB.remove(u).close();
+                                                                sessionsDB.remove(u);
                                                         }
                                                 }
-                                                userdb = null;
-                                                className = HOME_CLASS;
+                                                parms.put("RESPONSE_REDIRECT", "/"+LOGIN_CLASS);
+                                                os.write(getRedirectHeader(parms, null).getBytes());
+                                                os.flush();
+                                                return false;
+
                                 }
 
                                 // If username specified in parms and we do not have a connection we must be logging in
@@ -904,11 +907,11 @@ public class Server {
                                 content_type = downloadlet.getContentType();
                                 content_disposition = downloadlet.getContentDisposition();
                             } else {
-                                System.out.println(file+" is not a proper class");
+                                System.out.println("Server Error: "+file+" is not a proper class");
                             }
                             if (LOG_REQUESTS) System.out.println(" --- "+" "+(System.currentTimeMillis()-startTime)+"ms ---");
                             if (parms.containsKey("RESPONSE_REDIRECT")) {
-                                os.write(getRedirectHeader(parms).getBytes());
+                                os.write(getRedirectHeader(parms, newCookieValue).getBytes());
                             } else {
                                 if (theData != null) {
                                     os.write(getHeader(content_type, theData.length, newCookieValue, content_disposition, keep_alive).getBytes());
@@ -1093,11 +1096,12 @@ public class Server {
 	}
 
         /** Return Redirect header */
-	public final static String getRedirectHeader(HashMap<String,String> parms) {
+	public final static String getRedirectHeader(HashMap<String,String> parms, String cookieValue) {
 		String responseHeader = "HTTP/1.1 303 See other\r\n"
 			+"Location: " + parms.get("RESPONSE_REDIRECT") + "\r\n"
-       			+"Content-length: 0\r\n"   // Because Firefox is too stupid to understand the redirect without this
-                        +"\r\n";
+			+(cookieValue != null ? "Set-Cookie: name="+cookieValue+"; SameSite=Lax;\r\n" : "")
+       		+"Content-length: 0\r\n"   // Because Firefox is too stupid to understand the redirect without this
+            +"\r\n";
 		if (DEBUG) System.out.println("RESPONSEHEADER="+responseHeader);
 		return responseHeader;
 	}

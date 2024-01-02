@@ -369,7 +369,6 @@ public class Security {
         return false;
     }
 
-    // 9b:dc:44:1d:d1:f7:72:e1:01:f2:41:fd:9d:d0:d9:36:81:bc:6e:e6:37:4b:57:5a:74:db:e7:53:46:5f:32:98:9c:df:04:0b:90:70:35:9e:f0:81:61:72:39:c3:8c:28:43:71:b4:df:b5:f1:22:a3:97:e1:65:24:ef:a1:22:5a
     private static byte[] salt = HexFormat.ofDelimiter(":").parseHex("0c:70:66:ee:29:2c:dd:39:6b:a3:ed:df:a3:18:0a:8f");
     private static MessageDigest messageDigest = null;
     
@@ -382,7 +381,7 @@ public class Security {
 
         if (messageDigest == null) {
             try {
-                System.out.println("Salt:"+HexFormat.ofDelimiter(":").formatHex(salt));
+                if (DEBUG) System.out.println("Salt:"+HexFormat.ofDelimiter(":").formatHex(salt));
                 messageDigest = MessageDigest.getInstance("SHA-512");
                 messageDigest.update(salt);
                 System.out.println("Digest alg="+messageDigest.getAlgorithm()+" length="+messageDigest.getDigestLength()
@@ -393,7 +392,7 @@ public class Security {
         }
         if (messageDigest != null) {
             byte[] hashedPassword = messageDigest.digest(string.getBytes());
-            System.out.println("Salted password="+HexFormat.ofDelimiter(":").formatHex(hashedPassword));
+            if (DEBUG) System.out.println("Salted password="+HexFormat.ofDelimiter(":").formatHex(hashedPassword));
             return HexFormat.ofDelimiter(":").formatHex(hashedPassword);
         } else {
             System.out.println("Security.digest panic: no messageDigest available");

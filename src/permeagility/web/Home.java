@@ -119,7 +119,9 @@ public class Home extends Weblet {
                                         subprop = prop.substring(prop.indexOf(".")+1);
                                         prop = prop.substring(0,prop.indexOf("."));
                                     }
-                                    if (d.has(prop)) {
+                                    if (prop.equals("*")) {
+                                        repval = d.toJSON().toString();
+                                    } else if (d.has(prop)) {
                                         Object po = d.get(prop);
                                         if (subprop != null && po instanceof RID) {
                                             Document sd = con.get((RID)po);
@@ -172,11 +174,13 @@ public class Home extends Weblet {
     }
     String replaceToken(DatabaseConnection con, String token) {
         if (token.equals("locale")) {
-            return con.getLocale().toString();
+            return con.getLocale().getLanguage();
         } else if (token.equals("user")) {
             return con.getUser();
         } else if (token.equals("dbname")) {
             return Server.getDBName();
+        } else if (token.startsWith("_allow")) { // make an allow expression
+            return "("+con.makeAllowExpression(token, Security.getUserRoles(con))+")";
         } else if (token.equals("timestamp")) {
             return (new Date()).toString();
         }
