@@ -22,7 +22,6 @@ import permeagility.util.DatabaseConnection;
 import permeagility.util.QueryResult;
 
 import java.util.List;
-import java.util.Set;
 import java.util.Stack;
 
 import com.arcadedb.database.Document;

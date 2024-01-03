@@ -266,7 +266,6 @@ public class Setup {
             if (columnsTable != null && !columnsTable.existsProperty("columnList")) {
                 columnsTable.createProperty("columnList", Type.STRING);
             }
-
             // This will ensure they are added to columns table in proper order
             Setup.checkCreateColumn(con, columnsTable, "name", Type.STRING, installMessages);
             Setup.checkCreateColumn(con, columnsTable, "columnList", Type.STRING, installMessages);
@@ -274,14 +273,14 @@ public class Setup {
             // Create early so we can automatically add tables to them
             System.out.println(TABLE_TABLEGROUP+" ");
             DocumentType tableGroupTable = Setup.checkCreateTable(schema, TABLE_TABLEGROUP, installMessages);
-            //Setup.checkTableSuperclass(schema, tableGroupTable, "ORestricted", installMessages);
+            //Setup.checkTableSuperclass(schema, tableGroupTable, "restricted", installMessages);
             Setup.checkCreateColumn(con, tableGroupTable, "name", Type.STRING, installMessages);
             Setup.checkCreateColumn(con, tableGroupTable, "tables", Type.STRING, installMessages);
 
             if (con.getRowCount(TABLE_TABLEGROUP) == 0) {
-                    con.create(TABLE_TABLEGROUP).set("name","Application").set("tables"
-                    ,"news,tableGroup,columns,locale,message,pickList,pickValues,constant,menuItem,menu,role,user,userProfile,auditTrail,restricted,identity,privilege,-thumbnail").save();
-                 //   con.create(TABLE_TABLEGROUP).set("name","System").set("tables","ORole,OUser,OFunction,OSchedule,OSequence,-ORIDs,-E,-V,-_studio").save();
+                    con.create(TABLE_TABLEGROUP).set("name","Application").set("tables", "news,locale,message,-thumbnail").save();
+                    con.create(TABLE_TABLEGROUP).set("name","Configure").set("tables", "menu,tableGroup,columns,pickList,pickValues,constant").save();
+                    con.create(TABLE_TABLEGROUP).set("name","Security").set("tables", "menuItem,role,user,userProfile,auditTrail,privilege,-restricted,-identity").save();
                     con.create(TABLE_TABLEGROUP).set("name","Content").set("tables","").save();
                     con.create(TABLE_TABLEGROUP).set("name","Plus").set("tables","").save();
             }
@@ -572,6 +571,7 @@ public class Setup {
             mCount += checkCreateMessage(con, loc, "VIEW_TABLE", "View table: {0}");
             mCount += checkCreateMessage(con, loc, "EDIT_ROW", "Update {0}: {1}");
             mCount += checkCreateMessage(con, loc, "NEWS_PAGE_TITLE", "Welcome to PermeAgility");
+            mCount += checkCreateMessage(con, loc, "LIGHTDARK_LABEL", "Mode");
             if (mCount > 0) {
                     installMessages.append(Weblet.paragraph("CheckInstallation: Created "+mCount+" messages"));
                     Server.tableUpdated(con, "message");
@@ -1023,7 +1023,8 @@ public class Setup {
 
     /** Remove the column from the columns table to preserve initial order (always append) */
     public static void removeColumnFromColumns(DatabaseConnection con, String theClass, String propertyName) {
-        MutableDocument d = (MutableDocument)con.queryDocument("SELECT FROM "+TABLE_COLUMNS+" WHERE name='"+theClass+"'");
+        // Todo: should make this tolerate multiple entries in case of restricted by role
+        MutableDocument d = con.queryDocument("SELECT FROM "+TABLE_COLUMNS+" WHERE name='"+theClass+"'").modify();
         if (d == null) {
             return;
         }
@@ -1256,27 +1257,24 @@ public class Setup {
     }
 
     /** Drop a table */
-    public static void dropTable(DatabaseConnection con, String classname) {
-        dropTable(con, classname, null);
-    }
-
-    public static boolean dropTable(DatabaseConnection con, String classname, StringBuilder errors) {
+    public static void dropTable(DatabaseConnection con, String typename) { dropTable(con, typename, null); }
+    public static boolean dropTable(DatabaseConnection con, String typename, StringBuilder errors) {
         try {
             //con.update("ALTER TYPE "+classname+" SUPERTYPE NULL");  // Clear superclasses first otherwise will fail
             Schema schema = con.getSchema();
-            schema.dropType(classname);
-            Setup.removeTableFromAllTableGroups(con, classname);
-            QueryResult qr = con.query("SELECT FROM columns WHERE name='"+classname+"'");
+            schema.dropType(typename);
+            Setup.removeTableFromAllTableGroups(con, typename);
+            QueryResult qr = con.query("SELECT FROM columns WHERE name='"+typename+"'");
             List<String> colIds = qr.getIds();
             for (String colId : colIds) {
                 MutableDocument d = con.get(colId).modify();
                 if (d != null) d.delete();
             }
-            DatabaseConnection.rowCountChanged(classname);
-            if (errors != null) errors.append(Weblet.paragraph("success","Table dropped: "+classname));
+            DatabaseConnection.rowCountChanged(typename);
+            if (errors != null) errors.append(Weblet.paragraph("success","Table dropped: "+typename));
             return true;
         } catch (Exception e) {
-            if (errors != null) errors.append(Weblet.paragraph("error","Table "+classname+" could not be dropped: "+e.getMessage()));
+            if (errors != null) errors.append(Weblet.paragraph("error","Table "+typename+" could not be dropped: "+e.getMessage()));
             e.printStackTrace();
             return false;
         }
@@ -1370,13 +1368,8 @@ input, textarea, select {
     color: black;
 }
 input.number { text-align: right; }
-table.layout {  width: 100%; }
-td.layout { border-radius: 6px 6px 6px 6px;  padding: 2px 2px 2px 2px;  background-color: #ddd; }
-th { font-weight: bold;
-        border-radius: 8px 8px 0px 0px;
-    background-color: transparent;
-        background: radial-gradient(ellipse, #339999, white);
-    font-weight: bold; 
+th { font-weight: bold; background-color: lightgray;
+    border-radius: 8px 8px 0px 0px; 
 }
 tbody { overflow-y: scroll; }
 tr { background-color: #fff; vertical-align: top; }
@@ -1390,6 +1383,8 @@ td { text-align: left;  }
 td.number { text-align: right; }
 td.total { text-align: right; font-weight:bolder; normal: solid thin black; }
 div.tabpanel { text-align: center; }
+div.tableGroups { display: flex; flex-direction: row; flex-wrap: wrap; }
+div.tableGroup { display: flex; flex-direction: column; align-self: first baseline; padding: 5px;}
 
 /* Sortable tables */
 table.sortable thead { color: black; font-weight: bold; cursor: default; }
@@ -1398,12 +1393,10 @@ table.sortable thead { color: black; font-weight: bold; cursor: default; }
 
 /* paragraphs types */
 p.menuheader {  color: white;  margin: 0.2em 0em 0em 0em; }
-P.banner { background-color: white;
-        font-weight: bold;  text-align:center;  color: black;
-        margin: 0.2em 0em 0em 0em;
-        page-break-after: avoid;
-        border-radius: 8px 8px 8px 8px;
-        background: radial-gradient(ellipse, #336666, white);
+P.banner { 
+    font-weight: bold;  text-align:center;  color: black;
+    margin: 0.2em 0em 0em 0em;
+    page-break-after: avoid;
 }
 P.error {
     font-weight: bold; text-align:center;
@@ -1626,13 +1619,9 @@ input, textarea, select {
     color: white;
 }
 input.number { text-align: right; }
-table.layout {  width: 100%; }
-td.layout { border-radius: 6px 6px 6px 6px;  padding: 2px 2px 2px 2px;  background-color: #222; }
-th { font-weight: bold;
-        border-radius: 8px 8px 0px 0px;
-    background-color: #339999;
+th {  border-radius: 8px 8px 0px 0px;
+    background-color: black; color: white;
         background: radial-gradient(ellipse, #339999, black);
-    font-weight: bold; color: white;
 }
 tbody { overflow-y: scroll; }
 tr { background-color: #222; vertical-align: top; }
@@ -1646,6 +1635,8 @@ td { text-align: left;  }
 td.number { text-align: right; }
 td.total { text-align: right; font-weight:bolder; normal: solid thin black; }
 div.tabpanel { text-align: center; }
+div.tableGroups { display: flex; flex-direction: row; flex-wrap: wrap; }
+div.tableGroup { display: flex; flex-direction: column; align-self: first baseline; padding: 5px;}
 
 /* Sortable tables */
 table.sortable thead { color: white; font-weight: bold; cursor: default; }

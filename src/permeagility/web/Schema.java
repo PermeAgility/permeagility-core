@@ -28,9 +28,10 @@ import permeagility.util.Setup;
 public class Schema extends Weblet {
 
     public static boolean DEBUG = false;
-    public static int NUMBER_OF_COLUMNS = 4;
     public static boolean ADD_NAME_TO_NEW_TABLE = true;   // Will always add a name field to a new table (if you don't like it, delete it or change this constant)
 
+    // This will build lists of tables by tablegroup, new tables without a group will be labeled ungrouped
+    // uses a flex row/column arrangement with wrap, very flexible
     @Override
     public String getPage(DatabaseConnection con, java.util.HashMap<String, String> parms) {
         parms.put("SERVICE", Message.get(con.getLocale(), "SCHEMA_EDITOR"));
@@ -49,7 +50,6 @@ public class Schema extends Weblet {
                             errors.append(serviceNotificationDiv(paragraph("success", Message.get(con.getLocale(), "NEW_TABLE_CREATED", camel, makeCamelCasePretty(camel)))));
                             if (ADD_NAME_TO_NEW_TABLE) {
                                 Setup.checkCreateColumn(con, newclass, "name", Type.STRING, errors);
-                                //newclass.createProperty("name", OType.STRING).setNotNull(false).setMandatory(false);
                             }
                             Server.tableUpdated(con, "metadata:schema");
                         } else {
@@ -63,11 +63,9 @@ public class Schema extends Weblet {
         }
 
         // Prepare response
-        int cellCount = 0;
-        StringBuilder rows = new StringBuilder();
+        StringBuilder blocks = new StringBuilder();
         StringBuilder columns = new StringBuilder();
-        QueryResult schemas = con.query("SELECT FROM " + Setup.TABLE_TABLEGROUP /*  + " WHERE _allowRead in [" + Security.getUserRolesList(con) + "]"*/ +" ORDER BY name");
-        //QueryResult tables = con.query("SELECT name, superClass FROM (SELECT expand(classes) FROM metadata:schema) WHERE abstract=false ORDER BY name");
+        QueryResult schemas = con.queryTable(Setup.TABLE_TABLEGROUP, null, "name");
         Collection<? extends DocumentType> tables = con.getSchema().getTypes();
         if (DEBUG) System.out.println("Retrieved "+tables.size()+" DocumentTypes");
         ArrayList<String> tablesInGroups = new ArrayList<>();
@@ -100,7 +98,7 @@ public class Schema extends Weblet {
                 tablesInGroups.add(tableName);
                 if (show) {
                     int privs = Security.getTablePriv(con, tableName);
-                    //System.out.println("Table privs for table "+tableName+" for user "+con.getUser()+" privs="+privs);
+                    if (DEBUG) System.out.println("Table privs for table "+tableName+" for user "+con.getUser()+" privs="+privs);
                     if (privs > 0) {
                         tableName = tableName.trim();
                         if (con.getSchema().existsType(tableName)) {
@@ -115,15 +113,11 @@ public class Schema extends Weblet {
                 }
             }
             if (groupHasTable && !groupName.startsWith("-")) {
-                columns.append(column("layout", tablelist.toString()));
-                cellCount++;
-                if (cellCount == NUMBER_OF_COLUMNS) {
-                    rows.append(row(columns.toString()));
-                    columns = new StringBuilder();
-                    cellCount = 0;
+                columns.append(div("tablelist","tableGroup", tablelist.toString()));
+                blocks.append(columns);
+                columns = new StringBuilder();
                 }
             }
-        }
 
         // Add new/ungrouped - for DBA's only
         if (Security.isDBA(con)) {
@@ -141,17 +135,17 @@ public class Schema extends Weblet {
                     }
                 }
             }
-            columns.append(column("layout", tablelist.toString()));
+            columns.append(div("tablelistng","tableGroup", tablelist.toString()));
         }
 
         // Make sure the last row is added
         if (columns.length() > 0) {
-            rows.append(row(columns.toString()));
+            blocks.append(div("lastGroup","tableGroup",columns.toString()));
         }
 
         // Return result
         return errors.toString()
-                + table("layout", rows.toString()) + br()
+                + div("schema","tableGroups", blocks.toString()) + br()
                 + (Security.isDBA(con)
                         ? popupFormHTMX("NEWTABLE_Ungrouped", "/Schema", "PUT", parms.get("HX-TARGET"), Message.get(con.getLocale(), "NEW_TABLE"), "NEWTABLENAME",
                                 input("NEWTABLENAME", "") + "&nbsp;&nbsp;"

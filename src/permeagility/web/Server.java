@@ -115,11 +115,6 @@ public class Server {
 	public static String FAV_ICON = "/images/pa_icon_ani.gif";
 	public static boolean WWW_IN_JAR = true; // If true Use Class loader for www files/images (include images in Jar)
 	public static int SESSION_TIMEOUT = 3600000; // One hour (in ms) - override with -1 to have no timeout
-	// public static int GUEST_POOL_SIZE = 10;
-	// public static double GUEST_POOL_GROWTH_STEP = 5;  // When growing the pool, increase by this size
-	// public static double GUEST_POOL_GROWTH_FACTOR = 0.75; // When active connections reaches this portion of the MAX, increase the pool
-	// public static boolean ALLOW_GUEST_POOL_GROWTH = true;   // Will increase size by if active guest connections > 75% of pool
-	// public static int SERVER_POOL_SIZE = 5;
 	public static boolean LOGOUT_KILLS_USER = false; // Set this to true to kill all sessions for a user when a user logs out (more secure)
 	public static String LOCKOUT_MESSAGE = "<p>The system is unavailable because a system restore is being performed. Please try again later.</p><a href='/'>Try it now</a>";
 

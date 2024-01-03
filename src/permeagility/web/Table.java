@@ -141,7 +141,7 @@ public class Table extends Weblet {
                     if (opFlag != null && opFlag.equals("YES")) {
                         String advOp = advancedOptions(con, table, parms, errors);
                         if (advOp != null && !advOp.isEmpty()) {
-                            return advOp;
+                            return errors.toString()+advOp;
                         }
                     } else if (ropFlag != null && ropFlag.equals("YES")) {
                         String rOp = rightsOptions(con, table, parms);
@@ -1611,13 +1611,15 @@ public class Table extends Weblet {
                     try {
                         String newtable = parms.get("RENAME_TABLE");
                         newtable = makePrettyCamelCase(newtable);
-                        Server.tableUpdated(con, table);
-                        con.update("ALTER TYPE " + table + " NAME " + newtable);
+                        //Server.tableUpdated(con, table);
+                        System.out.println("Renaming table "+table+" to "+newtable);
+                        con.update("ALTER TYPE " + table + " NAME '" + newtable+"'");
                         con.update("UPDATE columns SET name='" + newtable + "' WHERE name='" + table + "'");
                         table = newtable;
                         Server.tableUpdated(con, "metadata:schema");
                         return getTableWithControls(con, parms, table);
                     } catch (Exception e) {
+                        e.printStackTrace();
                         errors.append(paragraph("error", e.getMessage()));
                     }
                 }
@@ -1639,7 +1641,8 @@ public class Table extends Weblet {
                             }
                         }
                         Server.tableUpdated(con, "metadata:schema");
-                        return redirect(parms, this, "TABLENAME=" + table);
+                        //return redirect(parms, this, "/" + table);
+                        return getTableWithControls(con, parms, table);
                     } catch (Exception e) {
                         errors.append(paragraph("error", e.getMessage()));
                     }
@@ -1653,18 +1656,20 @@ public class Table extends Weblet {
                         Object ret = con.update("UPDATE " + table + " REMOVE " + colToDrop);  // Otherwise, column actually remains in the data
                         DocumentType c = con.getSchema().getType(table);
                         c.dropProperty(colToDrop);
-                        errors.append(paragraph("success", "Data for column removed:" + ret));
+                        errors.append(paragraph("success", "Data for column "+colToDrop+" removed from " + table));
                         Setup.removeColumnFromColumns(con, table, colToDrop);
                         Server.tableUpdated(con, "metadata:schema");
-                        return redirect(parms, this, "TABLENAME=" + table);
+                        return getTableWithControls(con, parms, table);
+//                        return redirect(parms, this, "TABLENAME=" + table);
                     } catch (Exception e) {
+                        e.printStackTrace();
                         errors.append(paragraph("error", e.getMessage()));
                     }
                 }
             } else if (submit.equals("DROP_TABLE_BUTTON")) {
                 try {
                     if (Setup.dropTable(con, table, errors)) {
-                        return errors + new Schema().getPage(con, parms);
+                        return new Schema().getPage(con, parms);
                     } else {
                         return null;
                     }
@@ -1676,9 +1681,7 @@ public class Table extends Weblet {
         String title = table + " " + Message.get(locale, "ADVANCED_OPTIONS");
         parms.put("SERVICE", title);
         return head(con, title)
-                + body(         //advancedOptionsForm(con, table, parms, errors.toString())
-                                //+ br()
-                                 linkHTMX(this.getClass().getName()+"/" + table, Message.get(locale, "BACK_TO_TABLE"), parms.get("HX-TARGET"))
+                + body(  linkHTMX(this.getClass().getName()+"/" + table, Message.get(locale, "BACK_TO_TABLE"), parms.get("HX-TARGET"))
                         );
     }
 
@@ -1688,13 +1691,14 @@ public class Table extends Weblet {
         return hidden("ADVANCED_OPTIONS", "YES")
                 + paragraph("banner", Message.get(locale, "ADVANCED_OPTIONS"))
                 + errors
-                + paragraph(Message.get(locale, "RENAME_TABLE_TO") + input("RENAME_TABLE", (parms != null ? parms.get("RENAME_TABLE") : ""))
-                    + submitButton(locale, "RENAME_TABLE_BUTTON"))
-                + paragraph(Message.get(locale, "RENAME_COLUMN") + " "
-                    + createColumnList(locale, "COLUMN_TO_RENAME", null, null, true, null, true, properties )
-                    + Message.get(locale, "CHANGE_NAME_TO")
-                    + input("RENAME_COLUMN", (parms != null ? parms.get("RENAME_COLUMN") : ""))
-                    + submitButton(locale, "RENAME_COLUMN_BUTTON"))
+            // Rename table and rename column not yet supported
+             //   + paragraph(Message.get(locale, "RENAME_TABLE_TO") + input("RENAME_TABLE", (parms != null ? parms.get("RENAME_TABLE") : ""))
+             //       + submitButton(locale, "RENAME_TABLE_BUTTON"))
+             //   + paragraph(Message.get(locale, "RENAME_COLUMN") + " "
+             //       + createColumnList(locale, "COLUMN_TO_RENAME", null, null, true, null, true, properties )
+             //       + Message.get(locale, "CHANGE_NAME_TO")
+             //       + input("RENAME_COLUMN", (parms != null ? parms.get("RENAME_COLUMN") : ""))
+             //       + submitButton(locale, "RENAME_COLUMN_BUTTON"))
                 + paragraph(Message.get(locale, "DROP_COLUMN") + " "
                     + createColumnList(locale, "COLUMN_TO_DROP", null, null, true, null, true, properties )
                     + confirmButton(locale, "DROP_COLUMN_BUTTON", "DROP_COLUMN"))
@@ -1720,7 +1724,6 @@ public class Table extends Weblet {
                     privilege.set("resource", table);
                     privilege.set("identity", "#"+role);
                     privilege.save();
-                    Server.tableUpdated(con, "privilege"); 
                     Security.tablePrivUpdated(table);
                 } catch (Exception e) {
                     errors.append(e.getLocalizedMessage());
