@@ -572,6 +572,7 @@ public class Setup {
             mCount += checkCreateMessage(con, loc, "EDIT_ROW", "Update {0}: {1}");
             mCount += checkCreateMessage(con, loc, "NEWS_PAGE_TITLE", "Welcome to PermeAgility");
             mCount += checkCreateMessage(con, loc, "LIGHTDARK_LABEL", "Mode");
+            mCount += checkCreateMessage(con, loc, "NEW_TABLE_NAME", "Table name");
             if (mCount > 0) {
                     installMessages.append(Weblet.paragraph("CheckInstallation: Created "+mCount+" messages"));
                     Server.tableUpdated(con, "message");

@@ -145,15 +145,15 @@ public class Schema extends Weblet {
 
         // Return result
         return errors.toString()
-                + div("schema","tableGroups", blocks.toString()) + br()
                 + (Security.isDBA(con)
                         ? popupFormHTMX("NEWTABLE_Ungrouped", "/Schema", "PUT", parms.get("HX-TARGET"), Message.get(con.getLocale(), "NEW_TABLE"), "NEWTABLENAME",
-                                input("NEWTABLENAME", "") + "&nbsp;&nbsp;"
+                                inputWithPlaceholder("NEWTABLENAME", Message.get(con.getLocale(),"NEW_TABLE_NAME")) + "&nbsp;&nbsp;"
                                 + submitButton(con.getLocale(), "NEW_TABLE")
                                 + POPUP_FORM_CLOSER
                         )
                         : "")
-                    + serviceHeaderUpdateDiv(parms, Message.get(con.getLocale(),"SCHEMA_EDITOR", con.getDb().getName()));
+                + div("schema","tableGroups", blocks.toString()) + br()
+                + serviceHeaderUpdateDiv(parms, Message.get(con.getLocale(),"SCHEMA_EDITOR", con.getDb().getName()));
     }
 
     public static String getTableSelector(DatabaseConnection con) {

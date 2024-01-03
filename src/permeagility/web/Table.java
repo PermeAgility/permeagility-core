@@ -55,7 +55,7 @@ public class Table extends Weblet {
     public static int TEXT_AREA_WIDTH = 50;      // When showing a column as a cell, only show this many characters
     public static long ROW_COUNT_LIMIT = 200;    // Limit to number of rows to retrieve before paging
     public static long DOT_INTERVAL = 5;         // Interval for dot when numerous pages - probably should derive this to be more dynamic
-    public static long DOT_LIMIT = 100;         // Limit to number of dot-links to show, browser slows with too many
+    public static long DOT_LIMIT = 50;         // Limit to number of dot-links to show, browser slows with too many
     public static long PAGE_WINDOW = 3;          // Always show this many pages around the current page when there are many dots
     public static String PARM_PREFIX = "PARM_";  // Use this prefix in front of all column names as form field names (parameter names) 
     public static boolean SHOW_ALL_RELATED_TABLES = true;   // Will show that relationships exist even if no access to the table
@@ -1217,7 +1217,7 @@ public class Table extends Weblet {
             if (DEBUG) System.out.println("Table.getTableRowRelated: fkType="+fkType+" fkColumn="+fkColumn);
             int priv = Security.getTablePriv(con, table);
             System.out.println("Need to check Privilege on table "+table+" for user "+con.getUser()+" = "+priv);
-
+            // Todo: priv stuff here
             tabNames.add(makeCamelCasePretty(relTable));
             tabTargets.add("/Table/"+relTable+"/*/where/"+fkColumn+"/eq/"+edit_id+"?FORCE_"+fkColumn+"="+edit_id);
         }
@@ -1359,7 +1359,7 @@ public class Table extends Weblet {
                     for (long p = 1; p <= pageCount; p++) {
                         if (Math.abs(page - p) < PAGE_WINDOW || pageCount - p < PAGE_WINDOW || p < PAGE_WINDOW) {
                             if (p == page || (page == 0 && p == 1)) {
-                                pageNav.append(bold(color("red", "" + p)) + "&nbsp;");  // the page you on is not a link (TODO: use a style here)
+                                pageNav.append(bold(color("green", "" + p)) + "&nbsp;");  
                             } else {
                                 pageNav.append(linkWithTipHTMX(this.getClass().getName()+"/" + table + "&PAGE=" + p, "" + p, "Page " + p, parms.get("HX-TARGET")) + "&nbsp;");
                             }
@@ -1653,7 +1653,7 @@ public class Table extends Weblet {
                 } else {
                     String colToDrop = parms.get("COLUMN_TO_DROP");
                     try {
-                        Object ret = con.update("UPDATE " + table + " REMOVE " + colToDrop);  // Otherwise, column actually remains in the data
+                        con.update("UPDATE " + table + " REMOVE " + colToDrop);  // Otherwise, column actually remains in the data
                         DocumentType c = con.getSchema().getType(table);
                         c.dropProperty(colToDrop);
                         errors.append(paragraph("success", "Data for column "+colToDrop+" removed from " + table));
