@@ -23,6 +23,8 @@ import permeagility.util.DatabaseConnection;
 
 public class Login extends Weblet {
 
+	public static String DEFAULT_HOME = "home-dark";  // Only needed if people try to go home with no name specified
+
 	public String getPage(DatabaseConnection con, java.util.HashMap<String,String> parms) {
 		return getHTML(con, parms);
 	}
@@ -32,7 +34,7 @@ public class Login extends Weblet {
 		String destinationClass = parms.get("DESTINATIONCLASS");
 		String destinationMode = parms.get("DESTINATIONMODE");
 
-		if (destinationMode == null || destinationMode.isBlank()) destinationMode = "home-dark";
+		if (destinationMode == null || destinationMode.isBlank()) destinationMode = DEFAULT_HOME;
 
 		if (destinationClass == null) {
 			destinationClass = Server.HOME_CLASS+"?NAME="+destinationMode;
@@ -41,9 +43,9 @@ public class Login extends Weblet {
 			return redirect(parms, destinationClass);
 		}
 
-		StringBuilder modeSelect = new StringBuilder();
+		StringBuilder modeSelect = new StringBuilder();		// build a select list of home pages to choose from (usually light/dark)
 		modeSelect.append("<select name='DESTINATIONMODE'>\n");
-		for (Document item : con.queryTable("menuItem","name LIKE 'home%'").get()) {
+		for (Document item : con.queryTable("menuItem","type = 'HOME'").get()) {
 			modeSelect.append("<option value='"+item.getString("name")+"' title='"+item.getString("description")+"'>"+item.getString("name")+"</option>");
 		}
 		modeSelect.append("</select>");

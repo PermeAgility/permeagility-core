@@ -45,13 +45,13 @@ public class PageBuilder extends Table {
                     ? popupFormHTMX("CREATE_NEW_ROW", this.getClass().getName()+"/"+TABLE_NAME, "put", parms.get("HX-TARGET"), Message.get(locale, "CREATE_ROW"), "NAME",
                             paragraph("banner", Message.get(locale, "CREATE_ROW"))
                             + hidden("TABLENAME", TABLE_NAME)
-                            + super.getTableRowFields(con, TABLE_NAME, null, "name,description,useStyleFrom,-", null)
+                            + super.getTableRowFields(con, TABLE_NAME, null, "name,description,type,useStyleFrom,-", null)
                             + submitButton(locale, "CREATE_ROW")
                             + POPUP_FORM_CLOSER)
                     : "")
                     + getTable(con, parms, TABLE_NAME
-                        , "name != '' AND (classname is null OR classname = '')"
-                        , null, 0, "name,description,useStyleFrom,-")
+                        , "(classname is null OR classname = '')"
+                        , null, 0, "name,description,type,useStyleFrom,-")
                     + serviceHeaderUpdateDiv(parms, APP_NAME)
                 );
     }
@@ -97,7 +97,7 @@ public class PageBuilder extends Table {
                 + popupFormHTMX("UPDATE_NAME", "", "", parms.get("HX-TARGET"), Message.get(con.getLocale(), "DETAILS"), "NAME",
                         paragraph("banner", Message.get(con.getLocale(), "DETAILS"))
                         + hidden("TABLENAME", TABLE_NAME)
-                        + super.getTableRowFields(con, TABLE_NAME, parms, "name,description,useStyleFrom,_allowRead,_allow,-")
+                        + super.getTableRowFields(con, TABLE_NAME, parms, "name,description,type,useStyleFrom,_allowRead,_allow,-")
                         + POPUP_FORM_CLOSER
                 )
                 +"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"

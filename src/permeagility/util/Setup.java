@@ -131,9 +131,10 @@ public class Setup {
       CREATE PROPERTY menu.sortOrder IF NOT EXISTS INTEGER;
 
       CREATE PROPERTY menuItem.name IF NOT EXISTS STRING;
-      CREATE PROPERTY menuItem.classname IF NOT EXISTS STRING;
-      CREATE PROPERTY menuItem.active IF NOT EXISTS BOOLEAN;
       CREATE PROPERTY menuItem.description IF NOT EXISTS STRING;
+      CREATE PROPERTY menuItem.classname IF NOT EXISTS STRING;
+      CREATE PROPERTY menuItem.type IF NOT EXISTS STRING;
+      CREATE PROPERTY menuItem.active IF NOT EXISTS BOOLEAN;
       CREATE PROPERTY menuItem.pageScript IF NOT EXISTS STRING;
       CREATE PROPERTY menuItem.pageStyle IF NOT EXISTS STRING;
       CREATE PROPERTY menuItem.useStyleFrom IF NOT EXISTS LINK OF menuItem;
@@ -317,7 +318,7 @@ public class Setup {
                 con.create(TABLE_CONSTANT).set("classname","permeagility.web.Table").set("description","Show related tables even if no privilege").set("field","SHOW_ALL_RELATED_TABLES").set("value","true").save();
                 con.create(TABLE_CONSTANT).set("classname","permeagility.web.Context").set("description","Code editor theme").set("field","EDITOR_THEME").set("value","ambiance").save();
                 con.create(TABLE_CONSTANT).set("classname","permeagility.web.Header").set("description","Logo for header").set("field","LOGO_FILE").set("value","Logo-yel.svg").save();
-                con.create(TABLE_CONSTANT).set("classname","permeagility.util.Setup").set("description","When true, restricted tables will be by user (Change identity pickList if setting to true)").set("field","RESTRICTED_BY_ROLE").set("value","false").save();
+                con.create(TABLE_CONSTANT).set("classname","permeagility.util.Setup").set("description","When true, restricted tables will be by role (Change identity pickList if setting to user level restrictions)").set("field","RESTRICTED_BY_ROLE").set("value","true").save();
                 con.create(TABLE_CONSTANT).set("classname","permeagility.web.UserRequest").set("description","Automatically assign new users to this role, leave blank to prevent automatic new user creation").set("field","ACCEPT_TO_ROLE").set("value","user").save();
             }
  
@@ -720,8 +721,7 @@ public class Setup {
             if (con.getRowCount(TABLE_PICKVALUES) == 0) {
                 con.create(TABLE_PICKVALUES).set("name","user.status").set("values","ACTIVE,SUSPENDED").save();
                 con.create(TABLE_PICKVALUES).set("name","role.mode").set("values","SUPER,NORMAL").save();
-//                con.create(TABLE_PICKVALUES).set("name","OFunction.language").set("values","javascript").save();
- //               con.create(TABLE_PICKVALUES).set("name","OSequence.type").set("values","CACHED,ORDERED").save();
+                con.create(TABLE_PICKVALUES).set("name","menuItem.type").set("values","WELCOME,HOME,SERVICE,STYLE").save();
             }
  
             System.out.println(TABLE_MENU+" ");
@@ -744,9 +744,10 @@ public class Setup {
             System.out.println(TABLE_MENUITEM+" ");
             DocumentType menuItemTable = Setup.checkCreateTable(schema, TABLE_MENUITEM, installMessages);
             Setup.checkCreateColumn(con, menuItemTable, "name", Type.STRING, installMessages);
-            Setup.checkCreateColumn(con, menuItemTable, "classname", Type.STRING, installMessages);
-            Setup.checkCreateColumn(con, menuItemTable, "active", Type.BOOLEAN, installMessages).setDefaultValue("true");
             Setup.checkCreateColumn(con, menuItemTable, "description", Type.STRING, installMessages);
+            Setup.checkCreateColumn(con, menuItemTable, "classname", Type.STRING, installMessages);
+            Setup.checkCreateColumn(con, menuItemTable, "type", Type.STRING, installMessages);
+            Setup.checkCreateColumn(con, menuItemTable, "active", Type.BOOLEAN, installMessages).setDefaultValue("true");
             Setup.checkCreateColumn(con, menuItemTable, "pageScript", Type.STRING, installMessages);
             Setup.checkCreateColumn(con, menuItemTable, "pageStyle", Type.STRING, installMessages);
             Setup.checkCreateColumn(con, menuItemTable, "useStyleFrom", Type.LINK, menuItemTable, installMessages);
@@ -759,6 +760,7 @@ public class Setup {
                 mi_login.set("name","Login");
                 mi_login.set("description","Login page");
                 mi_login.set("classname","permeagility.web.Login");
+                mi_login.set("type","SERVICE");
                 mi_login.set("active",true);
                 mi_login.set("_allowRead", allRoles);
                 mi_login.set("_allow", adminRoles);
@@ -768,6 +770,7 @@ public class Setup {
                 mi_menu.set("name","Menu");
                 mi_menu.set("description","Menu page");
                 mi_menu.set("classname","permeagility.web.Menu");
+                mi_menu.set("type","SERVICE");
                 mi_menu.set("active",true);
                 mi_menu.set("_allowRead", allRoles);
                 mi_menu.set("_allow", adminRoles);
@@ -777,6 +780,7 @@ public class Setup {
                 mi_home.set("name","Home Page Generator");
                 mi_home.set("description","Home Page Generator runs Pages made with the PageBuilder - do not touch this");
                 mi_home.set("classname","permeagility.web.Home");
+                mi_home.set("type","SERVICE");
                 mi_home.set("active",true);
                 mi_home.set("_allowRead", allRoles);
                 mi_home.set("_allow", adminRoles);
@@ -786,6 +790,7 @@ public class Setup {
                 mi_header.set("name","Header");
                 mi_header.set("description","Header page");
                 mi_header.set("classname","permeagility.web.Header");
+                mi_header.set("type","SERVICE");
                 mi_header.set("active",true);
                 mi_header.set("_allowRead", allRoles);
                 mi_header.set("_allow", adminRoles);
@@ -795,6 +800,7 @@ public class Setup {
                 mi_password.set("name","Profile");
                 mi_password.set("description","Change profile or password");
                 mi_password.set("classname","permeagility.web.Profile");
+                mi_password.set("type","SERVICE");
                 mi_password.set("active",true);
                 mi_password.set("_allowRead", allRolesButGuest);
                 mi_password.set("_allow", adminRoles);
@@ -804,6 +810,7 @@ public class Setup {
                 mi_userRequest.set("name","Sign up");
                 mi_userRequest.set("description","User Request");
                 mi_userRequest.set("classname","permeagility.web.UserRequest");
+                mi_userRequest.set("type","SERVICE");
                 mi_userRequest.set("active",true);
                 mi_userRequest.set("_allowRead", guestRoles);
                 mi_userRequest.set("_allow", adminRoles);
@@ -813,6 +820,7 @@ public class Setup {
                 mi_context.set("name","Context");
                 mi_context.set("description","Context");
                 mi_context.set("classname","permeagility.web.Context");
+                mi_context.set("type","SERVICE");
                 mi_context.set("active",true);
                 mi_context.set("_allowRead", adminRoles);
                 mi_context.set("_allow", adminRoles);
@@ -822,6 +830,7 @@ public class Setup {
                 mi_shutdown.set("name","Shutdown");
                 mi_shutdown.set("description","Shutdown the server");
                 mi_shutdown.set("classname","permeagility.web.Shutdown");
+                mi_shutdown.set("type","SERVICE");
                 mi_shutdown.set("active",true);
                 mi_shutdown.set("_allowRead", adminRoles);
                 mi_shutdown.set("_allow", adminRoles);
@@ -831,6 +840,7 @@ public class Setup {
                 mi_query.set("name","Query");
                 mi_query.set("description","Query the database");
                 mi_query.set("classname","permeagility.web.Query");
+                mi_query.set("type","SERVICE");
                 mi_query.set("active",true);
                 mi_query.set("_allowRead", adminAndStaffRoles);
                 mi_query.set("_allow", adminRoles);
@@ -840,6 +850,7 @@ public class Setup {
                 mi_schema.set("name","Tables");
                 mi_schema.set("description","Table Catalog");
                 mi_schema.set("classname","permeagility.web.Schema");
+                mi_schema.set("type","SERVICE");
                 mi_schema.set("active",true);
                 mi_schema.set("_allowRead", allRolesButGuest);
                 mi_schema.set("_allow", adminRoles);
@@ -849,6 +860,7 @@ public class Setup {
                 mi_table.set("name","Table Editor");
                 mi_table.set("description","Table editor");
                 mi_table.set("classname","permeagility.web.Table");
+                mi_table.set("type","SERVICE");
                 mi_table.set("active",true);
                 mi_table.set("_allowRead", allRolesButGuest);
                 mi_table.set("_allow", adminRoles);
@@ -858,6 +870,7 @@ public class Setup {
                 mi_pagebuilder.set("name","Page Builder");
                 mi_pagebuilder.set("description","Build pages/apps with JavaScript");
                 mi_pagebuilder.set("classname","permeagility.web.PageBuilder");
+                mi_pagebuilder.set("type","SERVICE");
                 mi_pagebuilder.set("active",true);
                 mi_pagebuilder.set("_allowRead", adminRoles);
                 mi_pagebuilder.set("_allow", adminRoles);
@@ -868,6 +881,7 @@ public class Setup {
                 mi_basestyle.set("description","Default scripts for basic PermeAgility functions");
                 mi_basestyle.set("pageStyle", DEFAULT_BASE_STYLE);
                 mi_basestyle.set("pageScript", DEFAULT_BASE_SCRIPT);
+                mi_basestyle.set("type","STYLE");
                 mi_basestyle.set("active",true);
                 mi_basestyle.set("_allowRead", allRoles);
                 mi_basestyle.set("_allow", adminRoles);
@@ -879,6 +893,7 @@ public class Setup {
                 mi_welcome.set("description","Default welcome page for guests");
                 mi_welcome.set("pageStyle", DEFAULT_WELCOME_STYLE);
                 mi_welcome.set("pageScript", DEFAULT_WELCOME_SCRIPT);
+                mi_welcome.set("type","WELCOME");
                 mi_welcome.set("active",true);
                 mi_welcome.set("_allowRead", allRoles);
                 mi_welcome.set("_allow", adminRoles);
@@ -889,6 +904,7 @@ public class Setup {
                 mi_homed.set("description","Home Application page in dark mode");
                 mi_homed.set("pageStyle", DEFAULT_DARK_STYLESHEET);
                 mi_homed.set("pageScript", DEFAULT_HOME_SCRIPT);
+                mi_homed.set("type","HOME");
                 mi_homed.set("active",true);
                 mi_homed.set("_allowRead", allRoles);
                 mi_homed.set("_allow", adminRoles);
@@ -900,6 +916,7 @@ public class Setup {
                 mi_homel.set("description","Home Application page in light mode");
                 mi_homel.set("pageStyle", DEFAULT_LIGHT_STYLESHEET);
                 mi_homel.set("pageScript", DEFAULT_HOME_SCRIPT);
+                mi_homel.set("type","HOME");
                 mi_homel.set("active",true);
                 mi_homel.set("_allowRead", allRoles);
                 mi_homel.set("_allow", adminRoles);
@@ -910,6 +927,7 @@ public class Setup {
                 mi_visuility.set("name","Visuility");
                 mi_visuility.set("description","Visuility browser");
                 mi_visuility.set("classname","permeagility.web.Visuility");
+                mi_visuility.set("type","SERVICE");
                 mi_visuility.set("active",true);
                 mi_visuility.set("_allowRead", adminAndStaffRoles);
                 mi_visuility.set("_allow", adminRoles);
@@ -919,6 +937,7 @@ public class Setup {
                 mi_visuilityData.set("name","Visuility");
                 mi_visuilityData.set("description","Visuility browser (data component)");
                 mi_visuilityData.set("classname","permeagility.web.VisuilityData");
+                mi_visuilityData.set("type","SERVICE");
                 mi_visuilityData.set("active",true);
                 mi_visuilityData.set("_allowRead", adminAndStaffRoles);
                 mi_visuilityData.set("_allow", adminRoles);
@@ -928,26 +947,28 @@ public class Setup {
                 mi_backup.set("name","Backup");
                 mi_backup.set("description","Backup and restore the database");
                 mi_backup.set("classname","permeagility.web.BackupRestore");
+                mi_backup.set("type","SERVICE");
                 mi_backup.set("active",true);
                 mi_backup.set("_allowRead", adminRoles);
                 mi_backup.set("_allow", adminRoles);
                 mi_backup.save();
 
-                MutableDocument mi_blank = con.create(TABLE_MENUITEM);
+/*                 MutableDocument mi_blank = con.create(TABLE_MENUITEM);
                 mi_blank.set("name","");
-                mi_blank.set("active",true);
                 mi_blank.set("description","Blank menu item");
+                mi_blank.set("type","SERVICE");
+                mi_blank.set("active",true);
                 mi_blank.set("_allowRead",allRoles);
                 mi_blank.set("_allow",adminRoles);
                 mi_blank.save();
-
+*/
                 // Build default menu
                 ArrayList<Document> items = new ArrayList<>();
                 items.add(mi_userRequest);
                 items.add(mi_visuility);
                 items.add(mi_schema);
                 items.add(mi_query);
-                items.add(mi_blank);
+  //              items.add(mi_blank);
                 items.add(mi_context);
                 items.add(mi_pagebuilder);
                 items.add(mi_password);
@@ -1252,7 +1273,6 @@ public class Setup {
             type.addSuperType(s);
             errors.append(Weblet.paragraph("Schema update: Assigned superclass "+superClassName+" to class "+type.getName()));
        //     if (superClassName.equals("ORestricted") && RESTRICTED_BY_ROLE) {
-       //         oclass.setCustom("onCreate.identityType", "role");   //alter class x custom onCreate.identityType=role
        //     }
             return true;
         }

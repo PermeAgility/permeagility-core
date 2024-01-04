@@ -16,6 +16,7 @@
 package permeagility.web;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 
 import org.jsoup.Jsoup;
 
@@ -39,6 +40,10 @@ public class Home extends Weblet {
             name = DEFAULT_HOME;
         }
         if (menuItem == null && name != null) {
+            List<Document> items = con.queryTable("menuItem", "name='"+name+"'").get();
+            if (items.size() >0) {
+                menuItem = items.get(0);
+            }
             menuItem = con.queryDocument("SELECT FROM menuItem WHERE name='"+name+"'");
         }
         if (menuItem == null) {

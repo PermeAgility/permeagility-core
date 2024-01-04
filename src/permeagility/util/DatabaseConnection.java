@@ -37,7 +37,8 @@ import permeagility.web.Security;
 public class DatabaseConnection {
 
 	public static boolean DEBUG = false;
-
+    public static boolean DBA_BYPASS_RESTRICTED = false;  // if true, dba accounts can see all data 
+    
 	Database db = null;
 	com.arcadedb.database.Database c = null;
 	long lastAccess = System.currentTimeMillis();
@@ -155,13 +156,17 @@ public class DatabaseConnection {
         if (skipLimit != null) skipLimit = " "+skipLimit; else skipLimit = "";
         DocumentType docType = getSchema().getType(table);
         if (docType.isSubTypeOf("restricted")) {
-            if (where.contains("_allow")) {  // bybass adding _allows if an _allow is already specified in the query
-                System.out.println("DatabaseConnection.queryTable restricted table "+table+" query has _allow in it (not added)");
+            if (DBA_BYPASS_RESTRICTED && Security.isDBA(this)) {
+                System.out.println("Bypassing restricted for dba user "+getUser());
             } else {
-                List<RID> roles = Security.getUserRoles(this);
-                where += (where.isBlank() ? " WHERE " : " AND ") 
-                    + "("+makeAllowExpression("_allowRead", roles)+" OR "+makeAllowExpression("_allow", roles)+ ")";
-                System.out.println("DatabaseConnection.queryTable on "+table+" is restricted where="+where+";");
+                if (where.contains("_allow")) {  // bybass adding _allows if an _allow is already specified in the query
+                    System.out.println("DatabaseConnection.queryTable restricted table "+table+" query has _allow in it (not added)");
+                } else {
+                    List<RID> roles = Security.getUserRoles(this);
+                    where += (where.isBlank() ? " WHERE " : " AND ") 
+                        + "("+makeAllowExpression("_allowRead", roles)+" OR "+makeAllowExpression("_allow", roles)+ ")";
+                    System.out.println("DatabaseConnection.queryTable on "+table+" is restricted where="+where+";");
+                }
             }
         }
 

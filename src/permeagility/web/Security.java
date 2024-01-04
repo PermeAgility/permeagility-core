@@ -221,7 +221,7 @@ public class Security {
 
     public static boolean isDBA(DatabaseConnection con) {
         String user = con.getUser();
-        if (user.equals("admin") || user.equals("server") || user.equals("dba")) {
+        if (user.equals("admin") || user.equals("dba")) {
             return true;
         }
         return false;

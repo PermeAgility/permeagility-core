@@ -64,7 +64,6 @@ public abstract class Weblet {
     public static String DATE_FORMAT = "yyyy-MM-dd";
     public static String TIME_FORMAT = "HH:mm:ss";
     public static String DECIMAL_FORMAT = "#,##0;(#,##0)";
-    public static String DEFAULT_STYLE = "dark (horizontal menu)";
     public static String POPUP_SUFFIX = "..";
     public static String DEFAULT_TARGET = "service";
 

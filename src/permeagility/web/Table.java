@@ -336,10 +336,12 @@ public class Table extends Weblet {
             String copyName = null;
             Map<String,Object> fieldMap = oldDoc.toMap();
             fieldMap.remove("@rid");  // Otherwise will try to overwrite
-            fieldMap.remove("_allow"); 
-            fieldMap.remove("_allowRead");
-            fieldMap.remove("_allowUpdate");
-            fieldMap.remove("_allowDelete");
+            if (fieldMap.containsKey("_allow")) {
+                fieldMap.put("_allow",Security.getUserRoles(con)); // Override ownership
+            }
+//            fieldMap.remove("_allowRead");   // and allow copy of access info
+//            fieldMap.remove("_allowUpdate");  // because it would be easier to remove access than add it back
+//            fieldMap.remove("_allowDelete");
             newDoc.fromMap(fieldMap);
             if (newDoc.has("name")) {
                 copyName = newDoc.getString("name");
@@ -485,6 +487,10 @@ public class Table extends Weblet {
                 } else {
                     errors.append(paragraph("error", Message.get(con.getLocale(), "UNKNOWN_FIELD_TYPE", "" + type, name)));
                 }
+            }
+            if (name.equals("_allow") && (value==null || value.isBlank())) {
+                // default allow to the user's roles (not 100% this is right but at least stuff won't get lost)
+                newDoc.set(name,Security.getUserRoles(con));
             }
         }
         if (newDoc.isDirty()) {
