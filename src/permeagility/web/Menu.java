@@ -39,7 +39,6 @@ public class Menu extends Weblet {
 
     @Override  // This is generally not used because the getHTML is generally called from standardLayout()
     public String getPage(DatabaseConnection con, HashMap<String, String> parms) {
-//        return head(con, "Menu") + body("menu", getHTML(con, parms));
         return getHTML(con, parms);
     }
 
@@ -150,7 +149,7 @@ public class Menu extends Weblet {
         if (DEBUG) {
             System.out.println("Menu: Adding menu for " + con.getUser() + " to menuCache");
         }
-        String newMenu = "<ul>\n"+menu.toString()+ localeSelector+"</ul>";
+        String newMenu = "<ul class=\"menu\">\n"+menu.toString()+ localeSelector+"</ul>";
         menuCache.put(con.getUser(), newMenu);
         if (con.getUser().equals("guest")) {
             guestLocale = locale;

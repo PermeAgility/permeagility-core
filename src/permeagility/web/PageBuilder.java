@@ -97,7 +97,7 @@ public class PageBuilder extends Table {
                 + popupFormHTMX("UPDATE_NAME", "", "", parms.get("HX-TARGET"), Message.get(con.getLocale(), "DETAILS"), "NAME",
                         paragraph("banner", Message.get(con.getLocale(), "DETAILS"))
                         + hidden("TABLENAME", TABLE_NAME)
-                        + super.getTableRowFields(con, TABLE_NAME, parms, "name,description,useStyleFrom,-")
+                        + super.getTableRowFields(con, TABLE_NAME, parms, "name,description,useStyleFrom,_allowRead,_allow,-")
                         + POPUP_FORM_CLOSER
                 )
                 +"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
@@ -113,8 +113,11 @@ public class PageBuilder extends Table {
             +"<br>"
             +frame("previewFrame","previewFrame","permeagility.web.Home?ID="+edit_id);
 
-            return div("leftHand","split split-horizontal",div("styleEditor","split split-vertical",styleEditor)+div("scriptEditor","split split-vertical",scriptEditor))
-                  +div("rightHand","split split-horizontal",div("resultView",resultView))
+            return div("leftHand","split split-horizontal",
+                        div("styleEditor","split split-vertical",styleEditor)
+                        +div("scriptEditor","split split-vertical",scriptEditor)
+                    )
+                  +div("rightHand","split split-horizontal noscroll",div("resultView",resultView))
                   +script("Split(['#leftHand', '#rightHand'], { direction: 'horizontal', gutterSize: 8, minSize: [5,5], cursor: 'col-resize' });\n"
                            + "Split(['#styleEditor', '#scriptEditor'], { direction: 'vertical', sizes: [50, 50], minSize: [5,5], gutterSize: 8, cursor: 'row-resize' });\n"
                           +(readOnly ? "" :
@@ -129,7 +132,8 @@ public class PageBuilder extends Table {
                             + addFormData("name")
                             + addFormData("description")
                             + addFormData("useStyleFrom")
-                            //+ addFormData("_allowRead")                           // send it to be processed
+                            + addFormData("_allowRead")                           
+                            + addFormData("_allow")                           // send it to be processed
                             // Todo: should convert this to htmx and target errors to a place where they could be seen
                         + "   fetch('/"+this.getClass().getName()+"/"+TABLE_NAME+"/"+edit_id+"', { method: \"PATCH\", body: formData } ).then(data => {   \n"                        
                        + "      d3.select('#previewFrame').attr('src','permeagility.web.Home?ID="+edit_id+"');\n"  // refresh the preview

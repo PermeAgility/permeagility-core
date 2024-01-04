@@ -109,9 +109,8 @@ public class Server {
 	public static boolean KEEP_ALIVE = false;  // if true Keep sockets alive by default, don't wait for browser to ask
 	public static String LOGIN_CLASS = "Login";  // Default login
 	public static String LOGOUT_CLASS = "Logout";  // Server will recognize this and log the user out
-	public static String REQUEST_CLASS = "permeagility.web.UserRequest";  // Default user request
-	public static String HOME_CLASS = "permeagility.web.Home";   // Default home page / like index.html
-	public static String USER_CLASS = "permeagility.web.Home?NAME=home-dark";  // Default user page
+	public static String REQUEST_CLASS = "UserRequest";  // Default user request
+	public static String HOME_CLASS = "Home";   // Default home page / like index.html
 	public static String FAV_ICON = "/images/pa_icon_ani.gif";
 	public static boolean WWW_IN_JAR = true; // If true Use Class loader for www files/images (include images in Jar)
 	public static int SESSION_TIMEOUT = 3600000; // One hour (in ms) - override with -1 to have no timeout
@@ -385,6 +384,7 @@ public class Server {
                                 if (DEBUG) System.out.println("Could not determine target class, going home");
                                 className = HOME_CLASS;
                         }
+                        if (className.equalsIgnoreCase("index.html")) className = HOME_CLASS;
 
                         // Get URL encoded parameters and put in HashMap
                         HashMap<String,String> parms = new HashMap<>();
@@ -529,7 +529,7 @@ public class Server {
                                                                 sessionsDB.remove(u);
                                                         }
                                                 }
-                                                parms.put("RESPONSE_REDIRECT", "/"+LOGIN_CLASS);
+                                                parms.put("RESPONSE_REDIRECT", "/"+HOME_CLASS);
                                                 os.write(getRedirectHeader(parms, null).getBytes());
                                                 os.flush();
                                                 return false;
@@ -790,7 +790,7 @@ public class Server {
                                 // Validate that class is allowed to be used
                                 if (userdb != null) {
                                     if (DEBUG) System.out.println("Authorizing user "+userdb.getUser()+" for class "+className);
-                                    if (className.equals(HOME_CLASS) || Security.authorized(userdb.getUser(),className)) {
+                                    if (Security.authorized(userdb.getUser(),className)) {
                                             if (DEBUG) System.out.println("User "+userdb.getUser()+" is allowed to use "+className);
                                     } else {
                                         if (userdb.getUser().equals("admin") && className.equals("permeagility.web.Query")) {

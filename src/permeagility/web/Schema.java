@@ -102,7 +102,7 @@ public class Schema extends Weblet {
                     if (privs > 0) {
                         tableName = tableName.trim();
                         if (con.getSchema().existsType(tableName)) {
-                            tablelist.append(linkHTMX("/Table/" + tableName, pretty, parms.get("HX-TARGET")) + br());
+                            tablelist.append(linkHTMX("/Table/" + tableName, pretty, parms.get("HX-TARGET")));
                             groupHasTable = true;
                         } else {
                             if (!tableName.isEmpty()) {
@@ -131,7 +131,7 @@ public class Schema extends Weblet {
                         if (pretty != null && ("TABLE_" + tablename).equals(pretty)) {
                             pretty = makeCamelCasePretty(tablename);
                         }
-                        tablelist.append(linkHTMX("/Table"+"/" + tablename, pretty, parms.get("HX-TARGET")) + br());
+                        tablelist.append(linkHTMX("/Table"+"/" + tablename, pretty, parms.get("HX-TARGET")) );
                     }
                 }
             }
@@ -152,7 +152,7 @@ public class Schema extends Weblet {
                                 + POPUP_FORM_CLOSER
                         )
                         : "")
-                + div("schema","tableGroups", blocks.toString()) + br()
+                + div("schema","tableGroups", blocks.toString())
                 + serviceHeaderUpdateDiv(parms, Message.get(con.getLocale(),"SCHEMA_EDITOR", con.getDb().getName()));
     }
 

@@ -819,14 +819,14 @@ public abstract class Weblet {
                    + " then put the innerHTML of #"+name+"_result"+" into the value of #"+name+"\">\n");
         for (int i=0; i<listnames.size(); i++) {
                 result.append("<li rid=\"" + listvalues.get(i) + "\">" + listnames.get(i)
-                    + "<a title=\"delete me\" _=\"on click remove the closest <li/> then send change to #"+name+"_list"+"\">x</a></li>\n");
+                    + "<a class=\"list-delete\" title=\"Delete this item\" _=\"on click remove the closest <li/> then send change to #"+name+"_list"+"\">x</a></li>\n");
                 valuesList.append("," + listvalues.get(i));
         }
         result.append("</ol>");
         result.append("<select id=\"" + name + "_items"+"\"\n" + 
                 "  _=\"on change if #" + name + "_items"+".value is not 'null' \n" + 
                 "     put '<li rid=\\'' + #" + name + "_items" + ".value + '\\'>' + #" + name + "_items"+".options[#" + name + "_items" + ".selectedIndex].innerText\n" + 
-                "     + '&nbsp;<a title=\\'delete me\\' _=\\'on click remove the closest <li/> then send change to #"+name+"_list"+"\\'>x</a>'\n" + 
+                "     + '<a  class=\\'list-delete\\' title=\\'Delete this item\\' _=\\'on click remove the closest <li/> then send change to #"+name+"_list"+"\\'>x</a>'\n" + 
                 "     + '</li>' at end of #" + name + "_list" + " \n" + 
                 "     then put '' into the innerHTML of #"+name+"_result"+"\n" + 
                 "     then for i in the children of #"+name+"_list"+" put ',' + @rid of i at end of #"+name+"_result end \n" +

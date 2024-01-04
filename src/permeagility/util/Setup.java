@@ -317,7 +317,6 @@ public class Setup {
                 con.create(TABLE_CONSTANT).set("classname","permeagility.web.Table").set("description","Show related tables even if no privilege").set("field","SHOW_ALL_RELATED_TABLES").set("value","true").save();
                 con.create(TABLE_CONSTANT).set("classname","permeagility.web.Context").set("description","Code editor theme").set("field","EDITOR_THEME").set("value","ambiance").save();
                 con.create(TABLE_CONSTANT).set("classname","permeagility.web.Header").set("description","Logo for header").set("field","LOGO_FILE").set("value","Logo-yel.svg").save();
-                con.create(TABLE_CONSTANT).set("classname","permeagility.web.Schema").set("description","Number of columns in tables view").set("field","NUMBER_OF_COLUMNS").set("value","8").save();
                 con.create(TABLE_CONSTANT).set("classname","permeagility.util.Setup").set("description","When true, restricted tables will be by user (Change identity pickList if setting to true)").set("field","RESTRICTED_BY_ROLE").set("value","false").save();
                 con.create(TABLE_CONSTANT).set("classname","permeagility.web.UserRequest").set("description","Automatically assign new users to this role, leave blank to prevent automatic new user creation").set("field","ACCEPT_TO_ROLE").set("value","user").save();
             }
@@ -590,14 +589,22 @@ public class Setup {
             if (con.getRowCount(TABLE_NEWS) == 0) {
                 MutableDocument n2 = con.create(TABLE_NEWS);
                 n2.set("name","Welcome admin");
-                n2.set("description","Tips for administrators\n"
-                    + "<ul>\n"
-                    + "<li>Use the backup tool - you can deploy backup files as starter databases</li>\n"
-                    + "<li>Copy the main menu as a backup when making menu changes</li>\n"
-                    + "<li>Change the admin, reader, writer, and server passwords</li>\n"
-                    + "<li>If a system table is deleted or truncated, it will be restored to factory settings during startup</li>\n"
-                    + "<li>see <a target='_blank' href='http://www.permeagility.com'>www.permeagility.com</a> for more information</li>\n"
-                    + "</ul>\n");
+                n2.set("description", """
+                    Tips for administrators
+                    <ul>
+                    <li>Use the backup tool</li>
+                    <li>Copy config items when making changes</li>
+                    <li>Change the admin password</li>
+                    <li>System tables will be checked during startup</li>
+                    <li>Go to the application: 
+                    <a href='/Home?NAME=home-dark'>Dark</a>
+                    <a href='/Home?NAME=home-light'>Light</a>
+                    </li>
+                    </ul><li>see <a target='_blank' href='http://www.permeagility.com'>www.permeagility.com</a>
+                    for more information
+                    </li>
+                    </ul>
+                    """);
                 n2.set("dateline", LocalDateTime.now());
                 n2.set("locale",loc);
                 n2.set("archive",false);
@@ -607,10 +614,12 @@ public class Setup {
 
                 MutableDocument n3 = con.create(TABLE_NEWS);
                 n3.set("name","Welcome customer");
-                n3.set("description","This is a place where you can navigate data and connections, click away!<br><br>\n"
-                    + "<ul><li><a href='/Home?NAME=home-light'>Open Application (Light)</a></li>\n"
-                   + "<li><a href='/Home?NAME=home-dark'>Open Application (Dark)</a></li></ul>\n");
-                n3.set("dateline", LocalDateTime.now());
+                n3.set("description","""
+                    This is where you will be able to see available products and/or services and then enter and track orders.
+                    This system is currently under construction and there are limited functions available to you at this time.
+                    Come back for more in the near future.
+                   """);
+                n3.set("dateline", LocalDateTime.now().plusSeconds(1));
                 n3.set("locale",loc);
                 n3.set("archive",false);
                 n3.set("_allowRead", customerRoles);
@@ -619,38 +628,67 @@ public class Setup {
 
                 MutableDocument n4 = con.create(TABLE_NEWS);
                 n4.set("name","Welcome staff");
-                n4.set("description","PermeAgility lets you create and navigate data every way it is connected.<br><br>\n"
-                    + "<ul><li><a href='/Home?NAME=home-light'>Open Application (Light)</a></li>\n"
-                   + "<li><a href='/Home?NAME=home-dark'>Open Application (Dark)</a></li></ul>\n");
-                n4.set("dateline", LocalDateTime.now());
+                n4.set("description","""
+                    PermeAgility lets you create, update, and navigate data every way it is connected. 
+                    Use the pop up menu at the top left to access the different functions of the system
+                    <li>Go to the application: 
+                    <a href='/Home?NAME=home-dark'>Dark</a> 
+                    <a href='/Home?NAME=home-light'>Light</a>
+                    </li>
+                    """);
+                n4.set("dateline", LocalDateTime.now().plusSeconds(2));
                 n4.set("locale",loc);
                 n4.set("archive",false);
                 n4.set("_allowRead", staffRoles);
                 n4.set("_allow", adminAndStaffRoles);
                 n4.save();
 
+                MutableDocument n5 = con.create(TABLE_NEWS);
+                n5.set("name","Get started");
+                n5.set("description","""
+                    This is a demo installation which includes security with 
+                    multiple roles and support for row level security.
+                    You are currently using the system as a guest. 
+                    Click below to login as:
+                    <center>
+                    <a href='/Login?USERNAME=cust1&PASSWORD=cust1'>Customer1</a><br>
+                    <a href='/Login?USERNAME=cust2&PASSWORD=cust2'>Customer2</a><br>
+                    <a href='/Login?USERNAME=cust3&PASSWORD=cust3'>Customer3</a><br>
+                    <a href='/Login?USERNAME=staff1&PASSWORD=staff1'>Staff1</a><br>
+                    <a href='/Login?USERNAME=staff2&PASSWORD=staff2'>Staff2</a><br>
+                    <a href='/Login?USERNAME=staff3&PASSWORD=staff3'>Staff3</a><br>
+                    <a href='/Login?USERNAME=admin&PASSWORD=admin'>Admin</a>
+                    </center>
+                    """);
+                n5.set("dateline", LocalDateTime.now().plusSeconds(3));
+                n5.set("locale",loc);
+                n5.set("archive",false);
+                n5.set("_allowRead", guestRoles);
+                n5.set("_allow", adminAndStaffRoles);
+                n5.save();
+
                 MutableDocument n1 = con.create(TABLE_NEWS);
-                n1.set("name","Get started");
-                n1.set("description","You are now on a road to unrivaled flexibility, build complex applications with ease like never before.\n"
-                    + "<ul><li><a href='/Login'>Login</a></li></ul>");
-                n1.set("dateline", LocalDateTime.now());
+                n1.set("name","We are driven by data");
+                n1.set("description","""
+                    Everything you see here is generated from data found in the database and can be configured to fit your needs. Scroll for more...
+                    """);
+                n1.set("dateline", LocalDateTime.now().plusSeconds(4));
                 n1.set("locale",loc);
                 n1.set("archive",false);
                 n1.set("_allowRead", guestRoles);
                 n1.set("_allow", adminAndStaffRoles);
                 n1.save();
 
-                MutableDocument n5 = con.create(TABLE_NEWS);
-                n5.set("name","Welcome to PermeAgility");
-                n5.set("description","The core template for data driven applications in a micro service.\n"
-                    + "<ul><li><a href='/Home?NAME=home-light'>Open Application (Light)</a></li>"
-                    + "<li><a href='/Home?NAME=home-dark'>Open Application (Dark)</a></li></ul>");
-                n5.set("dateline", LocalDateTime.now());
-                n5.set("locale",loc);
-                n5.set("archive",false);
-                n5.set("_allowRead", guestRoles);
-                n5.set("_allow", adminAndStaffRoles);
-                n5.save();
+
+                MutableDocument n6 = con.create(TABLE_NEWS);
+                n6.set("name","Welcome to PermeAgility");
+                n6.set("description","Enable data driven applications anywhere, in any language, for any purpose. Scroll for more...");
+                n6.set("dateline", LocalDateTime.now().plusSeconds(5));
+                n6.set("locale",loc);
+                n6.set("archive",false);
+                n6.set("_allowRead", guestRoles);
+                n6.set("_allow", adminAndStaffRoles);
+                n6.save();
 
             }
  
@@ -664,7 +702,7 @@ public class Setup {
                 con.create(TABLE_PICKLIST)
                 .set("tablename","identity")
                 .set("query","SELECT FROM role")
-                .set("description","This will restrict row level table privileges to only selecting Roles, if Setup.RESTRICTED_BY_ROLE is true replace identity pickList with SELECT FROM user")
+                .set("description","This will restrict row level table privileges to only selecting Roles, if Setup.RESTRICTED_BY_ROLE is false replace identity pickList with SELECT FROM user")
                 .save();
 
                 con.create(TABLE_PICKLIST)
@@ -734,6 +772,15 @@ public class Setup {
                 mi_menu.set("_allowRead", allRoles);
                 mi_menu.set("_allow", adminRoles);
                 mi_menu.save();
+
+                MutableDocument mi_home = con.create(TABLE_MENUITEM);
+                mi_home.set("name","Home Page Generator");
+                mi_home.set("description","Home Page Generator runs Pages made with the PageBuilder - do not touch this");
+                mi_home.set("classname","permeagility.web.Home");
+                mi_home.set("active",true);
+                mi_home.set("_allowRead", allRoles);
+                mi_home.set("_allow", adminRoles);
+                mi_home.save();
 
                 MutableDocument mi_header = con.create(TABLE_MENUITEM);
                 mi_header.set("name","Header");
@@ -837,16 +884,16 @@ public class Setup {
                 mi_welcome.set("_allow", adminRoles);
                 mi_welcome.save();
 
-                MutableDocument mi_home = con.create(TABLE_MENUITEM);  // Not added to menu, to support page Builder
-                mi_home.set("name","home-dark");
-                mi_home.set("description","Home Application page in dark mode");
-                mi_home.set("pageStyle", DEFAULT_DARK_STYLESHEET);
-                mi_home.set("pageScript", DEFAULT_HOME_SCRIPT);
-                mi_home.set("active",true);
-                mi_home.set("_allowRead", allRoles);
-                mi_home.set("_allow", adminRoles);
-                mi_home.set("useStyleFrom", mi_basestyle.getIdentity());
-                mi_home.save();
+                MutableDocument mi_homed = con.create(TABLE_MENUITEM);  // Not added to menu, to support page Builder
+                mi_homed.set("name","home-dark");
+                mi_homed.set("description","Home Application page in dark mode");
+                mi_homed.set("pageStyle", DEFAULT_DARK_STYLESHEET);
+                mi_homed.set("pageScript", DEFAULT_HOME_SCRIPT);
+                mi_homed.set("active",true);
+                mi_homed.set("_allowRead", allRoles);
+                mi_homed.set("_allow", adminRoles);
+                mi_homed.set("useStyleFrom", mi_basestyle.getIdentity());
+                mi_homed.save();
 
                 MutableDocument mi_homel = con.create(TABLE_MENUITEM);  // Not added to menu, to support page Builder
                 mi_homel.set("name","home-light");
@@ -1190,20 +1237,20 @@ public class Setup {
     }
 
     /** Check for the existence of a class's superclass or set it */
-    public static boolean checkTableSuperclass(Schema schema, DocumentType oclass, String superClassName, StringBuilder errors) {
-        DocumentType s = schema.getOrCreateDocumentType(superClassName);
+    public static boolean checkTableSuperclass(Schema schema, DocumentType type, String superClassName, StringBuilder errors) {
+        DocumentType s = schema.getType(superClassName);
         if (s == null) {
-            errors.append(Weblet.paragraph("error","Schema update: Cannot find superclass "+superClassName+" to assign to class "+oclass.getName()));
+            errors.append(Weblet.paragraph("error","Schema update: Cannot find superclass "+superClassName+" to assign to class "+type.getName()));
             return false;
         }
-        List<DocumentType> sc = oclass.getSuperTypes();
+        List<DocumentType> sc = type.getSuperTypes();
         boolean hasSuper = false;
         for (DocumentType c : sc) {
             if (c.getName().equals(superClassName)) { hasSuper = true; }
         }
         if (!hasSuper) {
-            oclass.addSuperType(s);
-            errors.append(Weblet.paragraph("Schema update: Assigned superclass "+superClassName+" to class "+oclass.getName()));
+            type.addSuperType(s);
+            errors.append(Weblet.paragraph("Schema update: Assigned superclass "+superClassName+" to class "+type.getName()));
        //     if (superClassName.equals("ORestricted") && RESTRICTED_BY_ROLE) {
        //         oclass.setCustom("onCreate.identityType", "role");   //alter class x custom onCreate.identityType=role
        //     }
@@ -1342,7 +1389,7 @@ a.headerlogo:hover { text-decoration: none; background-color: transparent;}
 #headeruser { font-size: 0.75em; position: absolute; top: 50px; right: 5px; }
 #service { position: absolute; top: 70px; bottom: 0px; width: 100%;
     background-image: linear-gradient(to right, white, #ccc) !important; 
-    overflow-y: scroll; padding: 0.5em;
+    overflow-y: auto; padding: 0.5em;
 }
 
 /* anchor tags appearance */
@@ -1356,6 +1403,10 @@ a:hover, a.menuitem:hover, a.popuplink:hover {
     background: radial-gradient(ellipse, darkorange, white);
 }
 .selected { font-weight: 600; text-decoration: underline; }
+
+/* Lists */
+ol, ul { margin-left: 2.5em; }
+a.list-delete { margin-left: 1em; }
 
 /* labels and tables */
 .label { color: black; }
@@ -1438,7 +1489,7 @@ div.CodeMirror { height: auto; z-index: 0; overflow-x: hidden; overflow-y: hidde
 /* For split.js - splitter bar */
 .split {
 box-sizing: border-box;
-overflow-y: scroll;
+overflow-y: auto;
 overflow-x: clip;
 }
 .gutter.gutter-horizontal { cursor: col-resize; }
@@ -1449,6 +1500,7 @@ overflow-x: clip;
 height: 100%;
 float: left;
 }
+.noscroll { overflow-y: clip; }
 /* .split.split-vertical, .gutter.gutter-vertical {
 height: 50%;
 float: top;
@@ -1511,7 +1563,7 @@ rect.selection { opacity:0.8; fill: none; stroke: white; stroke-width: 4px; stro
     visibility: hidden; opacity: 0;
     transition: .5s; background: #333;
 }
-#nav-content ul { height: 100%; display: flex; flex-direction: column; list-style: none; }
+#nav-content ul { height: 100%; display: flex; flex-direction: column; margin-left: 0px; list-style: none; }
 #nav-content li:not(.small) + .small { margin-top: auto; }
 #nav-content {  
     margin-top: 40px;  padding: 10px; width: 90%; max-width: 170px;
@@ -1541,30 +1593,37 @@ iframe.previewFrame { width: calc(100% - 10px); height: calc(100vh - 110px); }
 @media print { *.changed { border: double thin; } }
 @media print { *.button { display: none; } }
 </style>
+
 """;
 
 public static final String DEFAULT_HOME_SCRIPT = """
-<div id="header" hx-trigger="load" hx-get="/Header" hx-swap="innerHTML"></div>
+<div id="header" hx-trigger="load" hx-get="/Header" 
+    hx-swap="innerHTML"></div>
+
 <div id="service">
-    <PermeAgility table="news" order="dateline desc"
-                where="(archive IS NULL OR archive=false) 
-                AND (locale IS NULL OR locale.name='${locale}')
-                AND ${_allowRead}">
-    <div class="card-content">
-        <h2>${news.name}</h2>
-        <p style="font-size:8pt">${news.dateline} ${locale} #${news.rid}</p>
-        <p>${news.description}</p>
-    </div>
-    </PermeAgility>         
+   <PermeAgility table="news" order="dateline desc"
+               where="(archive IS NULL OR archive=false)
+               AND (locale IS NULL OR locale.name='${locale}')
+               AND ${_allowRead}">
+   <div class="card-content">
+       <h2>${news.name}</h2>
+       <p style="font-size:8pt">${news.dateline} ${locale} #${news.rid}</p>
+       <p>${news.description}</p>
+   </div>
+   </PermeAgility>
 </div>
 
 <div id="nav-container">
-    <div id="underlay" class="bg"></div>
-    <div id="nav-button" class="nav-button" tabindex="0">
-    <span class="icon-bar"></span><span class="icon-bar"></span><span class="icon-bar"></span>
-    </div>
-    <div id="nav-content" hx-get="/Menu?TARGET=service" hx-trigger="load" hx-swap="innerHTML" tabindex="0"></div>
+   <div id="underlay" class="bg"></div>
+   <div id="nav-button" class="nav-button" tabindex="0">
+   <span class="icon-bar"></span>
+   <span class="icon-bar"></span>
+   <span class="icon-bar"></span>
+   </div>
+   <div id="nav-content" hx-get="/Menu?TARGET=service" 
+        hx-trigger="load" hx-swap="innerHTML" tabindex="0"></div>
 </div>
+
 """;
 
 public static final String DEFAULT_DARK_STYLESHEET = """
@@ -1579,6 +1638,8 @@ html { background-color: #111; }
 body { font-family: verdana,sans-serif; height: 100%; min-height:100%;
         color: white; 
 }
+::-webkit-scrollbar { background: #333; }  /* these are for Chrome's ugly scrollbars */
+::-webkit-scrollbar-thumb { background: #444; }
 
 /* positioning of header items */
 img.headerlogo { width: 90px; left: 20px; top: 15px; position: absolute; border: none; user-select: none; }
@@ -1593,7 +1654,7 @@ a.headerlogo:hover { text-decoration: none; background-color: transparent;}
 #headeruser { font-size: 0.75em; position: absolute; top: 50px; right: 5px; }
 #service { position: absolute; top: 70px; bottom: 0px; width: 100%;
     background-image: linear-gradient(to right, black, #444444) !important; 
-    overflow-y: scroll; padding: 0.5em;
+    overflow-y: auto; padding: 0.5em;
 }
 
 /* anchor tags appearance */
@@ -1607,6 +1668,10 @@ a:hover, a.menuitem:hover, a.popuplink:hover {
     background: radial-gradient(ellipse, darkorange, black);
 }
 .selected { font-weight: 600; text-decoration: underline; }
+
+/* Lists */
+ol, ul { margin-left: 2.5em; }
+a.list-delete { margin-left: 1em; }
 
 /* labels and tables */
 .label { color: black; }
@@ -1692,7 +1757,7 @@ div.CodeMirror { height: auto; z-index: 0; overflow-x: hidden; overflow-y: hidde
 /* For split.js - splitter bar */
 .split {
 box-sizing: border-box;
-overflow-y: scroll;
+overflow-y: auto;
 overflow-x: clip;
 }
 .gutter.gutter-horizontal { cursor: col-resize; }
@@ -1703,6 +1768,7 @@ overflow-x: clip;
 height: 100%;
 float: left;
 }
+.noscroll { overflow-y: clip; }
 /* .split.split-vertical, .gutter.gutter-vertical {
 height: 50%;
 float: top;
@@ -1766,7 +1832,7 @@ rect.selection { opacity:0.8; fill: none; stroke: white; stroke-width: 4px; stro
     transition: .5s; background: #333;
 }
 
-#nav-content ul { height: 100%; display: flex; flex-direction: column; list-style: none; }
+#nav-content ul { height: 100%; display: flex; flex-direction: column; margin-left: 0px; list-style: none; }
 #nav-content li:not(.small) + .small { margin-top: auto; }
 #nav-content {  
     margin-top: 40px;  padding: 10px; width: 90%; max-width: 170px;
@@ -1800,14 +1866,15 @@ iframe.previewFrame { width: calc(100% - 10px); height: calc(100vh - 110px); }
 
 public static final String DEFAULT_WELCOME_STYLE = """
 <script type="text/javascript" src="/js/htmx.min.js"></script>
+<script type="text/javascript" src="/js/_hyperscript.min.js"></script>
 <style type='text/css'>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: sans-serif; }
 a { color: lightblue; }
+h4 { margin-top: 1.5em; }
 
 .header, .footer {
-    background-color: #222;  color: white;
-    height: 35px; 
+    background-color: #222;  color: white; height: 35px;
     justify-content: center; align-items: center;
 }
 img.headerlogo { width: 50px; left: 5px; top: 5px; position: absolute; border: none; user-select: none; }
@@ -1837,7 +1904,7 @@ a.headerlogo:hover { text-decoration: none; background-color: transparent;}
 
 .card-content {
     position: absolute; z-index: 2;
-    left: 0; top: 0; width: 100%; height: 100%;
+    width: 50%; height: 100%;
     margin: 20px;
     display: flex; flex-direction: column;
     justify-content: center;
@@ -1847,7 +1914,9 @@ a.headerlogo:hover { text-decoration: none; background-color: transparent;}
 """;
 
 public static final String DEFAULT_WELCOME_SCRIPT = """
-<div id="header" class="header" hx-trigger="load" hx-get="/Header" hx-swap="innerHTML"></div>
+<div id="header" class="header" 
+    hx-trigger="load" hx-get="/Header" hx-swap="innerHTML">
+</div>
 <div>
     <PermeAgility table="news" order="dateline desc"
         where="(archive IS NULL OR archive=false) 
@@ -1857,14 +1926,18 @@ public static final String DEFAULT_WELCOME_SCRIPT = """
             <img src="https://source.unsplash.com/random/800x800" alt="" />
             <div class="card-content">
                 <h1>${news.name}</h1>
-                <p style="font-size:8pt;">${news.dateline} ${locale} ${news.rid}</p>
                 <h4>${news.description}</h4>
-                <p></p>
             </div>
         </div>
     </PermeAgility>
 </div>
-<div class="footer">Footer</div>
+<div class="footer">
+    <center><small><p>
+    &copy;<span _="on load js return new Date().getFullYear() end then put it into me"></span>
+    <a HREF=http://www.permeagility.com>PermeAgility Incorporated</a>
+    </p></small></center>
+</div>
+
 """;
 
 }
