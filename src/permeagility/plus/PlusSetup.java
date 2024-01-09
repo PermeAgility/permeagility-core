@@ -30,13 +30,16 @@ import permeagility.plus.json.ImportJSON;
 import permeagility.plus.json.JSONObject;
 import permeagility.plus.json.JSONTokener;
 import permeagility.util.QueryResult;
-import static permeagility.web.Weblet.paragraph;
 
 public abstract class PlusSetup extends Weblet {
 
     public String getPage(DatabaseConnection con, java.util.HashMap<String,String> parms) {
     	return head(con, "plus module")+body(paragraph("This is a plus model and must be setup through the context"));
     }
+
+    public String packageName;  // This will be set during install so that the install forms will know what to use to make names unique
+    public void setPackage(String pack) { packageName = pack; }
+    public String getPackage() { return packageName; }
 
     /** Implement this to return the plus module name */
     public abstract String getName();
@@ -61,16 +64,16 @@ public abstract class PlusSetup extends Weblet {
 
     /** Default install form (TABLEGROUP,MENU,ROLES) override to add fields (be sure to include default fields if needed) */
     public String getAddForm(DatabaseConnection con) {
-        return "TableGroup "+createListFromTable("TABLEGROUP", "Plus", con, "tableGroup")
-                +" or "+input("NEW_TABLEGROUP","")
-                +"<br>Add to menu"+createListFromTable("MENU", "", con, "menu",null, false, null, true)
-                +"<br>Roles: "/*+linkSetControl(con, "ROLES", "OIdentity", getCache().getResult(con,getQueryForTable(con, "OIdentity")), con.getLocale(), null)*/;
+        return "TableGroup "+createListFromTable("TABLEGROUP_"+getPackage(), "Plus", con, "tableGroup")
+                +" or "+input("NEW_TABLEGROUP_"+getPackage(),"")
+                +"<br>Add to menu"+createListFromTable("MENU_"+getPackage(), "", con, "menu",null, false, null, true)
+                +"<br>Roles: "+ linkListControl(con, "ROLES_"+getPackage(), "identity", getCache().getResult(con,getQueryForTable(con, "identity")), con.getLocale(), null);
     }
 
     /** Default remove form (REMOVE_TABLES,REMOVE_MENU) override to add fields (be sure to include default fields if needed) */
     public String getRemoveForm(DatabaseConnection con) {
-        return "Remove tables "+checkbox("REMOVE_TABLES",true)
-                +"<br>Remove from menu"+checkbox("REMOVE_MENU",true);
+        return "Remove tables "+checkbox("REMOVE_TABLES_"+getPackage(),true)
+                +"<br>Remove from menu"+checkbox("REMOVE_MENU_"+getPackage(),true);
     }
 
     /** Default upgrade form - no fields (override to add your own as appropriate) */
@@ -80,9 +83,9 @@ public abstract class PlusSetup extends Weblet {
 
     /** Pick the tablegroup to use from the parms either TABLEGROUP=rid or NEW_TABLEGROUP=name */
     public String pickTableGroup(DatabaseConnection con, HashMap<String, String> parms) {
-        String newTableGroup = parms.get("NEW_TABLEGROUP");
+        String newTableGroup = parms.get("NEW_TABLEGROUP_"+getPackage());
         if (newTableGroup == null || newTableGroup.equals("")) {
-            String tableGroup = parms.get("TABLEGROUP");
+            String tableGroup = parms.get("TABLEGROUP_"+getPackage());
             if (tableGroup == null || tableGroup.equals("")) {
                 return null;
             } else {

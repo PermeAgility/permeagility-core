@@ -382,6 +382,7 @@ public class Table extends Weblet {
             }
             if (!isNullOrBlank(value)) {
                 if (type == Type.BOOLEAN) {  // Boolean
+                    value = value.replace(",","");
                     newDoc.set(name, (value.equals("on") ? true : false));
                 } else if (type == Type.BYTE || type == Type.SHORT || type == Type.INTEGER || type == Type.LONG) {   // Number (int,long, etc...)
                     try {
@@ -1141,10 +1142,15 @@ public class Table extends Weblet {
             }
             if (linkedType == null && list != null && list.size() > 0) {
                 System.out.println("table.getColumnAsField: Will deduce LINK OfType from contents");
-                Document d = con.get(list.get(0));
-                if (d != null) {
-                    linkedType = d.getTypeName();
-                    System.out.println("table.getColumnAsField: Deduced that LINK is OfType "+linkedType);
+                try {
+                    Document d = con.get(list.get(0));
+                    if (d != null) {
+                        linkedType = d.getTypeName();
+                        System.out.println("table.getColumnAsField: Deduced that LINK is OfType "+linkedType);
+                    }
+                } catch (Exception e) {
+                    System.out.println("Table.getColumnAfField Error in list data "+list.get(0));
+                    e.printStackTrace();
                 }
             }
             if (linkedType != null) {
@@ -1267,7 +1273,7 @@ public class Table extends Weblet {
         return selectList(l, name, selected, dataTypeNames.get(l), dataTypeValues.get(l), options, false, null, true);
     }
 
-    String getTableWithControls(DatabaseConnection con, HashMap<String,String> parms, String table) {
+    public String getTableWithControls(DatabaseConnection con, HashMap<String,String> parms, String table) {
         String pagest = parms.get("PAGE");
         long page = 0;
         if (pagest != null) {
@@ -1568,11 +1574,15 @@ public class Table extends Weblet {
                 if (DEBUG) {
                     System.out.println("linkList size=" + l.size() + (l.size() > 0 ? " type=" + column.getOfType() : ""));
                 }
-                for (RID rid : l) {
-                    Document o = con.get(rid);
-                    if (o != null) {
-                        ll.append(getDescriptionFromDocument(con, o) + br());
+                try {
+                    for (RID rid : l) {
+                        Document o = con.get(rid);
+                        if (o != null) {
+                            ll.append(getDescriptionFromDocument(con, o) + br());
+                        }
                     }
+                } catch (Exception e) {
+                    ll.append("!!"+br());
                 }
             }
             sb.append(column(ll.toString()));
@@ -1693,7 +1703,7 @@ public class Table extends Weblet {
 
     public String advancedOptionsForm(DatabaseConnection con, String table, HashMap<String, String> parms, String errors) {
         Locale locale = con.getLocale();
-        Collection<Property> properties = con.getSchema().getType(table).getProperties();
+        Collection<? extends Property> properties = con.getSchema().getType(table).getProperties();
         return hidden("ADVANCED_OPTIONS", "YES")
                 + paragraph("banner", Message.get(locale, "ADVANCED_OPTIONS"))
                 + errors

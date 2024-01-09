@@ -118,7 +118,7 @@ public class Translate extends Table {
 				if (fromLocale != null && newLocale != null) {
 					String doReplace = parms.get("REPLACE");
 					boolean replace = false;
-					if (doReplace != null && doReplace.equals("on")) {
+					if (doReplace != null && (doReplace.equals("on")|| doReplace.equals(",on"))) {
 						replace = true;
 					}
 					String doMessages = parms.get("DO_MESSAGES");

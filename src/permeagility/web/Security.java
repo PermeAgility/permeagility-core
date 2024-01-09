@@ -97,11 +97,15 @@ public class Security {
                             roleSet = new ArrayList<>();
                             keyRoles.put(n, roleSet);
                         }
-                        for (RID r : roles) {
-                            if (r != null) {
-                                if (DEBUG) System.out.print(r+" ");
-                                roleSet.add(r);
+                        try {
+                            for (RID r : roles) {
+                                if (r != null) {
+                                    if (DEBUG) System.out.print(r+" ");
+                                    roleSet.add(r);
+                                }
                             }
+                        } catch (Exception e) {
+                            e.printStackTrace();
                         }
                     }
                     if (DEBUG) System.out.println("done.");

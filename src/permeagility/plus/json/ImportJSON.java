@@ -40,7 +40,7 @@ import permeagility.util.QueryResult;
 
 public class ImportJSON extends Weblet {
 
-    public static boolean DEBUG = false;
+    public static boolean DEBUG = true;
 
     @Override
     public String getPage(DatabaseConnection con, HashMap<String, String> parms) {
@@ -169,41 +169,42 @@ public class ImportJSON extends Weblet {
     }
 
     /* Import a JSON Object as a Document */
-    public Document importObject(HashMap<String,String> parms, boolean run, DatabaseConnection con, String classname, JSONObject acjo, StringBuilder errors, HashMap<String,HashMap<String,String>> classes) {
+    public Document importObject(HashMap<String,String> parms, boolean run, DatabaseConnection con, String typename
+                , JSONObject acjo, StringBuilder errors, HashMap<String,HashMap<String,String>> classes) {
         if (DEBUG) System.out.println("importObject.JSONObject="+acjo.getClass().getName());
-        String originalClassName = classname;
+        String originalTypeName = typename;
         if (acjo.has("@class")) {
-            classname = acjo.getString("@class");
+            typename = acjo.getString("@class");
         }
-        String newClassName = parms.get("TABLE_FOR_"+classname);
-        if (newClassName != null && !newClassName.isEmpty()) {
-            classname = newClassName;
+        String newTypeName = parms.get("TABLE_FOR_"+typename);
+        if (newTypeName != null && !newTypeName.isEmpty()) {
+            typename = newTypeName;
         }
-        DocumentType oclass = con.getSchema().getType(classname);
+        DocumentType docType = con.getSchema().getType(typename);
         MutableDocument doc = null;
-        String keycol = parms.get("KEY_FOR_"+classname);
+        String keycol = parms.get("KEY_FOR_"+typename);
         if (keycol != null && (keycol.isEmpty() || keycol.equals("null"))) keycol = null;
         String keyval = null;  // Hold a key value for resolution against a primary key
 
-        if (classname != null && !classname.isEmpty()) {
+        if (typename != null && !typename.isEmpty()) {
             if (run) {
-                String ccTable = makePrettyCamelCase(classname);
-                oclass = Setup.checkCreateTable(con.getSchema(), classname, errors);
+                String ccTable = makePrettyCamelCase(typename);
+                docType = Setup.checkCreateTable(con.getSchema(), typename, errors);
             } else {
-                if (!classes.containsKey(classname)) {
-                 classes.put(classname, new HashMap<>());
-                if (oclass != null) {
-                    classes.get(classname).put("",paragraph("Existing table will be loaded called "+input("TABLE_FOR_"+classname,classname)));
+                if (!classes.containsKey(typename)) {
+                 classes.put(typename, new HashMap<>());
+                if (docType != null) {
+                    classes.get(typename).put("",paragraph("Existing table will be loaded called "+input("TABLE_FOR_"+typename,typename)));
                 } else {
-                    classes.get(classname).put("",paragraph("Table will be created called "+input("TABLE_FOR_"+classname,classname)));
+                    classes.get(typename).put("",paragraph("Table will be created called "+input("TABLE_FOR_"+typename,typename)));
                 }
                 }
             }
         } else {
-            classname = originalClassName;
+            typename = originalTypeName;
         }
-        if (run && oclass != null && doc == null) {
-           doc = con.create(oclass.getName());
+        if (run && docType != null && doc == null) {
+           doc = con.create(docType.getName());
         }
         JSONArray fields = acjo.names();
         for (int f = 0; fields != null && f < fields.length(); f++) {
@@ -213,7 +214,7 @@ public class ImportJSON extends Weblet {
             if (colName.startsWith("@")) continue;  // do not import these
             colName = makePrettyCamelCase(colName);
             String originalColName = colName;
-            String newColName = parms.get("COLUMN_"+classname+"_"+colName);
+            String newColName = parms.get("COLUMN_"+typename+"_"+colName);
             if (newColName != null && !newColName.isEmpty()) {
                 if (keycol != null && keycol.equals(colName)) keycol = newColName;
                 colName = newColName;
@@ -227,7 +228,7 @@ public class ImportJSON extends Weblet {
                 List<Document> docList = new ArrayList<>();
                 for (int j = 0; j < array.length(); j++) {
                     Object ac = array.get(j);
-                    if (DEBUG) System.out.println("Array[" + j + "]=" + ac.getClass().getName() + ":" + ac.toString());
+                    if (DEBUG) System.out.println("Array[" + j + "]=" + ac.getClass().getName() /*  + ":" + ac.toString() */);
                     if (ac instanceof JSONObject) {
                         if (run) {
                             Document subdoc;
@@ -240,9 +241,9 @@ public class ImportJSON extends Weblet {
                   //              docList.add(subdoc);
                   //          }
                         } else {
-                            if (DEBUG) System.out.println("className="+classname+" colName="+colName);
-                            if (classes.containsKey(classname)) {  // must be at the top level
-                                classes.get(classname).put(colName,paragraph("Column " + input("COLUMN_"+classname+"_"+colName,colName) + " is an array and it will be a LINKLIST"));
+                            if (DEBUG) System.out.println("className="+typename+" colName="+colName);
+                            if (classes.containsKey(typename)) {  // must be at the top level
+                                classes.get(typename).put(colName,paragraph("Column " + input("COLUMN_"+typename+"_"+colName,colName) + " is an array and it will be a LINKLIST"));
                             }
                             importObject(parms, run, con, colName, (JSONObject)ac, errors, classes);
                         }
@@ -253,7 +254,7 @@ public class ImportJSON extends Weblet {
                 }
 
             } else if (val instanceof JSONObject) {
-                Property oproperty = oclass != null ? oclass.getProperty(colName) : null;  // See if property already exists
+                Property oproperty = docType != null ? docType.getProperty(colName) : null;  // See if property already exists
                 if (run) {
                     if (oproperty == null) {
                         Document subdoc = importObject(parms, run, con, colName, (JSONObject)val, errors, classes);
@@ -292,32 +293,35 @@ public class ImportJSON extends Weblet {
                 } else {
                     if (oproperty != null) {
                         if (oproperty.getType() == Type.MAP) {
-                            classes.get(classname).put(colName,paragraph("Column " + input("COLUMN_"+classname+"_"+colName,colName) + " is an object and it will use existing LINKMAP"));
+                            classes.get(typename).put(colName,paragraph("Column " + input("COLUMN_"+typename+"_"+colName,colName) + " is an object and it will use existing LINKMAP"));
 //                            ODocument subdoc = importObject(parms, run, con, colName, (JSONObject)val, errors, classes);
 
                         }
                     } else {
-                        classes.get(classname).put(colName,paragraph("Column " + input("COLUMN_"+classname+"_"+colName,colName) + " is an object and it will be a LINK"));
+                        classes.get(typename).put(colName,paragraph("Column " + input("COLUMN_"+typename+"_"+colName,colName) + " is an object and it will be a LINK"));
                         Document subdoc = importObject(parms, run, con, colName, (JSONObject)val, errors, classes);
                     }
                 }
             } else {
                 if (run) {
                     Property oproperty = null;
-                    if (oclass != null) {
-                        oproperty = Setup.checkCreateColumn(con, oclass, colName, determineTypeFromClassName(val.getClass().getName()), errors);
+                    if (docType != null) {
+                        oproperty = Setup.checkCreateColumn(con, docType, colName, determineTypeFromClassName(val.getClass().getName()), errors);
                     }
                     if (doc != null && oproperty != null && val != null && !val.toString().equals("null")) {
-                        if (DEBUG) System.out.println("importObject.Setting field "+colName+" to "+val);
+                        if (DEBUG) System.out.println("importObject.Setting field "+colName /*+" to "+val */);
                         doc.set(colName, val);
                     }
                 } else {
-                    classes.get(classname).put(colName,paragraph("Column "+input("COLUMN_"+classname+"_"+colName,colName)
+                    classes.get(typename).put(colName,paragraph("Column "+input("COLUMN_"+typename+"_"+colName,colName)
                             +" of type " + val.getClass().getName()
                             + " will be a "+determineTypeFromClassName(val.getClass().getName())
                     ));
                 }
             }
+        }
+        if (doc != null && docType.isSubTypeOf("restricted")) {
+            doc.set("_allow",permeagility.web.Security.getUserRoles(con));  // Give the doc a default owner
         }
         if (doc != null) {
             if (keycol != null) {
@@ -330,11 +334,11 @@ public class ImportJSON extends Weblet {
                         doc.save();
                     } else {
                         errors.append(paragraph("Resolved reference to "+doc.getTypeName()+" using "+keycol+"="+keyval));
-                        doc.delete();
+                        //doc.delete();
                         return qr.get(0);
                     }
                 } else {
-                    errors.append(paragraph("error", "Could not resolve key value "+keyval+" from "+keycol+" in "+classname));
+                    errors.append(paragraph("error", "Could not resolve key value "+keyval+" from "+keycol+" in "+typename));
                     return null;
                 }
             } else {

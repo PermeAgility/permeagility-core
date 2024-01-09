@@ -34,24 +34,25 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 	
 	@Override   // Override as there are no tables for this plugin
 	public String getAddForm(DatabaseConnection con) {
-		return "Add to menu"+createListFromTable("MENU", "", con, "menu")
-				+"<br>Roles: "/*+linkSetControl(con, "ROLES", "OIdentity", getCache().getResult(con,getQueryForTable(con, "OIdentity")), con.getLocale(), null)*/;
+		return "Add to menu"+createListFromTable("MENU_"+getPackage(), "", con, "menu")
+			+"<br>Roles: "
+			+linkListControl(con, "ROLES_"+getPackage(), "identity", getCache().getResult(con,getQueryForTable(con, "identity")), con.getLocale(), null);
 	}
 	
 	@Override   // Override as there are no tables for this plugin
 	public String getRemoveForm(DatabaseConnection con) {
-		return "Remove from menu"+checkbox("REMOVE_MENU",true);
+		return "Remove from menu"+checkbox("REMOVE_MENU_"+getPackage(),true);
 	}
 
 	@Override public boolean install(DatabaseConnection con, HashMap<String,String> parms, StringBuilder errors) {
-		if (isNullOrBlank(parms.get("MENU")) || isNullOrBlank(parms.get("ROLES"))) {
+		if (isNullOrBlank(parms.get("MENU_"+getPackage())) || isNullOrBlank(parms.get("ROLES_"+getPackage()))) {
 			errors.append(paragraph("error","Please specify a menu and the roles to access"));
 			return false;
 		}
 
 		// No tables
 		
-		Setup.createMenuItem(con,getName(),getInfo(),MENU_CLASS,parms.get("MENU"),parms.get("ROLES"));	
+		Setup.createMenuItem(con,getName(),getInfo(),MENU_CLASS,parms.get("MENU_"+getPackage()),parms.get("ROLES_"+getPackage()));	
 
 		setPlusInstalled(con, this.getClass().getName(), getInfo(), getVersion());
 		INSTALLED = true;
@@ -59,7 +60,7 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 	}
 	
 	@Override public boolean remove(DatabaseConnection con, HashMap<String,String> parms, StringBuilder errors) {
-		if (parms.get("REMOVE_MENU") != null) {
+		if (parms.get("REMOVE_MENU_"+getPackage()) != null) {
 			Setup.removeMenuItem(con, MENU_CLASS, errors);
 		}
 

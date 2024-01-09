@@ -191,10 +191,7 @@ public class Schema extends Weblet {
                     //System.out.println("Table privs for table "+tableName+" for user "+con.getUser()+" privs="+privs);
                     if (privs > 0) {
                         tableName = tableName.trim();
-                        if (tableInit.length() > 0) {
-                            tableInit.append(", ");
-                        }
-                        tableInit.append("{ group:'" + groupName + "', table:'" + tableName + "'}");
+                        tableInit.append("<option value='"+tableName+"'>" + groupName + " - " + tableName + "</option>\n");
                         //		groupHasTable = true;
                     }
                 }
@@ -208,28 +205,12 @@ public class Schema extends Weblet {
             String tablename = row.getName();
             if (!tablesInGroups.contains(tablename)) {
                 if (Security.getTablePriv(con, tablename) > 0) {
-                    if (tableInit.length() > 0) {
-                        tableInit.append(", ");
-                    }
-                    tableInit.append("{ group:'New', table:'" + tablename + "'}");
+                    tableInit.append("<option value='"+tablename+"'>" + "Ungrouped - " + tablename + "</option>\n");
                 }
             }
         }
 
-        return table(
-                        row(column("")
-                                + column(
-                                        "<select ng-model=\"selGroup\"\n"
-                                        + "  ng-options=\"v.group for v in tables | unique:'group'\" >\n"
-                                        + "  <option value=\"\">Table Group</option>\n"
-                                        + "</select>\n")
-                                + column("")
-                                + column("<select id=\"tableSelector\" ng-model=\""+model+"\" \n"
-                                        + "  ng-options=\"v.table for v in tables | filter:{group:selGroup.group} | orderBy:'table'\">\n"
-                                        + "  <option value=\"\">Table</option>\n"
-                                        + "</select>\n")
-                        )
-                );
+        return div("<select id=\"tableSelector\" >\n" + tableInit.toString()+ "</select>\n");
     }
 
 }

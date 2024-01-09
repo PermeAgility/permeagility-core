@@ -44,7 +44,7 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 		Schema oschema = con.getSchema();
 		String newTableGroup = pickTableGroup(con, parms);
 		
-		if (isNullOrBlank(newTableGroup) || isNullOrBlank(parms.get("MENU")) || isNullOrBlank(parms.get("ROLES"))) {
+		if (isNullOrBlank(newTableGroup) || isNullOrBlank(parms.get("MENU_"+getPackage())) || isNullOrBlank(parms.get("ROLES_"+getPackage()))) {
 			errors.append(paragraph("error","Please specify a table group, menu and the roles to access"));
 			return false;
 		}
@@ -64,7 +64,7 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 		Setup.checkCreateColumn(con, logTable, "toColumn", Type.STRING, errors);
 		Setup.checkCreateColumn(con, logTable, "linkProperty", Type.STRING, errors);
 
-		Setup.createMenuItem(con,getName(),getInfo(),MENU_CLASS,parms.get("MENU"),parms.get("ROLES"));	
+		Setup.createMenuItem(con,getName(),getInfo(),MENU_CLASS,parms.get("MENU_"+getPackage()),parms.get("ROLES_"+getPackage()));	
 		
 		setPlusInstalled(con, this.getClass().getName(), getInfo(), getVersion());
 		INSTALLED = true;
@@ -73,11 +73,12 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 	
 	@Override public boolean remove(DatabaseConnection con, HashMap<String,String> parms, StringBuilder errors) {
 		
-		if (parms.get("REMOVE_MENU") != null) {
+		if (parms.get("REMOVE_MENU_"+getPackage()) != null) {
 			Setup.removeMenuItem(con, MENU_CLASS, errors);
 		}
 		
-		String remTab = parms.get("REMOVE_TABLES");
+		String remTab = parms.get("REMOVE_TABLES_"+getPackage());
+		remTab = remTab.replace(",", "");
 		if (remTab != null && remTab.equals("on")) {
 			Setup.dropTable(con, MERGE_TABLE);
 			errors.append(paragraph("success","Table dropped: "+MERGE_TABLE));

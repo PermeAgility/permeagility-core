@@ -150,7 +150,7 @@ d3.select("#save_as_svg").on("click", function(e) {
 // This attaches the main selector to the graph
 d3.select("#tableSelector").on("change", function(e) {
 	if (this.value) {
-	  	getMore("TABLE",this.options[this.selectedIndex].label);
+    getMore("TABLE",this.value);
 		d3.select("#tableSelector").node().blur();
 	}
 });

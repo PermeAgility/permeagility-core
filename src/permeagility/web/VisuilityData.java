@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Stack;
 
 import com.arcadedb.database.Document;
+import com.arcadedb.database.RID;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.Property;
 import com.arcadedb.schema.Type;
@@ -277,8 +278,9 @@ public class VisuilityData extends Download {
                             +" }");
                     linkComma = "\n,";
                  } else if (colData instanceof List) {
-                    List<Document> set = (List<Document>)colData;
-                    for (Document ld : set) {
+                    List<RID> set = (List<RID>)colData;
+                    for (RID rld : set) {
+                        Document ld = con.get(rld);
                         String refId = ld.getIdentity().toString().substring(1);
                         String docName = Weblet.getDescriptionFromDocument(con, ld);
                         // Should be a link to the other row

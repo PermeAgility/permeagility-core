@@ -23,15 +23,11 @@ public class Visuility extends Weblet {
         parms.put("SERVICE", Message.get(con.getLocale(), "VISUILITY"));
         String type = parms.get("TYPE");
         String id = parms.get("ID");
-        return 	
-            head(con, Message.get(con.getLocale(), "VISUILITY"),"")+
-            body(standardLayout(con, parms,  
-                Schema.getTableSelector(con)
+        return Schema.getTableSelector(con)
                 +"<button style=\"position: fixed; bottom: 0px;\" id=\"save_as_svg\" download=\"view.svg\">to SVG</button>"
                 +chartDiv("chart")
                 +getScript("visuility.js")
-                +(type != null && id != null ? script("getMore('"+type+"','"+id+"')") : "")
-            ));
+                +(type != null && id != null ? script("getMore('"+type+"','"+id+"')") : "");
     }
 
 }

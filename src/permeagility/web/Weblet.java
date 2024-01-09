@@ -770,24 +770,29 @@ public abstract class Weblet {
         List<String> listtooltips = new ArrayList<>(qr.size());
         List<String> listchecks = new ArrayList<>(qr.size());
         if (picked != null) {
-            for(RID pickedRID : picked) {
-                Document pick = con.get(pickedRID);
-                if (pick != null) {
-                    String rid = pickedRID.toString();
-                    if (rid.startsWith("#")) rid = rid.substring(1);
-                    listvalues.add(rid);
-                    listnames.add(toJSONString(getDescriptionFromDocument(con, pick)));
-                    //listtooltips.add(toJSONString(pick.getString("tooltip")));
-                    listtooltips.add(toJSONString("a tooltip"));
-                    Integer active = listMap.get(rid);
-                    if (active == null) {
-                            active = Integer.valueOf(1);
-                    } else {
-                            active = Integer.valueOf(active.intValue()+1);
+            for (RID pickedRID : picked) {
+                try {
+                    Document pick = con.get(pickedRID);
+                    if (pick != null) {
+                        String rid = pickedRID.toString();
+                        if (rid.startsWith("#")) rid = rid.substring(1);
+                        listvalues.add(rid);
+                        listnames.add(toJSONString(getDescriptionFromDocument(con, pick)));
+                        //listtooltips.add(toJSONString(pick.getString("tooltip")));
+                        listtooltips.add(toJSONString("a tooltip"));
+                        Integer active = listMap.get(rid);
+                        if (active == null) {
+                                active = Integer.valueOf(1);
+                        } else {
+                                active = Integer.valueOf(active.intValue()+1);
+                        }
+                        //System.out.println("Adding to listValues: "+rid+" active="+active);
+                        listMap.put(rid, active);	    	
+                        listchecks.add(active.toString());
                     }
-                    //System.out.println("Adding to listValues: "+rid+" active="+active);
-                    listMap.put(rid, active);	    	
-                    listchecks.add(active.toString());
+                } catch (Exception e) {
+                    System.out.println("Weblet.getListControl error coercing list item - ignored");
+                    e.printStackTrace();
                 }
             }
         }
@@ -1057,7 +1062,7 @@ public abstract class Weblet {
         return sb.toString();
     }
 
-    public static String createColumnList(Locale locale, String name, String initial, String attributes, boolean allowNull, String classname, boolean enabled, Collection<Property> properties) {
+    public static String createColumnList(Locale locale, String name, String initial, String attributes, boolean allowNull, String classname, boolean enabled, Collection<? extends Property> properties) {
         ArrayList<String> names = new ArrayList<String>();
         for (Property p : properties) {
             names.add(p.getName());
@@ -1116,7 +1121,7 @@ public abstract class Weblet {
 
     public static String getTabPanel(String name, ArrayList<String> tabNames, ArrayList<String> tabTargets) {
         StringBuilder result = new StringBuilder();
-        result.append("<div id=\"tabs\" class=\"tabpanel\" hx-target=\"#"+name+"\" role=\"tablist\" "
+        result.append("<div id=\""+name+"_tabs\" class=\"tabpanel\" hx-target=\"#"+name+"\" role=\"tablist\" "
           +" _=\"on htmx:afterOnLoad set @aria-selected of <[aria-selected=true]/> to false "
           +" tell the target take .selected set @aria-selected to true\">\n");
         for (int i = 0; i < tabNames.size(); i++) {

@@ -43,6 +43,7 @@ import java.util.StringTokenizer;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.arcadedb.Constants;
+import com.arcadedb.database.DatabaseContext;
 import com.arcadedb.database.Document;
 import com.arcadedb.database.MutableDocument;
 import com.arcadedb.database.Record;
@@ -229,15 +230,15 @@ public class Server {
                 // Add shutdown hook
                 Runtime.getRuntime().addShutdownHook(new Thread() {
                     public void run() {
-                        System.out.println("ShutdownHook called - shutting down executors");
-                        executor.shutdown();
+                        System.out.println("ShutdownHook called - shutting down database and executors");
                         closeAllConnections();
+                        executor.shutdown();
                     }
                 });
                 if (SELF_TEST) {
                     System.out.println("self test - exiting...");
                     server.close();
-                    System.exit(0);
+                    exit(0);
                 } else {
                     server.resumeAccepts();
                     System.out.println("Accepting connections on port "  + HTTP_PORT + " localAddress="+ server.getLocalAddress());
@@ -256,9 +257,9 @@ public class Server {
         // Stuff just runs now - all new connections will call service
 	}
 
-	public final static void exit(int returnCode) {
-            System.out.println("Server exit with status "+returnCode);
-            System.exit(returnCode);
+	public final static void exit(int returnCode) {            
+        System.out.println("Server exit with status "+returnCode);
+        System.exit(returnCode);
 	}
 
     // Requests get serviced here, including websockets
@@ -1265,6 +1266,7 @@ public class Server {
 		System.out.println("Initializing "+Constants.PRODUCT+" Version "+Constants.getVersion());
 		DatabaseConnection con = null;
 		try {
+
             // String p = getLocalSetting(DB_NAME+HTTP_PORT, null);
             try {
     			database = new Database(DB_NAME, "admin", "admin");
@@ -1274,16 +1276,12 @@ public class Server {
 			if (database.isConnected()) {
 				System.out.println("Connected to database name="+DB_NAME+" version="+database.getClientVersion());
 				con = database.getConnection();
-                try {
-                    if (!Setup.checkInstallation(con)) {
-                        System.out.println("---\n--- Warning condition: checkInstallation failed - check install messages in context\n---");
-                    }
-                } catch (Exception e) {
+                
+                if (!Setup.checkInstallation(con)) {
+                    System.out.println("---\n--- Warning condition: checkInstallation failed - check install messages in context\n---");
                 }
 
-                con.begin();
-
-				// Initialize security
+                // Initialize security
 				Security.refreshSecurity(con);
 				if (Security.keyRoleCount() < 1) {
 					System.out.println("***\n*** Exit condition: No key roles found for security - no functions to enable\n***");
@@ -1304,7 +1302,6 @@ public class Server {
 					System.out.println("***\n*** Exit condition: Could not apply constant overrides\n***");
 					exit(-1);
 				}
-                con.commit();
 
                 // Start up the record listeners
                 RecordEvents events = con.getDb().getEvents();
@@ -1346,13 +1343,15 @@ public class Server {
                     appendAuditTrail("DELETE",record);
                 });
 
+                System.out.println("After initialize: Transactions="+DatabaseContext.INSTANCE.getContextIfExists(con.getDb().getDatabasePath()).transactions.size());
+
 				if (restore_lockout) restore_lockout = false;
 			} else {
                 System.out.println("Database not connected. Wha?");
             }
 		} catch (Exception e) {
 			e.printStackTrace();
-            if (con != null) con.rollback();
+            //if (con != null) con.rollback();
 			return false;
 		} finally {
             if (con != null) con.close();
@@ -1398,7 +1397,7 @@ public class Server {
 			database.close();
 			database = null;
 		}
-	//	System.gc();
+		System.gc();
 		System.out.println("done");
 	}
 
@@ -1408,9 +1407,9 @@ public class Server {
     public final static String getDBName() { return DB_NAME; }
     public final static int getHTTPPort() { return HTTP_PORT; }
 
- //   public final static void addEventStreamFilter(EventStreamFilter esf) {
- //       eventStreamFilters.add(esf);
- //   }
+    public final static void addEventStreamFilter(EventStreamFilter esf) {
+        //eventStreamFilters.add(esf);
+   }
 
     /** Because Websocket is two-way asynchronous, this second thread will be opened to send messages
     * while the original request thread will continue to process the inputs and call processRequest(msg,userdb)

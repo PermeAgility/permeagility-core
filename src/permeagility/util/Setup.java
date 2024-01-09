@@ -17,15 +17,21 @@ package permeagility.util;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
+import com.arcadedb.ContextConfiguration;
 import com.arcadedb.database.Document;
 import com.arcadedb.database.MutableDocument;
 import com.arcadedb.database.RID;
+import com.arcadedb.engine.ComponentFile.MODE;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.Property;
 import com.arcadedb.schema.Schema;
 import com.arcadedb.schema.Type;
+import com.arcadedb.server.ArcadeDBServer;
+import com.arcadedb.server.ServerDatabase;
 
 import permeagility.web.Message;
 import permeagility.web.Security;
@@ -174,18 +180,21 @@ public class Setup {
       CREATE PROPERTY userProfile.name IF NOT EXISTS STRING;
       CREATE PROPERTY userProfile.password IF NOT EXISTS STRING;
 
-      CHECK DATABASE FIX;
       """;
 
     /* This should not be run inside a transaction */
     public static boolean checkInstallation(DatabaseConnection con) {
-
+ //       boolean myTrans = !con.getDb().isTransactionActive();
         try {
             System.out.println("DatabaseSetup.checkInstallation ");
             con.updateScript(schemaScript);
             System.out.println("DatabaseSetup.checkInstallation finished schemaScript");
-  
-            con.begin();
+
+  //          if (myTrans) {
+  //              System.out.println("Setup.checkInstallation starting a transaction");
+  //              con.begin();
+  //          }
+
             Schema schema = con.getSchema();
  
             // Setup roles lists for use later on in this script
@@ -734,7 +743,7 @@ public class Setup {
             if (con.getRowCount(TABLE_MENU) == 0) {
                 MutableDocument defaultMenu;
                 defaultMenu = con.create(TABLE_MENU);
-                defaultMenu.set("name","");  // Default blank menu
+                defaultMenu.set("name","main");  // Default blank menu
                 defaultMenu.set("active",true);
                 defaultMenu.set("description","Default menu");
                 defaultMenu.set("sortOrder",10);
@@ -751,7 +760,7 @@ public class Setup {
             Setup.checkCreateColumn(con, menuItemTable, "pageScript", Type.STRING, installMessages);
             Setup.checkCreateColumn(con, menuItemTable, "pageStyle", Type.STRING, installMessages);
             Setup.checkCreateColumn(con, menuItemTable, "useStyleFrom", Type.LINK, menuItemTable, installMessages);
-            //Setup.checkTableSuperclass(schema, menuItemTable, "ORestricted", installMessages);
+            Setup.checkTableSuperclass(schema, menuItemTable, "restricted", installMessages);
             Setup.checkCreateColumn(con, menuTable, "items", Type.LIST, menuItemTable, installMessages);
 
 
@@ -825,16 +834,6 @@ public class Setup {
                 mi_context.set("_allowRead", adminRoles);
                 mi_context.set("_allow", adminRoles);
                 mi_context.save();
-
-                MutableDocument mi_shutdown = con.create(TABLE_MENUITEM);
-                mi_shutdown.set("name","Shutdown");
-                mi_shutdown.set("description","Shutdown the server");
-                mi_shutdown.set("classname","permeagility.web.Shutdown");
-                mi_shutdown.set("type","SERVICE");
-                mi_shutdown.set("active",true);
-                mi_shutdown.set("_allowRead", adminRoles);
-                mi_shutdown.set("_allow", adminRoles);
-                mi_shutdown.save();
 
                 MutableDocument mi_query = con.create(TABLE_MENUITEM);
                 mi_query.set("name","Query");
@@ -943,25 +942,6 @@ public class Setup {
                 mi_visuilityData.set("_allow", adminRoles);
                 mi_visuilityData.save();
 
-                MutableDocument mi_backup = con.create(TABLE_MENUITEM);
-                mi_backup.set("name","Backup");
-                mi_backup.set("description","Backup and restore the database");
-                mi_backup.set("classname","permeagility.web.BackupRestore");
-                mi_backup.set("type","SERVICE");
-                mi_backup.set("active",true);
-                mi_backup.set("_allowRead", adminRoles);
-                mi_backup.set("_allow", adminRoles);
-                mi_backup.save();
-
-/*                 MutableDocument mi_blank = con.create(TABLE_MENUITEM);
-                mi_blank.set("name","");
-                mi_blank.set("description","Blank menu item");
-                mi_blank.set("type","SERVICE");
-                mi_blank.set("active",true);
-                mi_blank.set("_allowRead",allRoles);
-                mi_blank.set("_allow",adminRoles);
-                mi_blank.save();
-*/
                 // Build default menu
                 ArrayList<Document> items = new ArrayList<>();
                 items.add(mi_userRequest);
@@ -972,8 +952,6 @@ public class Setup {
                 items.add(mi_context);
                 items.add(mi_pagebuilder);
                 items.add(mi_password);
-                items.add(mi_backup);
-                items.add(mi_shutdown);
 
                 // Add the menu items property to the menu
                 MutableDocument menuDoc = con.queryDocument("SELECT FROM menu").modify();
@@ -987,37 +965,61 @@ public class Setup {
 
             System.out.println(TABLE_USERPROFILE+" ");
             DocumentType urTable = Setup.checkCreateTable(schema, TABLE_USERPROFILE, installMessages);
-         //   Setup.checkTableSuperclass(schema, urTable, "ORestricted", installMessages);
+            //Setup.checkTableSuperclass(schema, urTable, "restricted", installMessages);
             Setup.checkCreateColumn(con, urTable, "name", Type.STRING, installMessages);
             Setup.checkCreateColumn(con, urTable, "password", Type.STRING, installMessages);
  
             if (!installMessages.isEmpty()) System.out.println("\n\nSetup repaired:\n"+installMessages);
 
-            con.commit();
-
+     //       if (myTrans && con.getDb().isTransactionActive()) {
+     //           System.out.println("Setup.checkInstallation committing transaction");
+     //           con.commit();
+     //       }
             System.out.print("Checking database...");
             con.update("CHECK DATABASE FIX");
             System.out.println("complete.");
+            
+            installMessages.append(Weblet.paragraph("success","Setup.checkInstallation completed at "+LocalDateTime.now()));
     
         } catch (Exception e) {
-            con.rollback();
             System.out.println("- failed: "+e.getMessage());
             e.printStackTrace();
+     //       if (myTrans && con.getDb().isTransactionActive()) {
+     //           System.out.println("Setup.checkInstallation rolling back transaction");
+     //           con.rollback();
+     //       }
             return false;
         }
+     //   if (!myTrans && !con.getDb().isTransactionActive()) {
+     //       System.out.println("Setup.checkInstallation restarting transaction that was open when process began");
+     //       con.begin();  // if was run inside transaction, make sure it is still inside a transaction
+     //   }
         return true;
     }
 
 
     public static void createMenuItem(DatabaseConnection con, String name, String description, String classname, String addTo, String roles) {
         // Create menuitem
-        roles = (roles != null ? "#"+roles.replace(" ", "").replace(",",",#") : "");
-        Object menuItem = con.update("INSERT INTO "+Setup.TABLE_MENUITEM+" SET name='"+name+"', active=true"
-                + ", description='"+description+"', classname='"+classname+"', _allowRead=["+roles+"]");
-
+        //roles = (roles != null ? "#"+roles.replace(" ", "").replace(",",",#") : "");
+        //Object menuItem = con.update("INSERT INTO "+Setup.TABLE_MENUITEM+" SET name='"+name+"', active=true"
+        //        + ", description='"+description+"', classname='"+classname+"', _allowRead=["+roles+"]");
+        List<RID> roleList = new ArrayList<RID>();
+        String[] rlt = roles.split(",");
+        for (String tok : rlt) {
+            if (tok != null && !tok.isEmpty()) roleList.add(new RID(con.getDb(),"#"+tok));
+        }
+        MutableDocument menuItem = con.create(TABLE_MENUITEM)
+            .set("name",name)
+            .set("active",true)
+            .set("type", "SERVICE")
+            .set("description",description)
+            .set("classname", classname)
+            .set("_allowRead",roleList)
+            .set("_allow", Security.getUserRoles(con))
+            .save();
         // Add to the specified menu
         if (addTo != null && !addTo.equals("") && menuItem instanceof Document) {
-            con.update("UPDATE #"+addTo+" ADD items = "+((Document)menuItem).getIdentity().toString());
+            con.update("UPDATE #"+addTo+" SET items += "+((Document)menuItem).getIdentity().toString());
         }
         Server.tableUpdated(con, "menu");
     }
@@ -1258,22 +1260,20 @@ public class Setup {
     }
 
     /** Check for the existence of a class's superclass or set it */
-    public static boolean checkTableSuperclass(Schema schema, DocumentType type, String superClassName, StringBuilder errors) {
-        DocumentType s = schema.getType(superClassName);
+    public static boolean checkTableSuperclass(Schema schema, DocumentType type, String superTypeName, StringBuilder errors) {
+        DocumentType s = schema.getType(superTypeName);
         if (s == null) {
-            errors.append(Weblet.paragraph("error","Schema update: Cannot find superclass "+superClassName+" to assign to class "+type.getName()));
+            errors.append(Weblet.paragraph("error","Schema update: Cannot find supertype "+superTypeName+" to assign to class "+type.getName()));
             return false;
         }
         List<DocumentType> sc = type.getSuperTypes();
         boolean hasSuper = false;
         for (DocumentType c : sc) {
-            if (c.getName().equals(superClassName)) { hasSuper = true; }
+            if (c.getName().equals(superTypeName)) { hasSuper = true; }
         }
         if (!hasSuper) {
             type.addSuperType(s);
-            errors.append(Weblet.paragraph("Schema update: Assigned superclass "+superClassName+" to class "+type.getName()));
-       //     if (superClassName.equals("ORestricted") && RESTRICTED_BY_ROLE) {
-       //     }
+            errors.append(Weblet.paragraph("Schema update: Assigned supertype "+superTypeName+" to type "+type.getName()));
             return true;
         }
         return false;
@@ -1305,7 +1305,7 @@ public class Setup {
     public static boolean checkCreatePrivilege(DatabaseConnection con, RID identity, String access, String resource, StringBuilder errors) {
         Document existing = con.queryDocument("SELECT FROM privilege WHERE identity="+identity+" AND access='"+access+"' and resource='"+resource+"'");
         if (existing != null) {
-            errors.append("CheckCreatePrivilege: Privilege "+identity+" already has "+access+" to "+resource+"\n");
+            //errors.append("CheckCreatePrivilege: Privilege "+identity+" already has "+access+" to "+resource+"\n");
             return true;
         }
         try {
@@ -1959,5 +1959,72 @@ public static final String DEFAULT_WELCOME_SCRIPT = """
 </div>
 
 """;
+
+    // This is a test of the db setup independent of the server
+    public static void mainx(String[] args) {
+        Database database = null;
+        
+        try {
+            database = new Database("tdb", "admin", "admin");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        if (database.isConnected()) {
+            DatabaseConnection dbc = database.getConnection();
+            try {
+                DocumentType dt = dbc.getSchema().getType("menuItem");
+                System.out.println("Update script has already run");
+            } catch (Exception e) {
+                System.out.println("Could not find menuItem");
+                System.out.println("Running update script");
+                dbc.updateScript(schemaScript);
+                System.out.println("Update script complete");
+            }
+            database.close();
+        }
+    }
+
+    private static ArcadeDBServer server = null;
+    private static ServerDatabase sdb = null;
+    private static ContextConfiguration config = new ContextConfiguration();
+
+    public static void main(String[] args) {
+        String url = "tdb";
+        try {
+            server = new ArcadeDBServer(config);
+            server.start();
+        } catch (Exception e) {
+            System.out.println("Error at start server/create db "+e.getMessage());
+            //e.printStackTrace();
+        }
+        try {
+            if (!server.existsDatabase(url)) {
+                sdb = server.createDatabase(url, MODE.READ_WRITE);
+                if (sdb.isOpen()) {
+                    System.out.println("Database is open");
+                }
+            } else {
+                sdb = server.getDatabase(url);
+            }
+        } catch (Exception e) {            
+            System.out.println("Error at getDatabase "+e.getMessage());
+            //e.printStackTrace();
+        }
+
+        if (sdb.isOpen()) {
+            try {
+                DocumentType dt = sdb.getSchema().getType("menuItem");
+                DocumentType dt2 = sdb.getSchema().getType("identity");
+                System.out.println("\n\nUpdate script has already run\n\n");
+            } catch (Exception e) {
+                System.out.println("/nCould not find menuItem or identity: "+e.getMessage());
+                System.out.println("Running update script");
+                sdb.command("sqlscript",schemaScript);
+                System.out.println("Update script complete");
+            }
+            //sdb.close();  // unsupported operation
+        }
+        server.stop();
+    }
 
 }

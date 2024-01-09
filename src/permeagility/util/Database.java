@@ -19,6 +19,7 @@ import java.util.Date;
 import java.util.Locale;
 import com.arcadedb.Constants;
 import com.arcadedb.ContextConfiguration;
+import com.arcadedb.database.DatabaseContext;
 import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.database.Document;
 import com.arcadedb.engine.ComponentFile;
@@ -69,9 +70,9 @@ public class Database  {
         //if ()
         System.out.println("Validating the user login information for "+user);
         con = EMBEDDED_SERVER ? new DatabaseConnection(this,sdb) : new DatabaseConnection(this,db);
-        con.begin();
+        //con.begin();
         Document udoc = con.queryDocument("SELECT FROM user WHERE name='"+user+"' AND status='ACTIVE' AND password='"+password+"'");
-        con.commit();
+        //con.commit();
         if (udoc != null) {
             isValid = true;
         } else {
@@ -96,14 +97,15 @@ public class Database  {
             server = new ArcadeDBServer(config);
             server.start();
             if (!server.existsDatabase(url)) {
-                ServerDatabase serverdb = server.createDatabase(url, MODE.READ_WRITE);
-                if (serverdb.isOpen()) {
+                sdb = server.createDatabase(url, MODE.READ_WRITE);
+                if (sdb.isOpen()) {
                     System.out.println("Database is open");
                 }
             }
         }
         if (EMBEDDED_SERVER) {
-            sdb = server.getDatabase(url);
+            if (sdb == null) sdb = server.getDatabase(url);
+            sdb.setAutoTransaction(true);
         } else {
             db = dbFactory.open();
         }
@@ -121,6 +123,7 @@ public class Database  {
 
     public DatabaseConnection getConnection() {
         if (isValid && con != null) { 
+            System.out.println("DatabaseConnection.getConnection() Transactions="+DatabaseContext.INSTANCE.getContextIfExists(sdb.getDatabasePath()).transactions.size());
             return con;
         } else {
             return null;
@@ -129,10 +132,8 @@ public class Database  {
 
     public void close() {
         if (EMBEDDED_SERVER) {
-            if (server.isStarted()) {
-                System.out.println("Calling server.stop()");
-                server.stop();
-            }
+            System.out.println("Calling server.stop()");
+            server.stop();
         } else {
             try {
                 dbFactory.close();
