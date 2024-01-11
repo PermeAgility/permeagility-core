@@ -123,7 +123,6 @@ public class Database  {
 
     public DatabaseConnection getConnection() {
         if (isValid && con != null) { 
-            System.out.println("DatabaseConnection.getConnection() Transactions="+DatabaseContext.INSTANCE.getContextIfExists(sdb.getDatabasePath()).transactions.size());
             return con;
         } else {
             return null;

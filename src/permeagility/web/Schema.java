@@ -157,10 +157,9 @@ public class Schema extends Weblet {
     }
 
     public static String getTableSelector(DatabaseConnection con) {
-        return getTableSelector(con, "selTable");
+        return getTableSelector(con, null);
     }
-
-    public static String getTableSelector(DatabaseConnection con, String model) {
+    public static String getTableSelector(DatabaseConnection con, String hyperscript) {
         StringBuilder tableInit = new StringBuilder(); // JSON list of tables and groups
 
         // Add tables in groups (similar code to Schema - should be combined in one place - need one more use - and this should be it)
@@ -210,7 +209,11 @@ public class Schema extends Weblet {
             }
         }
 
-        return div("<select id=\"tableSelector\" >\n" + tableInit.toString()+ "</select>\n");
+        return div("<select id=\"tableSelector\" "
+                + (hyperscript==null ? "" : "_=\""+hyperscript+"\"")
+                +">\n<option value='' selected>- Select a table -</option>\n" 
+                + tableInit.toString()
+                + "</select>\n");
     }
 
 }

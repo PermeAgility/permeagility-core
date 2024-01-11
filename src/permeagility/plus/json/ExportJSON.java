@@ -29,7 +29,7 @@ public class ExportJSON extends Weblet {
                 paragraph("banner", "Export JSON from a table")
                 +table("layout", 
                     row(column("label", "From Table") + column(Schema.getTableSelector(con,"selectedTable")))
-                   + row(column("label", "or use SQL") + column(ngTextArea("sql")))
+                   + row(column("label", "or use SQL") + column(textArea("sql","")))
                    + row(column("label", "Depth") + column(ngInput("depth")))
                    + row(column("label", "With callback") + column(ngInput("callback")))
                    + row(column("") + column("<a href=\"permeagility.plus.json.Download?FROMTABLE={{selectedTable.table}}&CALLBACK={{callback}}&SQL={{sql}}&DEPTH={{depth}}\" download=\"data.json\"><button>Download</button></a>"))

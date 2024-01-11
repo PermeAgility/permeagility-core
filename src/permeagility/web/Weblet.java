@@ -496,7 +496,7 @@ public abstract class Weblet {
     public static String textAreaReadOnly(String n, Object s, int rows, int cols) {
             return "<textarea id=\"" + n + "\" name=\"" + n + "\" rows=\"" + rows + "\" cols=\"" + cols + "\" READONLY >" + (s == null ? "" : s) + "</textarea>";
     }
-
+/* 
     public String ngTextArea(String model) {
         return ngTextArea(model, null, 10, 40);
     }
@@ -508,7 +508,7 @@ public abstract class Weblet {
     public String ngTextArea(String model, String init, int rows, int cols) {
             return "<textarea "+TEXT_INPUT_OPTIONS+" ng-model=\"" + model + "\" "+(init == null ? "" : "ng-init=\"" + init + "\"")+" rows=\"" + rows + "\" cols=\"" + cols + "\" " + (isReadOnly() ? " READONLY " : "") + "></textarea>";    
     }
-
+*/
     public String submitButton(Locale l, String s) { return submitButton(l, s, ""); }
     public String submitButton(Locale l, String s, String extraAtt) { return button(s.toLowerCase(), "SUBMIT", s, Message.get(l,s), extraAtt); }
     public String button(String name, String value, String text) {

@@ -21,7 +21,6 @@ import java.util.Map;
 import java.util.Set;
 
 import com.arcadedb.database.Document;
-import com.arcadedb.schema.Property;
 
 import permeagility.util.DatabaseConnection;
 import permeagility.util.QueryResult;
@@ -37,23 +36,25 @@ public class Query extends Weblet {
         parms.put("SERVICE", Message.get(locale, "SQL_WEBLET"));
         String query = parms.get("SQL");
         return 	
-            head(con, Message.get(locale, "SQL_WEBLET")+"&nbsp;"+query,"")+
-            body( standardLayout(con, parms,  
-                getSQLBuilder(con)
-                +form("QUERY","#",
-                        "<textarea spellcheck=\"false\" name=\"SQL\" rows=6 cols=100 text-build>"+(query==null ? "" : query)+"</textarea>"
-                        +br()
-                        +submitButton(locale, "EXECUTE_QUERY")
-                ) 
-                +br()
-                +paragraph("banner",Message.get(locale, "QUERY_RESULTS"))
+            getSQLBuilder(con)
+            +form("QUERY","#",
+                "<textarea id=\"sqlbuild\" spellcheck=\"false\" name=\"SQL\" rows=6 cols=100 >"
+                    +(query==null ? "" : query)
+                +"</textarea>"+br()
+                +submitButton(locale, "EXECUTE_QUERY","hx-post=\"/"+this.getClass().getName()+"\""+" hx-target=\"#service\"")
+            ) 
+            +br()+div("resultarea", 
+                paragraph("banner",Message.get(locale, "QUERY_RESULTS"))
                 +anchor("TOP",Message.get(locale, "RESULTS_TOP"))+"&nbsp;&nbsp;&nbsp;"
                 +link("#BOTTOM",Message.get(locale, "RESULTS_BOTTOM"))
                 +paragraph(Message.get(locale, "QUERY_IS")+"&nbsp;"+query)
                 +table("sortable", getResult(con, query))
                 +anchor("BOTTOM",Message.get(locale, "RESULTS_BOTTOM"))+"&nbsp;&nbsp;&nbsp;"
-                +link("#TOP",Message.get(locale, "RESULTS_TOP"))		  
-            ));
+                +link("#TOP",Message.get(locale, "RESULTS_TOP"))
+            )
+            +serviceHeaderUpdateDiv(parms, Message.get(locale, "SQL_WEBLET")+"&nbsp;"
+                +(query==null ? "none" : query.substring(0,Math.min(query.length(),25))+(query.length()>25 ? "..." : ""))
+            );
     }
 
     public String getResult(DatabaseConnection con, String query) {
@@ -127,7 +128,7 @@ public class Query extends Weblet {
         if (row.getIdentity().toString().contains("-")) {
             sb.append(column(paragraphRight(row.getIdentity().toString())));
         } else {
-            sb.append(column(paragraphRight(link("permeagility.web.Table?TABLENAME="+row.getTypeName()+"&EDIT_ID="+row.getIdentity().toString().substring(1), row.getIdentity().toString(), "_blank"))));			
+            sb.append(column(paragraphRight(linkHTMX("permeagility.web.Table/"+row.getTypeName()+"/"+row.getIdentity().toString().substring(1), row.getIdentity().toString(), "resultarea"))));			
         }
         for (String colName : columns) {
             Object o = row.get(colName);
@@ -212,106 +213,31 @@ public class Query extends Weblet {
         if (d == null || d.getTypeName() == null) {
             return ""+d;
         } else {
-            return link("permeagility.web.Table?TABLENAME="+d.getTypeName()+"&EDIT_ID="+d.getIdentity().toString().substring(1)
+            return linkHTMX("permeagility.web.Table/"+d.getTypeName()+"/"+d.getIdentity().toString().substring(1)
                 , getDescriptionFromDocument(con, d)
-                , "_blank");
+                , "resultarea");
         }
     }
 	
     String getSQLBuilder(DatabaseConnection con) {
-        StringBuilder tableInit = new StringBuilder(); // JSON list of tables and groups
-        StringBuilder columnInit = new StringBuilder();  // JSON list of tables and columns
-
-        // Add tables in groups (similar code to Schema - should be combined in one place - need one more use)
-        QueryResult schemas = con.query("SELECT FROM tableGroup");
-        QueryResult tables = con.query("SELECT name, superClass FROM (SELECT expand(classes) FROM metadata:schema) WHERE abstract=false ORDER BY name");
-        ArrayList<String> tablesInGroups = new ArrayList<String>(); 
-        for (Document schema : schemas.get()) {
-            StringBuilder tablelist = new StringBuilder();
-            String tablesf = schema.getString("tables");
-            String table[] = {};
-            if (tablesf != null) {
-                table = tablesf.split(",");
-            }
-            String groupName = schema.getString("name");
-            tablelist.append(paragraph("banner", groupName));
-            //boolean groupHasTable = false;
-            for (String tableName : table) {
-                tableName = tableName.trim();
-                boolean show = true;
-                if (tableName.startsWith("-")) {
-                    show = false;
-                    tableName = tableName.substring(1);
-                }
-                tablesInGroups.add(tableName);
-                if (show) {
-                    int privs = Security.getTablePriv(con, tableName);
-                    //System.out.println("Table privs for table "+tableName+" for user "+con.getUser()+" privs="+privs);
-                    if (privs > 0) {
-                        tableName = tableName.trim();
-                        if (tableInit.length()>0) tableInit.append(", ");
-                        tableInit.append("{ group:'"+groupName+"', table:'"+tableName+"'}");
-            //		groupHasTable = true;
-                    }
-                }
-            }
-        }
-
-        // Add the non grouped (new) tables
-        StringBuilder tablelist = new StringBuilder();
-        tablelist.append(paragraph("banner",Message.get(con.getLocale(), "TABLE_NONGROUPED")));
-        for (Document row : tables.get()) {
-            String tablename = row.getString("name");
-            if (!tablesInGroups.contains(tablename)) {
-                if (Security.getTablePriv(con, tablename) > 0) {
-                    if (tableInit.length()>0) tableInit.append(", ");
-                    tableInit.append("{ group:'New', table:'"+tablename+"'}");
-                }
-            }
-        }
-
-        // Columns - this will be slow as tables grow (could do an angular get when user selects table - later)
-        for (Document t : tables.get()) {
-            String tName = t.getString("name");
-            for (Property col : con.getColumns(tName)) {
-                String cName = col.getName();
-                Integer cType = col.getType().getId();
-                String cClass = col.getType().isLink() ? "col.getLinkedClass().getName()" : null;
-                if (columnInit.length()>0) columnInit.append(", ");
-                columnInit.append("{ table:'"+tName+"', column:'"+cName+"', type:'"+Message.get(con.getLocale(),Table.getTypeName(cType))+(cClass == null ? "" : " to "+cClass)+"'}");
-            }
-        }
-
-    return "<div ng-controller=\"TextBuildControl\""
-           +" ng-init=\"tables=["+tableInit+"]; columns=["+columnInit+"];\">\n"
-    +table(
-        row(column("")
-            +column(
-                    "<select ng-model=\"selGroup\"\n"
-                    +"  ng-options=\"v.group for v in tables | unique:'group'\" >\n"
-                    +"  <option value=\"\">Table Group</option>\n"
-                    +"</select>\n")
-                +column("")
-                +column(
-                  "<select ng-model=\"selTable\"\n"
-                  +"      ng-options=\"v.table for v in tables | orderBy:'table'\" >\n"
-                  +"  <option value=\"\">Table</option>\n"
-                  +"</select>\n")
-         )
-         +row(column("label","<button ng-click=\"add('SELECT FROM ')\">SELECT FROM</button>\n")
-            +column("<select ng-model=\"selTable\"\n" 
-                            +"  ng-change=\"add(selTable.table+' ')\"\n"
-                            +"  ng-options=\"v.table for v in tables | filter:{group:selGroup.group} | orderBy:'table'\">\n"
-                            +"  <option value=\"\">Table</option>\n"
-                            +"</select>\n")
-            +column("label","<button ng-click=\"add('WHERE ')\">WHERE</button>\n")
-            +column("<select ng-model=\"selColumn\"\n" 
-                            +"  ng-options=\"v.column+' -'+v.type for v in columns | filter:{table:selTable.table}\"\n" 
-                            +"  ng-change=\"add(selColumn.column+' ')\">\n"
-                            +"  <option value=\"\">Column</option>\n"
-                            +"</select>\n")
+    return "<div id=\"TextBuildControl\">\n"
+        +"""
+        <script type="text/hyperscript">
+            def textInsert(txt)
+                set x to #sqlbuild.innerHTML
+                set i to #sqlbuild.selectionStart
+                then get x.substring(0,i) + txt + x.substring(i) 
+                then put it into #sqlbuild
+            end
+        </script>
+        """
+        +table(
+          row(column("label","<button _=\"on click textInsert('SELECT FROM ')\">SELECT FROM</button>\n")
+            +column(Schema.getTableSelector(con,"on change textInsert(my value) then set x to my value then fetch `/Table/${x}/columns` put it into #tablecols"))
+            +column("label","<button _=\"on click textInsert(' WHERE ')\">WHERE</button>\n")
+            +column("<select id='tablecols' _=\"on change textInsert(my value)\"></select>\n")
             )
-        +row(columnSpan(4,"<select ng-model=\"statement\" ng-change=\"add(statement+' ')\">\n"
+/*         +row(columnSpan(4,"<select ng-model=\"statement\" ng-change=\"add(statement+' ')\">\n"
             +"  <option value=\"SELECT FROM\">SELECT [field, *] FROM class|rid [LET $a=(query)] [WHERE condition] [GROUP BY field, *] [ORDER BY field, *] [SKIP n] [LIMIT n]</option>\n"
             +"  <option value=\"SELECT EXPAND( $c ) LET $a = ( SELECT FROM t1 ), $b = ( SELECT FROM t2 ), $c = UNIONALL( $a, $b )\">SELECT (2 Table union template - replace t1 and t2)</option>\n"
             +"  <option value=\"SELECT expand(classes) FROM metadata:schema\">SELECT (list of tables/classes)</option>\n"
@@ -449,7 +375,7 @@ public class Query extends Weblet {
             +"  <option value=\".toUpperCase()\">.toUpperCase() returns string in upper case</option>\n"
             +"  <option value=\".type()\">.type() returns the field type</option>\n"
             +"  <option value=\".values()\">.values() returns the map's values</option>\n"
-            +"</select>\n"))
+            +"</select>\n"))  */
             )
 	    +"</div>\n";
 	}

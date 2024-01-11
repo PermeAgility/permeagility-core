@@ -97,6 +97,7 @@ public class Table extends Weblet {
             if (httpMethod.equals("GET")) {
                 // if table and row specified, GET returns a single row as a form (use - for new row form)
                 if (!rid.equals("-")) parms.put("EDIT_ID", rid);  // leave edit id out for new row
+                if (rid.equals("columns")) return getColumnsAsOptions(con, table);
                 return getTableRowForm(con, table, parms);
             } else {
                 if (httpMethod.equals("PUT")) {
@@ -155,6 +156,16 @@ public class Table extends Weblet {
             }
         }
         return null;  // No REST parameters specified
+    }
+
+    public String getColumnsAsOptions(DatabaseConnection con, String table) {
+        StringBuilder result = new StringBuilder();
+        Collection<Property> props = con.getColumns(table);
+        result.append("<option value=''>- Select column -</option>");
+        for (Property prop : props) {
+            result.append("<option value="+prop.getName()+">"+makeCamelCasePretty(prop.getName())+"</option>\n");
+        }
+        return result.toString();
     }
 
     public String processSubmit(DatabaseConnection con, HashMap<String, String> parms, String table, StringBuilder errors) {
