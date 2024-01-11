@@ -33,7 +33,6 @@ public class Query extends Weblet {
 
     public String getPage(DatabaseConnection con, java.util.HashMap<String,String> parms) {
         Locale locale = con.getLocale();
-        parms.put("SERVICE", Message.get(locale, "SQL_WEBLET"));
         String query = parms.get("SQL");
         return 	
             getSQLBuilder(con)
@@ -225,7 +224,7 @@ public class Query extends Weblet {
         <script type="text/hyperscript">
             def textInsert(txt)
                 set x to #sqlbuild.innerHTML
-                set i to #sqlbuild.selectionStart
+                set i to #sqlbuild.selectionStart or 0
                 then get x.substring(0,i) + txt + x.substring(i) 
                 then put it into #sqlbuild
             end
