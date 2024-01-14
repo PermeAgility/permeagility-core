@@ -23,7 +23,7 @@ public class Visuility extends Weblet {
         parms.put("SERVICE", Message.get(con.getLocale(), "VISUILITY"));
         String type = parms.get("TYPE");
         String id = parms.get("ID");
-        return Schema.getTableSelector(con)
+        return Schema.getTableSelector(con, "tableSelector")
                 +"<button style=\"position: fixed; bottom: 0px;\" id=\"save_as_svg\" download=\"view.svg\">to SVG</button>"
                 +chartDiv("chart")
                 +getScript("visuility.js")

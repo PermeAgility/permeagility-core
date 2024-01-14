@@ -162,10 +162,8 @@ public class ImportJSON extends Weblet {
                     + row(column("") + column(submitButton(con.getLocale(), "PREVIEW")))
             ));
         }
-        return head(con, "Import JSON") + body(standardLayout(con, parms,
-                paragraph("banner", "Import JSON to a table")
-                +form(sb.toString() + errors.toString())
-            ));
+        return paragraph("banner", "Import JSON to a table")
+                +form(sb.toString() + errors.toString());
     }
 
     /* Import a JSON Object as a Document */

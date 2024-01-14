@@ -25,17 +25,19 @@ public class ExportJSON extends Weblet {
     
     @Override
     public String getPage(DatabaseConnection con, HashMap<String, String> parms) {
-         return head(con, "Export JSON") + body( 
-                paragraph("banner", "Export JSON from a table")
-                +table("layout", 
-                    row(column("label", "From Table") + column(Schema.getTableSelector(con,"selectedTable")))
-                   + row(column("label", "or use SQL") + column(textArea("sql","")))
-                   + row(column("label", "Depth") + column(ngInput("depth")))
-                   + row(column("label", "With callback") + column(ngInput("callback")))
-                   + row(column("") + column("<a href=\"permeagility.plus.json.Download?FROMTABLE={{selectedTable.table}}&CALLBACK={{callback}}&SQL={{sql}}&DEPTH={{depth}}\" download=\"data.json\"><button>Download</button></a>"))
-                )
-                + br()
-                + xSmall("permeagility.plus.json.Download?FROMTABLE={{selectedTable.table}}&CALLBACK={{callback}}&SQL={{sql}}&DEPTH={{depth}}")
-        );
+
+        String onClick = """
+            on click set @href to '/permeagility.plus.json.Download?FROMTABLE='
+                    +FROMTABLE.value+'&SQL='+SQL.value+'&DEPTH='+DEPTH.value
+            """;
+
+        return paragraph("banner", "Export JSON from a table")
+                  +table( 
+                    row(column("label", "From Table") + column(Schema.getTableSelector(con, "FROMTABLE")))
+                   + row(column("label", "or use SQL") + column(textArea("SQL","")))
+                   + row(column("label", "Depth") + column(input("DEPTH","")))
+                   + row(column("") + column("<a href=\"\" download=\"download.json\" _=\""+onClick+"\"><button>Download</button></a>"))
+                ); 
     }
+
 }

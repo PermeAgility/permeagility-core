@@ -34,7 +34,6 @@ import java.util.Locale;
 import java.util.Map;
 
 import com.arcadedb.integration.exporter.Exporter;
-import com.arcadedb.schema.Type;
 
 import permeagility.plus.PlusSetup;
 import permeagility.plus.json.JSONArray;

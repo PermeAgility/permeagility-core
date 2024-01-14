@@ -140,12 +140,12 @@ public class Server {
 
 	private static ClassLoader plusClassLoader;
 
-        // Websocket op codes
-        public static final int WSOC_CONTINUOUS = 0, WSOC_TEXT = 1, WSOC_BINARY = 2, WSOC_PING = 9, WSOC_PONG = 10, WSOC_CLOSING = 8;
+    // Websocket op codes
+    public static final int WSOC_CONTINUOUS = 0, WSOC_TEXT = 1, WSOC_BINARY = 2, WSOC_PING = 9, WSOC_PONG = 10, WSOC_CLOSING = 8;
 
 
-     //   protected static ArrayList<WebsocketSender.EventStreamListener> eventStreamListeners = new ArrayList<>();
-     //   protected static ArrayList<EventStreamFilter> eventStreamFilters = new ArrayList<>();
+    protected static ArrayList<WebsocketSender.EventStreamListener> eventStreamListeners = new ArrayList<>();
+    protected static ArrayList<EventStreamFilter> eventStreamFilters = new ArrayList<>();
 
 	private static ExecutorService executor = Executors.newCachedThreadPool();
 
@@ -1343,8 +1343,6 @@ public class Server {
                     appendAuditTrail("DELETE",record);
                 });
 
-                System.out.println("After initialize: Transactions="+DatabaseContext.INSTANCE.getContextIfExists(con.getDb().getDatabasePath()).transactions.size());
-
 				if (restore_lockout) restore_lockout = false;
 			} else {
                 System.out.println("Database not connected. Wha?");
@@ -1536,20 +1534,24 @@ public class Server {
                 String subject = jo.getString("subject");
                 if (jo.has("data")) {
                     System.out.println("Sending event " + subject + " to all subscribers");
-          //          for (EventStreamListener esl : eventStreamListeners) {
-          //              boolean filterEvent = false;
-          //              if (eventStreamFilters.size() > 0) {
-          //                  System.out.println("Filtering event " + subject );
-          //                  for (EventStreamFilter esf : eventStreamFilters) {
-          //                     filterEvent = esf.filterEvent(subject, jo.getJSONObject("data"), esl.getUser());
-          //                  }
-          //              }
-          //              if (!filterEvent) {
-          //                 //esl.onEvent(subject, jo.getJSONObject("data").toString());
-          //              }
-          //          }
+                    for (EventStreamListener esl : eventStreamListeners) {
+                        boolean filterEvent = false;
+                        if (eventStreamFilters.size() > 0) {
+                            System.out.println("Filtering event " + subject );
+                            for (EventStreamFilter esf : eventStreamFilters) {
+                               filterEvent = esf.filterEvent(subject, jo.getJSONObject("data"), esl.getUser());
+                            }
+                        }
+                        if (!filterEvent) {
+                            try {
+                               esl.onEvent(subject, jo.getJSONObject("data").toString());
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
                 }
-                //webSocketMessageQueue.add("{ \"type\": \"event\", \"subject\": \""+jo.getString("subject")+"\" }");
+                webSocketMessageQueue.add("{ \"type\": \"event\", \"subject\": \""+jo.getString("subject")+"\" }");
 
             } else if (type.equalsIgnoreCase("query") && jo.has("subject")) {
                 DatabaseConnection con = userdb.getConnection();
@@ -1656,7 +1658,7 @@ public class Server {
             } else if (type.equalsIgnoreCase("subscribe") && jo.has("subject") ) {
                 String subject = jo.getString("subject");
                 if (subject.equals("event")) {
-                    //eventStreamListeners.add(new EventStreamListener().setUser(userdb.getUser()));
+                    eventStreamListeners.add(new EventStreamListener().setUser(userdb.getUser()));
                 } else {
                     if (DEBUG) System.out.println("Live query subscribing... userdb="+userdb);
                     if (userdb != null) {
@@ -1680,7 +1682,7 @@ public class Server {
                         // Now send the data
         //                con = userdb.getConnection();
                       try {
-                          con.begin();
+                          //con.begin();
                           QueryResult result = con.query("SELECT FROM "+subject);
                           if (result.size() == 0) {
                               webSocketMessageQueue.add("{ \"type\": \"event\", \"subject\": \""+subject+"\" }");
@@ -1690,7 +1692,7 @@ public class Server {
                               }
                               webSocketMessageQueue.add("{ \"type\": \"eod\", \"subject\": \""+subject+"\"}");    // end of data
                           }
-                          con.commit();
+                          //con.commit();
                       } catch (Exception e) {
                           con.rollback();
                           webSocketMessageQueue.add("{ \"type\": \"error\", \"message\": \""+e.getMessage()+"\" }");
@@ -1722,25 +1724,19 @@ public class Server {
             }
         }
 
-   /*      class LiveQueryListener implements OLiveResultListener {
+         class LiveQueryListener /* implements LiveResultListener */ {
 
-            @Override public void onLiveResult(int iLiveToken, ORecordOperation iOp) throws OException {
-                String op = iOp.toString();
-                switch (iOp.type) {
-                    case 1: op = "update"; break;
-                    case 2: op = "delete"; break;
-                    case 3: op = "add"; break;
-                }
-                if (DEBUG) System.out.println("Live query: "+iLiveToken+" operation: "+op+" content: "+iOp.record);
-                webSocketMessageQueue.add("{ \"type\": \"live-query\", \"operation\": \""+op+"\", \"data\": "+iOp.getRecord().toJSON()+" }");
+            public void onLiveResult(int iLiveToken, String op, Record rec) throws Exception {
+                if (DEBUG) System.out.println("Live query: "+iLiveToken+" operation: "+op+" content: "+rec);
+                webSocketMessageQueue.add("{ \"type\": \"live-query\", \"operation\": \""+op+"\", \"data\": "+rec.toJSON()+" }");
             }
 
-            @Override public void onError(int iLiveToken) {
+            public void onError(int iLiveToken) {
                 if (DEBUG) System.out.println("Live query terminated due to error");
                 webSocketMessageQueue.add("{ \"type\": \"live-query\", \"operation\": \""+"error"+"\" }");
             }
 
-            @Override public void onUnsubscribe(int iLiveToken) {
+            public void onUnsubscribe(int iLiveToken) {
                 if (DEBUG) System.out.println("Live query terminated with unsubscribe");
                 webSocketMessageQueue.add("{ \"type\": \"live-query\", \"operation\": \""+"unsubscribe"+"\" }");
             }
@@ -1752,7 +1748,7 @@ public class Server {
             public String getUser() { return user; }
             public EventStreamListener setUser(String u) { user = u; return this; }
 
-            public void onEvent(String subject, String data) throws OException {
+            public void onEvent(String subject, String data) throws Exception {
                 if (DEBUG) System.out.println("Event: "+data);
                 webSocketMessageQueue.add("{ \"type\": \"event\", \"subject\": \""+subject+"\", \"data\": "+data+" }");
             }
@@ -1762,7 +1758,7 @@ public class Server {
                 webSocketMessageQueue.add("{ \"type\": \"event\", \"subject\": \""+"unsubscribe"+"\" }");
             }
         }
-*/
+
 
     }
 

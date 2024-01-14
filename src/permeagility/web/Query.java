@@ -232,7 +232,7 @@ public class Query extends Weblet {
         """
         +table(
           row(column("label","<button _=\"on click textInsert('SELECT FROM ')\">SELECT FROM</button>\n")
-            +column(Schema.getTableSelector(con,"on change textInsert(my value) then set x to my value then fetch `/Table/${x}/columns` put it into #tablecols"))
+            +column(Schema.getTableSelector(con,"tableSelector", "on change textInsert(my value) then set x to my value then fetch `/Table/${x}/columns` put it into #tablecols"))
             +column("label","<button _=\"on click textInsert(' WHERE ')\">WHERE</button>\n")
             +column("<select id='tablecols' _=\"on change textInsert(my value)\"></select>\n")
             )

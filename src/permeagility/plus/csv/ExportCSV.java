@@ -27,7 +27,7 @@ public class ExportCSV extends Weblet {
          return head(con, "Export CSV") + body(standardLayout(con, parms, 
                 paragraph("banner", "Export CSV from a table")
                 +table("layout", 
-                    row(column("label", "From Table") + column(Schema.getTableSelector(con,"selectedTable")))
+                    row(column("label", "From Table") + column(Schema.getTableSelector(con,"FROMTABLE")))
                    + row(column("label", "or use SQL") + column(textArea("sql","")))
                    + row(column("") + column("<a href=\"permeagility.plus.csv.Download?FROMTABLE={{selectedTable.table}}&SQL={{sql}}\" download=\"data.csv\"><button>Download</button></a>"))
                 )

@@ -16,6 +16,7 @@
 package permeagility.plus.json;
 
 import com.arcadedb.database.Document;
+import com.arcadedb.database.RID;
 import com.arcadedb.schema.Type;
 import java.util.Date;
 import java.util.HashMap;
@@ -29,10 +30,9 @@ import permeagility.web.Weblet;
 public class Download extends permeagility.web.Download {
 
     public static boolean NO_ALLOWS = true;
-    
+    public String filename = "data.json";
     @Override public String getContentType() { return "application/json"; }
-
-    @Override public String getContentDisposition() { return "inline; filename=\"data.json\""; }
+    @Override public String getContentDisposition() { return "inline; filename=\""+filename+"\""; }
 
     @Override
     public byte[] getBytes(DatabaseConnection con, HashMap<String, String> parms) {
@@ -50,6 +50,7 @@ public class Download extends permeagility.web.Download {
         } else {
             try {
                 if (fromSQL == null || fromSQL.isEmpty()) {
+                    filename = fromTable+".json";
                     fromSQL = "SELECT FROM "+fromTable;
                 }
                 QueryResult qr = con.query(fromSQL);
@@ -78,12 +79,12 @@ public class Download extends permeagility.web.Download {
         String className = d.getTypeName();
         Set<String> columns = d.getPropertyNames();
         if (className != null) {
-            sb.append("\"@rid\":\""+d.getIdentity().toString().substring(1)+"\", \"@class\":\""+className+"\"");
+            sb.append("\"@rid\":\""+d.getIdentity().toString().substring(1)+"\", \"@type\":\""+className+"\"");
             comma = "\n, ";
         }
         for (String p : columns) {
-            if (className != null && (d.getTypeName().equals("ORole") || d.getTypeName().equals("OUser")) && !p.equals("name")) {
-                continue;  // Only the name is shown for an ORole or an OUser
+            if (className != null && (d.getTypeName().equals("role") || d.getTypeName().equals("user")) && !p.equals("name")) {
+                continue;  // Only the name is shown for an role or an user
             }
             if (NO_ALLOWS && p.startsWith("_allow")) {
                 continue;  // No allow columns, rename them with AS to retrieve them
@@ -120,10 +121,11 @@ public class Download extends permeagility.web.Download {
                     }
                 }
             }
-            if (t != null /*&& t != OType.CUSTOM */) {
+            if (t != null ) {
                 sb.append(comma);
                 if (t == Type.LINK) {
-                    Document ld = (Document)d.get(p);
+                    RID ldr = (RID)d.get(p);
+                    Document ld = con.get(ldr);
                     if (ld == null) {
                         sb.append("\""+p+"\":null");                    
                     } else if (level < maxLevel) {
@@ -132,11 +134,12 @@ public class Download extends permeagility.web.Download {
                         sb.append("\""+p+"\":\""+ld.getIdentity().toString().substring(1)+"\"");                    
                     }
                 } else if (t == Type.LIST) {
-                    List<Document> set = d.getList(p);
+                    List<RID> set = d.getList(p);
                     String lcomma = "";
                     sb.append("\""+p+"\": [");
                     if (set != null) {
-                        for (Document sd : set) {
+                        for (RID sdr : set) {
+                            Document sd = con.get(sdr);
                             if (sd != null) {
                                 if (level < maxLevel) {
                                     sb.append(lcomma+exportDocument(con, sd, maxLevel, level+1));
@@ -154,8 +157,9 @@ public class Download extends permeagility.web.Download {
                     sb.append("\""+p+"\": {");
                     if (map != null) {
                         for (String key : map.keySet()) {
-                            Document keyDoc = (Document)map.get(key);
-                            if (key != null && keyDoc != null ) {
+                            RID keyDocrid = (RID)map.get(key);
+                            if (key != null && keyDocrid != null ) {
+                                Document keyDoc = con.get(keyDocrid);
                                 if (key.startsWith("'") && key.endsWith("'")) key = key.substring(1, key.length() - 1);
                                 sb.append(lcomma+"\""+key.trim()+"\": ");
                                 if (level < maxLevel) {
@@ -176,9 +180,7 @@ public class Download extends permeagility.web.Download {
                     sb.append("\""+p+"\":"+d.getDouble(p));
                 } else if (t == Type.DATE || t == Type.DATETIME) {
                     sb.append("\""+p+"\":\""+d.getString(p)+"\"");
-         //       } else if (t == Type.EMBEDDED || t == Type.EMBEDDEDLIST || t == OType.EMBEDDEDMAP || t == OType.EMBEDDEDSET) {
-         //           sb.append("\""+p+"\":\""+d.field(p)+"\"");                
-                } else if (t == Type.STRING) {
+                 } else if (t == Type.STRING) {
                     String content = d.getString(p);
                     if (content != null && !content.isEmpty()) {
                         content = content
