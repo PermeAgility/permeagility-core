@@ -55,7 +55,10 @@ public class Merge extends Table {
         String tableName = parms.get("TABLENAME");
 
         // Process update of work tables
-        String update = processSubmit(con, parms, tableName, errors);
+        String update = processREST(con, parms); // Do table stuff
+    //    return update != null ? update : getTableWithControls(con, parms, TABLE_NAME);  // If REST did nothing - default result
+
+    //    String update = processSubmit(con, parms, tableName, errors);
         if (update != null) { return update; }
 
 /*        if (updateId != null && submit != null) {
@@ -209,18 +212,16 @@ public class Merge extends Table {
                 sb.append("Error retrieving import patterns: " + e.getMessage());
             }
         }
-        return head(con, "Merge")
-                + body(standardLayout(con, parms,
-                                errors.toString()
-                                + ((Security.getTablePriv(con, PlusSetup.MERGE_TABLE) & Security.PRIV_CREATE) > 0
-                                        ? popupForm("CREATE_NEW_ROW", this.getClass().getName(), "New merge path", null, "name",
-                                                paragraph("banner", Message.get(con.getLocale(), "CREATE_ROW"))
-                                                + hidden("TABLENAME", PlusSetup.MERGE_TABLE)
-                                                + getTableRowFields(con, PlusSetup.MERGE_TABLE, parms, "name,fromTable,toTable,fromKey,toKey")
-                                                + submitButton(con.getLocale(), "CREATE_ROW"))
-                                        : "")
-                                + sb.toString()
-                        ));
+        return errors.toString()
+            + ((Security.getTablePriv(con, PlusSetup.MERGE_TABLE) & Security.PRIV_CREATE) > 0
+                    ? popupFormHTMX("CREATE_NEW_ROW", this.getClass().getName()+"/"+PlusSetup.MERGE_TABLE, "put", DEFAULT_TARGET, "New merge path", "name",
+                            paragraph("banner", Message.get(con.getLocale(), "CREATE_ROW"))
+                            + hidden("TABLENAME", PlusSetup.MERGE_TABLE)
+                            + getTableRowFields(con, PlusSetup.MERGE_TABLE, parms, "name,fromTable,toTable,fromKey,toKey,-")
+                            + submitButton(con.getLocale(), "CREATE_ROW")
+                            + POPUP_FORM_CLOSER)
+                    : "")
+            + sb.toString();
     }
 
     public int insertDocument(DatabaseConnection con, Document doc, QueryResult columnMap, String toTable) {
