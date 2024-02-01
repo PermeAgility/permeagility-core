@@ -115,28 +115,16 @@ public void rollback() {  /* c.rollback();*/ }
 
 	/** Create a document - supply the classname */
 	public MutableDocument create(String typeName) {
-        // if (!c.isTransactionActive()) {
-        //    System.out.println("DatabaseConnection.create: no active transaction");
-        //}
-		return c.newDocument(typeName);
+        return c.newDocument(typeName);
 	}
 
 	/** Execute a query and return a QueryResult object */
     public QueryResult query(String expression) {
-       // boolean closethis = false;
-       // if (!c.isTransactionActive()) {
-       //     System.out.println("DatabaseConnection.query: no active transaction, will create a default one for this query: "+expression);
-       //     begin();
-       //     closethis = true;
-       // }
-    	if (DEBUG) System.out.println("DatabaseConnection.query="+expression+";");
+     	if (DEBUG) System.out.println("DatabaseConnection.query="+expression+";");
     	if (expression == null) { return null; }
        	lastAccess = System.currentTimeMillis();
         ResultSet result = c.query("SQL", expression);
         QueryResult qr = new QueryResult(result);
-       // if (closethis) {
-       //     commit();
-       // }
     	return qr;
     }
 
@@ -145,12 +133,6 @@ public void rollback() {  /* c.rollback();*/ }
     public QueryResult queryTable(String table, String where) { return queryTable(table, where, null, null); }
     public QueryResult queryTable(String table, String where, String order) { return queryTable(table, where, order, null); }
     public QueryResult queryTable(String table, String where, String order, String skipLimit) {
-       // boolean closethis = false;
-       // if (!c.isTransactionActive()) {
-       //     System.out.println("DatabaseConnection.query: no active transaction, will create a default one for this query");
-       //     begin();
-       //     closethis = true;
-       // }
         if (where != null && !where.isBlank()) where = " WHERE "+where; else where = "";
         if (order != null && !order.isBlank()) order = " ORDER BY "+order; else order = "";
         if (skipLimit != null) skipLimit = " "+skipLimit; else skipLimit = "";
@@ -176,9 +158,6 @@ public void rollback() {  /* c.rollback();*/ }
        	lastAccess = System.currentTimeMillis();
         ResultSet result = c.query("SQL", expression);
         QueryResult qr = new QueryResult(result);
-        //if (closethis) {
-        //    commit();
-       // }
     	return qr;
     }
 
@@ -193,56 +172,29 @@ public void rollback() {  /* c.rollback();*/ }
 
     /** Execute a query and return a QueryResultCache object */
     public QueryResultCache queryToCache(String expression) {
-       // boolean closethis = false;
-       // if (!c.isTransactionActive()) {
-       //     System.out.println("DatabaseConnection.query: no active transaction, will create a default one for this query");
-       //     begin();
-       //     closethis = true;
-       // }
     	if (DEBUG) System.out.println("DatabaseConnection.queryToCache="+expression+";");
     	if (expression == null) { return null; }
        	lastAccess = System.currentTimeMillis();
         ResultSet result = c.query("SQL", expression);
         QueryResultCache qr = new QueryResultCache(result);
-       // if (closethis) {
-       //     commit();
-       // }
     	return qr;
     }
 
     /** Get the first document found by this query */
     public Document queryDocument(String expression) {
-       //boolean closethis = false;
-        //if (!c.isTransactionActive()) {
-        //    System.out.println("DatabaseConnection(queryDocument): no active transaction, will create a default one for this query: "+expression);
-        //    begin();
-        //    closethis = true;
-       // }
     	if (DEBUG) System.out.println("DatabaseConnection.queryDocument="+expression+";");
     	if (expression == null) { return null; }
        	lastAccess = System.currentTimeMillis();
        	ResultSet result = c.query("SQL",expression);
         Document d = result.hasNext() ? result.toDocuments().get(0) : null;
-        //if (closethis) {
-        //    commit();
-        //}
   		return d;
     }
 
     /** Execute an update statement or a script if newline characters found */
     public Object update(String expression) {
-        //boolean closethis = false;
-        //if (!c.isTransactionActive()) {
-        //    System.out.println("DatabaseConnection.update: no active transaction, will create a default one for this query");
-        //    begin();
-        //    closethis = true;
-        //}
        if (DEBUG) System.out.println("DatabaseConnection.update="+expression+";");
        	lastAccess = System.currentTimeMillis();
         Object ro = c.command(expression.contains("\n") ? "SQLSCRIPT" : "SQL",expression);
-        //if (closethis) {
-        //    commit();
-        //}
         if (ro instanceof ResultSet) {
             ArrayList<Document> docs = new ArrayList<Document>();
             ResultSet rs = (ResultSet)ro;
@@ -279,16 +231,7 @@ public void rollback() {  /* c.rollback();*/ }
 
     public Document get(RID rid) {
         lastAccess = System.currentTimeMillis();
-       // if (!c.isTransactionActive()) {
-       //     System.out.println("DatabaseConnection.get: no active transaction, will create a default one for this query");
-       // }
        	return c.lookupByRID(rid, true).asDocument();
-    }
-
-    /** Flush the local cache */
-    public void flush() {
-        System.out.println("DatabaseConnection(flush) called - not implemented");
-        //c.getLocalCache().invalidate();
     }
 
     public Collection<Property> getColumns(String table) {

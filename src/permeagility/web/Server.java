@@ -43,7 +43,6 @@ import java.util.StringTokenizer;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.arcadedb.Constants;
-import com.arcadedb.database.DatabaseContext;
 import com.arcadedb.database.Document;
 import com.arcadedb.database.MutableDocument;
 import com.arcadedb.database.Record;
@@ -196,29 +195,29 @@ public class Server {
 			}
 		}
 
-                // Create an XNIO accept listener to spawn service loop/threads.
-                final ChannelListener<AcceptingChannel<StreamConnection>> acceptListener = (final AcceptingChannel<StreamConnection> channel) -> {
-                    try {
-                        final StreamConnection accepted = channel.accept();
-                        if (accepted != null) {
-                            executor.execute(() -> {
-                                try {
-                                    // Call the PermeAgility service and loop if returns true for keep alive
-                                    while(service(new BufferedChannelInputStream(accepted.getSourceChannel(),1024), new ChannelOutputStream(accepted.getSinkChannel()))) {}
-                                    accepted.close();
-                                    channel.resumeAccepts();
-                                 } catch (Exception e) {
-                                    System.out.println("Exception in execute/run: "+e);
-                                    IoUtils.safeClose(channel);
-                                }
-                            });
+        // Create an XNIO accept listener to spawn service loop/threads.
+        final ChannelListener<AcceptingChannel<StreamConnection>> acceptListener = (final AcceptingChannel<StreamConnection> channel) -> {
+            try {
+                final StreamConnection accepted = channel.accept();
+                if (accepted != null) {
+                    executor.execute(() -> {
+                        try {
+                            // Call the PermeAgility service and loop if returns true for keep alive
+                            while(service(new BufferedChannelInputStream(accepted.getSourceChannel(),1024), new ChannelOutputStream(accepted.getSinkChannel()))) {}
+                            accepted.close();
+                            channel.resumeAccepts();
+                            } catch (Exception e) {
+                            System.out.println("Exception in execute/run: "+e);
+                            IoUtils.safeClose(channel);
                         }
-                    } catch (IOException ignored) {
-                        System.out.println("Exception in acceptListener: "+ignored.getMessage());
-                    }
-                };
-                // Start the server and initialize
-                AcceptingChannel<? extends StreamConnection> server = null;
+                    });
+                }
+            } catch (IOException ignored) {
+                System.out.println("Exception in acceptListener: "+ignored.getMessage());
+            }
+        };
+        // Start the server and initialize
+        AcceptingChannel<? extends StreamConnection> server = null;
 
 		try {
 			// Start the XNNIO server to make sure we get the port first

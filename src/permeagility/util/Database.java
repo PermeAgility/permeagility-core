@@ -19,7 +19,6 @@ import java.util.Date;
 import java.util.Locale;
 import com.arcadedb.Constants;
 import com.arcadedb.ContextConfiguration;
-import com.arcadedb.database.DatabaseContext;
 import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.database.Document;
 import com.arcadedb.engine.ComponentFile;

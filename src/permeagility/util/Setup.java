@@ -17,22 +17,14 @@ package permeagility.util;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
-import java.util.Locale;
-
-import com.arcadedb.ContextConfiguration;
 import com.arcadedb.database.Document;
 import com.arcadedb.database.MutableDocument;
 import com.arcadedb.database.RID;
-import com.arcadedb.engine.ComponentFile.MODE;
 import com.arcadedb.schema.DocumentType;
 import com.arcadedb.schema.Property;
 import com.arcadedb.schema.Schema;
 import com.arcadedb.schema.Type;
-import com.arcadedb.server.ArcadeDBServer;
-import com.arcadedb.server.ServerDatabase;
-
 import permeagility.web.Message;
 import permeagility.web.Security;
 import permeagility.web.Server;
@@ -184,16 +176,11 @@ public class Setup {
 
     /* This should not be run inside a transaction */
     public static boolean checkInstallation(DatabaseConnection con) {
- //       boolean myTrans = !con.getDb().isTransactionActive();
+ 
         try {
             System.out.println("DatabaseSetup.checkInstallation ");
             con.updateScript(schemaScript);
             System.out.println("DatabaseSetup.checkInstallation finished schemaScript");
-
-  //          if (myTrans) {
-  //              System.out.println("Setup.checkInstallation starting a transaction");
-  //              con.begin();
-  //          }
 
             Schema schema = con.getSchema();
  
@@ -971,10 +958,6 @@ public class Setup {
  
             if (!installMessages.isEmpty()) System.out.println("\n\nSetup repaired:\n"+installMessages);
 
-     //       if (myTrans && con.getDb().isTransactionActive()) {
-     //           System.out.println("Setup.checkInstallation committing transaction");
-     //           con.commit();
-     //       }
             System.out.print("Checking database...");
             con.update("CHECK DATABASE FIX");
             System.out.println("complete.");
@@ -984,25 +967,15 @@ public class Setup {
         } catch (Exception e) {
             System.out.println("- failed: "+e.getMessage());
             e.printStackTrace();
-     //       if (myTrans && con.getDb().isTransactionActive()) {
-     //           System.out.println("Setup.checkInstallation rolling back transaction");
-     //           con.rollback();
-     //       }
             return false;
         }
-     //   if (!myTrans && !con.getDb().isTransactionActive()) {
-     //       System.out.println("Setup.checkInstallation restarting transaction that was open when process began");
-     //       con.begin();  // if was run inside transaction, make sure it is still inside a transaction
-     //   }
+     
         return true;
     }
 
 
     public static void createMenuItem(DatabaseConnection con, String name, String description, String classname, String addTo, String roles) {
-        // Create menuitem
-        //roles = (roles != null ? "#"+roles.replace(" ", "").replace(",",",#") : "");
-        //Object menuItem = con.update("INSERT INTO "+Setup.TABLE_MENUITEM+" SET name='"+name+"', active=true"
-        //        + ", description='"+description+"', classname='"+classname+"', _allowRead=["+roles+"]");
+        
         List<RID> roleList = new ArrayList<RID>();
         String[] rlt = roles.split(",");
         for (String tok : rlt) {
@@ -1118,7 +1091,7 @@ public class Setup {
     }
 
     public static void addTableToTableGroup(DatabaseConnection con, String theClass, String tableGroup) {
-        MutableDocument d = (MutableDocument)con.queryDocument("SELECT FROM "+TABLE_TABLEGROUP+" WHERE name='"+tableGroup+"'");
+        MutableDocument d = con.queryDocument("SELECT FROM "+TABLE_TABLEGROUP+" WHERE name='"+tableGroup+"'").modify();
         if (d == null) {
             d = con.create(TABLE_TABLEGROUP);
             d.set("name",tableGroup);
@@ -1223,39 +1196,19 @@ public class Setup {
     /** Check for the existence of a class or add it */
     public static DocumentType checkCreateTable(Schema schema, String className, StringBuilder errors) {
         DocumentType c = schema.getOrCreateDocumentType(className);
-//        if (c == null) {
-//            c = schema.createClass(className);
-//            errors.append(Weblet.paragraph("Schema update: Created "+className+" class/table"));
-//        }
         if (c == null) {
             errors.append(Weblet.paragraph("error","Schema update: Error creating "+className+" class/table"));
         }
-      //  if (c != null) {
-      //      if (c.isStrictMode()) {
-      //          c.setStrictMode(false);
-      //          errors.append(Weblet.paragraph("Schema update: Set non-strict "+className+" class/table"));
-      //      }
-      //  }
         return c;
     }
 
     /** Check for the existence of a class or add it */
     public static DocumentType checkCreateTable(DatabaseConnection con, Schema schema, String className, StringBuilder errors, String tableGroup) {
         DocumentType c = schema.getOrCreateDocumentType(className);
-   //     if (c == null) {
-   //         c = schema.createClass(className);
-   //         errors.append(Weblet.paragraph("Schema update: Created "+className+" class/table"));
-   //     }
         if (c == null) {
             errors.append(Weblet.paragraph("error","Schema update: Error creating "+className+" class/table"));
         }
-   //     if (c != null) {
-   //         if (c.isStrictMode()) {
-   //             c.setStrictMode(false);
-   //             errors.append(Weblet.paragraph("Schema update: Set non-strict "+className+" class/table"));
-   //         }
-   //     }
-        //if (tableGroup != null) addTableToTableGroup(con, className,tableGroup);
+        if (tableGroup != null) addTableToTableGroup(con, className,tableGroup);
         return c;
     }
 
@@ -1328,7 +1281,6 @@ public class Setup {
     public static void dropTable(DatabaseConnection con, String typename) { dropTable(con, typename, null); }
     public static boolean dropTable(DatabaseConnection con, String typename, StringBuilder errors) {
         try {
-            //con.update("ALTER TYPE "+classname+" SUPERTYPE NULL");  // Clear superclasses first otherwise will fail
             Schema schema = con.getSchema();
             schema.dropType(typename);
             Setup.removeTableFromAllTableGroups(con, typename);

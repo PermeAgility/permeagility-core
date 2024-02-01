@@ -91,9 +91,6 @@ public class Table extends Weblet {
                     return paragraph("error","Table: Error "+table+" table not found");
                 }
             }
-            if (restParts.length > 2) {
-                System.out.println("Further REST parts not implemented yet and will be ignored");
-            }
             if (httpMethod.equals("GET")) {
                 // if table and row specified, GET returns a single row as a form (use - for new row form)
                 if (!rid.equals("-")) parms.put("EDIT_ID", rid);  // leave edit id out for new row
@@ -350,9 +347,6 @@ public class Table extends Weblet {
             if (fieldMap.containsKey("_allow")) {
                 fieldMap.put("_allow",Security.getUserRoles(con)); // Override ownership
             }
-//            fieldMap.remove("_allowRead");   // and allow copy of access info
-//            fieldMap.remove("_allowUpdate");  // because it would be easier to remove access than add it back
-//            fieldMap.remove("_allowDelete");
             newDoc.fromMap(fieldMap);
             if (newDoc.has("name")) {
                 copyName = newDoc.getString("name");
@@ -388,9 +382,8 @@ public class Table extends Weblet {
             if (value != null && value.equals("null")) {
                 value = null;
             }
-            if (DEBUG) {
-                System.out.println("InsertRow(JavaAPI): column " + name + " is a " + type + " and its value is " + value);
-            }
+            if (DEBUG) System.out.println("InsertRow(JavaAPI): column " + name + " is a " + type + " and its value is " + value);
+
             if (!isNullOrBlank(value)) {
                 if (type == Type.BOOLEAN) {  // Boolean
                     value = value.replace(",","");
@@ -520,9 +513,6 @@ public class Table extends Weblet {
                 StringWriter sw = new StringWriter();
                 e.printStackTrace(new PrintWriter(sw));
                 errors.append(paragraph("error", Message.get(con.getLocale(), "CANNOT_CREATE_ROW") + e.getMessage()) + (DEBUG ? "<br>" + xxSmall(sw.toString()) : ""));
-     //           if (DEBUG || e instanceof OSecurityAccessException) {
-     //               System.err.println(sw.toString());  // Security messages must go to log
-     //           }
                 return false;
             }
         } else {
@@ -917,10 +907,6 @@ public class Table extends Weblet {
         return ret.toString();
     }
 
- //   public String getTableRowFields(DatabaseConnection con, String table) {
- //       return getTableRowFields(con, table, null, null, null);
- //   }
-
     public String getTableRowFieldsNew(DatabaseConnection con, String table, HashMap<String, String> parms) {
         // must make copy of parms and remove EDIT_ID, still want parms for in progress data values and FORCE_ columns
         HashMap<String,String> newParms = parms;
@@ -981,14 +967,6 @@ public class Table extends Weblet {
         }
     }
 
-    /**
-     * @param column - column information (name, type, etc...)
-     * @param initialValues - document
-     * @param con - connection/context
-     * @param formName - form to make field part of
-     * @param edit_id - record id of the value to be edited (the identity of initialValues would be misleading on a new record)
-     * @return a table row for a given column in the document
-     */
     public String getColumnAsField(String table, Property column, Document initialValues
                                 , DatabaseConnection con, String formName, String edit_id
                                 , HashMap<String, String> parms, ArrayList<String> submitCodeLines) {
@@ -1329,7 +1307,7 @@ public class Table extends Weblet {
             if (restParts.length > 2 && restParts[0].equals(table) && restParts[1].equals("*") 
                  && restParts[2].equalsIgnoreCase("WHERE")) {
                     if (DEBUG) System.out.println("We have a where clause coming");
-                    int restIndex = 2; // after 0table/1splat/2where/3column/4operator/5value/6and/7col/8eq/9val
+                    int restIndex = 2; // after 0table/1splat/2where/3column/4operator/5value/6and/7col/8eq/9val ...
                     while (restIndex + 3 < restParts.length) {  // if there are three more parts to read
                         String column = restParts[restIndex+1];
                         if (parms.get("FORCE_"+column) != null) hideColumn = column; // If column is forced (as a subtable, hide it)
@@ -1776,8 +1754,7 @@ public class Table extends Weblet {
                 }
             }
         }
-        return rightsOptionsForm(con, table, parms, errors.toString());
-                
+        return rightsOptionsForm(con, table, parms, errors.toString());        
     }
 
     public String rightsOptionsForm(DatabaseConnection con, String table, HashMap<String, String> parms, String errors) {
