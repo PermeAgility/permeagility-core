@@ -32,7 +32,7 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 	public static String INSTALLED_VERSION = "0";  // Set via constant to complete installation
 
 	public static String TABLE = "d3Script";
-	public static String TABLE_PLUGIN = "d3Plugin";
+	//public static String TABLE_PLUGIN = "d3Plugin";
 
 	public static String MENU_CLASS = "permeagility.plus.d3.D3Builder";
 	public static String DATA_CLASS = "permeagility.plus.d3.Data";
@@ -55,17 +55,17 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 			return false;
 		}
 
-      	DocumentType tableplugin = Setup.checkCreateTable(con, oschema, TABLE_PLUGIN, errors, newTableGroup);
-        Setup.checkTableSuperclass(oschema, tableplugin, "restricted", errors);
-		Setup.checkCreateColumn(con,tableplugin, "name", Type.STRING, errors);
-		Setup.checkCreateColumn(con,tableplugin, "description", Type.STRING, errors);
-		Setup.checkCreateColumn(con,tableplugin, "script", Type.STRING, errors);
+      	//DocumentType tableplugin = Setup.checkCreateTable(con, oschema, TABLE_PLUGIN, errors, newTableGroup);
+        //Setup.checkTableSuperclass(oschema, tableplugin, "restricted", errors);
+		//Setup.checkCreateColumn(con,tableplugin, "name", Type.STRING, errors);
+		//Setup.checkCreateColumn(con,tableplugin, "description", Type.STRING, errors);
+		//Setup.checkCreateColumn(con,tableplugin, "script", Type.STRING, errors);
 
 		DocumentType table = Setup.checkCreateTable(con, oschema, TABLE, errors, newTableGroup);
         Setup.checkTableSuperclass(oschema, table, "restricted", errors);
 		Setup.checkCreateColumn(con,table, "name", Type.STRING, errors);
 		Setup.checkCreateColumn(con,table, "description", Type.STRING, errors);
-		Setup.checkCreateColumn(con,table, "plugins", Type.LIST, tableplugin, errors);
+		//Setup.checkCreateColumn(con,table, "plugins", Type.LIST, tableplugin, errors);
 		Setup.checkCreateColumn(con,table, "dataScript", Type.STRING, errors);
 		Setup.checkCreateColumn(con,table, "style", Type.STRING, errors);
 		Setup.checkCreateColumn(con,table, "script", Type.STRING, errors);
@@ -86,20 +86,20 @@ public class PlusSetup extends permeagility.plus.PlusSetup {
 	@Override public boolean remove(DatabaseConnection con, HashMap<String,String> parms, StringBuilder errors) {
 
 		if (parms.get("REMOVE_MENU_"+getPackage()) != null) {
-                    Setup.removeMenuItem(con, MENU_CLASS, errors);
-                    Setup.removeMenuItem(con, DATA_CLASS, errors);
+			Setup.removeMenuItem(con, MENU_CLASS, errors);
+			Setup.removeMenuItem(con, DATA_CLASS, errors);
 		}
 
 		String remTab = parms.get("REMOVE_TABLES_"+getPackage());
 		remTab = remTab.replace(",", "");
 		if (remTab != null && remTab.equals("on")) {
-                    Setup.dropTable(con, TABLE, errors);
-                    Setup.dropTable(con, TABLE_PLUGIN, errors);
+            Setup.dropTable(con, TABLE, errors);
+        //  Setup.dropTable(con, TABLE_PLUGIN, errors);
 		}
 
-                setPlusUninstalled(con, this.getClass().getName());
-                INSTALLED = false;
-                return true;
+		setPlusUninstalled(con, this.getClass().getName());
+		INSTALLED = false;
+		return true;
 
 	}
 

@@ -146,14 +146,14 @@ public class Translate extends Table {
 							if (newMessage != null && replace == false) {
 								continue;
 							}
-                                                        String fromText = m.getString("description");
-                                                        String originalText = fromText;
-                                                        fromText = fromText.replace("{0}", "0").replace("{1}", "1").replace("{2}", "2").replace("{3}", "3");
-                                                        String newText = translate(fromLocale, toLocale, sb, fromText, email);
-                                                        if (newText != null) {
-                                                                updateMessage(con, messageName, originalText, newText, newLocale);
-                                                        }
-                                                        translateCount++;
+							String fromText = m.getString("description");
+							String originalText = fromText;
+							fromText = fromText.replace("{0}", "0").replace("{1}", "1").replace("{2}", "2").replace("{3}", "3");
+							String newText = translate(fromLocale, toLocale, sb, fromText, email);
+							if (newText != null) {
+									updateMessage(con, messageName, originalText, newText, newLocale);
+							}
+							translateCount++;
 						}
 					}
 					

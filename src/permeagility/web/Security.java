@@ -378,7 +378,7 @@ public class Security {
     
     public static String digest(String string) {
 
-        // Todo: use salt from file, generate if not found
+        // Todo: use salt from file, generate if not found or save the salt with the user
         //SecureRandom random = new SecureRandom();
         //byte[] salt = new byte[16];
         //random.nextBytes(salt);

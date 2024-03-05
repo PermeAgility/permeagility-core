@@ -47,24 +47,24 @@ public class UserRequest extends Table {
                     if (name == null || name.isEmpty() || pass == null || pass.isEmpty()) {
                         errors.append(paragraph("error", Message.get(locale,"USERREQUEST_NEED_NAMEPASS")));
                     } else if (serverCon.queryDocument("SELECT FROM "+Setup.TABLE_USERPROFILE+" WHERE name='"+name+"'") != null
-                            || serverCon.queryDocument("SELECT FROM OUser WHERE name='"+name+"'") != null) {
+                            || serverCon.queryDocument("SELECT FROM user WHERE name='"+name+"'") != null) {
                         errors.append(paragraph("error", Message.get(locale,"USERREQUEST_EXISTS")));
                     } else {
                         if (insertRow(con, Setup.TABLE_USERPROFILE, parms, errors)) {
                             if (ACCEPT_TO_ROLE != null && !ACCEPT_TO_ROLE.isEmpty()) {
                                 System.out.println("Automatically creating the user "+name+" with ACCEPT_TO_ROLE="+ACCEPT_TO_ROLE);
-                                Document roleDoc = serverCon.queryDocument("SELECT FROM ORole WHERE name='"+ACCEPT_TO_ROLE+"'");
+                                Document roleDoc = serverCon.queryDocument("SELECT FROM role WHERE name='"+ACCEPT_TO_ROLE+"'");
                                 if (roleDoc == null) {
-                                    System.out.println("ERROR in UserRequest: ORole "+ACCEPT_TO_ROLE+" not found");
+                                    System.out.println("ERROR in UserRequest: role "+ACCEPT_TO_ROLE+" not found");
                                     errors.append("Could not find role "+ACCEPT_TO_ROLE);
                                 } else {
                                     //System.out.println("Role "+ACCEPT_TO_ROLE+" found, adding user "+name);
                                     // name, password should already be in the request so leave it alone, other cols will be ignored
                                     parms.put(PARM_PREFIX+"status", "ACTIVE");
                                     parms.put(PARM_PREFIX+"roles", roleDoc.getIdentity().toString().substring(1));
-                                    if (insertRow(serverCon, "OUser", parms, errors)) {
+                                    if (insertRow(serverCon, "user", parms, errors)) {
                                         System.out.println("New user "+parms.get(PARM_PREFIX+"name")+" created");
-                                        Document userRecord = serverCon.queryDocument("SELECT FROM OUser WHERE name='"+name+"'");
+                                        Document userRecord = serverCon.queryDocument("SELECT FROM user WHERE name='"+name+"'");
                                         MutableDocument userProfile = (MutableDocument)serverCon.queryDocument("SELECT FROM "+Setup.TABLE_USERPROFILE+" WHERE name='"+name+"'");
                                         if (userProfile != null && userRecord != null) {
                                             // Now update the user profile so the new user owns it

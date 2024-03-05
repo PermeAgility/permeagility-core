@@ -33,8 +33,10 @@ public class Download extends permeagility.web.Download {
     @Override
     public String getContentType() { return "text/csv"; }
 
+    public String filename = "data.csv";
+ 
     @Override
-    public String getContentDisposition() { return "inline; filename=\"data.csv\""; }
+    public String getContentDisposition() { return "inline; filename=\""+filename+"\""; }
 
     @Override
     public byte[] getBytes(DatabaseConnection con, HashMap<String, String> parms) {
