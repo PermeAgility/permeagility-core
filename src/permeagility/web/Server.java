@@ -338,7 +338,7 @@ public class Server {
                                         String language = get.substring(16).trim().substring(0,2);
                                         if (DEBUG) System.out.println("Requested language="+language);
                                         requestLocale = new Locale.Builder().setLanguage(language).build();
-                                } else if (get.startsWith("HX-Target:")) {
+                                } else if (get.toLowerCase().startsWith("hx-target:")) {
                                         hxTarget = get.substring(10).trim();
                                         if (DEBUG) System.out.println("HX-Target="+hxTarget);
                                 } else if (ALLOW_KEEP_ALIVE && get.equalsIgnoreCase("Connection: keep-alive")) {
