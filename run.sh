@@ -1,2 +1,5 @@
 cd target
-java --add-opens java.base/java.nio.channels.spi=ALL-UNNAMED -jar permeagility-0.9.0-SNAPSHOT-jar-with-dependencies.jar
+java --add-exports java.management/sun.management=ALL-UNNAMED \
+ --add-opens java.base/java.util.concurrent.atomic=ALL-UNNAMED \
+ --add-opens java.base/java.nio.channels.spi=ALL-UNNAMED \
+ -jar permeagility-0.9.0-SNAPSHOT-jar-with-dependencies.jar
