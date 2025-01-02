@@ -24,29 +24,33 @@ import java.util.Locale;
 import java.util.Map;
 
 import com.arcadedb.database.Document;
+import com.arcadedb.database.RID;
 
 import permeagility.web.Message;
 import permeagility.web.Security;
 import permeagility.web.Table;
 
 /**
- * Shader Builder - edits and previews pages using webgl and twgl.js [optional]
+ * Shader Builder - edits and previews pages using webgl and twgl.js 
  * @author glenn
  */
 public class ShaderBuilder extends Table {
 
     public final String TABLE_NAME = "shader";
-    
-    @Override public String getPage(DatabaseConnection con, HashMap<String, String> parms) {
 
+    @Override
+    public String getPage(DatabaseConnection con, HashMap<String, String> parms) {
+        String update = processREST(con, parms); // Do table stuff
+        return update != null ? update : getTableWithControls(con, parms, PlusSetup.TABLE);  // If REST did nothing - default result
+    }
+
+    @Override
+    public String getTableWithControls(DatabaseConnection con, HashMap<String, String> parms, String tableName) {
+  
         StringBuilder sb = new StringBuilder();
         StringBuilder errors = new StringBuilder();
         Locale locale = con.getLocale();
         String preview = parms.get("PREVIEW");
-
-        // If there was an update do it
-        String update = processSubmit(con, parms, TABLE_NAME, errors);
-        if (update != null) { return update; }
         
         // If preview, return the assembled result page (without editors)
         if (preview != null) {
@@ -58,9 +62,12 @@ public class ShaderBuilder extends Table {
                 Map<String,Object> uses = viewDoc.getMap("usesShader");
                 if (uses != null && uses.size() > 0) {
                     for (String refName : uses.keySet()) {
-                        if (DEBUG) System.out.println("Including shader: "+refName);
-                        if (viewDoc.getString("vertexScript") != null) usesScripts.append("<script id=\""+refName.substring(1,refName.length()-1)+"-vs\" type=\"x-shader/x-vertex\">" + ((Document)uses.get(refName)).getString("vertexScript") + "</script>\n");
-                        if (viewDoc.getString("fragmentScript") != null) usesScripts.append("<script id=\""+refName.substring(1,refName.length()-1)+"-fs\" type=\"x-shader/x-fragment\">" + ((Document)uses.get(refName)).getString("fragmentScript") + "</script>\n");
+                        //if (DEBUG) 
+                        System.out.println("Including shader: "+refName);
+                        Object usesObj = uses.get(refName);
+                        Document usesDoc = usesObj instanceof Document ? (Document)usesObj : con.get((RID)usesObj);
+                        if (viewDoc.getString("vertexScript") != null) usesScripts.append("<script id=\""+refName+"-vs\" type=\"x-shader/x-vertex\">" + usesDoc.getString("vertexScript") + "</script>\n");
+                        if (viewDoc.getString("fragmentScript") != null) usesScripts.append("<script id=\""+refName+"-fs\" type=\"x-shader/x-fragment\">" + usesDoc.getString("fragmentScript") + "</script>\n");
                     }
                 }
                 String vertexScript = (viewDoc.getString("vertexScript") != null ? "<script id=\"vs\" type=\"x-shader/x-vertex\">" + viewDoc.getString("vertexScript") + "</script>\n" : "");
@@ -85,17 +92,17 @@ public class ShaderBuilder extends Table {
         
         // Return the default page
         return head(con, "Shader Builder", "" )
-                + body(standardLayout(con, parms,
+                + bodyMinimum(
                     ((Security.getTablePriv(con, TABLE_NAME) & Security.PRIV_CREATE) > 0
-                    ? popupForm("CREATE_NEW_ROW", null, Message.get(locale, "CREATE_ROW"), null, "NAME",
-                            paragraph("banner", Message.get(locale, "CREATE_ROW"))
+                    ? popupFormHTMX("CREATE_NEW_ROW", this.getClass().getName()+"/"+PlusSetup.TABLE, "put", parms.get("HX-TARGET"), Message.get(locale, "CREATE_ROW"), "NAME",
+                    paragraph("banner", Message.get(locale, "CREATE_ROW"))
                             + hidden("TABLENAME", TABLE_NAME)
                             + super.getTableRowFields(con, TABLE_NAME, parms, "name,description,usesShader,-")
                             + submitButton(locale, "CREATE_ROW"))
                     : "")
                     + errors.toString()
                     + sb.toString()
-         ));
+         );
     }
 
     @Override public String getTableRowForm(DatabaseConnection con, String table, HashMap<String, String> parms) {
@@ -133,19 +140,40 @@ public class ShaderBuilder extends Table {
         if (init == null) init = "/* Shader Test "+new Date()+" by "+con.getUser()+"*/\n";
         testScriptEditor = getCodeEditorControl(formName, PARM_PREFIX + "testScript", init, "application/javascript", null);                    
 
+        String saveButton = button("UpdateButton", "UPDATEBUTTON","UPDATE",Message.get(con.getLocale(),"SAVE_AND_RUN")
+        , "_=\"on click js \n"                    
+        + "   "+PARM_PREFIX+"vertexScriptEditor.save();\n"
+        + "   "+PARM_PREFIX+"fragmentScriptEditor.save();\n"
+        + "   "+PARM_PREFIX+"testScriptEditor.save();\n"
+        + "   var formData = new FormData();\n"    // assemble the formdata
+           + "   formData.append('SUBMIT','UPDATE');\n"
+           + addFormData(formName,"vertexScript")
+           + addFormData(formName,"fragmentScript")
+           + addFormData(formName,"testScript")
+           + addFormData("name")
+           + addFormData("description")
+           + addFormData("usesShader")
+           + addFormMultiData("UPDATE_NAME", "usesShader_map")  // maps have an extra field to hold the names
+           // then send path request via fetch
+           + "   fetch('/"+ this.getClass().getName()+"/"+PlusSetup.TABLE+"/"+edit_id +"', { method: 'PATCH', body: formData } ).then(data => {   \n"                        
+           + "      document.getElementById('previewFrame').src='permeagility.plus.webgl.ShaderBuilder?PREVIEW="+edit_id+"';\n"
+           + "      document.getElementById('headerservice').innerHTML = document.getElementById('"+PARM_PREFIX+"name').value;\n"
+           + "   });\n"
+           + "end\"\n"
+        );
 
         String resultView = 
             (readOnly ? "" :
-                button("UpdateButton", "UPDATEBUTTON","UPDATE",Message.get(con.getLocale(),"SAVE_AND_RUN"))
+                saveButton
                 +"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-                + popupBox("UPDATE_NAME", null, Message.get(con.getLocale(), "DETAILS"), null, "NAME",
+                + popupFormHTMX("UPDATE_NAME", "", "", parms.get("HX-TARGET"), Message.get(con.getLocale(), "DETAILS"), "NAME",
                         paragraph("banner", Message.get(con.getLocale(), "DETAILS"))
                         + hidden("TABLENAME", TABLE_NAME)
                         + super.getTableRowFields(con, TABLE_NAME, parms, "name,description,usesShader,-")
                 )
                 +"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
             )
-            + popupForm("UPDATE_MORE", null, Message.get(con.getLocale(), "MORE"), null, "NAME",
+            + popupFormHTMX("UPDATE_MORE", this.getClass().getName()+"/"+PlusSetup.TABLE+"/"+edit_id, "PATCH", parms.get("HX-TARGET"),Message.get(con.getLocale(), "MORE"),  "NAME",
                     paragraph("banner", Message.get(con.getLocale(), "MORE"))
                     + hidden("TABLENAME", TABLE_NAME)
                     + (readOnly ? "" : deleteButton(con.getLocale())+"<br>")
@@ -158,25 +186,7 @@ public class ShaderBuilder extends Table {
                +script("Split(['#leftHand', '#rightHand'], { gutterSize: 8, minSize: [5,5], cursor: 'col-resize' });\n"
                         + "Split(['#vertexEditor', '#testScriptEditor'], { direction: 'vertical', sizes: [50, 50], minSize: [10,10], gutterSize: 8, cursor: 'row-resize' });\n"
                         + "Split(['#fragmentEditor', '#resultView'], { direction: 'vertical', sizes: [50, 50], minSize: [10,10], gutterSize: 8, cursor: 'row-resize' });\n"
-                       +(readOnly ? "" :
-                        "d3.select('#headerservice').text(document.getElementById('"+PARM_PREFIX+"name').value);\n"
-                       + "d3.select('#UpdateButton').on('click', function() { \n"
-                       + "   "+PARM_PREFIX+"vertexScriptEditor.save();\n"  
-                       + "   "+PARM_PREFIX+"fragmentScriptEditor.save();\n"
-                       + "   "+PARM_PREFIX+"testScriptEditor.save();\n"
-                       + "   var formData = new FormData();\n"
-                       + "   formData.append('SUBMIT','UPDATE');\n"
-                            + addFormData(formName,"vertexScript")
-                            + addFormData(formName,"fragmentScript")
-                            + addFormData(formName,"testScript")
-                            + addFormData("name")
-                            + addFormData("description")
-                            + addFormData("usesShader")
-                       + "   d3.xhr('').post(formData, function(error,data) {   \n"                        
-                       + "      d3.select('#previewFrame').attr('src','permeagility.plus.webgl.ShaderBuilder?PREVIEW="+edit_id+"');\n"  // Refresh preview
-                       + "      d3.select('#headerservice').text(document.getElementById('"+PARM_PREFIX+"name').value);\n"  // Update name (if changed)
-                       + "   });\n"
-                       + "});\n")
+                        + "document.getElementById('headerservice').innerHTML = document.getElementById('"+PARM_PREFIX+"name').value;\n"
                 );
     }
 
@@ -187,7 +197,11 @@ public class ShaderBuilder extends Table {
     public String addFormData(String formName, String name) {
         return "formData.append('"+PARM_PREFIX+name+"',document.getElementById('"+formName+PARM_PREFIX+name+"').value);\n";
     }
- 
+
+    public String addFormMultiData(String formName, String name) {
+        return "formData.append('"+PARM_PREFIX+name+"',Array.from(document.getElementById('"+formName+"').elements).filter(e => e.id==='"+PARM_PREFIX+name+"').map(e => e.value).join(','));\n";
+    }
+
     public static String SHADER_CONTROLS_SCRIPT = 
         "// Add Shader controls - call SHADER_CONTROLS(myUpdateFunction) in your update function\n" +
         "var SHADER_STOP = false;\n" +
@@ -242,8 +256,8 @@ public class ShaderBuilder extends Table {
             if (uses != null && uses.size() > 0) {
                 for (String refName : uses.keySet()) {
                     if (DEBUG) System.out.println("Including shader: "+refName);
-                    if (viewDoc.getString("vertexScript") != null) usesScripts.append("<script id=\""+refName.substring(1,refName.length()-1)+"-vs\" type=\"x-shader/x-vertex\">" + ((Document)uses.get(refName)).getString("vertexScript") + "</script>\n");
-                    if (viewDoc.getString("fragmentScript") != null) usesScripts.append("<script id=\""+refName.substring(1,refName.length()-1)+"-fs\" type=\"x-shader/x-fragment\">" + ((Document)uses.get(refName)).getString("fragmentScript") + "</script>\n");
+                    if (viewDoc.getString("vertexScript") != null) usesScripts.append("<script id=\""+refName+"-vs\" type=\"x-shader/x-vertex\">" + ((Document)uses.get(refName)).getString("vertexScript") + "</script>\n");
+                    if (viewDoc.getString("fragmentScript") != null) usesScripts.append("<script id=\""+refName+"-fs\" type=\"x-shader/x-fragment\">" + ((Document)uses.get(refName)).getString("fragmentScript") + "</script>\n");
                 }
             }
             String vertexScript = (viewDoc.getString("vertexScript") != null ? "<script id=\"vs\" type=\"x-shader/x-vertex\">" + viewDoc.getString("vertexScript") + "</script>\n" : "");

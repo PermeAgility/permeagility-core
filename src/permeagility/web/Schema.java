@@ -149,7 +149,6 @@ public class Schema extends Weblet {
                         ? popupFormHTMX("NEWTABLE_Ungrouped", "/Schema", "PUT", parms.get("HX-TARGET"), Message.get(con.getLocale(), "NEW_TABLE"), "NEWTABLENAME",
                                 inputWithPlaceholder("NEWTABLENAME", Message.get(con.getLocale(),"NEW_TABLE_NAME")) + "&nbsp;&nbsp;"
                                 + submitButton(con.getLocale(), "NEW_TABLE")
-                                + POPUP_FORM_CLOSER
                         )
                         : "")
                 + div("schema","tableGroups", blocks.toString())

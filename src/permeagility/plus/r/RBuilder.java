@@ -38,16 +38,23 @@ import permeagility.web.Thumbnail;
 
 public class RBuilder extends Table {
 
-//    public static String R_COMMAND = "/bin/bash -c r";
-    public static String R_COMMAND = "/usr/local/bin/r";
+     public final String APP_NAME = "R Builder";
     public static boolean DEBUG = true;
 
+    public static String R_COMMAND = "/usr/bin/R";
+//    public static String R_COMMAND = "/bin/bash -c r";
+ 
     // Processes in progress by RScript ID containing RScript id and process
     static ConcurrentHashMap<String, Process> processes = new ConcurrentHashMap<>();
 
     @Override
     public String getPage(DatabaseConnection con, HashMap<String, String> parms) {
-        parms.put("SERVICE", "R Builder");
+        String update = processREST(con, parms); // Do table stuff
+        return update != null ? update : getTableWithControls(con, parms, PlusSetup.TABLE);  // If REST did nothing - default result
+    }
+
+    @Override
+    public String getTableWithControls(DatabaseConnection con, HashMap<String, String> parms, String tableName) {
         
         StringBuilder sb = new StringBuilder();
         StringBuilder errors = new StringBuilder();
@@ -58,13 +65,13 @@ public class RBuilder extends Table {
         String submit = parms.get("SUBMIT");
         String preview = parms.get("PREVIEW");
         String viewText = parms.get("VIEWTEXT");
-        String tableName = PlusSetup.TABLE;
         
         // Handle data editing using the default table behaviour
-        String update = processSubmit(con, parms, tableName, errors);
-        if (update != null) { return update; }
+   //     String update = processSubmit(con, parms, tableName, errors);
+   //     if (update != null) { return update; }
 
         // If there was an update, run it
+        System.out.println("submit="+submit);
         if (submit != null && submit.equals("UPDATE")) { 
             runRProcess(con, parms, errors); 
         }  
@@ -91,7 +98,7 @@ public class RBuilder extends Table {
         if (viewText != null && !viewText.equals("null")) {
             if (processes.get(viewText) != null) {
                 errors.append(paragraph("warning", "Process is still running"));
-                return head(con, "R Builder - Text result view") + body(errors.toString());
+                return head(con, "R Builder - Text result view") + body(paragraph(errors.toString()));
             } else {
                 Document doc = con.get(viewText);
                 if (doc == null) {
@@ -101,7 +108,7 @@ public class RBuilder extends Table {
                     if (textResult == null) {
                         textResult = "No results found";
                     }
-                    return head(con, "R Builder - Text result view") + bodyOnLoad("<pre>"+textResult+"</pre>", "window.scrollTo(0, document.body.scrollHeight);");
+                    return head(con, "R Builder - Text result view") + bodyOnLoad(paragraph(textResult), "window.scrollTo(0, document.body.scrollHeight);");
                 }
             }
         }
@@ -118,9 +125,9 @@ public class RBuilder extends Table {
         
         // Return the default result
         return head(con, "R Builder", "")
-        + body(standardLayout(con, parms,
+        + bodyMinimum(
             ((Security.getTablePriv(con, PlusSetup.TABLE) & Security.PRIV_CREATE) > 0
-                ? popupForm("CREATE_NEW_ROW", null, Message.get(locale, "CREATE_ROW"), null, "NAME",
+            ? popupFormHTMX("CREATE_NEW_ROW", this.getClass().getName()+"/"+PlusSetup.TABLE, "put", parms.get("HX-TARGET"), Message.get(locale, "CREATE_ROW"), "NAME",
                     paragraph("banner", Message.get(locale, "CREATE_ROW"))
                     + hidden("TABLENAME", PlusSetup.TABLE)
                     + super.getTableRowFields(con, PlusSetup.TABLE, parms, "name,description,-")
@@ -129,7 +136,7 @@ public class RBuilder extends Table {
            + "&nbsp;&nbsp;"
             + errors.toString()
             + sb.toString()
-        ));
+        );
     }
 
     public boolean updateBlobFromFile(DatabaseConnection con, Document doc, String table, String blobName, String blobFile) {
@@ -193,18 +200,36 @@ public class RBuilder extends Table {
         String scriptEditor = getCodeEditorControl(formName, PARM_PREFIX + "RScript", init, "text/x-rsrc", readOnly ? ",readOnly:true" : null, null);                    
         String resultText = frame("resultFrame","permeagility.plus.r.RBuilder?VIEWTEXT="+edit_id);  //"<iframe id='resultFrame' width='100%' height='100%'></iframe>\n";
 
+        String saveButton = button("UpdateButton", "UPDATEBUTTON","UPDATE",Message.get(con.getLocale(),"SAVE_AND_RUN")
+        , "_=\"on click js \n"                    
+            + "   "+PARM_PREFIX+"RScriptEditor.save();\n"
+           + "   var formData = new FormData();\n"    // assemble the formdata
+           + "   formData.append('SUBMIT','UPDATE');\n"
+           + addFormData(formName,"RScript")
+           + addFormData("name")
+           + addFormData("description")
+           // then send path request via fetch
+           + "   fetch('/"+ this.getClass().getName()+"/"+PlusSetup.TABLE+"/"+edit_id +"', { method: 'PATCH', body: formData } ).then(data => {   \n"                        
+           + "      document.getElementById('previewFrame').src='permeagility.plus.d3.D3Builder?PREVIEW="+edit_id+"';\n"
+           + "      document.getElementById('headerservice').innerHTML = document.getElementById('"+PARM_PREFIX+"name').value;\n"
+           + "   });\n"
+           + "end\"\n"
+        );
+
         String resultView = 
                 (readOnly ? "" : 
-                    button("UpdateButton", "UPDATEBUTTON","UPDATE",Message.get(con.getLocale(),"SAVE_AND_RUN"))+"&nbsp;&nbsp;&nbsp;"
+                    saveButton
                     +"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-                    + popupBox("UPDATE_NAME", null, Message.get(con.getLocale(), "DETAILS"), null, "NAME",
+                    + popupFormHTMX("UPDATE_NAME", "", "", parms.get("HX-TARGET"), Message.get(con.getLocale(), "DETAILS"), "NAME",
+//                    + popupBox("UPDATE_NAME", null, Message.get(con.getLocale(), "DETAILS"), null, "NAME",
                         paragraph("banner", Message.get(con.getLocale(), "DETAILS"))
                         + hidden("TABLENAME", PlusSetup.TABLE)
                         + super.getTableRowFields(con, PlusSetup.TABLE, parms, "name,description,-")
                     )
                     + "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
                 )
-                + popupForm("UPDATE_MORE", null, Message.get(con.getLocale(), "MORE"), null, "NAME",
+                + popupFormHTMX("UPDATE_MORE", this.getClass().getName()+"/"+PlusSetup.TABLE+"/"+edit_id, "PATCH", parms.get("HX-TARGET"),Message.get(con.getLocale(), "MORE"),  "NAME",
+//                + popupForm("UPDATE_MORE", null, Message.get(con.getLocale(), "MORE"), null, "NAME",
                         paragraph("banner", Message.get(con.getLocale(), "MORE"))
                         + hidden("TABLENAME", PlusSetup.TABLE)
                         + (readOnly ? "" : deleteButton(con.getLocale())+"<br>")
@@ -216,21 +241,7 @@ public class RBuilder extends Table {
                +div("rightHand","split split-horizontal",resultView)
                +script("Split(['#leftHand', '#rightHand'], { sizes:[50,50], gutterSize: 8, cursor: 'col-resize' });\n"
                         + "Split(['#scriptEditor', '#resultText'], { direction: 'vertical', sizes: [50, 50], gutterSize: 8, cursor: 'row-resize' });\n"
-                    +(readOnly ? "" : 
-                         "d3.select('#headerservice').text(document.getElementById('"+PARM_PREFIX+"name').value);\n"
-                       + "d3.select('#UpdateButton').on('click', function() { \n"
-                       + "   "+PARM_PREFIX+"RScriptEditor.save();\n"
-                       + "   var formData = new FormData();\n"
-                       + "   formData.append('SUBMIT','UPDATE');\n"
-                            + addFormData(formName,"RScript")
-                            + addFormData("name")
-                            + addFormData("description")
-                       + "   d3.xhr('').post(formData, function(error,data) {   \n"                        
-                       + "      d3.select('#resultFrame').attr('src','permeagility.plus.r.RBuilder?VIEWTEXT="+edit_id+"');\n"
-                       + "      d3.select('#previewFrame').attr('src','permeagility.plus.r.RBuilder?PREVIEW="+edit_id+"');\n"
-                       + "      d3.select('#headerservice').text(document.getElementById('"+PARM_PREFIX+"name').value);\n"
-                       + "   });\n"
-                       + "});\n")
+                        + "document.getElementById('headerservice').innerHTML = document.getElementById('"+PARM_PREFIX+"name').value;\n"
                 );
        
     }
@@ -242,12 +253,11 @@ public class RBuilder extends Table {
     public String addFormData(String formName, String name) {
         return "formData.append('"+PARM_PREFIX+name+"',document.getElementById('"+formName+PARM_PREFIX+name+"').value);\n";
     }
- 
 
     private void runRProcess(DatabaseConnection con, HashMap<String,String> parms, StringBuilder errors) {
         String run = parms.get("EDIT_ID");
         System.out.println("Build R Process " + run);
-        MutableDocument runDoc = (MutableDocument)con.get(run);
+        MutableDocument runDoc = con.get(run).modify();
         if (runDoc == null) {
             errors.append(paragraph("Could not retrieve run details using " + run));
         } else if (processes.get(run) != null) {
@@ -275,10 +285,11 @@ public class RBuilder extends Table {
                 File output = File.createTempFile("RProcess", ".out");
                 System.out.println("Temp output file created " + output.getAbsolutePath());
 
-                //String execCommand = R_COMMAND + " --quiet --vanilla -f " + rscript.getAbsolutePath() + " 1>" + output.getAbsolutePath() + " 2>&1";
-                String execCommands[] = {"/bin/bash", "-c", R_COMMAND+" --quiet --vanilla -f " + rscript.getAbsolutePath() + " 1>" + output.getAbsolutePath() + " 2>&1"};
+                String execCommand = R_COMMAND + " --quiet --vanilla -f " + rscript.getAbsolutePath() + " 1>" + output.getAbsolutePath() + " 2>&1";
+//                String execCommands[] = {"/bin/bash", "-c", "r", "--quiet", "--vanilla", "<"+rscript.getAbsolutePath(),"1>" + output.getAbsolutePath(), "2>&1"};
+                String execCommands[] = {"/bin/bash", "-c", execCommand};
 
-                System.out.println("Running command " + execCommands[2]);
+                System.out.println("Running command " + execCommand);
                 Process newProcess = Runtime.getRuntime().exec(execCommands);
                 processes.put(run, newProcess);
                 String runDocId = runDoc.getIdentity().toString().substring(1);

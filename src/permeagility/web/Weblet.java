@@ -105,6 +105,7 @@ public abstract class Weblet {
     public static String bodyOnLoad(String s, String l) { return "<body "+BODY_OPTIONS+" onLoad=\"" + l + "\">"+"\n" + s + SCREEN_FADE + "</body>"; }
     public static String bodyWithAttribute(String s, String l) { return "<body "+BODY_OPTIONS+" " + l + "\">"+"\n" + s + SCREEN_FADE + "</body>"; }
     
+    public static String span(String s) { return "<span>\n" + s + "</span>\n"; }
     public static String span(String style, String s) { return "<span class=\"" + style + "\">\n" + s + "</span>\n"; }
     public static String div(String contents) { return "<div>\n" + (contents == null ? "" : contents) + "</div>\n"; }
     public static String div(String id, String contents) { return "<div "+(id == null ? "" : "id=\"" + id + "\"")+">\n" + (contents == null ? "" : contents) + "</div>\n"; }
@@ -223,6 +224,9 @@ public abstract class Weblet {
     public static String rowOnClickHTMX(String c, String s, String onClick, String title, String target) {
         return "<tr class=\"" + c + "\" hx-target=\"#"+target+"\" hx-trigger=\"click\" hx-get=\"" + onClick + "\" "+(title!=null ? " title=\""+title+"\"" : "")+" >\n" + (s == null ? "&nbsp;" : s) + "</tr>\n";
     }
+    public static String rowOnClickHTMX2(String c, String s, String onClick, String title, String target) {
+        return "<tr class=\"" + c + "\" hx-swap=\"outerHTML\" hx-target=\"closest tr\" hx-trigger=\"click\" hx-get=\"" + onClick + "/edit\" "+(title!=null ? " title=\""+title+"\"" : "")+" >\n" + (s == null ? "&nbsp;" : s) + "</tr>\n";
+    }
 
     public static String columnHeader(String c, String s) { return "<th class=\"" + c + "\">" + s + "</th>\n"; }
     public static String columnHeader(String s) { return "<th>" + s + "</th>\n"; }
@@ -333,44 +337,16 @@ public abstract class Weblet {
     public static String formEnd() { return "</form>\n"; }
     
     /** Creates a link which will popup a form containing the content given as a parameter */
-    public static String popupForm(String formName, String action, String linkText, String linkClass, String focusField, String content) {
-        return "<a class=\"popuplink\">"+linkText+POPUP_SUFFIX+"</a>\n"
-                +"<div class=\"canpopup\">\n"
-                +"<form id=\""+formName+"\" name=\""+formName+"\" method=\"post\" ENCTYPE=\"multipart/form-data\" action=\""+(action==null ? "" : action)+"\" >\n"
-                +content
-                +"\n</form></div>\n";
-    }
-
-    /** Creates a link which will popup a form containing the content given as a parameter */
     public static String popupFormHTMX(String formName, String action, String method, String target, String linkText, String focusField, String content) {
-        return "<a href=\"#popup-"+formName+"\" class=\"popbox\">"+linkText+POPUP_SUFFIX+"</a>\n"
-                +"<div id=\"popup-"+formName+"\" class=\"modal\">\n"
-                +"  <div class=\"pop-content\">\n"
-                +"    <form  id=\""+formName+"\" name=\""+formName+"\" enctype=\"multipart/form-data\""
-                +"           hx-"+method.toLowerCase()+"=\""+action+"\" hx-target=\"#"+target+"\" hx-swap=\"innerHTML\" class=\"form-container\">\n"
-                +        content 
-                +"    </form>\n"
-                +"  </div>\n"
-                +"</div>\n";
-    }
-    public static String POPUP_FORM_CLOSER = "&nbsp;<a href=\"#\" class=\"box-close\">x</a>\n";
-
-    public static String popupHTMX(String name, String linkText, String focusField, String content) {
-        return "<a href=\"#popup-"+name+"\" class=\"popbox\">"+linkText+POPUP_SUFFIX+"</a>\n"
-                +"<div id=\"popup-"+name+"\" class=\"modal\">\n"
-                +"  <div class=\"pop-content\">\n"
-                +        content
-                +"  </div>\n"
-                +"</div>\n";
-    }
-
-    /** Creates a link which will popup a form containing the content given as a parameter */
-    public static String popupBox(String formName, String action, String linkText, String linkClass, String focusField, String content) {
-        return "<a class=\"popuplink\">"+linkText+POPUP_SUFFIX+"</a>\n<div class=\"canpopup\">\n" +content +"\n</div>\n";
-    }
-
-    public static String popupBox(String linkText, String content) {
-        return "<a class=\"popuplink\">"+linkText+POPUP_SUFFIX+"</a>\n<div class=\"canpopup\">\n" +content +"\n</div>\n";
+        return 
+            "<button type=\"button\" popovertarget=\""+formName+"-pop\" popovertargetaction=\"show\">"+linkText+POPUP_SUFFIX+"</button>\n"
+            +"  <div id=\""+formName+"-pop\" popover>\n"
+            +"    <form  id=\""+formName+"\" name=\""+formName+"\" enctype=\"multipart/form-data\""
+            +"           hx-"+method.toLowerCase()+"=\""+action+"\" hx-target=\"#"+target+"\" hx-swap=\"innerHTML\" class=\"form-container\">\n"
+            +        content 
+            +"    </form>\n"
+            +"<p align=\"right\"><button type=\"button\" popovertarget=\""+formName+"-pop\" popovertargetaction=\"hide\">Close</button></p>\n"
+            +"</div>\n";
     }
 
     public static String frame(String id) { return frame(id,null); }
@@ -434,14 +410,6 @@ public abstract class Weblet {
 
     public static String inputDisabled(String n, Object value, int size) {
             return "<input id=\"" + n + "\" name=\"" + n + "\" size=" + size + " DISABLED value=\"" + (value == null ? "" : value) + "\">";
-    }
-
-    public String ngInput(String model) {
-            return "<input "+TEXT_INPUT_OPTIONS+" ng-model=\"" + model + "\" type=\"TEXT\" " + (isReadOnly() ? "DISABLED" : "") + ">";
-    }
-
-    public String ngInput(String model, String init) {
-            return "<input "+TEXT_INPUT_OPTIONS+" ng-model=\"" + model + "\" ng-init=\"" + init + "\" type=\"TEXT\" " + (isReadOnly() ? "DISABLED" : "") + ">";
     }
 
     public static String password() { return "<input type=\"PASSWORD\" name=\"PASSWORD\">"; }

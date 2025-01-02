@@ -64,16 +64,16 @@ public abstract class PlusSetup extends Weblet {
 
     /** Default install form (TABLEGROUP,MENU,ROLES) override to add fields (be sure to include default fields if needed) */
     public String getAddForm(DatabaseConnection con) {
-        return "TableGroup "+createListFromTable("TABLEGROUP_"+getPackage(), "Plus", con, "tableGroup")
-                +" or "+input("NEW_TABLEGROUP_"+getPackage(),"")
-                +"<br>Add to menu"+createListFromTable("MENU_"+getPackage(), "", con, "menu",null, false, null, true)
-                +"<br>Roles: "+ linkListControl(con, "ROLES_"+getPackage(), "identity", getCache().getResult(con,getQueryForTable(con, "identity")), con.getLocale(), null);
+        return span("TableGroup ")+createListFromTable("TABLEGROUP_"+getPackage(), "Plus", con, "tableGroup")
+                +span(" or ")+input("NEW_TABLEGROUP_"+getPackage(),"")
+                +"<br>"+span("Add to menu")+createListFromTable("MENU_"+getPackage(), "", con, "menu",null, false, null, true)
+                +"<br>"+span("Roles: ")+ linkListControl(con, "ROLES_"+getPackage(), "identity", getCache().getResult(con,getQueryForTable(con, "identity")), con.getLocale(), null);
     }
 
     /** Default remove form (REMOVE_TABLES,REMOVE_MENU) override to add fields (be sure to include default fields if needed) */
     public String getRemoveForm(DatabaseConnection con) {
-        return "Remove tables "+checkbox("REMOVE_TABLES_"+getPackage(),true)
-                +"<br>Remove from menu"+checkbox("REMOVE_MENU_"+getPackage(),true);
+        return span("Remove tables ")+checkbox("REMOVE_TABLES_"+getPackage(),true)
+                +"<br>"+span("Remove from menu")+checkbox("REMOVE_MENU_"+getPackage(),true);
     }
 
     /** Default upgrade form - no fields (override to add your own as appropriate) */

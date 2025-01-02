@@ -414,7 +414,7 @@ public class Context extends Weblet {
                                             paragraph("banner", Message.get(locale, act) + " " + m)
                                             + hidden("MODULE", m)
                                             + (installed ? (act.equals("PLUS_REMOVE") ? plusSetup.getRemoveForm(con) : plusSetup.getUpgradeForm(con)) : plusSetup.getAddForm(con))
-                                            + br() + center(submitButton(locale, act) + POPUP_FORM_CLOSER)
+                                            + br() + center(submitButton(locale, act) )
                                     ))
                             + column(plusSetup.getInfo())
                             + (errors.length() > 0 ? row(columnSpan(3, errors.toString())) : "")

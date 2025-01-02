@@ -1341,12 +1341,12 @@ public class Setup {
 /* This is the light PermeAgility stylesheet */
 
 /* Reset from the default browser styles */
-*,*::before,*::after{ 
-    box-sizing: border-box; margin: 0px; padding: 0px; scroll-behavior: smooth; 
+*,*::before,*::after{
+    box-sizing: border-box; margin: 0px; padding: 0px; scroll-behavior: smooth;
 }
 html { background-color: #fff; }
 body { font-family: verdana,sans-serif; height: 100%; min-height:100%;
-        color: black; 
+        color: black;
 }
 
 /* positioning of header items */
@@ -1361,7 +1361,7 @@ a.headerlogo:hover { text-decoration: none; background-color: transparent;}
 #headertime { font-size: 0.75em; position: absolute; top: 5px; right: 5px; }
 #headeruser { font-size: 0.75em; position: absolute; top: 50px; right: 5px; }
 #service { position: absolute; top: 70px; bottom: 0px; width: 100%;
-    background-image: linear-gradient(to right, white, #ccc) !important; 
+    background-image: linear-gradient(to right, white, #ccc) !important;
     overflow-y: auto; padding: 0.5em;
 }
 
@@ -1371,8 +1371,8 @@ a:hover { text-decoration: underline; }
 a, a.menuitem, a.popuplink {color: black;}
 a.menuitem:link { text-decoration: none; }
 a.menuitem:visited { text-decoration: none; }
-a:hover, a.menuitem:hover, a.popuplink:hover { 
-    text-decoration: none; color: black; 
+a:hover, a.menuitem:hover, a.popuplink:hover {
+    text-decoration: none; color: black;
     background: radial-gradient(ellipse, darkorange, white);
 }
 .selected { font-weight: 600; text-decoration: underline; }
@@ -1394,7 +1394,7 @@ input, textarea, select {
 }
 input.number { text-align: right; }
 th { font-weight: bold; background-color: lightgray;
-    border-radius: 8px 8px 0px 0px; 
+    border-radius: 8px 8px 0px 0px;
 }
 tbody { overflow-y: scroll; }
 tr { background-color: #fff; vertical-align: top; }
@@ -1418,7 +1418,7 @@ table.sortable thead { color: black; font-weight: bold; cursor: default; }
 
 /* paragraphs types */
 p.menuheader {  color: white;  margin: 0.2em 0em 0em 0em; }
-P.banner { 
+P.banner {
     font-weight: bold;  text-align:center;  color: black;
     margin: 0.2em 0em 0em 0em;
     page-break-after: avoid;
@@ -1496,18 +1496,12 @@ rect.node { opacity: 0.5; }
 rect.selection { opacity:0.8; fill: none; stroke: white; stroke-width: 4px; stroke-dasharray: 5,5; }
 
 /* For popup modal forms */
-.popbox {padding: 0.2em 0.2em; border-radius: 3px; }
-.modal {
-    background-color: #ccc;
-    border-radius: 6px;
-    position: fixed;
-    transition: all 0.8s;
-    visibility: hidden;
-    opacity: 0; z-index: 1;
-}
-.pop-content { padding: 0.75em 0.75em; }
-.modal:target {visibility: visible; opacity: 1; }
-.box-close {float: right; font-size: 1.5em; }
+ :popover-open {
+    top: 20px; left: 50%; transform: translateX(-50%);
+    padding: 10px 10px; border-radius: 10px;
+    background-color: #ddd;
+   }
+   ::backdrop {   backdrop-filter: blur(2px); }
 
 /* For Menu/Navigator popup */
 .nav-button {
@@ -1538,13 +1532,13 @@ rect.selection { opacity:0.8; fill: none; stroke: white; stroke-width: 4px; stro
 }
 #nav-content ul { height: 100%; display: flex; flex-direction: column; margin-left: 0px; list-style: none; }
 #nav-content li:not(.small) + .small { margin-top: auto; }
-#nav-content {  
+#nav-content {
     margin-top: 40px;  padding: 10px; width: 90%; max-width: 170px;
     position: absolute; top: 0; left: 0; height: calc(100% - 70px);
     background: #666; opacity: 0.9; pointer-events: auto;
     -webkit-tap-highlight-color: rgba(0,0,0,0);
     transform: translateX(-100%);
-    transition: .5s; 
+    transition: .5s;
     will-change: transform;  contain: paint;
 }
 
@@ -1566,7 +1560,6 @@ iframe.previewFrame { width: calc(100% - 10px); height: calc(100vh - 110px); }
 @media print { *.changed { border: double thin; } }
 @media print { *.button { display: none; } }
 </style>
-
 """;
 
 public static final String DEFAULT_HOME_SCRIPT = """
@@ -1604,16 +1597,29 @@ public static final String DEFAULT_DARK_STYLESHEET = """
 /* This is the dark PermeAgility stylesheet */
 
 /* Reset from the default browser styles */
-*,*::before,*::after{ 
-    box-sizing: border-box; margin: 0px; padding: 0px; scroll-behavior: smooth; 
+*,*::before,*::after{
+    box-sizing: border-box; margin: 0px; padding: 0px; scroll-behavior: smooth;
 }
-html { background-color: #111; }
+html { background-color: #111;}
 body { font-family: verdana,sans-serif; height: 100%; min-height:100%;
-        color: white; 
+        color: white;
 }
 ::-webkit-scrollbar { background: #333; }  /* these are for Chrome's ugly scrollbars */
 ::-webkit-scrollbar-thumb { background: #444; }
 
+/* For popup forms */
+:popover-open {
+    top: 20px; left: 50%; transform: translateX(-50%);
+    padding: 10px 10px; border-radius: 10px;
+    background-color: #111; color: white; border-color: gray;
+}
+::backdrop {   backdrop-filter: blur(2px); }
+
+button {
+  background-color: #444; border: none; color: white;
+  padding: 3px 5px; text-align: center; text-decoration: none;
+  display: inline;
+}
 /* positioning of header items */
 img.headerlogo { width: 90px; left: 20px; top: 15px; position: absolute; border: none; user-select: none; }
 a.headerlogo:hover { text-decoration: none; background-color: transparent;}
@@ -1626,7 +1632,7 @@ a.headerlogo:hover { text-decoration: none; background-color: transparent;}
 #headertime { font-size: 0.75em; position: absolute; top: 5px; right: 5px; }
 #headeruser { font-size: 0.75em; position: absolute; top: 50px; right: 5px; }
 #service { position: absolute; top: 70px; bottom: 0px; width: 100%;
-    background-image: linear-gradient(to right, black, #444444) !important; 
+    background-image: linear-gradient(to right, black, #444444) !important;
     overflow-y: auto; padding: 0.5em;
 }
 
@@ -1636,14 +1642,14 @@ a:hover { text-decoration: underline; }
 a, a.menuitem, a.popuplink {color: lightgray;}
 a.menuitem:link { text-decoration: none; }
 a.menuitem:visited { text-decoration: none; }
-a:hover, a.menuitem:hover, a.popuplink:hover { 
+a:hover, a.menuitem:hover, a.popuplink:hover {
     text-decoration: none; color: white;
     background: radial-gradient(ellipse, darkorange, black);
 }
 .selected { font-weight: 600; text-decoration: underline; }
 
 /* Lists */
-ol, ul { margin-left: 2.5em; }
+ol, ul { color: white; margin-left: 2.5em; }
 a.list-delete { margin-left: 1em; }
 
 /* labels and tables */
@@ -1663,14 +1669,14 @@ th {  border-radius: 8px 8px 0px 0px;
         background: radial-gradient(ellipse, #339999, black);
 }
 tbody { overflow-y: scroll; }
-tr { background-color: #222; vertical-align: top; }
+tr { background-color: #222; vertical-align: top; color: white; }
 tr:nth-of-type(2n) { background-color: #2a2a2a; }
 tr.clickable { vertical-align: top; }
 tr.clickable:hover {
     background: radial-gradient(ellipse, darkorange, black);
 }
 tr.footer { font-weight: bold; }
-td { text-align: left;  }
+td { text-align: left; color: white; }
 td.number { text-align: right; }
 td.total { text-align: right; font-weight:bolder; normal: solid thin black; }
 div.tabpanel { text-align: center; }
@@ -1683,6 +1689,7 @@ table.sortable thead { color: white; font-weight: bold; cursor: default; }
 .sortable tfoot { position: sticky; bottom: 0; background-color: #222; opacity: 0.85;}
 
 /* paragraphs types */
+p span { color: white; }
 p.menuheader {  color: white;  margin: 0.2em 0em 0em 0em; }
 P.banner { background-color: #336666;
         font-weight: bold;  text-align:center;  color: white;
@@ -1742,10 +1749,6 @@ height: 100%;
 float: left;
 }
 .noscroll { overflow-y: clip; }
-/* .split.split-vertical, .gutter.gutter-vertical {
-height: 50%;
-float: top;
-} */
 .gutter.gutter-vertical { background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAFAQMAAABo7865AAAABlBMVEVHcEzMzMzyAv2sAAAAAXRSTlMAQObYZgAAABBJREFUeF5jOAMEEAIEEFwAn3kMwcB6I2AAAAAASUVORK5CYII=');
 background-repeat: no-repeat;
 background-position: center;
@@ -1762,20 +1765,6 @@ g.selected { stroke: yellow; }
 .link { fill: lightgray; stroke: gray; }
 rect.node { opacity: 0.5; }
 rect.selection { opacity:0.8; fill: none; stroke: white; stroke-width: 4px; stroke-dasharray: 5,5; }
-
-/* For popup modal forms */
-.popbox {padding: 0.2em 0.2em; border-radius: 3px; }
-.modal {
-    background-color: #333;
-    border-radius: 6px;
-    position: fixed;
-    transition: all 0.8s;
-    visibility: hidden;
-    opacity: 0; z-index: 1;
-}
-.pop-content { padding: 0.75em 0.75em; }
-.modal:target {visibility: visible; opacity: 1; }
-.box-close {float: right; font-size: 1.5em; }
 
 /* For Menu/Navigator popup */
 .nav-button {
@@ -1807,13 +1796,13 @@ rect.selection { opacity:0.8; fill: none; stroke: white; stroke-width: 4px; stro
 
 #nav-content ul { height: 100%; display: flex; flex-direction: column; margin-left: 0px; list-style: none; }
 #nav-content li:not(.small) + .small { margin-top: auto; }
-#nav-content {  
+#nav-content {
     margin-top: 40px;  padding: 10px; width: 90%; max-width: 170px;
     position: absolute; top: 0; left: 0; height: calc(100% - 70px);
     background: #333; opacity: 0.9; pointer-events: auto;
     -webkit-tap-highlight-color: rgba(0,0,0,0);
     transform: translateX(-100%);
-    transition: .5s; 
+    transition: .5s;
     will-change: transform;  contain: paint;
 }
 

@@ -36,8 +36,7 @@ public class PageBuilder extends Table {
         return update != null ? update : getTableWithControls(con, parms, TABLE_NAME);  // If REST did nothing - default result
     }
 
-    // The default view when no record specified - the list page
-    @Override public String getTableWithControls(DatabaseConnection con, HashMap<String,String> parms, String table) {
+      @Override public String getTableWithControls(DatabaseConnection con, HashMap<String,String> parms, String table) {
         Locale locale = con.getLocale();
         return head(con, APP_NAME)
                 + bodyMinimum(
@@ -47,7 +46,7 @@ public class PageBuilder extends Table {
                             + hidden("TABLENAME", TABLE_NAME)
                             + super.getTableRowFields(con, TABLE_NAME, null, "name,description,type,useStyleFrom,-", null)
                             + submitButton(locale, "CREATE_ROW")
-                            + POPUP_FORM_CLOSER)
+                          )
                     : "")
                     + getTable(con, parms, TABLE_NAME
                         , "(classname is null OR classname = '')"
@@ -60,9 +59,7 @@ public class PageBuilder extends Table {
         return getTableRowFields(con, table, parms);
     }
 
-    /** Returns the Style and Script editor along with a schema and preview in a split pane 
-     *  This is the main page/app
-     */
+    /** Returns the Style and Script editor along with a schema and preview in a split pane */
     @Override public String getTableRowFields(DatabaseConnection con, String table, HashMap<String, String> parms) {
         String edit_id = (parms != null ? parms.get("EDIT_ID") : null);
         Document initialValues = null;
@@ -90,57 +87,58 @@ public class PageBuilder extends Table {
         if (init == null) init = "<!-- "+new Date()+"\n     by "+con.getUser()+"\n     body contents below -->\n";
         scriptEditor = getCodeEditorControl(formName, PARM_PREFIX + "pageScript", init, "htmlmixed", null);
 
+        String saveButton = button("UpdateButton", "UPDATEBUTTON","UPDATE",Message.get(con.getLocale(),"SAVE_AND_RUN")
+            , "_=\"on click js \n"                    
+            + "   "+PARM_PREFIX+"pageStyleEditor.save();\n"              // get the data
+            + "   "+PARM_PREFIX+"pageScriptEditor.save();\n"
+            + "   var formData = new FormData();\n"
+            + "   formData.append('SUBMIT','UPDATE');\n"                // put into form data
+             + addFormData(formName,"pageStyle")
+             + addFormData(formName,"pageScript")
+             + addFormData("name")
+             + addFormData("description")
+             + addFormData("useStyleFrom")
+             + addFormData("_allowRead")                           
+             + addFormData("_allow")                           // send it to be processed
+           // then send path request via fetch
+           + "   fetch('/"+ this.getClass().getName()+"/"+TABLE_NAME+"/"+edit_id +"', { method: 'PATCH', body: formData } ).then(data => {   \n"                        
+           + "      document.getElementById('previewFrame').src='permeagility.web.Home?ID="+edit_id+"';\n"
+           + "      document.getElementById('headerservice').innerHTML = '"+APP_NAME+": ' + document.getElementById('"+PARM_PREFIX+"name').value;\n"
+           + "   });\n"
+           + "end\"\n"
+        );
+
         String resultView =
             (readOnly ? "" :
-                button("UpdateButton", "UPDATEBUTTON","UPDATE",Message.get(con.getLocale(),"SAVE_AND_RUN"))
+                saveButton
                 +"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
                 + popupFormHTMX("UPDATE_NAME", "", "", parms.get("HX-TARGET"), Message.get(con.getLocale(), "DETAILS"), "NAME",
                         paragraph("banner", Message.get(con.getLocale(), "DETAILS"))
                         + hidden("TABLENAME", TABLE_NAME)
                         + super.getTableRowFields(con, TABLE_NAME, parms, "name,description,type,useStyleFrom,_allowRead,_allow,-")
-                        + POPUP_FORM_CLOSER
                 )
                 +"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
             )
             + popupFormHTMX("UPDATE_MORE", this.getClass().getName()+"/"+TABLE_NAME+"/"+edit_id, "PATCH", parms.get("HX-TARGET"),Message.get(con.getLocale(), "MORE"),  "NAME",
                     paragraph("banner", Message.get(con.getLocale(), "MORE"))
-                    //+ hidden("TABLENAME", TABLE_NAME)
+                    + hidden("TABLENAME", TABLE_NAME)
                     + (readOnly ? "" : deleteButton(con.getLocale(),TABLE_NAME, edit_id, parms.get("HX-TARGET")) 
                                       + "<br>" 
                                       + submitButton(con.getLocale(), "COPY")
-                                      + POPUP_FORM_CLOSER)
+                                      )
             )
             +"<br>"
             +frame("previewFrame","previewFrame","permeagility.web.Home?ID="+edit_id);
 
             return div("leftHand","split split-horizontal",
-                        div("styleEditor","split split-vertical",styleEditor)
-                        +div("scriptEditor","split split-vertical",scriptEditor)
-                    )
-                  +div("rightHand","split split-horizontal noscroll",div("resultView",resultView))
-                  +script("Split(['#leftHand', '#rightHand'], { direction: 'horizontal', gutterSize: 8, minSize: [5,5], cursor: 'col-resize' });\n"
-                           + "Split(['#styleEditor', '#scriptEditor'], { direction: 'vertical', sizes: [50, 50], minSize: [5,5], gutterSize: 8, cursor: 'row-resize' });\n"
-                          +(readOnly ? "" :
-                        "d3.select('#headerservice').text('"+APP_NAME+": ' + document.getElementById('"+PARM_PREFIX+"name').value);\n"  // set the header service info
-                       + "d3.select('#UpdateButton').on('click', function() { \n"  // On click
-                       + "   "+PARM_PREFIX+"pageStyleEditor.save();\n"              // get the data
-                       + "   "+PARM_PREFIX+"pageScriptEditor.save();\n"
-                       + "   var formData = new FormData();\n"
-                       + "   formData.append('SUBMIT','UPDATE');\n"                // put into form data
-                            + addFormData(formName,"pageStyle")
-                            + addFormData(formName,"pageScript")
-                            + addFormData("name")
-                            + addFormData("description")
-                            + addFormData("useStyleFrom")
-                            + addFormData("_allowRead")                           
-                            + addFormData("_allow")                           // send it to be processed
-                            // Todo: should convert this to htmx and target errors to a place where they could be seen
-                        + "   fetch('/"+this.getClass().getName()+"/"+TABLE_NAME+"/"+edit_id+"', { method: \"PATCH\", body: formData } ).then(data => {   \n"                        
-                       + "      d3.select('#previewFrame').attr('src','permeagility.web.Home?ID="+edit_id+"');\n"  // refresh the preview
-                        + "      d3.select('#headerservice').text('"+APP_NAME+": ' + document.getElementById('"+PARM_PREFIX+"name').value);\n"  // update the header
-                        + "   });\n"
-                        + "});\n")
-                );
+                div("styleEditor","split split-vertical",styleEditor)
+                +div("scriptEditor","split split-vertical",scriptEditor)
+            )
+            +div("rightHand","split split-horizontal noscroll",div("resultView",resultView))
+            +script("Split(['#leftHand', '#rightHand'], { direction: 'horizontal', gutterSize: 8, minSize: [5,5], cursor: 'col-resize' });\n"
+                    + "Split(['#styleEditor', '#scriptEditor'], { direction: 'vertical', sizes: [50, 50], minSize: [5,5], gutterSize: 8, cursor: 'row-resize' });\n"
+                    + "document.getElementById('headerservice').innerHTML = '"+APP_NAME+": ' + document.getElementById('"+PARM_PREFIX+"name').value;\n"
+            );
     }
 
     public String addFormData(String name) {

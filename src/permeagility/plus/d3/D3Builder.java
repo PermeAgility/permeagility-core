@@ -30,9 +30,7 @@ import com.arcadedb.database.Document;
 
 public class D3Builder extends Table {
 
- //   public static String D3_SCRIPT_REF = "<script type='text/javascript' src='/js/d3.min.js'></script>\n";
-
-    @Override
+     @Override
     public String getPage(DatabaseConnection con, HashMap<String, String> parms) {
 
         StringBuilder sb = new StringBuilder();
@@ -94,7 +92,7 @@ public class D3Builder extends Table {
                         + hidden("TABLENAME", PlusSetup.TABLE)
                         + super.getTableRowFields(con, PlusSetup.TABLE, null, "name,description,-", null)
                         + submitButton(locale, "CREATE_ROW")
-                        + POPUP_FORM_CLOSER)
+                        )
                 : "")
                 + getTable(con, parms, PlusSetup.TABLE
                     , "(classname is null OR classname = '')"
@@ -179,7 +177,6 @@ public class D3Builder extends Table {
                         paragraph("banner", Message.get(con.getLocale(), "DETAILS"))
                         + hidden("TABLENAME", PlusSetup.TABLE)
                         + super.getTableRowFields(con, PlusSetup.TABLE, parms, "name,description,plugins,-")
-                        + POPUP_FORM_CLOSER
                 )
                 +"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
             )
@@ -188,7 +185,6 @@ public class D3Builder extends Table {
                     + hidden("TABLENAME", PlusSetup.TABLE)
                     + (readOnly ? "" : deleteButton(con.getLocale())+"<br>")
                     + submitButton(con.getLocale(), "COPY")
-                    + POPUP_FORM_CLOSER
             )
             +"<br>"
             +frame("previewFrame","permeagility.plus.d3.D3Builder?PREVIEW="+edit_id); 

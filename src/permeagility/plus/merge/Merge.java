@@ -219,7 +219,7 @@ public class Merge extends Table {
                             + hidden("TABLENAME", PlusSetup.MERGE_TABLE)
                             + getTableRowFields(con, PlusSetup.MERGE_TABLE, parms, "name,fromTable,toTable,fromKey,toKey,-")
                             + submitButton(con.getLocale(), "CREATE_ROW")
-                            + POPUP_FORM_CLOSER)
+                            )
                     : "")
             + sb.toString();
     }

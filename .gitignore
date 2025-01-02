@@ -8,4 +8,7 @@
 /init.pa
 .classpath
 .project
+.VSCodeCounter
+.settings
+.vscode
 

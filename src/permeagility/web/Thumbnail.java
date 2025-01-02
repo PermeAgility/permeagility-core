@@ -15,8 +15,6 @@
  */
 package permeagility.web;
 
-import static permeagility.web.Weblet.POPUP_FORM_CLOSER;
-
 import java.awt.Graphics2D;
 import java.awt.GraphicsEnvironment;
 import java.awt.RenderingHints;
@@ -46,23 +44,29 @@ public class Thumbnail {
 	
 	public static String getThumbnailLink(Locale locale, String rid, String description) {
 		if (description.startsWith("image")) {
-			return "<IMG SRC=\"../thumbnail?SIZE=SMALL&ID=" + rid + "\" >\n"
-					+Weblet.popupHTMX("image_"+rid.replace(':','_'), Message.get(locale,"IMAGE_VIEW_LINK") , "IMAGE_POPUP",
-						Weblet.paragraph("banner",Message.get(locale,"IMAGE_VIEW_HEADER"))+description
+			return imagePopover("image_"+rid.replace(':','_'), Message.get(locale,"IMAGE_VIEW_LINK") , "../thumbnail?SIZE=SMALL&ID=" + rid,
+					Weblet.paragraph("banner",Message.get(locale,"IMAGE_VIEW_HEADER"))+Weblet.paragraph(description)
 						+"<a href=\"/thumbnail?SIZE=FULL&ID="+rid+"\" target=\"_blank\">"+Message.get(locale,"DOWNLOAD_FULL_SIZE")+"</a><br>"
-						+ "<IMG SRC=\"../thumbnail?SIZE=MEDIUM&ID="+rid+"\"/>\n"
-						+ POPUP_FORM_CLOSER
+						+ "<img data-src=\"../thumbnail?SIZE=MEDIUM&ID="+rid+"\"/ _=\"on intersection(intersecting) if intersecting set @src to @data-src\">\n"
 					);
 		} else {
 			return "<A href=\"/thumbnail?SIZE=FULL&ID="+rid+"\" title=\""+description+"\">"+Message.get(locale,"DOWNLOAD_FILE")+"</A>";			
 		}
 	}
 
+	public static String imagePopover(String name, String linkText, String image, String content) {
+        return "<button type=\"button\" style=\"background: url('"+image+"'); background-size: cover; width: "+THUMBNAIL_SMALL_WIDTH+"px; height: "+THUMBNAIL_SMALL_HEIGHT+"px;\" popovertarget=\"popup-"+name+"\" popovertargetaction=\"show\"></button>\n"
+                + "<div id=\"popup-"+name+"\" popover>\n"
+               +        content
+               +"  <p align=\"right\"><button type=\"button\" popovertarget=\"popup-"+name+"\" popovertargetaction=\"hide\">Close</button></p>\n"
+                +"</div>\n";
+    }
+
 	public static String getThumbnailAsCell(Locale locale, String rid, String description) {
 		if (description.startsWith("image")) {
-			return "<IMG SRC=\"../thumbnail?SIZE=SMALL&ID=" + rid + "\" >\n";
+			return "<img src=\"../thumbnail?SIZE=SMALL&ID=" + rid + "\" ><a href=\"/thumbnail?SIZE=FULL&ID="+rid+"\" title=\"+description+\" target=\"_blank\">"+Message.get(locale,"DOWNLOAD_FILE")+"</a>\n";
 		} else {
-			return "<A href=\"/thumbnail?SIZE=FULL&ID="+rid+"\" title=\""+description+"\">"+Message.get(locale,"DOWNLOAD_FILE")+"</A>";			
+			return "<a href=\"/thumbnail?SIZE=FULL&ID="+rid+"\" title=\""+description+"\">"+Message.get(locale,"DOWNLOAD_FILE")+"</a>";			
 		}
 	}
 

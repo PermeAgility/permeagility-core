@@ -85,45 +85,8 @@
         </configuration>
       </plugin>
 
- <!--     <plugin>
-        <artifactId>maven-antrun-plugin</artifactId>
-        <version>3.1.0</version>
-        <executions>
-          <execution>
-              <id>defaultrun</id>
-              <phase>run</phase>
-            <configuration>
-              <target>
-                <java fork="true" classname="${mainClass}" classpathref="maven.test.classpath">
-                  <arg value="" />
-                </java>
-              </target>
-            </configuration>
-            <goals>
-              <goal>run</goal>
-            </goals>
-          </execution>
-          <execution>
-              <id>testrun</id>
-              <phase>test</phase>
-            <configuration>
-              <target>
-                <java fork="true" classname="${mainClass}" classpathref="maven.test.classpath">
-                  <arg value="1998" />
-                  <arg value="plocal:testdb" />
-                  <arg value="selftest" />
-                  </java>
-              </target>
-            </configuration>
-            <goals>
-              <goal>run</goal>
-            </goals>
-          </execution>
-          </executions>
-      </plugin>
--->
       <plugin>
-	    <!-- Build an executable JAR -->
+	      <!-- Build an executable JAR -->
         <groupId>org.apache.maven.plugins</groupId>
 	    <artifactId>maven-assembly-plugin</artifactId>
 	    <configuration>
@@ -184,42 +147,42 @@
     <dependency>
       <groupId>com.arcadedb</groupId>
       <artifactId>arcadedb-engine</artifactId>
-      <version>24.1.1</version>
+      <version>24.11.2</version>
     </dependency>
     <dependency>
       <groupId>com.arcadedb</groupId>
       <artifactId>arcadedb-server</artifactId>
-      <version>24.1.1</version>
+      <version>24.11.2</version>
     </dependency>
     <dependency>
       <groupId>com.arcadedb</groupId>
       <artifactId>arcadedb-studio</artifactId>
-      <version>24.1.1</version>
+      <version>24.11.2</version>
     </dependency>
 
     <!-- XNIO for fast connections -->
     <dependency>
         <groupId>org.jboss.xnio</groupId>
         <artifactId>xnio-api</artifactId>
-        <version>3.8.12.Final</version>
+        <version>3.8.16.Final</version>
       <type>jar</type>
     </dependency>
    <dependency>
         <groupId>org.jboss.xnio</groupId>
         <artifactId>xnio-nio</artifactId>
-        <version>3.8.12.Final</version>
+        <version>3.8.16.Final</version>
     </dependency>
     <dependency>
         <groupId>org.jboss.threads</groupId>
         <artifactId>jboss-threads</artifactId>
-        <version>3.5.1.Final</version>
+        <version>3.8.0.Final</version>
     </dependency>
 
     <!-- JSoup for HTML parsing/scraping/templating -->
     <dependency>
       <groupId>org.jsoup</groupId>
       <artifactId>jsoup</artifactId>
-      <version>1.17.1</version>
+      <version>1.18.3</version>
     </dependency>
     
   </dependencies>

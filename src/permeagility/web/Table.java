@@ -483,6 +483,7 @@ public class Table extends Weblet {
                             }
                         } catch (ArrayIndexOutOfBoundsException e) {
                             System.out.println("Could not understand map field:" + nv);
+                            okToUpdate = false;
                         }
                         mapIndex++;
                     }
@@ -559,10 +560,11 @@ public class Table extends Weblet {
                 String columnName = column.getName();
                 Type type = column.getType();
                 String newValue = parms.get(PARM_PREFIX + columnName);
-                if (DEBUG) System.out.println("updating " + columnName + " of type " + type + " with value " + newValue);
                 if (newValue == null) {
+                    if (DEBUG) System.out.println("not updating " + columnName + " of type " + type + " because newValue is not specified in " + PARM_PREFIX + columnName); 
                     continue;  // Don't update field if not specified in parameters
                 }                
+                if (DEBUG) System.out.println("updating " + columnName + " of type " + type + " with value " + stringToMax(newValue));
                 if (newValue.equals("null")) {
                     newValue = null;
                 }
@@ -731,8 +733,8 @@ public class Table extends Weblet {
                     }
                 } else if (type == Type.MAP) { // LinkMap
                     Map<String, Object> o = updateRow.getMap(columnName);
+                    if (DEBUG) System.out.println("Updating LinkMap initialValue=" + (o == null ? "" : o));
                     String newMap = parms.get(PARM_PREFIX + columnName + "_map");
-                    if (DEBUG) System.out.println("Updating LinkMap " + (o == null ? "" : o));
                     String[] newValues = {};
                     if (newValue != null && !newValue.trim().equals("")) {
                         if (newValue.startsWith(",")) newValue = newValue.substring(1);
@@ -742,6 +744,7 @@ public class Table extends Weblet {
                     if (newMap != null && !newMap.trim().equals("")) {
                         newMaps = splitCSV(newMap);
                     }
+                    if (DEBUG) System.out.println("NewValue="+newValue+" map="+newMap);
                     // Remove all from original map as this list field is ordered
                     if (o == null) {
                         o = new HashMap<String,Object>();
@@ -987,7 +990,7 @@ public class Table extends Weblet {
             initialValue = null;
         }
         if (DEBUG) {
-            System.out.println(name + " InitialValue=" + (type != Type.BINARY ? initialValue : "binary"));
+            System.out.println(name + " InitialValue=" + (type == Type.STRING ? stringToMax((String)initialValue) : initialValue));
         }
         if (initialValue == null && edit_id != null && parms != null) {
             initialValue = parms.get(PARM_PREFIX + name);  // Need to load parms with values
@@ -1243,7 +1246,7 @@ public class Table extends Weblet {
                 + getDatatypeList(l, "NEWDATATYPE", "DATATYPE_TEXT", typeSelAttr)
                 + createListFromDocumentTypes("NEWTABLEREF", null, con, tableSelAttr, false, null, true) + br()
                 + inputWithPlaceholder("NEWCOLUMNNAME", "Column name") + br()
-                + center(submitButton(l, "NEW_COLUMN")+POPUP_FORM_CLOSER);
+                + center(submitButton(l, "NEW_COLUMN"));
     }
 
     public String createListFromDocumentTypes(String name, String initial, DatabaseConnection con, String attributes, boolean allowNull, String classname, boolean enabled) {
@@ -1275,7 +1278,7 @@ public class Table extends Weblet {
                         paragraph("banner", Message.get(con.getLocale(), "CREATE_ROW")+" "+makeCamelCasePretty(table))
                         + getTableRowFieldsNew(con, table, parms)
                         + submitButton(con.getLocale(), "CREATE_ROW")
-                        + POPUP_FORM_CLOSER) 
+                       ) 
                     : "")
                 + "&nbsp;&nbsp;&nbsp;"
                 + (Security.isDBA(con)
@@ -1287,7 +1290,7 @@ public class Table extends Weblet {
                     + "&nbsp;&nbsp;&nbsp;"
                     + popupFormHTMX("ADVANCEDOPTIONS", this.getClass().getName()+"/"+table, "post", parms.get("HX-TARGET")
                                  , Message.get(con.getLocale(), "ADVANCED_TABLE_OPTIONS"), "XXX"
-                                 , advancedOptionsForm(con, table, parms, "") + POPUP_FORM_CLOSER)
+                                 , advancedOptionsForm(con, table, parms, "") )
                     : "") // isDBA switch
                 + br()
                 + getTable(con, table, parms, page);
@@ -1560,9 +1563,7 @@ public class Table extends Weblet {
             List<RID> l = d.getList(columnName);
             StringBuilder ll = new StringBuilder();
             if (l != null) {
-                if (DEBUG) {
-                    System.out.println("linkList size=" + l.size() + (l.size() > 0 ? " type=" + column.getOfType() : ""));
-                }
+                //if (DEBUG) System.out.println("linkList size=" + l.size() + (l.size() > 0 ? " type=" + column.getOfType() : ""));
                 try {
                     for (RID rid : l) {
                         Document o = con.get(rid);
@@ -1809,17 +1810,22 @@ public class Table extends Weblet {
 
         return hidden("RIGHTS_OPTIONS", "YES") + errors
                 + paragraph("banner", Message.get(con.getLocale(), "EXISTING_RIGHTS"))
-                + currentRights.toString()
+                + paragraph(currentRights.toString())
                 + paragraph("banner", Message.get(con.getLocale(), "ADD_OR_REMOVE_RIGHT"))
                 + createListFromCache("ROLESELECT", null, con, getQueryForTable(con, "identity"), null, false, null, true)
                 + createList(con.getLocale(), "RIGHT", null, rightsNames, null, false, null, true)
                 + submitButton(con.getLocale(), "GRANT_RIGHT")
-                + submitButton(con.getLocale(), "REVOKE_RIGHT")
-                + POPUP_FORM_CLOSER;
+                + submitButton(con.getLocale(), "REVOKE_RIGHT");
     }
 
     public static String password(String name, Object value, int size) {
         return "<INPUT TYPE=\"PASSWORD\" NAME=\"" + name + "\" VALUE=\"" + (value == null ? "" : value) + "\" SIZE=\"" + size + "\">";
+    }
+
+    public static String stringToMax(String s) {
+        return s == null ? null 
+           : (s.substring(0,s.length() > MAX_STRING_DISPLAY ? MAX_STRING_DISPLAY : s.length())
+           + (s.length() > MAX_STRING_DISPLAY ? "...("+s.length()+")" : ""));
     }
 
     public static String getTypeName(Integer i) {
