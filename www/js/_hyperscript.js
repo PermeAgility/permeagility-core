@@ -262,7 +262,9 @@
                         tokens.push(consumeShortAttributeReference());
                     } else if (currentChar() === "*" && Lexer.isAlpha(nextChar())) {
                         tokens.push(consumeStyleReference());
-                    } else if (Lexer.isAlpha(currentChar()) || (!inTemplate() && Lexer.isIdentifierChar(currentChar()))) {
+                    } else if (inTemplate() && (Lexer.isAlpha(currentChar()) || currentChar() === "\\")) {
+                        tokens.push(consumeTemplateIdentifier());
+                    } else if (!inTemplate() && (Lexer.isAlpha(currentChar()) || Lexer.isIdentifierChar(currentChar()))) {
                         tokens.push(consumeIdentifier());
                     } else if (Lexer.isNumeric(currentChar())) {
                         tokens.push(consumeNumber());
@@ -444,6 +446,40 @@
             /**
              * @returns Token
              */
+            function consumeTemplateIdentifier() {
+                var identifier = makeToken("IDENTIFIER");
+                var value = consumeChar();
+                var escd = value === "\\";
+                if (escd) {
+                    value = "";
+                }
+                while (Lexer.isAlpha(currentChar()) ||
+                       Lexer.isNumeric(currentChar()) ||
+                       Lexer.isIdentifierChar(currentChar()) ||
+                       currentChar() === "\\" ||
+                       currentChar() === "{" ||
+                       currentChar() === "}" ) {
+                    if (currentChar() === "$" && escd === false) {
+                        break;
+                    } else if (currentChar() === "\\") {
+                        escd = true;
+                        consumeChar();
+                    } else {
+                        escd = false;
+                        value += consumeChar();
+                    }
+                }
+                if (currentChar() === "!" && value === "beep") {
+                    value += consumeChar();
+                }
+                identifier.value = value;
+                identifier.end = position;
+                return identifier;
+            }
+
+            /**
+             * @returns Token
+             */
             function consumeIdentifier() {
                 var identifier = makeToken("IDENTIFIER");
                 var value = consumeChar();
@@ -524,6 +560,7 @@
             function consumeString() {
                 var string = makeToken("STRING");
                 var startChar = consumeChar(); // consume leading quote
+                string.template = startChar === "`";
                 var value = "";
                 while (currentChar() && currentChar() !== startChar) {
                     if (currentChar() === "\\") {
@@ -541,6 +578,8 @@
                             value += "\t";
                         } else if (nextChar === "v") {
                             value += "\v";
+                        } else if (string.template && nextChar === "$") {
+                            value += "\\$";
                         } else if (nextChar === "x") {
                             const hex = consumeHexEscape();
                             if (Number.isNaN(hex)) {
@@ -561,7 +600,6 @@
                 }
                 string.value = value;
                 string.end = position;
-                string.template = startChar === "`";
                 return string;
             }
 
@@ -1453,6 +1491,7 @@
                 evt = new Event(eventName, {
                     bubbles: true,
                     cancelable: true,
+                    composed: true,
                 });
                 evt['detail'] = detail;
             } else {
@@ -1479,14 +1518,14 @@
 
         /**
          * isArrayLike returns `true` if the provided value is an array or
-         * a NodeList (which is close enough to being an array for our purposes).
+         * something close enough to being an array for our purposes.
          *
          * @param {any} value
-         * @returns {value is Array | NodeList}
+         * @returns {value is Array | NodeList | HTMLCollection | FileList}
          */
         isArrayLike(value) {
             return Array.isArray(value) ||
-                (typeof NodeList !== 'undefined' && (value instanceof NodeList || value instanceof HTMLCollection));
+                (typeof NodeList !== 'undefined' && (value instanceof NodeList || value instanceof HTMLCollection || value instanceof FileList));
         }
 
         /**
@@ -6522,7 +6561,7 @@
                                 });
                             });
                         } else {
-                            runtime.forEach(on, function (target) {
+                            runtime.implicitLoop(on, function (target) {
                                 if (target.hasAttribute(attributeRef.name)) {
                                     target.removeAttribute(attributeRef.name);
                                 } else {
@@ -7030,12 +7069,12 @@
                 if (tokens.matchToken("over")) {
                     var over = parser.requireElement("expression", tokens);
                 } else if (tokens.matchToken("using")) {
-                    var using = parser.requireElement("expression", tokens);
+                    var usingExpr = parser.requireElement("expression", tokens);
                 }
 
                 var transition = {
                     to: to,
-                    args: [targetsExpr, properties, from, to, using, over],
+                    args: [targetsExpr, properties, from, to, usingExpr, over],
                     op: function (context, targets, properties, from, to, using, over) {
                         runtime.nullCheck(targets, targetsExpr);
                         var promises = [];
@@ -7664,7 +7703,7 @@
             evaluate:    runtime_.evaluate.bind(runtime_),
             parse:       runtime_.parse.bind(runtime_),
             processNode: runtime_.processNode.bind(runtime_),
-            version: "0.9.12",
+            version: "0.9.13",
             browserInit,
         }
     )
