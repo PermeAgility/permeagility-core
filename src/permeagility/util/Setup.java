@@ -793,15 +793,15 @@ public class Setup {
                 mi_header.set("_allow", adminRoles);
                 mi_header.save();
 
-                MutableDocument mi_password = con.create(TABLE_MENUITEM);
-                mi_password.set("name","Profile");
-                mi_password.set("description","Change profile or password");
-                mi_password.set("classname","permeagility.web.Profile");
-                mi_password.set("type","SERVICE");
-                mi_password.set("active",true);
-                mi_password.set("_allowRead", allRolesButGuest);
-                mi_password.set("_allow", adminRoles);
-                mi_password.save();
+                MutableDocument mi_profile = con.create(TABLE_MENUITEM);
+                mi_profile.set("name","Profile");
+                mi_profile.set("description","Change profile or password");
+                mi_profile.set("classname","permeagility.web.Profile");
+                mi_profile.set("type","SERVICE");
+                mi_profile.set("active",true);
+                mi_profile.set("_allowRead", allRolesButGuest);
+                mi_profile.set("_allow", adminRoles);
+                mi_profile.save();
 
                 MutableDocument mi_userRequest = con.create(TABLE_MENUITEM);
                 mi_userRequest.set("name","Sign up");
@@ -814,8 +814,8 @@ public class Setup {
                 mi_userRequest.save();
 
                 MutableDocument mi_context = con.create(TABLE_MENUITEM);
-                mi_context.set("name","Context");
-                mi_context.set("description","Context");
+                mi_context.set("name","System");
+                mi_context.set("description","System info and admin");
                 mi_context.set("classname","permeagility.web.Context");
                 mi_context.set("type","SERVICE");
                 mi_context.set("active",true);
@@ -935,11 +935,10 @@ public class Setup {
                 items.add(mi_userRequest);
                 items.add(mi_visuility);
                 items.add(mi_schema);
-                items.add(mi_query);
-  //              items.add(mi_blank);
-                items.add(mi_context);
                 items.add(mi_pagebuilder);
-                items.add(mi_password);
+                items.add(mi_query);
+                items.add(mi_context);
+                items.add(mi_profile);
 
                 // Add the menu items property to the menu
                 MutableDocument menuDoc = con.queryDocument("SELECT FROM menu").modify();
