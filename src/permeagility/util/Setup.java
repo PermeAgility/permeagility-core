@@ -1306,7 +1306,6 @@ public class Setup {
 <script type="text/javascript" src="/js/htmx.min.js"></script>
 <script src="/js/sorttable.js"></script>
 <script  type='text/javascript' src="/js/Sortable.min.js"></script>
-<script  type='text/javascript' src="/js/d3.min.js"></script>
 <link rel="stylesheet" type="text/css" href="/js/codemirror/lib/codemirror.css" />
 <link rel="stylesheet" type="text/css" href="/js/codemirror/theme/ambiance.css" />
 <link rel="stylesheet" type="text/css" href="/js/codemirror/addon/hint/show-hint.css" />
@@ -1885,7 +1884,7 @@ public static final String DEFAULT_WELCOME_SCRIPT = """
             AND (locale IS NULL OR locale.name='${locale}')
             AND ${_allowRead}">
         <div class="card">
-            <img src="https://source.unsplash.com/random/800x800" alt="" />
+            <img src="https://picsum.photos/seed/${news.rid}/800/600" alt="" />
             <div class="card-content">
                 <h1>${news.name}</h1>
                 <h4>${news.description}</h4>

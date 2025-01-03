@@ -210,7 +210,7 @@ public class RBuilder extends Table {
            + addFormData("description")
            // then send path request via fetch
            + "   fetch('/"+ this.getClass().getName()+"/"+PlusSetup.TABLE+"/"+edit_id +"', { method: 'PATCH', body: formData } ).then(data => {   \n"                        
-           + "      document.getElementById('previewFrame').src='permeagility.plus.d3.D3Builder?PREVIEW="+edit_id+"';\n"
+           + "      document.getElementById('previewFrame').src='permeagility.plus.r.RBuilder?PREVIEW="+edit_id+"';\n"
            + "      document.getElementById('headerservice').innerHTML = document.getElementById('"+PARM_PREFIX+"name').value;\n"
            + "   });\n"
            + "end\"\n"
