@@ -38,6 +38,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Properties;
 import java.util.StringTokenizer;
 import java.util.concurrent.ConcurrentHashMap;
@@ -50,6 +51,8 @@ import com.arcadedb.database.RecordEvents;
 import com.arcadedb.event.AfterRecordCreateListener;
 import com.arcadedb.event.AfterRecordDeleteListener;
 import com.arcadedb.event.AfterRecordUpdateListener;
+import com.arcadedb.integration.importer.Importer;
+
 import java.net.InetSocketAddress;
 import java.nio.channels.ClosedChannelException;
 import java.nio.charset.StandardCharsets;
@@ -818,10 +821,9 @@ public class Server {
                                 Object classInstance = classOf.getDeclaredConstructor().newInstance();
 
                              // Instantiate the requested class and use it
-                            if (classInstance instanceof Weblet) {
+                            if (classInstance instanceof Weblet weblet) {
                                 parms.put("REQUESTED_CLASS_NAME", className);
                                 parms.put("COOKIE_VALUE", cookieValue);
-                                Weblet weblet = (Weblet)classInstance;
                                 if (DEBUG) System.out.println("LOADING HTML PAGE="+className+" PARAMETER="+parms.toString());
                                 DatabaseConnection con = null;
                                 if (userdb != null) {
@@ -877,8 +879,7 @@ public class Server {
                                     con = null;
                                 }
                                         
-                            } else if (classInstance instanceof Download) {
-                                Download downloadlet = (Download)classOf.getDeclaredConstructor().newInstance();
+                            } else if (classInstance instanceof Download downloadlet) {
                                 DatabaseConnection con = null;
                                 try {
                                     if (userdb != null) {
@@ -1263,9 +1264,31 @@ public class Server {
 
 	static final boolean initializeServer() {
 		System.out.println("Initializing "+Constants.PRODUCT+" Version "+Constants.getVersion());
-		DatabaseConnection con = null;
-		try {
 
+        restore_file = getLocalSetting("restore", null);
+        if (restore_file != null) {
+            File backupDir = new File("backup");
+            if (!backupDir.isDirectory()) {
+                System.out.println("Trying to restore but there is no backup directory");
+                System.exit(-1);
+            }
+            System.out.println("Restoring from: "+"file://"+backupDir.getAbsolutePath()+"/"+Server.restore_file);
+//                    Importer imp = new Importer(con.getDb(), "file://"+backupDir.getAbsolutePath()+"/"+Server.restore_file);
+            String[] args = {"-f", "file://"+backupDir.getAbsolutePath()+"/"+Server.restore_file, "-d", "databases/"+Server.DB_NAME};
+            Importer imp = new Importer(args);
+            var settings =  new HashMap<String, String>();
+            settings.put("database","./databases/"+DB_NAME);
+            imp.setSettings(settings);
+            Map<String, Object> results = imp.load();
+            for (String k : results.keySet()) {
+                System.out.println(k + "=" + results.get(k));
+            }
+            System.out.println("Restore complete");
+            setLocalSetting("restore", null);
+        }
+
+        DatabaseConnection con = null;
+		try {
             // String p = getLocalSetting(DB_NAME+HTTP_PORT, null);
             try {
     			database = new Database(DB_NAME, "admin", "admin");
@@ -1275,7 +1298,7 @@ public class Server {
 			if (database.isConnected()) {
 				System.out.println("Connected to database name="+DB_NAME+" version="+database.getClientVersion());
 				con = database.getConnection();
-                
+                    
                 if (!Setup.checkInstallation(con)) {
                     System.out.println("---\n--- Warning condition: checkInstallation failed - check install messages in context\n---");
                 }

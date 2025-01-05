@@ -34,6 +34,7 @@ import java.util.Locale;
 import java.util.Map;
 
 import com.arcadedb.integration.exporter.Exporter;
+import com.arcadedb.integration.importer.Importer;
 
 import permeagility.plus.PlusSetup;
 import permeagility.plus.json.JSONArray;
@@ -381,9 +382,8 @@ public class Context extends Weblet {
             try {
                 Class<?> classOf = Class.forName(setupClassName, true, PlusClassLoader.get());
                 Object classInstance = classOf.getDeclaredConstructor().newInstance();
-                if (classInstance instanceof PlusSetup) {
+                if (classInstance instanceof PlusSetup plusSetup) {
                     StringBuilder errors = new StringBuilder();
-                    PlusSetup plusSetup = (PlusSetup) classInstance;
                     plusSetup.setPackage(plusName);
                     boolean installed = plusSetup.isInstalled();
                     if (submit != null && module != null && module.equals(m)) {
@@ -527,10 +527,10 @@ public class Context extends Weblet {
                 return paragraph("error",Message.get(locale, "RESTORE_PLOCAL"));
             }
 
-            if (parms.get("CONFIRM") != null && parms.get("CONFIRM").equals("YES") && parms.get("RESTORE") != null) {
+            if (parms.get("CONFIRM") != null && parms.get("CONFIRM").equals("YES") && parms.get("RESTORE_FILENAME") != null) {
                 System.out.println("Restoring the database from file "+parms.get("RESTORE"));
                 Server.restore_lockout = true;
-                Server.restore_file = "backup/"+parms.get("RESTORE");
+                String restore_file = parms.get("RESTORE_FILENAME");
 
                 Thread restore_thread = new Thread() {
                     public void run() {
@@ -556,7 +556,7 @@ public class Context extends Weblet {
 
                         System.gc();
 
-                        String dbDirectory = Server.getDBName().split(":")[1];
+                        String dbDirectory = "databases/"+Server.getDBName();
 
                         // Delete the database files in the db_saved directory if they exist from a previous restore
                         File dbSaved = new File(dbDirectory+"_saved");
@@ -595,28 +595,21 @@ public class Context extends Weblet {
                             Server.exit(-6);
                         }
 
-                        // Because the stuff below doesn't work we have to restart and use the settings file to pass the backup file name
-                        System.out.println("Setting restore localSetting for restore on startup");
-                        Server.setLocalSetting("restore", Server.restore_file);
-
-                        System.out.println("Exit with restart (1)");
+                        System.out.println("Setting restore localSetting for restore on startup ");
+                        Server.setLocalSetting("restore", restore_file);
+                        System.out.println("Will restore from: "+"file://"+backupDir.getAbsolutePath()+"/"+restore_file);
+                        System.out.println("Exit with code 1 (restart)");
                         Server.exit(1);
-
-                        // This doesn't work because the server keeps remembering the database even though the files are gone (well, directory renamed)
-/*						Server.initializeServer(Server.restore_file);
-                        System.out.println("We are back up now - I hope");
-*/
-                        }
-                    };
-
-                    restore_thread.start();
-                    return redirect(parms, "/");
+                    }
+                };
+                restore_thread.start();
+                return redirect(parms, "/");
             } else {
                 return errors
                     +paragraph("banner",Message.get(locale, "CONFIRM_RESTORE",parms.get("RESTORE")))
-                    +formHTMX("backrest","/Context/backup","post",TAB_CONTENT,
+                    +formHTMX("backrest",this.getClass().getName()+"/backup","post",TAB_CONTENT,
                         hidden("CONFIRM","YES")
-                        +hidden("RESTORE",parms.get("RESTORE"))
+                        +hidden("RESTORE_FILENAME",parms.get("RESTORE_FILENAME"))
                         +paragraph(Message.get(locale, "RESTORE_CONFIRM"))
                         +submitButton(locale,"RESTORE_NOW")
                         +submitButton(locale,"CANCEL")
@@ -643,7 +636,10 @@ public class Context extends Weblet {
                         column(link("/backup/"+backupFiles[i].getName(),backupFiles[i].getName()))
                         +column(fileSizeString)
                         +column(""+(new Date(backupFiles[i].lastModified())))
-                        +column(formHTMX("restore","/Context/backup", "post", TAB_CONTENT, hidden("RESTORE",backupFiles[i].getName())+submitButton(locale, "RESTORE_NOW") ) )
+                        +column(formHTMX("restore_confirm",this.getClass().getName()+"/backup", "post", TAB_CONTENT, 
+                            hidden("RESTORE_FILENAME",backupFiles[i].getName())
+                            +submitButton(locale, "RESTORE_NOW") 
+                        ) )
                     ));
                 }
             }
@@ -651,18 +647,19 @@ public class Context extends Weblet {
         String backupFilename = "Backup_"+formatDate(locale,new Date(),"yyyy-MM-dd_HH-mm");
     	return errors
     		+paragraph("banner", Message.get(locale, "BACKUP_THE_DATABASE"))
-    		+formHTMX("backnow", this.getClass().getName()+"/backup", "post", TAB_CONTENT, table("layout",
+    		+formHTMX("backnow", this.getClass().getName()+"/backup", "post", TAB_CONTENT, 
+                table("layout",
                     row(column("label",Message.get(locale, "BACKUP_FILENAME"))+column(input("BACKUP_FILENAME",backupFilename,40)))
                     +row(column("")+column(submitButton(locale,"BACKUP_NOW")))
 	        ))
 	    	+paragraph("banner", Message.get(locale, "RESTORE_THE_DATABASE"))
-	    	+form(table("sortable", 
+	    	+table("sortable", 
                     row(columnHeader(Message.get(locale, "BACKUP_FILENAME"))
                         +columnHeader(Message.get(locale, "BACKUP_SIZE"))
                         +columnHeader(Message.get(locale, "BACKUP_DATE"))
                         +columnHeader(Message.get(locale, "RESTORE_NOW")))
                 +restorePoints.toString()
-	    	))
+	    	)
 	    	+(exportLog != null ? exportLog.toString() : "");
     }
 
