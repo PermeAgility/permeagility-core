@@ -221,16 +221,16 @@ public class ImportJSON extends Weblet {
                 keyval = val.toString();
                 if (DEBUG) System.out.println("keyval="+keyval);
             }
-            if (val instanceof JSONArray) {
-                JSONArray array = (JSONArray)val;
+            if (val instanceof JSONArray array) {
+                //JSONArray array = (JSONArray)val;
                 List<Document> docList = new ArrayList<>();
                 for (int j = 0; j < array.length(); j++) {
                     Object ac = array.get(j);
                     if (DEBUG) System.out.println("Array[" + j + "]=" + ac.getClass().getName() /*  + ":" + ac.toString() */);
-                    if (ac instanceof JSONObject) {
+                    if (ac instanceof JSONObject acjob) {
                         if (run) {
                             Document subdoc;
-                            subdoc = importObject(parms, run, con, colName, (JSONObject)ac, errors, classes);
+                            subdoc = importObject(parms, run, con, colName, acjob, errors, classes);
                             Property oproperty = null;
                   //          if (!colName.equals(classname) && oclass != null && subdoc != null) {
                   //              oproperty = Setup.checkCreateColumn(con, oclass, colName, Type.LINKLIST, subdoc.getSchemaClass(), errors);
@@ -243,7 +243,7 @@ public class ImportJSON extends Weblet {
                             if (classes.containsKey(typename)) {  // must be at the top level
                                 classes.get(typename).put(colName,paragraph("Column " + input("COLUMN_"+typename+"_"+colName,colName) + " is an array and it will be a LINKLIST"));
                             }
-                            importObject(parms, run, con, colName, (JSONObject)ac, errors, classes);
+                            importObject(parms, run, con, colName, acjob, errors, classes);
                         }
                     }
                 }
@@ -251,11 +251,11 @@ public class ImportJSON extends Weblet {
                     doc.set(colName, docList);
                 }
 
-            } else if (val instanceof JSONObject) {
+            } else if (val instanceof JSONObject valjo) {
                 Property oproperty = docType != null ? docType.getProperty(colName) : null;  // See if property already exists
                 if (run) {
                     if (oproperty == null) {
-                        Document subdoc = importObject(parms, run, con, colName, (JSONObject)val, errors, classes);
+                        Document subdoc = importObject(parms, run, con, colName, valjo, errors, classes);
                         if (DEBUG) System.out.println("importObject.subdoc="+subdoc);
             //            if (subdoc != null && doc != null) {
             //                oproperty = Setup.checkCreateColumn(con, oclass, colName, Type.LINK, subdoc.getSchemaClass(), errors);
@@ -265,7 +265,7 @@ public class ImportJSON extends Weblet {
             //            }
                     } else if (oproperty.getType() == Type.MAP) {
                         if (DEBUG)  System.out.println("importObject(into map of class "+oproperty.getOfType()+")");
-                        JSONObject j = (JSONObject)val;
+                        JSONObject j = valjo;
                         HashMap<String,Object> newMap = new HashMap<>();
                         for (String n : j.keySet()) {
                             if (DEBUG) System.out.println("key="+n);
@@ -283,8 +283,7 @@ public class ImportJSON extends Weblet {
                         }
                     } else if (oproperty.getType() == Type.STRING) {
                         if (DEBUG) System.out.println("Importing object into STRING");
-                        JSONObject j = (JSONObject)val;
-                        doc.set(colName,j.toString());
+                        doc.set(colName,valjo.toString());
                     } else {
                         errors.append(paragraph("error", "I don't know how to import an object into the "+colName+" column of type "+oproperty.getType().name()));
                     }

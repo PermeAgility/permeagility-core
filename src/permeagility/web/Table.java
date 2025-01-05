@@ -1100,8 +1100,8 @@ public class Table extends Weblet {
             if (initialValue != null) {
                 if (initialValue instanceof RID) {
                     v = initialValue.toString();
-                } else if (initialValue instanceof Document) {
-                    v = ((Document)initialValue).getIdentity().toString();
+                } else if (initialValue instanceof Document d) {
+                    v = d.getIdentity().toString();
                 } else {
                     System.out.println("Table.getColumnAsField Found "+initialValue.getClass().getName()+" for a link - ignoring it");
                 }
@@ -1539,10 +1539,10 @@ public class Table extends Weblet {
                 Object o = d.get(columnName);
                 Document l = null;
                 if (o != null) {
-                    if (o instanceof RID) {
-                        l = con.get((RID)o);
-                    } else if (o instanceof Document) {
-                        l = (Document)o;
+                    if (o instanceof RID r) {
+                        l = con.get(r);
+                    } else if (o instanceof Document doc) {
+                        l = doc;
                     } else {
                         System.out.println("Table.getColumnAsCell: LINK Found instance of "+o.getClass().getName());
                     }

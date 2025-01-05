@@ -85,8 +85,8 @@ public class Home extends Weblet {
         Object useStyleDoc = menuItem.get("useStyleFrom");
         if (useStyleDoc != null) {
             Document useStyle = null;
-            if (useStyleDoc instanceof RID) useStyle = con.get((RID)useStyleDoc);
-            if (useStyleDoc instanceof Document) useStyle = (Document)useStyleDoc;
+            if (useStyleDoc instanceof RID r) useStyle = con.get(r);
+            if (useStyleDoc instanceof Document d) useStyle = d;
             if (useStyle != null) {
                 adoptStyleFrom(con, styleScript, useStyle);  // Adopt ancestors first
                 styleScript.append(useStyle.getString("pageStyle")+"\n");
@@ -128,8 +128,8 @@ public class Home extends Weblet {
                                         repval = d.toJSON().toString();
                                     } else if (d.has(prop)) {
                                         Object po = d.get(prop);
-                                        if (subprop != null && po instanceof RID) {
-                                            Document sd = con.get((RID)po);
+                                        if (subprop != null && po instanceof RID r) {
+                                            Document sd = con.get(r);
                                             if (sd.has(subprop)) {
                                                 repval = sd.getString(subprop);
                                             } else {

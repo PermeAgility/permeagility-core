@@ -77,7 +77,7 @@ public class DatabaseConnection {
 	/** Allows overriding the locale for the connection. This is for supporting non-users changing the language for the request */
 	public void setLocale(Locale l) { db.setLocale(l); }
 
-	/** Get the native connection object. A ODatabaseDocumentTx */
+	/** Get the native connection object. com.arcadedb.database.Database */
 	public com.arcadedb.database.Database getDb() { return c; }
 
 	/** Get the Schema object */
@@ -195,9 +195,8 @@ public void rollback() {  /* c.rollback();*/ }
        if (DEBUG) System.out.println("DatabaseConnection.update="+expression+";");
        	lastAccess = System.currentTimeMillis();
         Object ro = c.command(expression.contains("\n") ? "SQLSCRIPT" : "SQL",expression);
-        if (ro instanceof ResultSet) {
+        if (ro instanceof ResultSet rs) {
             ArrayList<Document> docs = new ArrayList<Document>();
-            ResultSet rs = (ResultSet)ro;
             if (rs.hasNext()) {
                 Result r = rs.next();
                 docs.add(r.toElement());

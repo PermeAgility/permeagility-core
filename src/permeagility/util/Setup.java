@@ -991,8 +991,8 @@ public class Setup {
             .set("_allow", Security.getUserRoles(con))
             .save();
         // Add to the specified menu
-        if (addTo != null && !addTo.equals("") && menuItem instanceof Document) {
-            con.update("UPDATE #"+addTo+" SET items += "+((Document)menuItem).getIdentity().toString());
+        if (addTo != null && !addTo.equals("") && menuItem instanceof Document d) {
+            con.update("UPDATE #"+addTo+" SET items += "+d.getIdentity().toString());
         }
         Server.tableUpdated(con, "menu");
     }

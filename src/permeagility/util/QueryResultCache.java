@@ -84,9 +84,8 @@ public class QueryResultCache {
 	
 	public Object[] getLinkSetValue(int row, String column) {
 		Object o = getValue(row, column);
-		if (o != null && o instanceof Set) {
+		if (o != null && o instanceof Set set) {
 			@SuppressWarnings("rawtypes")
-			Set set = (Set)o;
 			Object oset[] = set.toArray();
 			return oset;
 		}
@@ -95,8 +94,8 @@ public class QueryResultCache {
 	
 	public Number getNumberValue(int row, String column) {
 		Object o = getValue(row, column);
-		if (o != null && o instanceof Number) {
-			return (Number)o;
+		if (o != null && o instanceof Number n) {
+			return n;
 		}
 		return null;
 	}
@@ -104,8 +103,8 @@ public class QueryResultCache {
 	public java.util.Date getDateValue(int row, String column) {
 		Object o = getValue(row, column);
 		if (DEBUG) System.out.println("DT Class = "+o.getClass().getName());
-		if (o != null && o instanceof java.util.Date) {
-			return (java.util.Date)o;
+		if (o != null && o instanceof java.util.Date d) {
+			return d;
 		}
 		return null;
 	}

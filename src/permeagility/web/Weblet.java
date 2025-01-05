@@ -823,8 +823,8 @@ public abstract class Weblet {
         if (picked != null) {
             for (String key : picked.keySet()) {
                 Object po = picked.get(key);
-                RID pickedRID = po instanceof RID ? (RID)po : null;
-                Document pick = po instanceof Document ? (Document)po : pickedRID != null ? con.get(pickedRID) : null;
+                RID pickedRID = po instanceof RID r ? r : null;
+                Document pick = po instanceof Document d ? d : pickedRID != null ? con.get(pickedRID) : null;
                 if (pick != null) {
                     String rid = pickedRID != null ? pickedRID.toString() : pick.getIdentity().toString();
                     if (rid.startsWith("#")) rid = rid.substring(1);
@@ -1104,8 +1104,8 @@ public abstract class Weblet {
                     return true;
             } else if (oldObject != null && newObject != null) {
                     // System.out.println("old="+oldObject+" new="+newObject);
-                    if (oldObject instanceof Number && newObject instanceof Number) {
-                            if (((Number) oldObject).doubleValue() != ((Number) newObject).doubleValue()) {
+                    if (oldObject instanceof Number oldn && newObject instanceof Number newn) {
+                            if (oldn.doubleValue() != newn.doubleValue()) {
                                     // System.out.println("NumberChanged!="+newObject);
                                     return true;
                             } else {

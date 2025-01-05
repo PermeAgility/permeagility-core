@@ -263,8 +263,7 @@ public class VisuilityData extends Download {
             for (Property col : cols) {
                 String colName = col.getName();
                 Object colData = viewDoc.get(colName);
-                if (colData instanceof Document) {
-                    Document ld = (Document)colData;
+                if (colData instanceof Document ld) {
                     String refId = ld.getIdentity().toString().substring(1);
                     String docName = Weblet.getDescriptionFromDocument(con, ld);
                     // Should be a link to the other row
