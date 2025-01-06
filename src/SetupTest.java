@@ -7,8 +7,7 @@ import com.arcadedb.server.ServerDatabase;
 
 public class SetupTest {
 
-    public static String schemaScript = 
-    """
+    public static String schemaScript = """
       CREATE DOCUMENT TYPE restricted IF NOT EXISTS;
       CREATE DOCUMENT TYPE identity IF NOT EXISTS;
 
@@ -17,7 +16,7 @@ public class SetupTest {
       CREATE DOCUMENT TYPE user IF NOT EXISTS;
       ALTER TYPE user SUPERTYPE +identity;
       CREATE DOCUMENT TYPE privilege IF NOT EXISTS;
-      
+
       CREATE DOCUMENT TYPE constant IF NOT EXISTS;
       CREATE DOCUMENT TYPE locale IF NOT EXISTS;
       CREATE DOCUMENT TYPE message IF NOT EXISTS;
@@ -34,9 +33,8 @@ public class SetupTest {
       ALTER TYPE menuItem SUPERTYPE +restricted;
       CREATE DOCUMENT TYPE news IF NOT EXISTS;
       ALTER TYPE news SUPERTYPE +restricted;
-    """;
-    public static String schemaScript2 = 
-    """
+""";
+    public static String schemaScript2 = """
       CREATE PROPERTY identity.name IF NOT EXISTS STRING;
       CREATE PROPERTY restricted._allowUpdate IF NOT EXISTS LIST OF identity;
       CREATE PROPERTY restricted._allowDelete IF NOT EXISTS LIST OF identity;
@@ -122,11 +120,11 @@ public class SetupTest {
       CREATE PROPERTY thumbnail.height IF NOT EXISTS INTEGER;
       CREATE PROPERTY thumbnail.small IF NOT EXISTS BINARY;
       CREATE PROPERTY thumbnail.medium IF NOT EXISTS BINARY;
-      CREATE INDEX IF NOT EXISTS ON thumbnail (id) NOTUNIQUE; 
+      CREATE INDEX IF NOT EXISTS ON thumbnail (id) NOTUNIQUE;
 
       CREATE PROPERTY userProfile.name IF NOT EXISTS STRING;
       CREATE PROPERTY userProfile.password IF NOT EXISTS STRING;
-      """;
+""";
 
     public static void main(String[] args) {
         boolean AUTO_TRANS = false;
@@ -156,7 +154,7 @@ public class SetupTest {
             System.out.println("Transactions="+DatabaseContext.INSTANCE.getContextIfExists(sdb.getDatabasePath()).transactions.size());
             if (AUTO_TRANS) sdb.setAutoTransaction(true);
             System.out.println("Transactions="+DatabaseContext.INSTANCE.getContextIfExists(sdb.getDatabasePath()).transactions.size());
-        } catch (Exception e) {            
+        } catch (Exception e) {
             System.out.println("Error at getDatabase "+e.getMessage());
             //e.printStackTrace();
         }

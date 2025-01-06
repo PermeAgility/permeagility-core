@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright 2015 PermeAgility Incorporated.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,21 +28,21 @@ import permeagility.util.QueryResult;
 import java.util.Locale;
 
 public class Query extends Weblet {
-	
+
     public static boolean DEBUG = false;
 
     public String getPage(DatabaseConnection con, java.util.HashMap<String,String> parms) {
         Locale locale = con.getLocale();
         String query = parms.get("SQL");
-        return 	
+        return
             getSQLBuilder(con)
             +form("QUERY","#",
                 "<textarea id=\"sqlbuild\" spellcheck=\"false\" name=\"SQL\" rows=6 cols=100 >"
                     +(query==null ? "" : query)
                 +"</textarea>"+br()
                 +submitButton(locale, "EXECUTE_QUERY","hx-post=\"/"+this.getClass().getName()+"\""+" hx-target=\"#service\"")
-            ) 
-            +br()+div("resultarea", 
+            )
+            +br()+div("resultarea",
                 paragraph("banner",Message.get(locale, "QUERY_RESULTS"))
                 +anchor("TOP",Message.get(locale, "RESULTS_TOP"))+"&nbsp;&nbsp;&nbsp;"
                 +link("#BOTTOM",Message.get(locale, "RESULTS_BOTTOM"))
@@ -62,7 +62,7 @@ public class Query extends Weblet {
         }
         if (!(query.trim().toUpperCase().startsWith("SELECT")
             || query.trim().toUpperCase().startsWith("TRAVERSE"))) {  // If not a select, then update
-            return getUpdate(con,query);			
+            return getUpdate(con,query);
         }
 
         try {
@@ -109,14 +109,14 @@ public class Query extends Weblet {
     public String getRowHeader(QueryResult rs, ArrayList<String> cols) {
         StringBuilder sb = new StringBuilder();
         String[] columns = rs.getColumns();
-        sb.append(columnHeader("rid"));		
+        sb.append(columnHeader("rid"));
         if (columns != null) {
             for (String colName : columns) {
                 sb.append(columnHeader(colName));
                 cols.add(colName);
             }
             return sb.toString();
-        } else { 
+        } else {
             return "";
         }
     }
@@ -127,12 +127,12 @@ public class Query extends Weblet {
         if (row.getIdentity().toString().contains("-")) {
             sb.append(column(paragraphRight(row.getIdentity().toString())));
         } else {
-            sb.append(column(paragraphRight(linkHTMX("permeagility.web.Table/"+row.getTypeName()+"/"+row.getIdentity().toString().substring(1), row.getIdentity().toString(), "resultarea"))));			
+            sb.append(column(paragraphRight(linkHTMX("permeagility.web.Table/"+row.getTypeName()+"/"+row.getIdentity().toString().substring(1), row.getIdentity().toString(), "resultarea"))));
         }
         for (String colName : columns) {
             Object o = row.get(colName);
             if (DEBUG) System.out.println(colName+"="+(o == null ? "null" : o.getClass().getName()));
-            if (o instanceof Document) {  // OrientDB Link  
+            if (o instanceof Document) {  // OrientDB Link
                 Document d = row.getEmbedded(colName);
                 sb.append(column(paragraphRight(d == null ? "null" : getDocumentLink(con, d))));
             } else if (o instanceof Boolean) { // OrientDB boolean
@@ -147,8 +147,8 @@ public class Query extends Weblet {
                 if (blobid != null) {
                         out = column(Thumbnail.getThumbnailLink(con.getLocale(),blobid, desc.toString()));
                 } else {
-                        out = column(Message.get(con.getLocale(), "THUMBNAIL_NOT_FOUND",colName,row.getIdentity().toString()));					
-                } 
+                        out = column(Message.get(con.getLocale(), "THUMBNAIL_NOT_FOUND",colName,row.getIdentity().toString()));
+                }
                 sb.append(out);  */
             } else if (o instanceof List) {  // LinkList
                 @SuppressWarnings("unchecked")
@@ -160,7 +160,7 @@ public class Query extends Weblet {
                                         Document d = (Document)od;
                                         ll.append(getDocumentLink(con, d)+br());
                                 } else {
-                                        ll.append(od+br());							
+                                        ll.append(od+br());
                                 }
                         }
                 }
@@ -175,7 +175,7 @@ public class Query extends Weblet {
                                         Document d = (Document)od;
                                         ll.append(getDocumentLink(con, d)+br());
                                 } else {
-                                        ll.append(od+br());							
+                                        ll.append(od+br());
                                 }
                         }
                 }
@@ -190,7 +190,7 @@ public class Query extends Weblet {
                                 if (d != null && d instanceof Document) {
                                         ll.append(k+":"+getDocumentLink(con, (Document)d)+br());
                                 } else {
-                                        ll.append(k+":"+d+br());							
+                                        ll.append(k+":"+d+br());
                                 }
                         }
                 }
@@ -199,7 +199,7 @@ public class Query extends Weblet {
                 sb.append(column(paragraphRight(row.getString(colName))));
             } else {
                 if (colName.toUpperCase().endsWith("PASSWORD")) {
-                        sb.append(column("---"));					
+                        sb.append(column("---"));
                 } else {
                         sb.append(column(row.getString(colName)));
                 }
@@ -207,7 +207,7 @@ public class Query extends Weblet {
         }
         return sb.toString();
     }
-	
+
     public String getDocumentLink(DatabaseConnection con, Document d) {
         if (d == null || d.getTypeName() == null) {
             return ""+d;
@@ -217,7 +217,7 @@ public class Query extends Weblet {
                 , "resultarea");
         }
     }
-	
+
     String getSQLBuilder(DatabaseConnection con) {
     return "<div id=\"TextBuildControl\">\n"
         +"""
@@ -225,7 +225,7 @@ public class Query extends Weblet {
             def textInsert(txt)
                 set x to #sqlbuild.innerHTML
                 set i to #sqlbuild.selectionStart or 0
-                then get x.substring(0,i) + txt + x.substring(i) 
+                then get x.substring(0,i) + txt + x.substring(i)
                 then put it into #sqlbuild
             end
         </script>

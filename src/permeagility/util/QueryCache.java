@@ -20,6 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /*
  * A cache of queries - by user id
  */
+@SuppressWarnings("serial")
 public class QueryCache extends ConcurrentHashMap<String,QueryResultCache> {
 	    	
 	public static boolean DEBUG = false;

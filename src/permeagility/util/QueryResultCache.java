@@ -24,7 +24,7 @@ import com.arcadedb.database.Document;
 import com.arcadedb.query.sql.executor.ResultSet;
 import com.arcadedb.serializer.json.JSONObject;
 
-public class QueryResultCache {
+public final class QueryResultCache {
 	
 	public static boolean DEBUG = false;
 	    
@@ -84,8 +84,7 @@ public class QueryResultCache {
 	
 	public Object[] getLinkSetValue(int row, String column) {
 		Object o = getValue(row, column);
-		if (o != null && o instanceof Set set) {
-			@SuppressWarnings("rawtypes")
+		if (o != null && o instanceof Set<?> set) {
 			Object oset[] = set.toArray();
 			return oset;
 		}

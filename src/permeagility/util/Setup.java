@@ -36,7 +36,7 @@ public class Setup {
 
     public static boolean RESTRICTED_BY_ROLE = true;
     private static String SETUP_DEBUG_FLAG = "false";    // default setting for debug constants
-    public static boolean SETUP_DEMO_USERS = true;        
+    public static boolean SETUP_DEMO_USERS = true;
 
     public static final String TABLE_THUMBNAIL = "thumbnail";
     public static final String TABLE_CONSTANT = "constant";
@@ -53,7 +53,7 @@ public class Setup {
     public static final String TABLE_AUDIT = "auditTrail";
     public static final String TABLE_PICKVALUES = "pickValues";
 
-    public static String schemaScript = 
+    public static String schemaScript =
     """
     CREATE DOCUMENT TYPE restricted IF NOT EXISTS;
     CREATE DOCUMENT TYPE identity IF NOT EXISTS;
@@ -63,7 +63,7 @@ public class Setup {
     CREATE DOCUMENT TYPE user IF NOT EXISTS;
     ALTER TYPE user SUPERTYPE +identity;
     CREATE DOCUMENT TYPE privilege IF NOT EXISTS;
-      
+
     CREATE DOCUMENT TYPE constant IF NOT EXISTS;
     CREATE DOCUMENT TYPE locale IF NOT EXISTS;
     CREATE DOCUMENT TYPE message IF NOT EXISTS;
@@ -166,7 +166,7 @@ public class Setup {
     CREATE PROPERTY thumbnail.height IF NOT EXISTS INTEGER;
     CREATE PROPERTY thumbnail.small IF NOT EXISTS BINARY;
     CREATE PROPERTY thumbnail.medium IF NOT EXISTS BINARY;
-    CREATE INDEX IF NOT EXISTS ON thumbnail (id) NOTUNIQUE; 
+    CREATE INDEX IF NOT EXISTS ON thumbnail (id) NOTUNIQUE;
 
     CREATE PROPERTY userProfile.name IF NOT EXISTS STRING;
     CREATE PROPERTY userProfile.password IF NOT EXISTS STRING;
@@ -174,17 +174,17 @@ public class Setup {
 
     /* This should not be run inside a transaction */
     public static boolean checkInstallation(DatabaseConnection con) {
- 
+
         try {
             con.update("ALTER DATABASE `arcadedb.dateImplementation` `java.time.LocalDate`");
             con.update("ALTER DATABASE `arcadedb.dateTimeImplementation` `java.time.LocalDateTime`");
-            
+
             System.out.println("DatabaseSetup.checkInstallation ");
             con.updateScript(schemaScript);
             System.out.println("DatabaseSetup.checkInstallation finished schemaScript");
 
             Schema schema = con.getSchema();
- 
+
             // Setup roles lists for use later on in this script
             List<Document> allRoles = new ArrayList<Document>();
             List<Document> allRolesButGuest = new ArrayList<Document>();
@@ -225,7 +225,7 @@ public class Setup {
                 checkCreateUser(con, "staff2", "staff2", "staff", installMessages);
                 checkCreateUser(con, "staff3", "staff3", "staff", installMessages);
             }
-            
+
             // Verify the minimum privileges for the guest role
             checkCreatePrivilege(con, guestRole.getIdentity(), "READ", "menuItem", installMessages);  // home page (menuItem is restricted)
             checkCreatePrivilege(con, guestRole.getIdentity(), "READ", "thumbnail", installMessages);  // can read images
@@ -250,7 +250,7 @@ public class Setup {
             checkCreatePrivilege(con, staffRole.getIdentity(), "READONLY", "pickValues", installMessages);
             checkCreatePrivilege(con, staffRole.getIdentity(), "READONLY", "constant", installMessages);
 
-            // A customer is a guest until they log in 
+            // A customer is a guest until they log in
             // then they are guest + whatever is granted to the customer role for the application
             // ie. orders, reservations, social media posts, etc...
 
@@ -267,7 +267,7 @@ public class Setup {
             // This will ensure they are added to columns table in proper order
             Setup.checkCreateColumn(con, columnsTable, "name", Type.STRING, installMessages);
             Setup.checkCreateColumn(con, columnsTable, "columnList", Type.STRING, installMessages);
- 
+
             // Create early so we can automatically add tables to them
             System.out.println(TABLE_TABLEGROUP+" ");
             DocumentType tableGroupTable = Setup.checkCreateTable(schema, TABLE_TABLEGROUP, installMessages);
@@ -282,7 +282,7 @@ public class Setup {
                     con.create(TABLE_TABLEGROUP).set("name","Content").set("tables","").save();
                     con.create(TABLE_TABLEGROUP).set("name","Plus").set("tables","").save();
             }
-  
+
             System.out.println(TABLE_THUMBNAIL+" ");
             DocumentType thumbnailTable = Setup.checkCreateTable(schema, TABLE_THUMBNAIL, installMessages);
             Setup.checkCreateColumn(con, thumbnailTable, "name", Type.STRING, installMessages);
@@ -318,7 +318,7 @@ public class Setup {
                 con.create(TABLE_CONSTANT).set("classname","permeagility.util.Setup").set("description","When true, restricted tables will be by role (Change identity pickList if setting to user level restrictions)").set("field","RESTRICTED_BY_ROLE").set("value","true").save();
                 con.create(TABLE_CONSTANT).set("classname","permeagility.web.UserRequest").set("description","Automatically assign new users to this role, leave blank to prevent automatic new user creation").set("field","ACCEPT_TO_ROLE").set("value","user").save();
             }
- 
+
             System.out.println(TABLE_AUDIT+" ");
             DocumentType auditTable = Setup.checkCreateTable(schema, TABLE_AUDIT, installMessages);
             Setup.checkCreateColumn(con, auditTable, "timestamp", Type.DATETIME, installMessages);
@@ -328,7 +328,7 @@ public class Setup {
             Setup.checkCreateColumn(con, auditTable, "rid", Type.STRING, installMessages);
             Setup.checkCreateColumn(con, auditTable, "detail", Type.EMBEDDED, installMessages);
 
-      
+
             System.out.println(TABLE_LOCALE+" ");
             DocumentType localeTable = Setup.checkCreateTable(schema, TABLE_LOCALE, installMessages);
             Setup.checkCreateColumn(con, localeTable, "name", Type.STRING, installMessages);
@@ -574,7 +574,7 @@ public class Setup {
                     installMessages.append(Weblet.paragraph("CheckInstallation: Created "+mCount+" messages"));
                     Server.tableUpdated(con, "message");
             }
-            
+
             System.out.println(TABLE_NEWS+" ");
             DocumentType newsTable = Setup.checkCreateTable(schema, TABLE_NEWS, installMessages);
       //      Setup.checkTableSuperclass(schema, newsTable, "restricted", installMessages);
@@ -594,7 +594,7 @@ public class Setup {
                     <li>Copy config items when making changes</li>
                     <li>Change the admin password</li>
                     <li>System tables will be checked during startup</li>
-                    <li>Go to the application: 
+                    <li>Go to the application:
                     <a href='/Home?NAME=home-dark'>Dark</a>
                     <a href='/Home?NAME=home-light'>Light</a>
                     </li>
@@ -627,9 +627,9 @@ public class Setup {
                 MutableDocument n4 = con.create(TABLE_NEWS);
                 n4.set("name","Welcome staff");
                 n4.set("description","""
-                    PermeAgility lets you create, update, and navigate data every way it is connected. 
+                    PermeAgility lets you create, update, and navigate data every way it is connected.
                     Use the pop up menu at the top left to access the different functions of the system
-                    <li>Go to the application: 
+                    <li>Go to the application:
                     <a href='/Home?NAME=home-dark'>Dark</a> 
                     <a href='/Home?NAME=home-light'>Light</a>
                     </li>
@@ -644,9 +644,9 @@ public class Setup {
                 MutableDocument n5 = con.create(TABLE_NEWS);
                 n5.set("name","Get started");
                 n5.set("description","""
-                    This is a demo installation which includes security with 
+                    This is a demo installation which includes security with
                     multiple roles and support for row level security.
-                    You are currently using the system as a guest. 
+                    You are currently using the system as a guest.
                     Click below to login as:
                     <center>
                     <a href='/Login?USERNAME=cust1&PASSWORD=cust1'>Customer1</a><br>
@@ -689,7 +689,7 @@ public class Setup {
                 n6.save();
 
             }
- 
+
             System.out.println(TABLE_PICKLIST+" ");
             DocumentType pickListTable = Setup.checkCreateTable(schema, TABLE_PICKLIST, installMessages);
             Setup.checkCreateColumn(con, pickListTable, "tablename", Type.STRING, installMessages);
@@ -709,7 +709,7 @@ public class Setup {
                 .set("description","Restrict this list to menuItems with styles")
                 .save();
             }
- 
+
             System.out.println(TABLE_PICKVALUES+" ");
             DocumentType pickValuesTable = Setup.checkCreateTable(schema, TABLE_PICKVALUES, installMessages);
             Setup.checkCreateColumn(con, pickValuesTable, "name", Type.STRING, installMessages);
@@ -720,7 +720,7 @@ public class Setup {
                 con.create(TABLE_PICKVALUES).set("name","role.mode").set("values","SUPER,NORMAL").save();
                 con.create(TABLE_PICKVALUES).set("name","menuItem.type").set("values","WELCOME,HOME,SERVICE,STYLE").save();
             }
- 
+
             System.out.println(TABLE_MENU+" ");
             DocumentType menuTable = Setup.checkCreateTable(schema, TABLE_MENU, installMessages);
             Setup.checkCreateColumn(con, menuTable, "name", Type.STRING, installMessages);
@@ -955,27 +955,27 @@ public class Setup {
             //Setup.checkTableSuperclass(schema, urTable, "restricted", installMessages);
             Setup.checkCreateColumn(con, urTable, "name", Type.STRING, installMessages);
             Setup.checkCreateColumn(con, urTable, "password", Type.STRING, installMessages);
- 
+
             if (!installMessages.isEmpty()) System.out.println("\n\nSetup repaired:\n"+installMessages);
 
             System.out.print("Checking database...");
             con.update("CHECK DATABASE FIX");
             System.out.println("complete.");
-            
+
             installMessages.append(Weblet.paragraph("success","Setup.checkInstallation completed at "+LocalDateTime.now()));
-    
+
         } catch (Exception e) {
             System.out.println("- failed: "+e.getMessage());
             e.printStackTrace();
             return false;
         }
-     
+
         return true;
     }
 
 
     public static void createMenuItem(DatabaseConnection con, String name, String description, String classname, String addTo, String roles) {
-        
+
         List<RID> roleList = new ArrayList<RID>();
         String[] rlt = roles.split(",");
         for (String tok : rlt) {
@@ -1160,7 +1160,7 @@ public class Setup {
     /** Check for the existence of a class property or add it This assumes you want a link type, otherwise the linkClass may have adverse effects */
     public static Property checkCreateColumn(DatabaseConnection con, DocumentType theClass, String propertyName, Type propertyType, DocumentType linkClass, StringBuilder errors) {
         Property p;
-        try { 
+        try {
             p = theClass.getProperty(propertyName);
         } catch(Exception e) {
             p = theClass.createProperty(propertyName, propertyType, linkClass.getName());
@@ -1173,7 +1173,7 @@ public class Setup {
     /** Check for the existence of a class property or add it and add to columns */
     public static Property checkCreateColumn(DatabaseConnection con, DocumentType theClass, String propertyName, Type propertyType, StringBuilder errors) {
         Property p;
-        try { 
+        try {
             p = theClass.getProperty(propertyName);
         } catch (Exception e) {
             p = theClass.createProperty(propertyName, propertyType);
@@ -1328,11 +1328,11 @@ public class Setup {
 <script type="text/javascript" src="/js/codemirror/addon/lint/css-lint.js"></script>
 <script type="text/javascript" src="/js/codemirror/addon/selection/active-line.js"></script>
 <script type="text/javascript" src="/js/codemirror/addon/edit/matchbrackets.js"></script>
-<script  type='text/javascript' src="/js/split.min.js"></script>     
+<script  type='text/javascript' src="/js/split.min.js"></script>
 """;
 
     public static final String DEFAULT_BASE_SCRIPT = """
-<p>This is the base style script where the various libraries are included</p>            
+<p>This is the base style script where the various libraries are included</p>
 """;
     public static final String DEFAULT_LIGHT_STYLESHEET = """
 <style type='text/css'>
@@ -1561,7 +1561,7 @@ iframe.previewFrame { width: calc(100% - 10px); height: calc(100vh - 110px); }
 """;
 
 public static final String DEFAULT_HOME_SCRIPT = """
-<div id="header" hx-trigger="load" hx-get="/Header" 
+<div id="header" hx-trigger="load" hx-get="/Header"
     hx-swap="innerHTML"></div>
 
 <div id="service">
@@ -1584,7 +1584,7 @@ public static final String DEFAULT_HOME_SCRIPT = """
    <span class="icon-bar"></span>
    <span class="icon-bar"></span>
    </div>
-   <div id="nav-content" hx-get="/Menu?TARGET=service" 
+   <div id="nav-content" hx-get="/Menu?TARGET=service"
         hx-trigger="load" hx-swap="innerHTML" tabindex="0"></div>
 </div>
 
@@ -1874,12 +1874,12 @@ a.headerlogo:hover { text-decoration: none; background-color: transparent;}
 """;
 
 public static final String DEFAULT_WELCOME_SCRIPT = """
-<div id="header" class="header" 
+<div id="header" class="header"
     hx-trigger="load" hx-get="/Header" hx-swap="innerHTML">
 </div>
 <div>
     <PermeAgility table="news" order="dateline desc"
-        where="(archive IS NULL OR archive=false) 
+        where="(archive IS NULL OR archive=false)
             AND (locale IS NULL OR locale.name='${locale}')
             AND ${_allowRead}">
         <div class="card">

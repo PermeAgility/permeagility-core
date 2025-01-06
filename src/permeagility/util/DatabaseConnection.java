@@ -34,7 +34,7 @@ import com.arcadedb.schema.Schema;
 import permeagility.web.Security;
 
 /** This abstracts the native database connections a bit and give us somewhere to put some helper functions */
-public class DatabaseConnection {
+public final class DatabaseConnection {
 
 	public static boolean DEBUG = false;
     public static boolean DBA_BYPASS_RESTRICTED = false;  // if true, dba accounts can see all data 

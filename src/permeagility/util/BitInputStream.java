@@ -34,7 +34,7 @@ import java.io.*;
  * @version 2.0, October 2004
  */
 
-public class BitInputStream extends InputStream
+public final class BitInputStream extends InputStream
 {
     private InputStream     myInput;
     private int             myBitCount;

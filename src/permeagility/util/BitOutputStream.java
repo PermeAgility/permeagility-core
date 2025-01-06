@@ -161,7 +161,7 @@ public class BitOutputStream extends OutputStream
 
     public void writeBits(int howManyBits, int value)
     {
-        value &= bmask[howManyBits];  // only right most bits valid
+        value &= (int)bmask[howManyBits];  // only right most bits valid
 
         while (howManyBits >= myBitsToGo){
             myBuffer = (myBuffer << myBitsToGo) |
@@ -173,7 +173,7 @@ public class BitOutputStream extends OutputStream
                 throw new RuntimeException("error writing bits " + ioe);
             }
 
-            value &= bmask[howManyBits - myBitsToGo];
+            value &= (int)bmask[howManyBits - myBitsToGo];
             howManyBits -= myBitsToGo;
             myBitsToGo = BITS_PER_BYTE;
             myBuffer = 0;

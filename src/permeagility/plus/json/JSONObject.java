@@ -108,7 +108,7 @@ import java.util.Set;
  * @author JSON.org
  * @version 2014-05-03
  */
-public class JSONObject {
+public final class JSONObject {
     /**
      * JSONObject.NULL is equivalent to the value that JavaScript calls null,
      * whilst Java's null is equivalent to the value that JavaScript calls
@@ -148,6 +148,9 @@ public class JSONObject {
         public String toString() {
             return "null";
         }
+        public int hashCode() {
+            return 0;
+        }   
     }
 
     /**
@@ -313,7 +316,7 @@ public class JSONObject {
      */
     public JSONObject(Object object, String names[]) {
         this();
-        Class c = object.getClass();
+        Class<?> c = object.getClass();
         for (int i = 0; i < names.length; i += 1) {
             String name = names[i];
             try {
@@ -646,7 +649,7 @@ public class JSONObject {
         if (object == null) {
             return null;
         }
-        Class klass = object.getClass();
+        Class<?> klass = object.getClass();
         Field[] fields = klass.getFields();
         int length = fields.length;
         if (length == 0) {
@@ -996,7 +999,7 @@ public class JSONObject {
     }
 
     private void populateMap(Object bean) {
-        Class klass = bean.getClass();
+        Class<?> klass = bean.getClass();
 
 // If klass is a System class then set includeSuperClass to false.
 

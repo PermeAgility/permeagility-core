@@ -33,7 +33,7 @@ import permeagility.web.Server;
  * This class holds a connection to a database
  * 
  */
-public class Database  {
+public final class Database  {
 
     protected static boolean EMBEDDED_SERVER = true;
     private static DatabaseFactory dbFactory = null;
@@ -57,61 +57,75 @@ public class Database  {
         user = dbUser;
         password = Security.digest(dbPass);
         if (dbFactory == null && server == null) {
-            startMeUp();    // first connection is passwordless to allow server setup/startup    
-            return;
-        }
-        System.out.println("Created new DatabaseObject for user "+dbUser);
-        if (EMBEDDED_SERVER) {
-            sdb = server.getDatabase(url);
-        } else {
-            db = dbFactory.open();
-        }
-        //if ()
-        System.out.println("Validating the user login information for "+user);
-        con = EMBEDDED_SERVER ? new DatabaseConnection(this,sdb) : new DatabaseConnection(this,db);
-        //con.begin();
-        Document udoc = con.queryDocument("SELECT FROM user WHERE name='"+user+"' AND status='ACTIVE' AND password='"+password+"'");
-        //con.commit();
-        if (udoc != null) {
-            isValid = true;
-        } else {
-            System.out.println("Database Warning: Failed attempt to login user "+user);
-            isValid = false;
-        }
-    }
-
-    private void startMeUp() {
-        if (dbFactory == null && !EMBEDDED_SERVER) {
-            dbFactory = new DatabaseFactory(url);
-            if (!dbFactory.exists()) {
-                createLocal("");
+            if (dbFactory == null && !EMBEDDED_SERVER) {
+                dbFactory = new DatabaseFactory(url);
+                if (!dbFactory.exists()) {
+                    System.out.println("*** Creating new database "+url+" in "+System.getProperty("user.dir"));
+                    com.arcadedb.database.Database d;
+                    if (!dbFactory.exists()) {
+                        d = dbFactory.create();
+                        System.out.println("Database "+d.getDatabasePath()+" created.");
+                        if (d.isOpen()) {
+                            System.out.println("Database is open");
+                            d.close();
+                            return;
+                        } else {
+                            System.out.println("Database is NOT open");
+                        }
+                    } else {
+                        dbFactory.close();
+                        System.out.println("***\n*** Exit condition: Cannot login or create database because it exists - maybe the server is already running?\n***");
+                        Server.exit(-3);
+                    }
+        
+                }
+                dbFactoryRO = new DatabaseFactory(url);
             }
-            dbFactoryRO = new DatabaseFactory(url);
-        }
-        if (server == null && EMBEDDED_SERVER) {
-            //config.setValue(GlobalConfiguration.HA_SERVER_LIST, "192.168.10.1,192.168.10.2,192.168.10.3");
-            //config.setValue(GlobalConfiguration.HA_REPLICATION_INCOMING_HOST, "0.0.0.0");
-            //config.setValue(GlobalConfiguration.HA_ENABLED, true);
-//            config.setValue(GlobalConfiguration.SERVER_ROOT_PASSWORD, "886E0728");
-            server = new ArcadeDBServer(config);
-            server.start();
-            if (!server.existsDatabase(url)) {
-                sdb = server.createDatabase(url, MODE.READ_WRITE);
-                if (sdb.isOpen()) {
-                    System.out.println("Database is open");
+            if (server == null && EMBEDDED_SERVER) {
+                //config.setValue(GlobalConfiguration.HA_SERVER_LIST, "192.168.10.1,192.168.10.2,192.168.10.3");
+                //config.setValue(GlobalConfiguration.HA_REPLICATION_INCOMING_HOST, "0.0.0.0");
+                //config.setValue(GlobalConfiguration.HA_ENABLED, true);
+    //            config.setValue(GlobalConfiguration.SERVER_ROOT_PASSWORD, "886E0728");
+                server = new ArcadeDBServer(config);
+                server.start();
+                if (!server.existsDatabase(url)) {
+                    sdb = server.createDatabase(url, MODE.READ_WRITE);
+                    if (sdb.isOpen()) {
+                        System.out.println("Database is open");
+                    }
                 }
             }
-        }
-        if (EMBEDDED_SERVER) {
-            if (sdb == null) sdb = server.getDatabase(url);
-            sdb.setAutoTransaction(true);
+            if (EMBEDDED_SERVER) {
+                if (sdb == null) sdb = server.getDatabase(url);
+                sdb.setAutoTransaction(true);
+            } else {
+                db = dbFactory.open();
+            }
+            con = EMBEDDED_SERVER ? new DatabaseConnection(this,sdb) : new DatabaseConnection(this,db);
+            isValid = true;
         } else {
-            db = dbFactory.open();
+            System.out.println("Created new DatabaseObject for user "+dbUser);
+            if (EMBEDDED_SERVER) {
+                sdb = server.getDatabase(url);
+            } else {
+                db = dbFactory.open();
+            }
+            //if ()
+            System.out.println("Validating the user login information for "+user);
+            con = EMBEDDED_SERVER ? new DatabaseConnection(this,sdb) : new DatabaseConnection(this,db);
+            //con.begin();
+            Document udoc = con.queryDocument("SELECT FROM user WHERE name='"+user+"' AND status='ACTIVE' AND password='"+password+"'");
+            //con.commit();
+            if (udoc != null) {
+                isValid = true;
+            } else {
+                System.out.println("Database Warning: Failed attempt to login user "+user);
+                isValid = false;
+            }
         }
-        con = EMBEDDED_SERVER ? new DatabaseConnection(this,sdb) : new DatabaseConnection(this,db);
-        isValid = true;
     }
 
+ 
     public DatabaseConnection getReadOnlyConnection() {
         if (EMBEDDED_SERVER) {
             return con;

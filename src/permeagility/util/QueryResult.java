@@ -126,9 +126,8 @@ public class QueryResult {
 	
 	public Object[] getLinkSetValue(int row, String column) {
 		Object o = getValue(row, column);
-		if (o != null && o instanceof Set set) {
-			@SuppressWarnings("rawtypes")
-			Object oset[] = set.toArray();
+		if (o != null && o instanceof Set<?> set) {
+			Object[] oset = set.toArray();
 			return oset;
 		}
 		return null;

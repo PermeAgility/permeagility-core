@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright 2015 PermeAgility Incorporated.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -57,12 +57,12 @@ public class Table extends Weblet {
     public static long DOT_INTERVAL = 5;         // Interval for dot when numerous pages - probably should derive this to be more dynamic
     public static long DOT_LIMIT = 50;         // Limit to number of dot-links to show, browser slows with too many
     public static long PAGE_WINDOW = 3;          // Always show this many pages around the current page when there are many dots
-    public static String PARM_PREFIX = "PARM_";  // Use this prefix in front of all column names as form field names (parameter names) 
+    public static String PARM_PREFIX = "PARM_";  // Use this prefix in front of all column names as form field names (parameter names)
     public static boolean SHOW_ALL_RELATED_TABLES = true;   // Will show that relationships exist even if no access to the table
 
-    public String getPage(DatabaseConnection con, java.util.HashMap<String, String> parms) {      
+    public String getPage(DatabaseConnection con, java.util.HashMap<String, String> parms) {
         String restResult = processREST(con, parms);
-        return restResult != null ? restResult 
+        return restResult != null ? restResult
             : new Schema().getPage(con,parms); // Return default of schema page if no result
     }
 
@@ -73,7 +73,7 @@ public class Table extends Weblet {
   */
 
     public String processREST(DatabaseConnection con, HashMap<String, String> parms) {
-        StringBuilder errors = new StringBuilder();        
+        StringBuilder errors = new StringBuilder();
         String restOfURL = parms.get("REST_OF_URL");  // if rest attributes exist then parse table/id
         if (restOfURL != null && !restOfURL.isEmpty()) {
             String[] restParts = restOfURL.split("/");  // 0=table, 1=rid
@@ -98,12 +98,12 @@ public class Table extends Weblet {
                 return getTableRowForm(con, table, parms);
             } else {
                 if (httpMethod.equals("PUT")) {
-                    // PUT to 'columns' will add a column provided the proper details are given as parameters 
+                    // PUT to 'columns' will add a column provided the proper details are given as parameters
                     if (rid != null && rid.equals("columns")) {
                         addColumn(con, parms, table, errors);
                         return errors.toString() + getTableWithControls(con, parms, table);
                     }
-                    // PUT to insert and return the new row 
+                    // PUT to insert and return the new row
                     if (insertRow(con, table, parms, errors)) {
                         return getTableRowForm(con, table, parms);
                     } else {
@@ -250,12 +250,12 @@ public class Table extends Weblet {
 
     /* After a POST operation (create, update, delete) redirect to the source table/record if it is in the parms
       because the source table/id could be a list, pop it
-    */ 
+    */
     public String redirectUsingSource(HashMap<String, String> parms, String defaultPath) {
             String sourceTable = parms.get("SOURCETABLENAME");
             String sourceId = parms.get("SOURCEEDIT_ID");
             String editId = parms.get("EDIT_ID");
-            if (sourceTable != null && !sourceTable.isEmpty()  && sourceId != null && !sourceId.isEmpty()) { 
+            if (sourceTable != null && !sourceTable.isEmpty()  && sourceId != null && !sourceId.isEmpty()) {
                 if (DEBUG) {
                     System.out.println("Table (Cancel) popping sourceTableName=" + parms.get("SOURCETABLENAME") + " id=" + parms.get("SOURCEEDIT_ID"));
                 }
@@ -350,14 +350,14 @@ public class Table extends Weblet {
             newDoc.fromMap(fieldMap);
             if (newDoc.has("name")) {
                 copyName = newDoc.getString("name");
-                newDoc.set("name", 
+                newDoc.set("name",
                     newDoc.getString("name")
                     +Message.get(con.getLocale(),"COPY_SUFFIX")
                 );
             }
             if (newDoc.has("description")) {
                 if (copyName == null) copyName = newDoc.getString("description");
-                newDoc.set("description", 
+                newDoc.set("description",
                     Message.get(con.getLocale(),"COPY_PREFIX",new Date().toString())
                     +"\n"+newDoc.getString("description")
                 );
@@ -420,7 +420,7 @@ public class Table extends Weblet {
                     }
                 } else if (type == Type.STRING) {  // String
                     newDoc.set(name, value);
-                } else if (type == Type.BINARY) {  // Binary/image 
+                } else if (type == Type.BINARY) {  // Binary/image
                     updateBlob(con, newDoc, table, name, parms, errors);
                     thumbsToUpdate.add(name);
                 } else if (type == Type.LINK) {  // Link
@@ -561,9 +561,9 @@ public class Table extends Weblet {
                 Type type = column.getType();
                 String newValue = parms.get(PARM_PREFIX + columnName);
                 if (newValue == null) {
-                    if (DEBUG) System.out.println("not updating " + columnName + " of type " + type + " because newValue is not specified in " + PARM_PREFIX + columnName); 
+                    if (DEBUG) System.out.println("not updating " + columnName + " of type " + type + " because newValue is not specified in " + PARM_PREFIX + columnName);
                     continue;  // Don't update field if not specified in parameters
-                }                
+                }
                 if (DEBUG) System.out.println("updating " + columnName + " of type " + type + " with value " + stringToMax(newValue));
                 if (newValue.equals("null")) {
                     newValue = null;
@@ -808,7 +808,7 @@ public class Table extends Weblet {
         Document doc = con.get(edit_id);
         if (doc != null) {
             try {
-                String delName = doc.has("name") ? doc.getString("name") : doc.getIdentity().toString();                
+                String delName = doc.has("name") ? doc.getString("name") : doc.getIdentity().toString();
                 doc.delete();
                 Server.tableUpdated(con, table);
                 DatabaseConnection.rowCountChanged(table);
@@ -847,7 +847,7 @@ public class Table extends Weblet {
         // getTableRowFields can return a list of hyperscript command to run when a form is submitted (for CodeEditor mostly)
         ArrayList<String> submitCodeLines = new ArrayList<String>();
         String rowForm = getTableRowFields(con, table, parms, submitCodeLines);
-        StringBuilder submitCode = new StringBuilder("_=\"on click "); 
+        StringBuilder submitCode = new StringBuilder("_=\"on click ");
         int lineIndex = 0;
         for (String codeLine : submitCodeLines) {
             if (lineIndex > 0) submitCode.append(" then ");
@@ -864,11 +864,11 @@ public class Table extends Weblet {
         String formName = (edit_id == null ? "NEWROW" : "UPDATEROW");
         String formContent = rowForm
                         + center((edit_id == null
-                            ? ((Security.getTablePriv(con, table) & Security.PRIV_CREATE) > 0 
-                                    ? submitButton(con.getLocale(), "CREATE_ROW", submitCodeLines.size()>0 ? submitCode.toString() : "") 
+                            ? ((Security.getTablePriv(con, table) & Security.PRIV_CREATE) > 0
+                                    ? submitButton(con.getLocale(), "CREATE_ROW", submitCodeLines.size()>0 ? submitCode.toString() : "")
                                     : "")
-                            : ((Security.getTablePriv(con, table) & Security.PRIV_UPDATE) > 0 && !readOnly 
-                                    ? submitButton(con.getLocale(), "UPDATE", submitCodeLines.size()>0 ? submitCode.toString() : "") 
+                            : ((Security.getTablePriv(con, table) & Security.PRIV_UPDATE) > 0 && !readOnly
+                                    ? submitButton(con.getLocale(), "UPDATE", submitCodeLines.size()>0 ? submitCode.toString() : "")
                                     : "")
                             + "&nbsp;&nbsp;"
                             + cancelButton(con.getLocale(), table, parms.get("HX-TARGET"))))
@@ -884,7 +884,7 @@ public class Table extends Weblet {
         String title = Message.get(con.getLocale(), "EDIT_ROW", makeCamelCasePretty(table), docDesc);
         return allRowsLink
                 + getLinkTrail(con, parms.get("SOURCETABLENAME"), parms.get("SOURCEEDIT_ID"), parms.get("HX-TARGET"))
-                + paragraph("banner", (edit_id == null 
+                + paragraph("banner", (edit_id == null
                         ? Message.get(con.getLocale(), "CREATE_ROW")+" "+makeCamelCasePretty(table)
                         : Message.get(con.getLocale(), "UPDATE") + "&nbsp;" + makeCamelCasePretty(table)))
                 + formContent
@@ -920,7 +920,7 @@ public class Table extends Weblet {
         }
         return getTableRowFields(con, table, newParms, null, null);
     }
-    
+
     // Used
     public String getTableRowFields(DatabaseConnection con, String table, HashMap<String, String> parms) {
         return getTableRowFields(con, table, parms, null, null);
@@ -1000,8 +1000,8 @@ public class Table extends Weblet {
             return row(label + column(checkbox(PARM_PREFIX + name, (initialValue == null ? false : Boolean.valueOf(initialValue.toString())))));
 
         // Number
-        } else if (type == Type.DECIMAL || type == Type.INTEGER || type == Type.LONG 
-                || type == Type.FLOAT || type == Type.DOUBLE 
+        } else if (type == Type.DECIMAL || type == Type.INTEGER || type == Type.LONG
+                || type == Type.FLOAT || type == Type.DOUBLE
                 || type == Type.SHORT || type == Type.BYTE) {
             List<String> pickValues = Server.getPickValues(con, table, name);
             if (pickValues != null) {
@@ -1072,7 +1072,7 @@ public class Table extends Weblet {
                 return row(label + column(input("text", PARM_PREFIX + name, initialValue, length)));
             }
             // Binary
-        } else if (type == Type.BINARY) { // 8 = binary, 20 = custom 
+        } else if (type == Type.BINARY) { // 8 = binary, 20 = custom
             StringBuilder desc = new StringBuilder();
             if (edit_id != null) {
                 String nail = null;
@@ -1112,9 +1112,9 @@ public class Table extends Weblet {
                 gotoLink = linkHTMX("/"+this.getClass().getName() + "/" + ofType + "/" + v, Message.get(con.getLocale(), "GOTO_ROW"), parms.get("HX-TARGET"));
             }
             if (ofType != null) {
-                return row(label 
+                return row(label
                         + column(createListFromCache(PARM_PREFIX + name, (v == null ? "" : v), con, getQueryForTable(con,ofType,name), null, true, null, true)
-                        + gotoLink          
+                        + gotoLink
                         ));
             } else {
                 return paragraph("error","table.getColumnAsField: Could not determine linked type for "+name);
@@ -1151,14 +1151,14 @@ public class Table extends Weblet {
                 return paragraph("error","table.getColumnAsField: Could not determine linked LIST type for "+name);
             }
            // Link map
-        } else if (type == Type.MAP) { 
+        } else if (type == Type.MAP) {
             Map<String, Object> l = null;
             try {
                 l = initialValues.getMap(name);
             } catch (NullPointerException e) {
             }  // It will do this if it doesn't exist
             if (l != null && DEBUG) System.out.println("linkmap size=" + l.size());
-            
+
             String linkedType = column.getOfType();
             if (linkedType != null) {
                 return row(label + columnNoWrap(linkMapControl(con, PARM_PREFIX + name, linkedType, getCache().getResult(con, getQueryForTable(con, linkedType, name)), con.getLocale(), l)));
@@ -1213,7 +1213,7 @@ public class Table extends Weblet {
 
         ArrayList<String> tabNames = new ArrayList<String>();
         ArrayList<String> tabTargets = new ArrayList<String>();
-        
+
         while (!tables.isEmpty()) {
             String relTable = tables.pop();
             String fkColumn = columns.pop();
@@ -1229,14 +1229,14 @@ public class Table extends Weblet {
     }
 
     public String newColumnPopup(DatabaseConnection con, String table, String target) {
-        return popupFormHTMX("NEWCOLUMN_"+table, this.getClass().getName()+"/"+table+"/columns", 
+        return popupFormHTMX("NEWCOLUMN_"+table, this.getClass().getName()+"/"+table+"/columns",
              "put", target, Message.get(con.getLocale(), "ADD_COLUMN"), "NEWCOLUMNNAME", newColumnForm(con));
     }
 
     public String newColumnForm(DatabaseConnection con) {
-        Locale l = con.getLocale();  
+        Locale l = con.getLocale();
         String typeSelAttr = """
-            _="on load hide #NEWTABLEREF end 
+            _="on load hide #NEWTABLEREF end
                on change if #NEWDATATYPE.value is 'DATATYPE_LINK' or #NEWDATATYPE.value is 'DATATYPE_LIST' or #NEWDATATYPE.value is 'DATATYPE_MAP'
                   show #NEWTABLEREF
                   else hide #NEWTABLEREF"
@@ -1273,12 +1273,12 @@ public class Table extends Weblet {
         }
         String body = linkHTMX(this.getClass().getName(), "&lt;" + Message.get(con.getLocale(), "ALL_TABLES"), parms.get("HX-TARGET"))
                 + "&nbsp;&nbsp;&nbsp;"
-                 + ((Security.getTablePriv(con, table) & Security.PRIV_CREATE) > 0 
+                 + ((Security.getTablePriv(con, table) & Security.PRIV_CREATE) > 0
                     ? popupFormHTMX("CREATE_NEW_ROW", this.getClass().getName()+"/"+table, "put", parms.get("HX-TARGET"), Message.get(con.getLocale(), "NEW_ROW"), "NAME",
                         paragraph("banner", Message.get(con.getLocale(), "CREATE_ROW")+" "+makeCamelCasePretty(table))
                         + getTableRowFieldsNew(con, table, parms)
                         + submitButton(con.getLocale(), "CREATE_ROW")
-                       ) 
+                       )
                     : "")
                 + "&nbsp;&nbsp;&nbsp;"
                 + (Security.isDBA(con)
@@ -1303,11 +1303,11 @@ public class Table extends Weblet {
         // if rest attributes exist then parse WHERE clause
         String where = "";
         String hideColumn = null;
-        String restOfURL = parms.get("REST_OF_URL");  
+        String restOfURL = parms.get("REST_OF_URL");
         if (restOfURL != null && !restOfURL.isEmpty()) {
-            String[] restParts = restOfURL.split("/"); 
+            String[] restParts = restOfURL.split("/");
             String prefix = " ";
-            if (restParts.length > 2 && restParts[0].equals(table) && restParts[1].equals("*") 
+            if (restParts.length > 2 && restParts[0].equals(table) && restParts[1].equals("*")
                  && restParts[2].equalsIgnoreCase("WHERE")) {
                     if (DEBUG) System.out.println("We have a where clause coming");
                     int restIndex = 2; // after 0table/1splat/2where/3column/4operator/5value/6and/7col/8eq/9val ...
@@ -1321,7 +1321,7 @@ public class Table extends Weblet {
                             value = "#"+value;  // no quotes with colon must be RID
                         }
                         where += prefix+column+" "+operator+" "+value;
-                        
+
                         restIndex += 3;
                         if (restIndex + 1 < restParts.length) {  // Are we going to continue?
                             if (restParts[restIndex+1].equalsIgnoreCase("AND")
@@ -1350,7 +1350,7 @@ public class Table extends Weblet {
             StringBuilder pageNav = new StringBuilder();
             StringBuilder sb = new StringBuilder();
             int rowCount = 0;
-            
+
             long totalRows = con.getRowCount(table);
             // Handle Paging
             String skip = "";
@@ -1363,7 +1363,7 @@ public class Table extends Weblet {
                     for (long p = 1; p <= pageCount; p++) {
                         if (Math.abs(page - p) < PAGE_WINDOW || pageCount - p < PAGE_WINDOW || p < PAGE_WINDOW) {
                             if (p == page || (page == 0 && p == 1)) {
-                                pageNav.append(bold(color("green", "" + p)) + "&nbsp;");  
+                                pageNav.append(bold(color("green", "" + p)) + "&nbsp;");
                             } else {
                                 pageNav.append(linkWithTipHTMX(this.getClass().getName()+"/" + table + "&PAGE=" + p, "" + p, "Page " + p, parms.get("HX-TARGET")) + "&nbsp;");
                             }
@@ -1405,7 +1405,7 @@ public class Table extends Weblet {
                         + (!sourceTable.isEmpty() ? "?" + sourceTable + sourceId : "")
                         , null  // title/tooltip would be nice at some point
                         , (parms != null ? parms.get("HX-TARGET") : DEFAULT_TARGET)
-                    ));                         
+                    ));
                     rowCount++;
                     if (page > -1 && rowCount >= ROW_COUNT_LIMIT) {
                         if (page == 0) page = 1;  // reached limit with no page specified, must be page 1
@@ -1416,7 +1416,7 @@ public class Table extends Weblet {
                 if (page <= 1 && rowCount < ROW_COUNT_LIMIT) {  // We came in without a page no, and found less than the limit, no need to show totals or page no
                     rowCountInfo = paragraph(rowCount+" rows");
                 } else {
-                    rowCountInfo = paragraph(Message.get(con.getLocale(), "ROWS_OF", "" + rowCount, "" + totalRows) 
+                    rowCountInfo = paragraph(Message.get(con.getLocale(), "ROWS_OF", "" + rowCount, "" + totalRows)
                                          + "&nbsp;" + (page > -1 ? Message.get(con.getLocale(), "PAGE_NAV") + "&nbsp;" + page : ""));
                 }
                 sb.append(tableFooter(row(columnSpan(columns.size(), rowCountInfo))));
@@ -1511,7 +1511,7 @@ public class Table extends Weblet {
                 }
                 sb.append(column(stringvalue));
             }
-        } else if (columnType == Type.BINARY) {  // Binary 
+        } else if (columnType == Type.BINARY) {  // Binary
             StringBuilder desc = new StringBuilder();
             String blobid = Thumbnail.getThumbnailId(con, d.getTypeName(), d.getIdentity().toString().substring(1), columnName, desc);
             if (blobid != null) {
@@ -1755,7 +1755,7 @@ public class Table extends Weblet {
                 }
             }
         }
-        return rightsOptionsForm(con, table, parms, errors.toString());        
+        return rightsOptionsForm(con, table, parms, errors.toString());
     }
 
     public String rightsOptionsForm(DatabaseConnection con, String table, HashMap<String, String> parms, String errors) {
@@ -1823,7 +1823,7 @@ public class Table extends Weblet {
     }
 
     public static String stringToMax(String s) {
-        return s == null ? null 
+        return s == null ? null
            : (s.substring(0,s.length() > MAX_STRING_DISPLAY ? MAX_STRING_DISPLAY : s.length())
            + (s.length() > MAX_STRING_DISPLAY ? "...("+s.length()+")" : ""));
     }
