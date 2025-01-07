@@ -1277,7 +1277,7 @@ public class Table extends Weblet {
                     ? popupFormHTMX("CREATE_NEW_ROW", this.getClass().getName()+"/"+table, "put", parms.get("HX-TARGET"), Message.get(con.getLocale(), "NEW_ROW"), "NAME",
                         paragraph("banner", Message.get(con.getLocale(), "CREATE_ROW")+" "+makeCamelCasePretty(table))
                         + getTableRowFieldsNew(con, table, parms)
-                        + submitButton(con.getLocale(), "CREATE_ROW")
+                        + center(submitButton(con.getLocale(), "CREATE_ROW"))
                        )
                     : "")
                 + "&nbsp;&nbsp;&nbsp;"

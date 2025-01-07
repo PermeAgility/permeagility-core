@@ -38,7 +38,7 @@ public class Schema extends Weblet {
         StringBuilder errors = new StringBuilder();
         String submit = parms.get("SUBMIT");
         if (submit != null) {
-            if (submit.equals("NEW_TABLE")) {
+            if (submit.equals("CREATE")) {
                 String tn = parms.get("NEWTABLENAME");
                 if (tn == null || tn.equals("")) {
                     errors.append(paragraph("error", "Table name must be specified"));
@@ -148,7 +148,7 @@ public class Schema extends Weblet {
                 + (Security.isDBA(con)
                         ? popupFormHTMX("NEWTABLE_Ungrouped", "/Schema", "PUT", parms.get("HX-TARGET"), Message.get(con.getLocale(), "NEW_TABLE"), "NEWTABLENAME",
                                 inputWithPlaceholder("NEWTABLENAME", Message.get(con.getLocale(),"NEW_TABLE_NAME")) + "&nbsp;&nbsp;"
-                                + submitButton(con.getLocale(), "NEW_TABLE")
+                                + center(submitButton(con.getLocale(), "CREATE"))
                         )
                         : "")
                 + div("schema","tableGroups", blocks.toString())
