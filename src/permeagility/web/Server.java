@@ -1392,7 +1392,7 @@ public class Server {
         atr.set("action",action);
         atr.set("table",rjson.getString("@type"));
         atr.set("rid",rjson.getString("@rid"));
-        atr.newEmbeddedDocument( rjson.getString("@type"), "detail").fromJSON(rjson);
+        atr.newEmbeddedDocument( rjson.getString("@type"), "detail").fromMap(rjson.toMap());
         atr.save();
     }
 
