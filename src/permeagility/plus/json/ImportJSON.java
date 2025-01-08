@@ -273,8 +273,8 @@ public class ImportJSON extends Weblet {
                             if (subval instanceof JSONObject) {
                                 Document subdoc = importObject(parms, run, con, oproperty.getOfType(), (JSONObject)subval, errors, classes);
                                 if (subdoc != null ) {
-                                    if (DEBUG) System.out.println("adding (into map) "+n+": "+subdoc);
-                                    newMap.put("'"+n+"'",subdoc);
+                                    if (DEBUG) System.out.println("adding (into map) "+n+": "+subdoc.getIdentity());
+                                    newMap.put(n,subdoc.getIdentity());
                                 }
                             }
                         }
