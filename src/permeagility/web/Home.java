@@ -32,6 +32,7 @@ public class Home extends Weblet {
 
     public String getPage(DatabaseConnection con, HashMap<String,String> parms) {
         String serviceName = "Home page: none";
+        String serviceType = "WELCOME";
         String id = parms.get("ID");
         String name = parms.get("NAME");
         Document menuItem = null;
@@ -52,7 +53,7 @@ public class Home extends Weblet {
               + body(paragraph("error","No Page to generate: "+menuItem+" maybe the ID or NAME was not specified, try adding ?ID=rid or ?NAME=name"));
         }
         serviceName = menuItem.getString("name");
-
+        serviceType = menuItem.getString("type");
         StringBuilder styleScript = new StringBuilder();
         adoptStyleFrom(con, styleScript, menuItem);
         String pageStyle = menuItem.getString("pageStyle");
@@ -77,8 +78,16 @@ public class Home extends Weblet {
             htmlScript = "";
         }
         // returning
-        return head(con, serviceName, styleScript.toString())
-                + body(htmlScript);
+        if (serviceType.equals("HOME") || parms.get("HX-TARGET")==null) {
+            return head(con, serviceName, styleScript.toString() + Menu.getMenuStyle())
+            + body(serviceWrapper(htmlScript));
+        } else {
+            return head(con, serviceName, styleScript.toString()) + body(htmlScript);
+        }
+    }
+
+    public String serviceWrapper(String content) {
+        return Header.getHeaderDiv()  + div("service",content) + Menu.getMenuDiv();
     }
 
     public void adoptStyleFrom(DatabaseConnection con, StringBuilder styleScript, Document menuItem) {

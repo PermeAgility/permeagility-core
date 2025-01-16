@@ -160,7 +160,8 @@ public class Menu extends Weblet {
     // Override links to use menuitem class
     public static String link(String ref, String name, String desc, String target) {
         if (target == null) target = "service";
-        return "<a hx-get='/" + ref + "' hx-target='#"+target+"' hx-trigger='click' hx-swap='innerHTML' class='menuitem' "
+        return "<a hx-get='/" + ref + "' hx-target='#"+target+"' hx-trigger='click' hx-swap='innerHTML' "
+                +" class='menuitem' "  //hx-push-url='true' 
                 +"href='/" + ref + "' title='" + desc + "' "
                 +" _=\"on click hide #nav-container then wait 100ms then show #nav-container\">" 
                 + name + "</a>\n";
@@ -182,4 +183,64 @@ public class Menu extends Weblet {
         return menuCache.size();
     }
 
+    public static String getMenuStyle() {
+        return """
+<style type='text/css'>
+/* For Menu/Navigator popup */
+.nav-button {
+    position: relative; display: flex; flex-direction: column;
+    justify-content: center;  -webkit-appearance: none;
+    border: 0; margin-left: 10px;
+    background: transparent; border-radius: 0;
+    height: 40px; width: 25px;
+    cursor: pointer; pointer-events: auto;
+    touch-action: manipulation; user-select: none;
+    -webkit-tap-highlight-color: rgba(0,0,0,0);
+}
+.icon-bar { display: block; width: 100%; height: 3px; background: #aaa; transition: .5s; border-radius: 3px;}
+.icon-bar + .icon-bar { margin-top: 5px; }
+#nav-container { position: fixed; height: 100vh; width: 100%; pointer-events: none; }
+#nav-container * { visibility: visible; }
+#nav-container:focus-within .bg { visibility: visible; opacity: .6; }
+#nav-container:focus-within .nav-button { pointer-events: none; }
+#nav-container:focus-within .icon-bar:nth-of-type(1) { transform: translate3d(0,8px,0) rotate(45deg); }
+#nav-container:focus-within .icon-bar:nth-of-type(2) { opacity: 0; }
+#nav-container:focus-within .icon-bar:nth-of-type(3) { transform: translate3d(0,-8px,0) rotate(-45deg); }
+#nav-container:focus-within #nav-content { transform: none; }
+#nav-container .bg {
+    position: absolute; top: 70px; left: 0;
+    width: 100%; height: calc(100% - 70px);
+    visibility: hidden; opacity: 0;
+    transition: .5s; background: var(--menu-bg-color);
+}
+
+#nav-content ul { height: 100%; display: flex; flex-direction: column; margin-left: 0px; list-style: none; }
+#nav-content li:not(.small) + .small { margin-top: auto; }
+#nav-content {
+    margin-top: 40px;  padding: 10px; width: 90%; max-width: 170px;
+    position: absolute; top: 0; left: 0; height: calc(100% - 70px);
+    background: var(--menu-bg-color); opacity: 0.9; pointer-events: auto;
+    -webkit-tap-highlight-color: rgba(0,0,0,0);
+    transform: translateX(-100%);
+    transition: .5s;
+    will-change: transform;  contain: paint;
+}
+</style>
+""";
+    }
+
+    public static String getMenuDiv() {
+        return """
+            <div id="nav-container">
+            <div id="underlay" class="bg"></div>
+            <div id="nav-button" class="nav-button" tabindex="0">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            </div>
+            <div id="nav-content" hx-get="/Menu?TARGET=service"
+                    hx-trigger="load" hx-swap="innerHTML" tabindex="0"></div>
+            </div>
+                """;
+    }
 }

@@ -59,4 +59,10 @@ public class Header extends Weblet {
 		return "<A CLASS=\"headerlogo\" HREF=\""+ref+"\" TITLE=\""+desc+"\">"+name+"</A>";
 	}
 				
+	public static String getHeaderDiv() {
+		return """
+				<div id="header" hx-trigger="load" hx-get="/Header" hx-swap="innerHTML">
+				</div>
+				""";
+	}
 }

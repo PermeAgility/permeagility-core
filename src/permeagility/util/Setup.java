@@ -590,14 +590,11 @@ public class Setup {
                 n2.set("description", """
                     Tips for administrators
                     <ul>
+                    <li>Go to the <a href='/Home?NAME=home'>Application</a></li>
                     <li>Use the backup tool</li>
                     <li>Copy config items when making changes</li>
                     <li>Change the admin password</li>
                     <li>System tables will be checked during startup</li>
-                    <li>Go to the application:
-                    <a href='/Home?NAME=home-dark'>Dark</a>
-                    <a href='/Home?NAME=home-light'>Light</a>
-                    </li>
                     </ul><li>see <a target='_blank' href='http://www.permeagility.com'>www.permeagility.com</a>
                     for more information
                     </li>
@@ -629,10 +626,7 @@ public class Setup {
                 n4.set("description","""
                     PermeAgility lets you create, update, and navigate data every way it is connected.
                     Use the pop up menu at the top left to access the different functions of the system
-                    <li>Go to the application:
-                    <a href='/Home?NAME=home-dark'>Dark</a> 
-                    <a href='/Home?NAME=home-light'>Light</a>
-                    </li>
+                    <li>Go to the <a href='/Home?NAME=home'>Application</a></li>
                     """);
                 n4.set("dateline", LocalDateTime.now().plusSeconds(2));
                 n4.set("locale",loc);
@@ -666,9 +660,9 @@ public class Setup {
                 n5.save();
 
                 MutableDocument n1 = con.create(TABLE_NEWS);
-                n1.set("name","We are driven by data");
+                n1.set("name","We are driven by model and data");
                 n1.set("description","""
-                    Everything you see here is generated from data found in the database and can be configured to fit your needs. Scroll for more...
+                    Everything you see here is generated from the data model found in the database and can be configured to fit your needs. Scroll for more...
                     """);
                 n1.set("dateline", LocalDateTime.now().plusSeconds(4));
                 n1.set("locale",loc);
@@ -676,7 +670,6 @@ public class Setup {
                 n1.set("_allowRead", guestRoles);
                 n1.set("_allow", adminAndStaffRoles);
                 n1.save();
-
 
                 MutableDocument n6 = con.create(TABLE_NEWS);
                 n6.set("name","Welcome to PermeAgility");
@@ -687,7 +680,6 @@ public class Setup {
                 n6.set("_allowRead", guestRoles);
                 n6.set("_allow", adminAndStaffRoles);
                 n6.save();
-
             }
 
             System.out.println(TABLE_PICKLIST+" ");
@@ -750,7 +742,6 @@ public class Setup {
             Setup.checkCreateColumn(con, menuItemTable, "useStyleFrom", Type.LINK, menuItemTable, installMessages);
             Setup.checkTableSuperclass(schema, menuItemTable, "restricted", installMessages);
             Setup.checkCreateColumn(con, menuTable, "items", Type.LIST, menuItemTable, installMessages);
-
 
             if (con.getRowCount(TABLE_MENUITEM) == 0) {
                 MutableDocument mi_login = con.create(TABLE_MENUITEM);
@@ -863,52 +854,63 @@ public class Setup {
                 mi_pagebuilder.set("_allow", adminRoles);
                 mi_pagebuilder.save();
 
-                MutableDocument mi_basestyle = con.create(TABLE_MENUITEM);  // Not added to menu, to support page Builder
-                mi_basestyle.set("name","default-scripts");
-                mi_basestyle.set("description","Default scripts for basic PermeAgility functions");
-                mi_basestyle.set("pageStyle", DEFAULT_BASE_STYLE);
-                mi_basestyle.set("pageScript", DEFAULT_BASE_SCRIPT);
-                mi_basestyle.set("type","STYLE");
-                mi_basestyle.set("active",true);
-                mi_basestyle.set("_allowRead", allRoles);
-                mi_basestyle.set("_allow", adminRoles);
-                mi_basestyle.save();
-
-
                 MutableDocument mi_welcome = con.create(TABLE_MENUITEM);  // Not added to menu, to support page Builder
                 mi_welcome.set("name","welcome");
-                mi_welcome.set("description","Default welcome page for guests");
+                mi_welcome.set("description","Welcome page for guests");
                 mi_welcome.set("pageStyle", DEFAULT_WELCOME_STYLE);
-                mi_welcome.set("pageScript", DEFAULT_WELCOME_SCRIPT);
+                mi_welcome.set("pageScript", DEFAULT_WELCOME_HTML);
                 mi_welcome.set("type","WELCOME");
                 mi_welcome.set("active",true);
                 mi_welcome.set("_allowRead", allRoles);
                 mi_welcome.set("_allow", adminRoles);
                 mi_welcome.save();
 
+                MutableDocument mi_base_scripts = con.create(TABLE_MENUITEM);  // Not added to menu, to support page Builder
+                mi_base_scripts.set("name","scripts");
+                mi_base_scripts.set("description","Default scripts for basic PermeAgility functions");
+                mi_base_scripts.set("pageStyle", DEFAULT_SCRIPTS_STYLE);
+                mi_base_scripts.set("pageScript", DEFAULT_SCRIPTS_HTML);
+                mi_base_scripts.set("type","STYLE");
+                mi_base_scripts.set("active",true);
+                mi_base_scripts.set("_allowRead", allRoles);
+                mi_base_scripts.set("_allow", adminRoles);
+                mi_base_scripts.save();
+
+                MutableDocument mi_base_colors = con.create(TABLE_MENUITEM);  // Not added to menu, to support page Builder
+                mi_base_colors.set("name","colors");
+                mi_base_colors.set("description","Color definitions (light and dark)");
+                mi_base_colors.set("pageStyle", DEFAULT_COLORS_STYLE);
+                mi_base_colors.set("pageScript", DEFAULT_COLORS_HTML);
+                mi_base_colors.set("type","STYLE");
+                mi_base_colors.set("active",true);
+                mi_base_colors.set("_allowRead", allRoles);
+                mi_base_colors.set("_allow", adminRoles);
+                mi_base_colors.set("useStyleFrom", mi_base_scripts.getIdentity());
+                mi_base_colors.save();
+
+                MutableDocument mi_base_styles = con.create(TABLE_MENUITEM);  // Not added to menu, to support page Builder
+                mi_base_styles.set("name","styles");
+                mi_base_styles.set("description","Styles for PermeAgility components");
+                mi_base_styles.set("pageStyle", DEFAULT_STYLES_STYLE);
+                mi_base_styles.set("pageScript", DEFAULT_STYLES_HTML);
+                mi_base_styles.set("type","STYLE");
+                mi_base_styles.set("active",true);
+                mi_base_styles.set("_allowRead", allRoles);
+                mi_base_styles.set("_allow", adminRoles);
+                mi_base_styles.set("useStyleFrom", mi_base_colors.getIdentity());
+                mi_base_styles.save();
+
                 MutableDocument mi_homed = con.create(TABLE_MENUITEM);  // Not added to menu, to support page Builder
-                mi_homed.set("name","home-dark");
-                mi_homed.set("description","Home Application page in dark mode");
-                mi_homed.set("pageStyle", DEFAULT_DARK_STYLESHEET);
-                mi_homed.set("pageScript", DEFAULT_HOME_SCRIPT);
+                mi_homed.set("name","home");
+                mi_homed.set("description","Home Application page");
+                mi_homed.set("pageStyle", DEFAULT_HOME_STYLE);
+                mi_homed.set("pageScript", DEFAULT_HOME_HTML);
                 mi_homed.set("type","HOME");
                 mi_homed.set("active",true);
                 mi_homed.set("_allowRead", allRoles);
                 mi_homed.set("_allow", adminRoles);
-                mi_homed.set("useStyleFrom", mi_basestyle.getIdentity());
+                mi_homed.set("useStyleFrom", mi_base_styles.getIdentity());
                 mi_homed.save();
-
-                MutableDocument mi_homel = con.create(TABLE_MENUITEM);  // Not added to menu, to support page Builder
-                mi_homel.set("name","home-light");
-                mi_homel.set("description","Home Application page in light mode");
-                mi_homel.set("pageStyle", DEFAULT_LIGHT_STYLESHEET);
-                mi_homel.set("pageScript", DEFAULT_HOME_SCRIPT);
-                mi_homel.set("type","HOME");
-                mi_homel.set("active",true);
-                mi_homel.set("_allowRead", allRoles);
-                mi_homel.set("_allow", adminRoles);
-                mi_homel.set("useStyleFrom", mi_basestyle.getIdentity());
-                mi_homel.save();
 
                 MutableDocument mi_visuility = con.create(TABLE_MENUITEM);
                 mi_visuility.set("name","Visuility");
@@ -1300,7 +1302,7 @@ public class Setup {
         }
     }
 
-    public static final String DEFAULT_BASE_STYLE = """
+    public static final String DEFAULT_SCRIPTS_STYLE = """
 <script type="text/javascript" src="/js/_hyperscript.min.js"></script>
 <script type="text/javascript" src="/js/htmx.min.js"></script>
 <script src="/js/sorttable.js"></script>
@@ -1331,47 +1333,96 @@ public class Setup {
 <script  type='text/javascript' src="/js/split.min.js"></script>
 """;
 
-    public static final String DEFAULT_BASE_SCRIPT = """
-<p>This is the base style script where the various libraries are included</p>
+    public static final String DEFAULT_SCRIPTS_HTML = """
+<h1>This is the base style script where the various libraries are included</h1>
 """;
-    public static final String DEFAULT_LIGHT_STYLESHEET = """
+
+    public static final String DEFAULT_COLORS_STYLE = """
 <style type='text/css'>
-/* This is the light PermeAgility stylesheet */
+/* Basic Colors for dark and light modes */
+:root {
+  --main-fg-color: black;
+  --main-bg-color: white;
+  --main-bg-color2: #bbb;
+  --banner-color: lightgreen;
+  --hover-color: lightblue;
+  --button-color: #aaa;
+  --menu-fg-color: black;
+  --menu-bg-color: lightgray;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --main-fg-color: white;
+    --main-bg-color: #111;
+    --main-bg-color2: #444;
+    --banner-color: #336666;
+    --hover-color: darkorange;
+    --button-color: #444;
+    --menu-fg-color: lightgray;
+    --menu-bg-color: #222;
+  }
+} 
+</style>        
+    """;
+
+    public static final String DEFAULT_COLORS_HTML = """
+<h1>These are the base colors used in the styles</h1>   
+    """;
+
+    public static final String DEFAULT_STYLES_STYLE = """
+<style type='text/css'>
+/* This is the default PermeAgility stylesheet */
 
 /* Reset from the default browser styles */
 *,*::before,*::after{
     box-sizing: border-box; margin: 0px; padding: 0px; scroll-behavior: smooth;
 }
-html { background-color: #fff; }
+html { background-color: var(--main-bg-color); }
 body { font-family: verdana,sans-serif; height: 100%; min-height:100%;
-        color: black;
+        color: var(--main-fg-color);
 }
+
+/* For popup forms */
+:popover-open {
+    top: 20px; left: 50%; transform: translateX(-50%);
+    padding: 10px 10px; border-radius: 10px;
+    background-color: var(--main-bg-color); color: var(--main-fg-color); border-color: gray;
+}
+::backdrop { backdrop-filter: blur(2px); }
+
+button {
+  background-color: var(--button-color); 
+  color: var(--main-fg-color); border: none; 
+  padding: 3px 5px; text-align: center; text-decoration: none;
+  display: inline;
+}
+button:hover { background: radial-gradient(ellipse, var(--hover-color), var(--button-color)); }
 
 /* positioning of header items */
 img.headerlogo { width: 90px; left: 20px; top: 15px; position: absolute; border: none; user-select: none; }
 a.headerlogo:hover { text-decoration: none; background-color: transparent;}
 
 #header { position: absolute; top: 0px; left: 0px; right: 0px; height: 70px;
-            background-image: linear-gradient(to left, white, #aaa) !important;   }
+            background-image: linear-gradient(to left, var(--main-bg-color), var(--menu-bg-color)) !important;   }
 
 #headertitle { font-size: 0.75em; position: absolute; top: 20px; left: 120px; }
 #headerservice { font-size: 1em; position: absolute; top: 40px; left: 120px; }
 #headertime { font-size: 0.75em; position: absolute; top: 5px; right: 5px; }
 #headeruser { font-size: 0.75em; position: absolute; top: 50px; right: 5px; }
 #service { position: absolute; top: 70px; bottom: 0px; width: 100%;
-    background-image: linear-gradient(to right, white, #ccc) !important;
+    background-image: linear-gradient(to right, var(--main-bg-color), var(--main-bg-color2)) !important;
     overflow-y: auto; padding: 0.5em;
 }
 
 /* anchor tags appearance */
 a { text-decoration: none; user-select: none; }
 a:hover { text-decoration: underline; }
-a, a.menuitem, a.popuplink {color: black;}
+a, a.menuitem, a.popuplink {color: var(--menu-fg-color);}
 a.menuitem:link { text-decoration: none; }
 a.menuitem:visited { text-decoration: none; }
 a:hover, a.menuitem:hover, a.popuplink:hover {
-    text-decoration: none; color: black;
-    background: radial-gradient(ellipse, darkorange, white);
+    text-decoration: none; color: var(--menu-fg-color);
+    background: radial-gradient(ellipse, var(--hover-color), var(--main-bg-color));
 }
 .selected { font-weight: 600; text-decoration: underline; }
 
@@ -1380,26 +1431,24 @@ ol, ul { margin-left: 2.5em; }
 a.list-delete { margin-left: 1em; }
 
 /* labels and tables */
-.label { color: black; }
 td.label { text-align: right; vertical-align: top; font-size: small;
-    color: black; font-weight: bold;
+    color: var(--main-fg-color); font-weight: bold;
     border-radius: 6px 6px 6px 6px;
-    background: linear-gradient(to right, white, #ccc);
+    background: linear-gradient(to right, var(--main-bg-color), var(--main-bg-color2));
         border: none;  padding: 0px 5px 0px 25px;}
 input, textarea, select {
-    background-color : #fff;
-    color: black;
+    background-color : var(--main-bg-color);
+    color: var(--main-fg-color);
 }
 input.number { text-align: right; }
-th { font-weight: bold; background-color: lightgray;
-    border-radius: 8px 8px 0px 0px;
+th { font-weight: bold; background-color: var(--main-bg-color2);
+    color: var(--main-fg-color); border-radius: 8px 8px 0px 0px;
 }
 tbody { overflow-y: scroll; }
-tr { background-color: #fff; vertical-align: top; }
-tr:nth-of-type(2n) { background-color: #eee; }
+tr { background-color: var(--main-bg-color); vertical-align: top; }
 tr.clickable { vertical-align: top; }
 tr.clickable:hover {
-    background: radial-gradient(ellipse, darkorange, white);
+    background: radial-gradient(ellipse, var(--hover-color), var(--main-bg-color));
 }
 tr.footer { font-weight: bold; }
 td { text-align: left;  }
@@ -1410,37 +1459,39 @@ div.tableGroups { display: flex; flex-direction: row; flex-wrap: wrap; }
 div.tableGroup { display: flex; flex-direction: column; align-self: first baseline; padding: 5px;}
 
 /* Sortable tables */
-table.sortable thead { color: black; font-weight: bold; cursor: default; }
+table.sortable thead { font-weight: bold; cursor: default; }
 .sortable thead th { position: sticky; top: 0; }
 .sortable tfoot { position: sticky; bottom: 0; background-color: #eee; opacity: 0.85;}
 
 /* paragraphs types */
-p.menuheader {  color: white;  margin: 0.2em 0em 0em 0em; }
-P.banner {
-    font-weight: bold;  text-align:center;  color: black;
-    margin: 0.2em 0em 0em 0em;
-    page-break-after: avoid;
+p span { color: var(--main-fg-color); }
+p.menuheader {  color: var(--menu-fg-color);  margin: 0.2em 0em 0em 0em; }
+p.banner { background-color: var(--banner-color);
+        font-weight: bold;  text-align:center;  color: var(--main-fg-color);
+        margin: 0.2em 0em 0em 0em; page-break-after: avoid;
+        border-radius: 8px 8px 8px 8px;
+        background: radial-gradient(ellipse, var(--banner-color), var(--main-bg-color2));
 }
-P.error {
+p.error {
     font-weight: bold; text-align:center;
     color: black; margin: 0.2em 0em 0em 0em;
     border-radius: 6px 6px 6px 6px;
     background: radial-gradient(ellipse, rgb(117,0,0), white);
 }
-P.warning {
+p.warning {
     font-weight: bold; text-align:center;
     color: black; margin: 0.2em 0em 0em 0em;
     border-radius: 6px 6px 6px 6px;
     background-color: #FFCC00;
     background: radial-gradient(ellipse, #FFCC00, white);
 }
-P.success { background-color: #white;
+p.success { background-color: #white;
     font-weight: bold; text-align:center;
     color: black; margin: 0.2em 0em 0em 0em;
     border-radius: 6px 6px 6px 6px;
     background: radial-gradient(ellipse, #1d5e1f, white);
 }
-P.nochange { background-color: rgb(0,0,200);
+p.nochange { background-color: rgb(0,0,200);
     font-weight: bold; text-align:center;
     color: black; margin: 0.2em 0em 0em 0em;
 }
@@ -1448,8 +1499,8 @@ P.nochange { background-color: rgb(0,0,200);
 *.new { background-color: #FFFF9C }
 *.changed { background-color: #DEBDDE }
 *.warning { background-color: #FF9900; }
-P.delete { text-align:right; }
-P.bannerleft { background-color: #303b43;
+p.delete { text-align:right; }
+p.bannerleft { background-color: #303b43;
         font-weight: bold; text-align:left;
         color: black; margin: 0.2em 0em 0em 0em;
 }
@@ -1493,53 +1544,6 @@ g.selected { stroke: yellow; }
 rect.node { opacity: 0.5; }
 rect.selection { opacity:0.8; fill: none; stroke: white; stroke-width: 4px; stroke-dasharray: 5,5; }
 
-/* For popup modal forms */
- :popover-open {
-    top: 20px; left: 50%; transform: translateX(-50%);
-    padding: 10px 10px; border-radius: 10px;
-    background-color: #ddd;
-   }
-   ::backdrop {   backdrop-filter: blur(2px); }
-
-/* For Menu/Navigator popup */
-.nav-button {
-    position: relative; display: flex; flex-direction: column;
-    justify-content: center;  -webkit-appearance: none;
-    border: 0; margin-left: 10px;
-    background: transparent; border-radius: 0;
-    height: 40px; width: 25px;
-    cursor: pointer; pointer-events: auto;
-    touch-action: manipulation; user-select: none;
-    -webkit-tap-highlight-color: rgba(0,0,0,0);
-}
-.icon-bar { display: block; width: 100%; height: 3px; background: #666; transition: .5s; border-radius: 3px;}
-.icon-bar + .icon-bar { margin-top: 5px; }
-#nav-container { position: fixed; height: 100vh; width: 100%; pointer-events: none; }
-#nav-container * { visibility: visible; }
-#nav-container:focus-within .bg { visibility: visible; opacity: .6; }
-#nav-container:focus-within .nav-button { pointer-events: none; }
-#nav-container:focus-within .icon-bar:nth-of-type(1) { transform: translate3d(0,8px,0) rotate(45deg); }
-#nav-container:focus-within .icon-bar:nth-of-type(2) { opacity: 0; }
-#nav-container:focus-within .icon-bar:nth-of-type(3) { transform: translate3d(0,-8px,0) rotate(-45deg); }
-#nav-container:focus-within #nav-content { transform: none; }
-#nav-container .bg {
-    position: absolute; top: 70px; left: 0;
-    width: 100%; height: calc(100% - 70px);
-    visibility: hidden; opacity: 0;
-    transition: .5s; background: #333;
-}
-#nav-content ul { height: 100%; display: flex; flex-direction: column; margin-left: 0px; list-style: none; }
-#nav-content li:not(.small) + .small { margin-top: auto; }
-#nav-content {
-    margin-top: 40px;  padding: 10px; width: 90%; max-width: 170px;
-    position: absolute; top: 0; left: 0; height: calc(100% - 70px);
-    background: #666; opacity: 0.9; pointer-events: auto;
-    -webkit-tap-highlight-color: rgba(0,0,0,0);
-    transform: translateX(-100%);
-    transition: .5s;
-    will-change: transform;  contain: paint;
-}
-
 .small { display: flex; align-self: center; }
 .small a { font-size: 12px; font-weight: 400; color: #888; }
 .small a + a { margin-left: 15px; }
@@ -1560,268 +1564,27 @@ iframe.previewFrame { width: calc(100% - 10px); height: calc(100vh - 110px); }
 </style>
 """;
 
-public static final String DEFAULT_HOME_SCRIPT = """
-<div id="header" hx-trigger="load" hx-get="/Header"
-    hx-swap="innerHTML"></div>
+public static final String DEFAULT_STYLES_HTML = """
+<h1>This is the minimum style sheet for the PermeAgility Components</h1>        
+""";
 
-<div id="service">
-   <PermeAgility table="news" order="dateline desc"
+public static final String DEFAULT_HOME_STYLE = """
+<style type='text/css'>
+
+</style>
+""";
+
+public static final String DEFAULT_HOME_HTML = """
+<PermeAgility table="news" order="dateline desc"
                where="(archive IS NULL OR archive=false)
                AND (locale IS NULL OR locale.name='${locale}')
                AND ${_allowRead}">
-   <div class="card-content">
+   <div>
        <h2>${news.name}</h2>
        <p style="font-size:8pt">${news.dateline} ${locale} #${news.rid}</p>
        <p>${news.description}</p>
    </div>
-   </PermeAgility>
-</div>
-
-<div id="nav-container">
-   <div id="underlay" class="bg"></div>
-   <div id="nav-button" class="nav-button" tabindex="0">
-   <span class="icon-bar"></span>
-   <span class="icon-bar"></span>
-   <span class="icon-bar"></span>
-   </div>
-   <div id="nav-content" hx-get="/Menu?TARGET=service"
-        hx-trigger="load" hx-swap="innerHTML" tabindex="0"></div>
-</div>
-
-""";
-
-public static final String DEFAULT_DARK_STYLESHEET = """
-<style type='text/css'>
-/* This is the dark PermeAgility stylesheet */
-
-/* Reset from the default browser styles */
-*,*::before,*::after{
-    box-sizing: border-box; margin: 0px; padding: 0px; scroll-behavior: smooth;
-}
-html { background-color: #111;}
-body { font-family: verdana,sans-serif; height: 100%; min-height:100%;
-        color: white;
-}
-::-webkit-scrollbar { background: #333; }  /* these are for Chrome's ugly scrollbars */
-::-webkit-scrollbar-thumb { background: #444; }
-
-/* For popup forms */
-:popover-open {
-    top: 20px; left: 50%; transform: translateX(-50%);
-    padding: 10px 10px; border-radius: 10px;
-    background-color: #111; color: white; border-color: gray;
-}
-::backdrop {   backdrop-filter: blur(2px); }
-
-button {
-  background-color: #444; border: none; color: white;
-  padding: 3px 5px; text-align: center; text-decoration: none;
-  display: inline;
-}
-/* positioning of header items */
-img.headerlogo { width: 90px; left: 20px; top: 15px; position: absolute; border: none; user-select: none; }
-a.headerlogo:hover { text-decoration: none; background-color: transparent;}
-
-#header { position: absolute; top: 0px; left: 0px; right: 0px; height: 70px;
-            background-image: linear-gradient(to left, black, #444444) !important;   }
-
-#headertitle { font-size: 0.75em; position: absolute; top: 20px; left: 120px; }
-#headerservice { font-size: 1em; position: absolute; top: 40px; left: 120px; }
-#headertime { font-size: 0.75em; position: absolute; top: 5px; right: 5px; }
-#headeruser { font-size: 0.75em; position: absolute; top: 50px; right: 5px; }
-#service { position: absolute; top: 70px; bottom: 0px; width: 100%;
-    background-image: linear-gradient(to right, black, #444444) !important;
-    overflow-y: auto; padding: 0.5em;
-}
-
-/* anchor tags appearance */
-a { text-decoration: none; user-select: none; }
-a:hover { text-decoration: underline; }
-a, a.menuitem, a.popuplink {color: lightgray;}
-a.menuitem:link { text-decoration: none; }
-a.menuitem:visited { text-decoration: none; }
-a:hover, a.menuitem:hover, a.popuplink:hover {
-    text-decoration: none; color: white;
-    background: radial-gradient(ellipse, darkorange, black);
-}
-.selected { font-weight: 600; text-decoration: underline; }
-
-/* Lists */
-ol, ul { color: white; margin-left: 2.5em; }
-a.list-delete { margin-left: 1em; }
-
-/* labels and tables */
-.label { color: black; }
-td.label { text-align: right; vertical-align: top; font-size: small;
-    color: white; font-weight: bold;
-    border-radius: 6px 6px 6px 6px;
-    background: linear-gradient(to right, black, #444);
-        border: none;  padding: 0px 5px 0px 25px;}
-input, textarea, select {
-    background-color : #222;
-    color: white;
-}
-input.number { text-align: right; }
-th {  border-radius: 8px 8px 0px 0px;
-    background-color: black; color: white;
-        background: radial-gradient(ellipse, #339999, black);
-}
-tbody { overflow-y: scroll; }
-tr { background-color: #222; vertical-align: top; color: white; }
-tr:nth-of-type(2n) { background-color: #2a2a2a; }
-tr.clickable { vertical-align: top; }
-tr.clickable:hover {
-    background: radial-gradient(ellipse, darkorange, black);
-}
-tr.footer { font-weight: bold; }
-td { text-align: left; color: white; }
-td.number { text-align: right; }
-td.total { text-align: right; font-weight:bolder; normal: solid thin black; }
-div.tabpanel { text-align: center; }
-div.tableGroups { display: flex; flex-direction: row; flex-wrap: wrap; }
-div.tableGroup { display: flex; flex-direction: column; align-self: first baseline; padding: 5px;}
-
-/* Sortable tables */
-table.sortable thead { color: white; font-weight: bold; cursor: default; }
-.sortable thead th { position: sticky; top: 0; }
-.sortable tfoot { position: sticky; bottom: 0; background-color: #222; opacity: 0.85;}
-
-/* paragraphs types */
-p span { color: white; }
-p.menuheader {  color: white;  margin: 0.2em 0em 0em 0em; }
-P.banner { background-color: #336666;
-        font-weight: bold;  text-align:center;  color: white;
-        margin: 0.2em 0em 0em 0em;
-        page-break-after: avoid;
-        border-radius: 8px 8px 8px 8px;
-        background: radial-gradient(ellipse, #336666, black);
-}
-P.error {
-    font-weight: bold; text-align:center;
-    color: white; margin: 0.2em 0em 0em 0em;
-    border-radius: 6px 6px 6px 6px;
-    background: radial-gradient(ellipse, rgb(117,0,0), black);
-}
-P.warning {
-    font-weight: bold; text-align:center;
-    color: white; margin: 0.2em 0em 0em 0em;
-    border-radius: 6px 6px 6px 6px;
-    background-color: #FFCC00;
-    background: radial-gradient(ellipse, #FFCC00, black);
-}
-P.success { background-color: #1d5e1f;
-    font-weight: bold; text-align:center;
-    color: white; margin: 0.2em 0em 0em 0em;
-    border-radius: 6px 6px 6px 6px;
-    background: radial-gradient(ellipse, #1d5e1f, black);
-}
-P.nochange { background-color: rgb(0,0,200);
-    font-weight: bold; text-align:center;
-    color: white; margin: 0.2em 0em 0em 0em;
-}
-*.alert { background-color: #FF6666; }
-*.new { background-color: #FFFF9C }
-*.changed { background-color: #DEBDDE }
-*.warning { background-color: #FF9900; }
-P.delete { text-align:right; }
-P.bannerleft { background-color: #303b43;
-        font-weight: bold; text-align:left;
-        color: white; margin: 0.2em 0em 0em 0em;
-}
-
-/* For Code editor */
-div.CodeMirror { height: auto; z-index: 0; overflow-x: hidden; overflow-y: hidden; }
-
-/* For split.js - splitter bar */
-.split {
-box-sizing: border-box;
-overflow-y: auto;
-overflow-x: clip;
-}
-.gutter.gutter-horizontal { cursor: col-resize; }
-.gutter.gutter-vertical { cursor: row-resize; }
-.gutter.gutter-horizontal:hover { background-color: #444; }
-.gutter.gutter-vertical:hover { background-color: #444; }
-.split.split-horizontal, .gutter.gutter-horizontal {
-height: 100%;
-float: left;
-}
-.noscroll { overflow-y: clip; }
-.gutter.gutter-vertical { background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAFAQMAAABo7865AAAABlBMVEVHcEzMzMzyAv2sAAAAAXRSTlMAQObYZgAAABBJREFUeF5jOAMEEAIEEFwAn3kMwcB6I2AAAAAASUVORK5CYII=');
-background-repeat: no-repeat;
-background-position: center;
-}
-.gutter.gutter-horizontal { background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAeCAYAAADkftS9AAAAIklEQVQoU2M4c+bMfxAGAgYYmwGrIIiDjrELjpo5aiZeMwF+yNnOs5KSvgAAAABJRU5ErkJggg==');
-background-repeat: no-repeat;
-background-position: center;
-}
-
-/* For visuility */
-.nodeTitle { fill: white; filter: url(#drop-shadow); font-size: small; }
-g:not(.selected) { stroke: none; }
-g.selected { stroke: yellow; }
-.link { fill: lightgray; stroke: gray; }
-rect.node { opacity: 0.5; }
-rect.selection { opacity:0.8; fill: none; stroke: white; stroke-width: 4px; stroke-dasharray: 5,5; }
-
-/* For Menu/Navigator popup */
-.nav-button {
-    position: relative; display: flex; flex-direction: column;
-    justify-content: center;  -webkit-appearance: none;
-    border: 0; margin-left: 10px;
-    background: transparent; border-radius: 0;
-    height: 40px; width: 25px;
-    cursor: pointer; pointer-events: auto;
-    touch-action: manipulation; user-select: none;
-    -webkit-tap-highlight-color: rgba(0,0,0,0);
-}
-.icon-bar { display: block; width: 100%; height: 3px; background: #aaa; transition: .5s; border-radius: 3px;}
-.icon-bar + .icon-bar { margin-top: 5px; }
-#nav-container { position: fixed; height: 100vh; width: 100%; pointer-events: none; }
-#nav-container * { visibility: visible; }
-#nav-container:focus-within .bg { visibility: visible; opacity: .6; }
-#nav-container:focus-within .nav-button { pointer-events: none; }
-#nav-container:focus-within .icon-bar:nth-of-type(1) { transform: translate3d(0,8px,0) rotate(45deg); }
-#nav-container:focus-within .icon-bar:nth-of-type(2) { opacity: 0; }
-#nav-container:focus-within .icon-bar:nth-of-type(3) { transform: translate3d(0,-8px,0) rotate(-45deg); }
-#nav-container:focus-within #nav-content { transform: none; }
-#nav-container .bg {
-    position: absolute; top: 70px; left: 0;
-    width: 100%; height: calc(100% - 70px);
-    visibility: hidden; opacity: 0;
-    transition: .5s; background: #333;
-}
-
-#nav-content ul { height: 100%; display: flex; flex-direction: column; margin-left: 0px; list-style: none; }
-#nav-content li:not(.small) + .small { margin-top: auto; }
-#nav-content {
-    margin-top: 40px;  padding: 10px; width: 90%; max-width: 170px;
-    position: absolute; top: 0; left: 0; height: calc(100% - 70px);
-    background: #333; opacity: 0.9; pointer-events: auto;
-    -webkit-tap-highlight-color: rgba(0,0,0,0);
-    transform: translateX(-100%);
-    transition: .5s;
-    will-change: transform;  contain: paint;
-}
-
-.small { display: flex; align-self: center; }
-.small a { font-size: 12px; font-weight: 400; color: #888; }
-.small a + a { margin-left: 15px; }
-
-/* For PageBuilder preview */
-iframe.previewFrame { width: calc(100% - 10px); height: calc(100vh - 110px); }
-
-/* For when printing */
-@media print { BODY { font-size: 6pt; margin: 1em; } }
-@media print { #menu {display: none; } }
-@media print { #service {position: absolute; top: 0.5in; left: auto;} }
-@media print { TABLE.data { border: solid thin;  page-break-inside: avoid;} }
-@media print { TD.header { border: solid thin; } }
-@media print { *.new { border: dotted thin; } }
-@media print { *.alert { border: solid medium; border-color: #FF0000;} }
-@media print { *.changed { border: double thin; } }
-@media print { *.button { display: none; } }
-</style>
+</PermeAgility>
 """;
 
 public static final String DEFAULT_WELCOME_STYLE = """
@@ -1832,21 +1595,18 @@ public static final String DEFAULT_WELCOME_STYLE = """
 body { font-family: sans-serif; }
 a { color: lightblue; }
 h4 { margin-top: 1.5em; }
-
 .header, .footer {
     background-color: #222;  color: white; height: 35px;
     justify-content: center; align-items: center;
 }
 img.headerlogo { width: 50px; left: 5px; top: 5px; position: absolute; border: none; user-select: none; }
 a.headerlogo:hover { text-decoration: none; background-color: transparent;}
-
 #header { top: 0px; left: 0px; right: 0px; height: 35px; z-index: -1;
         background-image: linear-gradient(to left, black, #444444) !important;   }
-#headertitle { font-size: 0.75em; text-align: center; }
+#headertitle { font-size: 0.75em; text-align: center; color: white; }
 #headerservice { display: none; }
 #headertime { display: none; }
 #headeruser { font-size: 0.75em; text-align: right; }
-
 .card {
     width: 100vw; height: 100vh;
     background: rgb(20, 50, 100, 0.8);  color: white;
@@ -1854,14 +1614,12 @@ a.headerlogo:hover { text-decoration: none; background-color: transparent;}
     justify-content: center;
     position: sticky; top: 0;
 }
-
 .card img {
     position: absolute; z-index: 1;
     left: 0; top: 0; width: 100%; height: 100%;
     object-fit: cover;
     filter: brightness(0.5);
 }
-
 .card-content {
     position: absolute; z-index: 2;
     width: 50%; height: 100%;
@@ -1873,10 +1631,7 @@ a.headerlogo:hover { text-decoration: none; background-color: transparent;}
 </style>
 """;
 
-public static final String DEFAULT_WELCOME_SCRIPT = """
-<div id="header" class="header"
-    hx-trigger="load" hx-get="/Header" hx-swap="innerHTML">
-</div>
+public static final String DEFAULT_WELCOME_HTML = """
 <div>
     <PermeAgility table="news" order="dateline desc"
         where="(archive IS NULL OR archive=false)
@@ -1897,7 +1652,6 @@ public static final String DEFAULT_WELCOME_SCRIPT = """
     <a HREF=http://www.permeagility.com>PermeAgility Incorporated</a>
     </p></small></center>
 </div>
-
 """;
 
 }

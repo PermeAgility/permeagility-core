@@ -97,6 +97,7 @@ public class PageBuilder extends Table {
              + addFormData(formName,"pageScript")
              + addFormData("name")
              + addFormData("description")
+             + addFormData("type")
              + addFormData("useStyleFrom")
              + addFormData("_allowRead")                           
              + addFormData("_allow")                           // send it to be processed

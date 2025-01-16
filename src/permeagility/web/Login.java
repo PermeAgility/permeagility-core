@@ -23,7 +23,7 @@ import permeagility.util.DatabaseConnection;
 
 public class Login extends Weblet {
 
-	public static String DEFAULT_HOME = "home-dark";  // Only needed if people try to go home with no name specified
+	public static String DEFAULT_HOME = "home";  // Only needed if people try to go home with no name specified
 
 	public String getPage(DatabaseConnection con, java.util.HashMap<String,String> parms) {
 		return getHTML(con, parms);
