@@ -1271,7 +1271,7 @@ public class Table extends Weblet {
         if (pagest != null) {
             try { page = Integer.parseInt(pagest); } catch (Exception e) { }  // If it isn't a number, ignore it
         }
-        String body = (parms.get("HX-TARGET").equals("service") 
+        String body = (parms.get("HX-TARGET") != null && parms.get("HX-TARGET").equals("service") 
                         ? linkHTMX(this.getClass().getName(), "&lt;" + Message.get(con.getLocale(), "ALL_TABLES")+ "&nbsp;&nbsp;&nbsp;", parms.get("HX-TARGET")) 
                         : "")  // only show '< All Tables' link if main service
                  + ((Security.getTablePriv(con, table) & Security.PRIV_CREATE) > 0
@@ -1282,7 +1282,9 @@ public class Table extends Weblet {
                        )
                     : "")
                 + "&nbsp;&nbsp;&nbsp;"
-                + (Security.isDBA(con) && parms.get("HX-TARGET").equals("service")
+                + (Security.isDBA(con) 
+                    && parms.get("HX-TARGET") != null 
+                    && parms.get("HX-TARGET").equals("service")
                     ? newColumnPopup(con, table, parms.get("HX-TARGET"))
                     + "&nbsp;&nbsp;&nbsp;"
                     + popupFormHTMX("RIGHTSOPTIONS", this.getClass().getName()+"/"+table, "post", "RIGHTSOPTIONS"
