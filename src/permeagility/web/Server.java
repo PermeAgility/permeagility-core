@@ -332,7 +332,7 @@ public class Server {
                                 if (DEBUG) System.out.println("REQUESTHEADER="+get);
                                 if (get.startsWith("Cookie:")) {
                                         StringTokenizer cookiet = new StringTokenizer(get.substring(7)," =;");
-                                        while (cookiet.hasMoreTokens() && !cookiet.nextToken().equalsIgnoreCase("name")) {}
+                                        while (cookiet.hasMoreTokens() && !cookiet.nextToken().equalsIgnoreCase("pa_token")) {}
                                         if (cookiet.hasMoreTokens()) {
                                                 cookieValue = cookiet.nextToken();
                                                 if (DEBUG) System.out.println("GOT COOKIE "+cookieValue);
@@ -1082,7 +1082,7 @@ public class Server {
 			+"Server: PermeAgility 1.0\r\n"
 			+(keep_alive ? "Connection: keep-alive\n" : "")
 //			+(newCookieValue != null ? "Set-Cookie: name=PermeAgilitySession"+HTTP_PORT+"; SameSite=Lax; value="+newCookieValue+";\r\n" : "")
-			+(newCookieValue != null ? "Set-Cookie: name="+newCookieValue+"; SameSite=Lax;\r\n" : "")
+			+(newCookieValue != null ? "Set-Cookie: pa_token="+newCookieValue+"; SameSite=Strict\r\n" : "")
 			+"Content-length: " + size + "\r\n"
 			+"Content-type: " + ct + "\r\n"
 			+(content_disposition != null ? "Content-disposition: " + content_disposition + "\r\n" : "")
@@ -1095,7 +1095,7 @@ public class Server {
 	public final static String getRedirectHeader(HashMap<String,String> parms, String cookieValue) {
 		String responseHeader = "HTTP/1.1 303 See other\r\n"
 			+"Location: " + parms.get("RESPONSE_REDIRECT") + "\r\n"
-			+(cookieValue != null ? "Set-Cookie: name="+cookieValue+"; SameSite=Lax;\r\n" : "")
+			+(cookieValue != null ? "Set-Cookie: pa_token="+cookieValue+"; SameSite=Strict\r\n" : "")
        		+"Content-length: 0\r\n"   // Because Firefox is too stupid to understand the redirect without this
             +"\r\n";
 		if (DEBUG) System.out.println("RESPONSEHEADER="+responseHeader);
