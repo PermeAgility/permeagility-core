@@ -168,6 +168,13 @@
       <version>1.18.3</version>
     </dependency>
     
+    <!-- Jactl for embedded scripting -->
+    <dependency>
+      <groupId>io.jactl</groupId>
+      <artifactId>jactl</artifactId>
+      <version>2.2.0</version>
+    </dependency>
+
   </dependencies>
 
  <profiles>
