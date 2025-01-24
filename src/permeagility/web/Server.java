@@ -1327,25 +1327,7 @@ public class Server {
 
                 // Start up the record listeners
                 RecordEvents events = con.getDb().getEvents();
-               // events.registerListener((BeforeRecordCreateListener) record -> { 
-               //         System.out.println("BeforeRecordCreate event record="+record.toJSON(true).toString());
-               //         return true;
-               // });
-              // implement row level security here
-              //  events.registerListener((BeforeRecordReadListener) rid -> { 
-              //          System.out.println("BeforeRecordRead event record="+rid.toString());
-              //          return true;
-              //  });
-                //events.registerListener((BeforeRecordUpdateListener) record -> { 
-                //        System.out.println("BeforeRecordUpdate event record="+record.toJSON(true).toString());
-                //        return true;
-                //});
-                // Could use to prevent deletes of critical data
-                //events.registerListener((BeforeRecordDeleteListener) record -> { 
-                //        System.out.println("BeforeRecordDelete event record="+record.toJSON(true).toString());
-                //        return true;
-                //});
-
+      
                 events.registerListener((AfterRecordCreateListener) record -> { 
 //                    if (DEBUG) System.out.println("Server: AfterRecordCreate event record="+record.toJSON(true).toString());
                     if (DEBUG) System.out.println("Server: AfterRecordCreate event record="+record.getIdentity().toString());
