@@ -239,7 +239,7 @@ public class Menu extends Weblet {
             <span class="icon-bar"></span>
             </div>
             <div id="nav-content" hx-get="/Menu?TARGET=service"
-                    hx-trigger="load" hx-swap="innerHTML" tabindex="0"></div>
+                    hx-trigger="load, menuUpdated from:body" hx-swap="innerHTML" tabindex="0"></div>
             </div>
                 """;
     }

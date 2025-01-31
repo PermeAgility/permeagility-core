@@ -391,6 +391,7 @@ public class Context extends Weblet {
                             if (submit.equals("PLUS_REMOVE")) {
                                 if (DEBUG) System.out.println("Removing " + m);
                                 installed = !plusSetup.remove(con, parms, errors);
+                                parms.put("HX-Trigger", "menuUpdated");
                             } else if (submit.equals("PLUS_UPGRADE")) {
                                 if (DEBUG) System.out.println("Upgrading " + m);
                                 installed = plusSetup.upgrade(con, parms, errors);
@@ -398,6 +399,7 @@ public class Context extends Weblet {
                         } else if (submit.equals("PLUS_INSTALL")) {
                             if (DEBUG) System.out.println("Installing " + m);
                             installed = plusSetup.install(con, parms, errors);
+                            parms.put("HX-Trigger", "menuUpdated");
                         }
                     }
                     String inVersion = plusSetup.getInstalledVersion(con, plusSetup.getClass().getName());

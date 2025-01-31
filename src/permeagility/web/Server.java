@@ -910,7 +910,7 @@ public class Server {
                                 os.write(getRedirectHeader(parms, newCookieValue).getBytes());
                             } else {
                                 if (theData != null) {
-                                    os.write(getHeader(content_type, theData.length, newCookieValue, content_disposition, keep_alive).getBytes());
+                                    os.write(getHeader(content_type, theData.length, newCookieValue, content_disposition, keep_alive, parms).getBytes());
                                     os.flush();
                                     os.write(theData);
                                 }
@@ -1064,7 +1064,7 @@ public class Server {
 
         /* Return a file response and flush - file is streamed in 1024 byte chunks */
         private final static void returnFile(String filename, File thefile, boolean keep_alive, OutputStream os) throws Exception {
-            os.write(getHeader(getContentType(filename), (int) thefile.length(), null, null, keep_alive).getBytes());
+            os.write(getHeader(getContentType(filename), (int) thefile.length(), null, null, keep_alive, null).getBytes());
             InputStream iis = new FileInputStream(thefile);
             int b;   byte[] buf = new byte[1024];
             while ((b = iis.read(buf)) != -1) {
@@ -1076,16 +1076,16 @@ public class Server {
 
 	/** Get HTML header adding a cookie and content disposition
 	 * @param keep_alive */
-	public final static String getHeader(String ct, int size, String newCookieValue, String content_disposition, boolean keep_alive) {
+	public final static String getHeader(String ct, int size, String newCookieValue, String content_disposition, boolean keep_alive, HashMap<String,String> parms) {
 		String responseHeader = "HTTP/1.1 200 OK\r\n"
 			+"Date: " + new java.util.Date() + "\r\n"
 			+"Server: PermeAgility 1.0\r\n"
 			+(keep_alive ? "Connection: keep-alive\n" : "")
-//			+(newCookieValue != null ? "Set-Cookie: name=PermeAgilitySession"+HTTP_PORT+"; SameSite=Lax; value="+newCookieValue+";\r\n" : "")
 			+(newCookieValue != null ? "Set-Cookie: pa_token="+newCookieValue+"; SameSite=Strict\r\n" : "")
 			+"Content-length: " + size + "\r\n"
 			+"Content-type: " + ct + "\r\n"
 			+(content_disposition != null ? "Content-disposition: " + content_disposition + "\r\n" : "")
+            +(parms != null && parms.get("HX-Trigger") != null ? "HX-Trigger: "+parms.get("HX-Trigger")+"\r\n" : "")
 			+"\r\n";
 		if (DEBUG) System.out.println("RESPONSEHEADER="+responseHeader);
 		return responseHeader;
@@ -1181,6 +1181,13 @@ public class Server {
 		return name;
 	}
 
+    public final static void tableUpdated(HashMap<String, String> parms, DatabaseConnection con, String table) {
+        tableUpdated(con, table);
+        if (table.equals("menu") || table.equals("menuItem")) {
+            parms.put("HX-Trigger", "menuUpdated");
+        }
+    }
+    
 	/**  Call this when you update a table that the server or caches may be interested in   */
 	public final static void tableUpdated(DatabaseConnection con, String table) {
 		if (table.equalsIgnoreCase("metadata:schema")) {

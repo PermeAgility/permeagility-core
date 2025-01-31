@@ -507,7 +507,7 @@ public class Table extends Weblet {
                 for (String thumbCol : thumbsToUpdate) {
                     Thumbnail.createThumbnail(con, table, createdDoc, thumbCol);
                 }
-                Server.tableUpdated(con, table);
+                Server.tableUpdated(parms, con, table);
                 DatabaseConnection.rowCountChanged(table);
                 return true;
             } catch (Exception e) {
@@ -777,7 +777,7 @@ public class Table extends Weblet {
                 try {
                     updateRow.save();
                     errors.append(serviceNotificationDiv(paragraph("success", Message.get(con.getLocale(), "ROW_UPDATED", (updateRow.isDirty() ? "false" : "true")))));
-                    Server.tableUpdated(con, table);
+                    Server.tableUpdated(parms, con, table);
                     return true;
                 } catch (Exception e) {
                     StringWriter sw = new StringWriter();
@@ -810,7 +810,7 @@ public class Table extends Weblet {
             try {
                 String delName = doc.has("name") ? doc.getString("name") : doc.getIdentity().toString();
                 doc.delete();
-                Server.tableUpdated(con, table);
+                Server.tableUpdated(parms, con, table);
                 DatabaseConnection.rowCountChanged(table);
                 Thumbnail.deleteThumbnail(con, table, edit_id );
                 parms.remove("EDIT_ID");
