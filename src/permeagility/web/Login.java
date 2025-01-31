@@ -16,9 +16,6 @@
 package permeagility.web;
 
 import java.util.Locale;
-
-import com.arcadedb.database.Document;
-
 import permeagility.util.DatabaseConnection;
 
 public class Login extends Weblet {
@@ -42,13 +39,6 @@ public class Login extends Weblet {
 		if (!con.getUser().equalsIgnoreCase("guest") ) { // We are logged in, redirect to main page
 			return redirect(parms, destinationClass);
 		}
-
-		StringBuilder modeSelect = new StringBuilder();		// build a select list of home pages to choose from (usually light/dark)
-		modeSelect.append("<select name='DESTINATIONMODE'>\n");
-		for (Document item : con.queryTable("menuItem","type = 'HOME'").get()) {
-			modeSelect.append("<option value='"+item.getString("name")+"' title='"+item.getString("description")+"'>"+item.getString("name")+"</option>");
-		}
-		modeSelect.append("</select>");
 
 		String error = null;
 		if (parms.get("USERNAME") != null || parms.get("PASSWORD") != null) {
@@ -81,10 +71,6 @@ public class Login extends Weblet {
 						row("data",
 							columnRight(40,Message.get(locale,"PASSWORD_LABEL")) 
 							+column(60,passwordRequired())
-						) +
-						row("data",
-							columnRight(40,Message.get(locale,"LIGHTDARK_LABEL")) 
-							+column(60,modeSelect.toString())
 						) +
 						row(
 							column(40,hidden("DESTINATIONCLASS",destinationClass))
