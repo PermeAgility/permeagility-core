@@ -128,6 +128,32 @@ public void rollback() {  /* c.rollback();*/ }
     	return qr;
     }
 
+    // static method to be called from Jactl script
+    public static Object queryData;
+    public static List<String> query(Object dbcon, String expression) {
+        if (dbcon instanceof DatabaseConnection con) {
+            List<Document> queryResult = con.query(expression).get();
+            List<String> resultList = new ArrayList<String>();
+            for (Document d : queryResult) {
+                resultList.add(d.toJSON().toString());
+            }
+            return resultList;
+            //return con.query(expression).get();
+        }
+        System.out.println("Please specify a db connection for query: "+expression);
+        return null;
+    }
+
+    // static method to be called from Jactl script
+    public static Object updateData;
+    public static Object update(Object dbcon, String expression) {
+        if (dbcon instanceof DatabaseConnection con) {
+            return con.update(expression);
+        }
+        System.out.println("Please specify a db connection for update: "+expression);
+        return null;
+    }
+
 	/** Execute a query and return a QueryResult object */
     public QueryResult queryTable(String table) { return queryTable(table, null, null, null); }
     public QueryResult queryTable(String table, String where) { return queryTable(table, where, null, null); }

@@ -23,6 +23,7 @@ import org.jsoup.Jsoup;
 import com.arcadedb.database.Document;
 import com.arcadedb.database.RID;
 
+import permeagility.util.CodeRunner;
 import permeagility.util.DatabaseConnection;
 import permeagility.util.QueryResult;
 
@@ -67,7 +68,7 @@ public class Home extends Weblet {
             org.jsoup.select.Elements elements = htmlDoc.children().select("PermeAgility");
             if (elements.size() > 0) {  // If PermeAgility elements inside
                 for (org.jsoup.nodes.Element ele : elements) {
-                    ele.html(runTemplate(con, ele));
+                    ele.html(runTemplate(con, parms, ele));
                 }
                 htmlScript = htmlDoc.select("body").html(); 
                 // then remove the permeagility tag, no trace we were here
@@ -103,7 +104,18 @@ public class Home extends Weblet {
         }
     }
 
-    private String runTemplate(DatabaseConnection con, org.jsoup.nodes.Element ele) {
+    private String runTemplate(DatabaseConnection con, HashMap<String,String> parms, org.jsoup.nodes.Element ele) {
+        String code = ele.attr("code");
+        if (code != null && !code.isEmpty()) {
+            switch (code) {
+                case "jactl":
+                    System.out.println("Found jactl code: "+ele.wholeText());
+                    return runCode(con, parms, ele.wholeText());
+                                
+                default:
+                    return "Unknown language: "+code;
+            }
+        }
             String table = ele.attr("table");
             String where = ele.attr("where");
             String order = ele.attr("order");
@@ -169,9 +181,9 @@ public class Home extends Weblet {
             } catch (Exception e) {
                 return paragraph("error","Error running query: "+e.getClass().getName()+"\n"+e.getMessage());
             }
-    }
-
-    String scanForTokens(DatabaseConnection con, String toScan) {
+        }
+    
+        String scanForTokens(DatabaseConnection con, String toScan) {
         StringBuilder resultline = new StringBuilder();
         String[] templines = toScan.split("\\$\\{");
         for (String templine : templines) {
@@ -201,4 +213,13 @@ public class Home extends Weblet {
         System.out.println("!! Error on token replacement for token: "+token);
         return "!{"+token+"}";
     }
+
+    private String runCode(DatabaseConnection con, HashMap<String,String> parms, String code) {
+        System.out.println("Running code: "+code);
+        HashMap<String,Object> globals = new HashMap<>();
+        globals.put("db", con);
+        globals.put("parms", parms);
+        return CodeRunner.runCode(code, globals);
+    }
+
 }
