@@ -1,6 +1,5 @@
 package permeagility.util;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
