@@ -1037,6 +1037,10 @@ public class Table extends Weblet {
         } else if (type == Type.STRING && name.toUpperCase().endsWith("JSON")) {
             if (DEBUG) System.out.println("Doing JSON Editor field " + name);
             return row(label + column(getCodeEditorControl(formName, PARM_PREFIX + name, (String) initialValue, "application/json", submitCodeLines)));
+            // Jactl/Groovy Code (String)
+        } else if (type == Type.STRING && name.toUpperCase().endsWith("CODE")) {
+            if (DEBUG) System.out.println("Doing Jactl/Groovy Code Editor field " + name);
+            return row(label + column(getCodeEditorControl(formName, PARM_PREFIX + name, (String) initialValue, "groovy", submitCodeLines)));
             // Script-R (String)
         } else if (type == Type.STRING && name.toUpperCase().endsWith("RSCRIPT")) {
             if (DEBUG) System.out.println("Doing R Code Editor field " + name);
@@ -1046,11 +1050,11 @@ public class Table extends Weblet {
             if (DEBUG) System.out.println("Doing HTML Code Editor field " + name);
             return row(label + column(getCodeEditorControl(formName, PARM_PREFIX + name, (String) initialValue, "htmlmixed", submitCodeLines)));
             // Script-Javascript (String)
-        } else if (type == Type.STRING && (name.toUpperCase().endsWith("JAVASCRIPT") || name.toUpperCase().endsWith("CODE"))) {
+        } else if (type == Type.STRING && (name.toUpperCase().endsWith("JAVASCRIPT") || name.toUpperCase().endsWith("JS"))) {
             if (DEBUG) System.out.println("Doing JavaScript Code Editor field " + name);
             return row(label + column(getCodeEditorControl(formName, PARM_PREFIX + name, (String) initialValue, "text/javascript", submitCodeLines)));
             // Style-CSS (String)
-        } else if (type == Type.STRING && (name.toUpperCase().endsWith("STYLE"))) {
+        } else if (type == Type.STRING && (name.toUpperCase().endsWith("STYLE") || name.toUpperCase().endsWith("CSS"))) {
             if (DEBUG) System.out.println("Doing CSS Code Editor field " + initialValues);
             return row(label + column(getCodeEditorControl(formName, PARM_PREFIX + name, (String) initialValue, "css", submitCodeLines)));
             // String
