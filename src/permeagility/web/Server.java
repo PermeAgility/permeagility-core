@@ -831,7 +831,7 @@ public class Server {
                                     while(con == null && retries < DBCON_RETRY_LIMIT) {
                                         try {  
                                             if (method.equalsIgnoreCase("GET")) {
-                                                //System.out.println("Getting readonly connection");
+                                                if (DEBUG) System.out.println("Getting readonly connection");
                                                 con = userdb.getReadOnlyConnection();
                                             } else {
                                                 con = userdb.getConnection();

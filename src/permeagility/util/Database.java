@@ -97,7 +97,7 @@ public final class Database  {
             }
             if (EMBEDDED_SERVER) {
                 if (sdb == null) sdb = server.getDatabase(url);
-                sdb.setAutoTransaction(true);
+                //sdb.setAutoTransaction(true);
             } else {
                 db = dbFactory.open();
             }
@@ -113,9 +113,9 @@ public final class Database  {
             //if ()
             System.out.println("Validating the user login information for "+user);
             con = EMBEDDED_SERVER ? new DatabaseConnection(this,sdb) : new DatabaseConnection(this,db);
-            //con.begin();
+            con.begin();
             Document udoc = con.queryDocument("SELECT FROM user WHERE name='"+user+"' AND status='ACTIVE' AND password='"+password+"'");
-            //con.commit();
+            con.commit();
             if (udoc != null) {
                 isValid = true;
             } else {

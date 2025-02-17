@@ -83,9 +83,9 @@ public final class DatabaseConnection {
 	/** Get the Schema object */
 	public com.arcadedb.schema.Schema getSchema() { return c.getSchema(); }
 
-public void begin() { /* c.begin(); */ }
-public void commit() { /* c.commit(); */ }
-public void rollback() {  /* c.rollback();*/ }
+    public void begin() {  c.begin();  }
+    public void commit() {  c.commit();  }
+    public void rollback() {   c.rollback(); }
 
 	/** Returns total number of rows in table from cache if found */
 	public long getRowCount(String table) {
