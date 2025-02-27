@@ -1,0 +1,11 @@
+{ "actionCode":[ {"@rid":"226:0", "@type":"actionCode"
+, "name":"Counter"
+ ,"description":"Increment a counter"
+ ,"type":{"@rid":"207:0", "@type":"actionType"
+, "name":"pre-read"
+ ,"description":"Triggered when a record is retrieved, will be passed the record being read, return false to prevent the record from being returned to the user"
+ ,"parameters": ["225:0"
+ ,"225:1"
+ ,"225:4"] }
+ ,"actionCode":"def pageName = \"home\";\r\nList counts = query(db,\"select from pageCount where name='${pageName}'\");\r\nint count = 1;\r\nif (counts.size() == 0) {\r\n  update(db,\"insert into pageCount set name='${pageName}', count=${count}\");\r\n} else { \r\n  count = counts[0].fromJson().count + 1;\r\n  update(db,\"update pageCount set count=${count} where name='${pageName}'\");\r\n};\r\nreturn count;"
+ ,"actionColor":"#09604b"} ] }

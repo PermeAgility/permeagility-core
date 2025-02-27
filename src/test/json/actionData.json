@@ -1,0 +1,15 @@
+{ "actionData":[ {"@rid":"225:0", "@type":"actionData"
+, "name":"db"
+ ,"description":"Database connection"}, 
+{"@rid":"225:1", "@type":"actionData"
+, "name":"parms"
+ ,"description":"HashMap of parameters from originating request"}, 
+{"@rid":"225:2", "@type":"actionData"
+, "name":"old"
+ ,"description":"Old record being deleted or updated"}, 
+{"@rid":"225:3", "@type":"actionData"
+, "name":"new"
+ ,"description":"New record being added or updated"}, 
+{"@rid":"225:4", "@type":"actionData"
+, "name":"record"
+ ,"description":"The current row initiating the action"} ] }

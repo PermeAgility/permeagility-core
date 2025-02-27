@@ -1,0 +1,126 @@
+{ "actionType":[ {"@rid":"201:0", "@type":"actionType"
+, "name":"pre-create"
+ ,"description":"Before creation of a record, return false to cancel the create"
+ ,"parameters": [{"@rid":"225:0", "@type":"actionData"
+, "name":"db"
+ ,"description":"Database connection"}
+ ,{"@rid":"225:1", "@type":"actionData"
+, "name":"parms"
+ ,"description":"HashMap of parameters from originating request"}
+ ,{"@rid":"225:3", "@type":"actionData"
+, "name":"new"
+ ,"description":"New record being added or updated"}] }, 
+{"@rid":"201:1", "@type":"actionType"
+, "name":"pre-delete"
+ ,"description":"Called before a record is deleted, return false to prevent the delete"
+ ,"parameters": [{"@rid":"225:0", "@type":"actionData"
+, "name":"db"
+ ,"description":"Database connection"}
+ ,{"@rid":"225:1", "@type":"actionData"
+, "name":"parms"
+ ,"description":"HashMap of parameters from originating request"}
+ ,{"@rid":"225:2", "@type":"actionData"
+, "name":"old"
+ ,"description":"Old record being deleted or updated"}] }, 
+{"@rid":"202:0", "@type":"actionType"
+, "name":"post-create"
+ ,"description":"After creation of a record, will be passed the contents of the new record"
+ ,"parameters": [{"@rid":"225:0", "@type":"actionData"
+, "name":"db"
+ ,"description":"Database connection"}
+ ,{"@rid":"225:1", "@type":"actionData"
+, "name":"parms"
+ ,"description":"HashMap of parameters from originating request"}
+ ,{"@rid":"225:3", "@type":"actionData"
+, "name":"new"
+ ,"description":"New record being added or updated"}] }, 
+{"@rid":"202:1", "@type":"actionType"
+, "name":"post-delete"
+ ,"description":"Called after a record is deleted, will be passed the old record"
+ ,"parameters": [{"@rid":"225:0", "@type":"actionData"
+, "name":"db"
+ ,"description":"Database connection"}
+ ,{"@rid":"225:1", "@type":"actionData"
+, "name":"parms"
+ ,"description":"HashMap of parameters from originating request"}
+ ,{"@rid":"225:2", "@type":"actionData"
+, "name":"old"
+ ,"description":"Old record being deleted or updated"}] }, 
+{"@rid":"203:0", "@type":"actionType"
+, "name":"pre-click"
+ ,"description":"Called before a button is presented, return false to disable the button"
+ ,"parameters": [{"@rid":"225:0", "@type":"actionData"
+, "name":"db"
+ ,"description":"Database connection"}
+ ,{"@rid":"225:1", "@type":"actionData"
+, "name":"parms"
+ ,"description":"HashMap of parameters from originating request"}
+ ,{"@rid":"225:4", "@type":"actionData"
+, "name":"record"
+ ,"description":"The current row initiating the action"}] }, 
+{"@rid":"204:0", "@type":"actionType"
+, "name":"post-click"
+ ,"description":"Action to perform when a button is clicked on a record"
+ ,"parameters": [{"@rid":"225:0", "@type":"actionData"
+, "name":"db"
+ ,"description":"Database connection"}
+ ,{"@rid":"225:1", "@type":"actionData"
+, "name":"parms"
+ ,"description":"HashMap of parameters from originating request"}
+ ,{"@rid":"225:4", "@type":"actionData"
+, "name":"record"
+ ,"description":"The current row initiating the action"}] }, 
+{"@rid":"205:0", "@type":"actionType"
+, "name":"pre-update"
+ ,"description":"Called before a record is updated, will be passed the old and new record, return false to cancel the update"
+ ,"parameters": [{"@rid":"225:0", "@type":"actionData"
+, "name":"db"
+ ,"description":"Database connection"}
+ ,{"@rid":"225:1", "@type":"actionData"
+, "name":"parms"
+ ,"description":"HashMap of parameters from originating request"}
+ ,{"@rid":"225:2", "@type":"actionData"
+, "name":"old"
+ ,"description":"Old record being deleted or updated"}
+ ,{"@rid":"225:3", "@type":"actionData"
+, "name":"new"
+ ,"description":"New record being added or updated"}] }, 
+{"@rid":"206:0", "@type":"actionType"
+, "name":"post-update"
+ ,"description":"Called after an update, will be passed the old and new record"
+ ,"parameters": [{"@rid":"225:0", "@type":"actionData"
+, "name":"db"
+ ,"description":"Database connection"}
+ ,{"@rid":"225:1", "@type":"actionData"
+, "name":"parms"
+ ,"description":"HashMap of parameters from originating request"}
+ ,{"@rid":"225:2", "@type":"actionData"
+, "name":"old"
+ ,"description":"Old record being deleted or updated"}
+ ,{"@rid":"225:3", "@type":"actionData"
+, "name":"new"
+ ,"description":"New record being added or updated"}] }, 
+{"@rid":"207:0", "@type":"actionType"
+, "name":"pre-read"
+ ,"description":"Triggered when a record is retrieved, will be passed the record being read, return false to prevent the record from being returned to the user"
+ ,"parameters": [{"@rid":"225:0", "@type":"actionData"
+, "name":"db"
+ ,"description":"Database connection"}
+ ,{"@rid":"225:1", "@type":"actionData"
+, "name":"parms"
+ ,"description":"HashMap of parameters from originating request"}
+ ,{"@rid":"225:4", "@type":"actionData"
+, "name":"record"
+ ,"description":"The current row initiating the action"}] }, 
+{"@rid":"208:0", "@type":"actionType"
+, "name":"post-read"
+ ,"description":"Called after a record is retrieved, will be passed the record that was retrieved"
+ ,"parameters": [{"@rid":"225:0", "@type":"actionData"
+, "name":"db"
+ ,"description":"Database connection"}
+ ,{"@rid":"225:1", "@type":"actionData"
+, "name":"parms"
+ ,"description":"HashMap of parameters from originating request"}
+ ,{"@rid":"225:4", "@type":"actionData"
+, "name":"record"
+ ,"description":"The current row initiating the action"}] } ] }
